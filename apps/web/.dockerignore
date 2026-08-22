@@ -1,0 +1,14 @@
+node_modules
+.next
+npm-debug.log*
+logs
+*.log
+.git
+.gitignore
+.env
+.env.*
+.DS_Store
+coverage
+.cache
+.vite
+*.tsbuildinfo
