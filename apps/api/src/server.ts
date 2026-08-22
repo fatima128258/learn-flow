@@ -3,17 +3,46 @@ import cors from 'cors';
 import cookieParser from 'cookie-parser';
 import authRoutes from './routes/authRoutes';
 
+const DEFAULT_ALLOWED_ORIGINS = [
+  'http://localhost:3000',
+  'http://127.0.0.1:3000',
+  'http://localhost:3001',
+  'http://127.0.0.1:3001',
+  'http://web:3000',
+  'http://frontend:3000',
+];
+
+function getAllowedOrigins() {
+  const configured = (process.env.CORS_ALLOWED_ORIGINS || '')
+    .split(',')
+    .map((value) => value.trim())
+    .filter(Boolean);
+
+  return Array.from(new Set([...DEFAULT_ALLOWED_ORIGINS, ...configured]));
+}
+
+const allowedOrigins = getAllowedOrigins();
+
 export const app = express();
 
-// Middleware
-app.use(cors({ origin: true, credentials: true }));
+app.use(cors({
+  origin(origin, callback) {
+    if (!origin) return callback(null, true);
+    const normalizedOrigin = origin.replace(/\/$/, '');
+    if (allowedOrigins.some((allowed) => allowed.replace(/\/$/, '') === normalizedOrigin)) {
+      return callback(null, true);
+    }
+    return callback(new Error('Not allowed by CORS'));
+  },
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Organization-Id'],
+}));
 app.use(cookieParser());
 app.use(express.json());
 
-// Routes
 app.use('/api/v1/auth', authRoutes);
 
-// Start helper
 export const start = (port: number | string = process.env.PORT ?? 4000) => {
   const p = typeof port === 'string' ? Number(port) : port;
   return app.listen(p, () => {
@@ -22,7 +51,6 @@ export const start = (port: number | string = process.env.PORT ?? 4000) => {
   });
 };
 
-// If run directly, start the server
 if (typeof require !== 'undefined' && require.main === module) {
   start();
 }

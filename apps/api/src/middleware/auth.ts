@@ -3,17 +3,36 @@ import * as authService from '../services/authService';
 import getPrisma from '../prisma';
 
 const COOKIE_NAME = process.env.SESSION_COOKIE_NAME || 'learnflow_session';
+const ROLE_PRIORITY: Record<string, number> = {
+  STUDENT: 1,
+  INSTRUCTOR: 2,
+  ORG_ADMIN: 3,
+  PLATFORM_ADMIN: 4,
+};
 
 export interface AuthenticatedRequest extends Request {
   userId?: string;
+  organizationId?: string;
   user?: {
     id: string;
     name: string | null;
     email: string;
     emailVerified: boolean;
+    createdAt?: Date;
     role?: string;
     organizationId?: string;
   };
+}
+
+export function hasRequiredRole(userRole: string | undefined, allowedRoles: string[]) {
+  if (!userRole) return false;
+  const userLevel = ROLE_PRIORITY[userRole];
+  if (userLevel === undefined) return false;
+
+  return allowedRoles.some((role) => {
+    const requiredLevel = ROLE_PRIORITY[role];
+    return requiredLevel !== undefined && userLevel >= requiredLevel;
+  });
 }
 
 export async function requireAuth(req: AuthenticatedRequest, res: Response, next: NextFunction) {
@@ -34,11 +53,22 @@ export async function requireAuth(req: AuthenticatedRequest, res: Response, next
     }
 
     req.userId = user.id;
+    const userOrganizations = await getPrisma().userOrganization.findMany({
+      where: { userId: user.id },
+    });
+    const primaryMembership = userOrganizations.find((membership) => membership.role === 'PLATFORM_ADMIN')
+      ?? userOrganizations.find((membership) => membership.role === 'ORG_ADMIN')
+      ?? userOrganizations.find((membership) => membership.role === 'INSTRUCTOR')
+      ?? userOrganizations[0];
+
     req.user = {
       id: user.id,
       name: user.name,
       email: user.email,
       emailVerified: user.emailVerified,
+      createdAt: user.createdAt,
+      role: primaryMembership?.role,
+      organizationId: primaryMembership?.organizationId,
     };
 
     next();
@@ -59,24 +89,23 @@ export async function requireVerifiedEmail(req: AuthenticatedRequest, res: Respo
   next();
 }
 
-// Multi-tenant context middleware - extracts organization from request
 export async function requireOrganizationContext(req: AuthenticatedRequest, res: Response, next: NextFunction) {
   if (!req.user) {
     return res.status(401).json({ error: 'NOT_AUTHENTICATED' });
   }
 
   try {
-    // Organization ID can come from:
-    // 1. Route parameter (:organizationId)
-    // 2. Request header (X-Organization-Id)
-    // 3. Query parameter (?organizationId=...)
-    const orgId = req.params.organizationId || req.headers['x-organization-id'] || req.query.organizationId;
+    const rawOrgId = req.params.organizationId || req.headers['x-organization-id'] || req.query.organizationId || req.body?.organizationId;
+    const orgId = Array.isArray(rawOrgId) ? rawOrgId[0] : rawOrgId;
 
     if (!orgId || typeof orgId !== 'string') {
       return res.status(400).json({ error: 'ORGANIZATION_REQUIRED' });
     }
 
-    // Verify user has access to this organization
+    if (req.user.organizationId && req.user.organizationId !== orgId) {
+      return res.status(403).json({ error: 'ORGANIZATION_ACCESS_DENIED' });
+    }
+
     const prisma = getPrisma();
     const userOrg = await prisma.userOrganization.findUnique({
       where: {
@@ -94,7 +123,7 @@ export async function requireOrganizationContext(req: AuthenticatedRequest, res:
       return res.status(403).json({ error: 'ORGANIZATION_ACCESS_DENIED' });
     }
 
-    // Attach organization context to request
+    req.organizationId = orgId;
     req.user.organizationId = orgId;
     req.user.role = userOrg.role;
 
@@ -104,18 +133,13 @@ export async function requireOrganizationContext(req: AuthenticatedRequest, res:
   }
 }
 
-// Role-based authorization middleware
 export function requireRole(...allowedRoles: string[]) {
   return (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     if (!req.user) {
       return res.status(401).json({ error: 'NOT_AUTHENTICATED' });
     }
 
-    if (!req.user.role) {
-      return res.status(403).json({ error: 'ROLE_REQUIRED' });
-    }
-
-    if (!allowedRoles.includes(req.user.role)) {
+    if (!hasRequiredRole(req.user.role, allowedRoles)) {
       return res.status(403).json({ error: 'INSUFFICIENT_PERMISSIONS' });
     }
 
@@ -123,7 +147,6 @@ export function requireRole(...allowedRoles: string[]) {
   };
 }
 
-// Platform admin check
 export async function requirePlatformAdmin(req: AuthenticatedRequest, res: Response, next: NextFunction) {
   if (!req.user) {
     return res.status(401).json({ error: 'NOT_AUTHENTICATED' });
@@ -131,7 +154,6 @@ export async function requirePlatformAdmin(req: AuthenticatedRequest, res: Respo
 
   try {
     const prisma = getPrisma();
-    // Check if user has PLATFORM_ADMIN role in any organization (platform admins are global)
     const adminRole = await prisma.userOrganization.findFirst({
       where: {
         userId: req.user.id,
@@ -142,6 +164,10 @@ export async function requirePlatformAdmin(req: AuthenticatedRequest, res: Respo
     if (!adminRole) {
       return res.status(403).json({ error: 'PLATFORM_ADMIN_REQUIRED' });
     }
+
+    req.user.role = 'PLATFORM_ADMIN';
+    req.user.organizationId = adminRole.organizationId;
+    req.organizationId = adminRole.organizationId;
 
     next();
   } catch (err) {

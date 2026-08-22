@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { register, login, logout, forgotPassword, resetPassword, verifyEmail, resendVerification, getMe } from '../controllers/authController';
+import { requireAuth } from '../middleware/auth';
 
 const router = Router();
 
@@ -10,6 +11,6 @@ router.post('/forgot-password', forgotPassword);
 router.post('/reset-password', resetPassword);
 router.post('/verify-email', verifyEmail);
 router.post('/resend-verification', resendVerification);
-router.get('/me', getMe);
+router.get('/me', requireAuth, getMe);
 
 export default router;

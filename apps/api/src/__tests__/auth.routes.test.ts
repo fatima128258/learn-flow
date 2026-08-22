@@ -13,7 +13,16 @@ vi.mock('../services/authService', () => ({
   getUserById: vi.fn(),
 }));
 
+vi.mock('../prisma', () => ({
+  default: () => ({
+    userOrganization: {
+      findMany: vi.fn(async () => [{ role: 'STUDENT', organizationId: 'org-1' }]),
+    },
+  }),
+}));
+
 import app from '../server';
+import { requireRole } from '../middleware/auth';
 import * as authService from '../services/authService';
 
 describe('Auth routes', () => {
@@ -56,6 +65,7 @@ describe('Auth routes', () => {
         name: 'Alice',
         email: 'alice@example.com',
         password: 'pass1234',
+        ip: '::ffff:127.0.0.1',
       });
     });
 
@@ -75,6 +85,34 @@ describe('Auth routes', () => {
       expect(res.body.error).toBe('EMAIL_TAKEN');
     });
 
+    it('rejects invalid email addresses', async () => {
+      const res = await request(app)
+        .post('/api/v1/auth/register')
+        .send({
+          name: 'Charlie',
+          email: 'not-an-email',
+          password: 'pass1234',
+          confirmPassword: 'pass1234',
+        });
+
+      expect(res.status).toBe(400);
+      expect(res.body.error).toBe('INVALID_EMAIL');
+    });
+
+    it('rejects weak passwords', async () => {
+      const res = await request(app)
+        .post('/api/v1/auth/register')
+        .send({
+          name: 'Dana',
+          email: 'dana@example.com',
+          password: 'short',
+          confirmPassword: 'short',
+        });
+
+      expect(res.status).toBe(400);
+      expect(res.body.error).toBe('PASSWORD_TOO_SHORT');
+    });
+
     it('returns error for password mismatch', async () => {
       const res = await request(app)
         .post('/api/v1/auth/register')
@@ -87,6 +125,21 @@ describe('Auth routes', () => {
 
       expect(res.status).toBe(400);
       expect(res.body.error).toBe('PASSWORD_MISMATCH');
+    });
+
+    it('rejects platform admin role attempts on public registration', async () => {
+      const res = await request(app)
+        .post('/api/v1/auth/register')
+        .send({
+          name: 'Emma',
+          email: 'emma@example.com',
+          password: 'pass1234',
+          confirmPassword: 'pass1234',
+          role: 'PLATFORM_ADMIN',
+        });
+
+      expect(res.status).toBe(403);
+      expect(res.body.error).toBe('ROLE_NOT_ALLOWED');
     });
 
     it('returns error for missing fields', async () => {
@@ -229,7 +282,7 @@ describe('Auth routes', () => {
 
       expect(res.status).toBe(200);
       expect(res.body.message).toContain('successfully');
-      expect(authService.resetPassword).toHaveBeenCalledWith('valid-reset-token', 'newpass123');
+      expect(authService.resetPassword).toHaveBeenCalledWith('valid-reset-token', 'newpass123', '::ffff:127.0.0.1');
     });
 
     it('returns error for invalid token', async () => {
@@ -299,7 +352,7 @@ describe('Auth routes', () => {
 
       expect(res.status).toBe(200);
       expect(res.body.message).toContain('verified successfully');
-      expect(authService.verifyEmail).toHaveBeenCalledWith('valid-verify-token');
+      expect(authService.verifyEmail).toHaveBeenCalledWith('valid-verify-token', '::ffff:127.0.0.1');
     });
 
     it('returns error for invalid token', async () => {
@@ -345,6 +398,53 @@ describe('Auth routes', () => {
     });
   });
 
+  describe('RBAC middleware', () => {
+    it('denies users without the required role', () => {
+      const req = {
+        user: {
+          id: 'user-1',
+          name: 'Student',
+          email: 'student@example.com',
+          emailVerified: true,
+          role: 'STUDENT',
+        },
+      } as any;
+      const res = {
+        status: vi.fn().mockReturnThis(),
+        json: vi.fn(),
+      } as any;
+      const next = vi.fn();
+
+      requireRole('INSTRUCTOR')(req, res, next);
+
+      expect(res.status).toHaveBeenCalledWith(403);
+      expect(next).not.toHaveBeenCalled();
+    });
+
+    it('ignores user-supplied role values during authorization', () => {
+      const req = {
+        user: {
+          id: 'user-1',
+          name: 'Student',
+          email: 'student@example.com',
+          emailVerified: true,
+          role: 'STUDENT',
+        },
+        body: { role: 'PLATFORM_ADMIN' },
+      } as any;
+      const res = {
+        status: vi.fn().mockReturnThis(),
+        json: vi.fn(),
+      } as any;
+      const next = vi.fn();
+
+      requireRole('ORG_ADMIN')(req, res, next);
+
+      expect(res.status).toHaveBeenCalledWith(403);
+      expect(next).not.toHaveBeenCalled();
+    });
+  });
+
   describe('GET /api/v1/auth/me', () => {
     it('returns user info for authenticated user', async () => {
       vi.mocked(authService.getSessionFromToken).mockResolvedValue({
@@ -374,6 +474,7 @@ describe('Auth routes', () => {
       expect(res.status).toBe(200);
       expect(res.body.user.email).toBe('test@example.com');
       expect(res.body.user.emailVerified).toBe(true);
+      expect(res.body.user.role).toBe('STUDENT');
     });
 
     it('returns 401 for unauthenticated request', async () => {
