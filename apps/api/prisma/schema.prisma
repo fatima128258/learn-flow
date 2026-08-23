@@ -14,13 +14,21 @@ enum UserRole {
   STUDENT
 }
 
+enum OrganizationStatus {
+  ACTIVE
+  SUSPENDED
+}
+
 model Organization {
-  id        String   @id @default(cuid())
+  id        String             @id @default(cuid())
   name      String
-  slug      String   @unique
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  slug      String             @unique
+  status    OrganizationStatus @default(ACTIVE)
+  createdAt DateTime           @default(now())
+  updatedAt DateTime           @updatedAt
   users     UserOrganization[]
+
+  @@index([status])
 }
 
 model User {

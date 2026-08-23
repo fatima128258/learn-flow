@@ -2,6 +2,8 @@ import express from 'express';
 import cors from 'cors';
 import cookieParser from 'cookie-parser';
 import authRoutes from './routes/authRoutes';
+import { adminRouter, organizationRouter } from './routes/organizationRoutes';
+import orgAdminRouter from './routes/orgAdminRoutes';
 
 const DEFAULT_ALLOWED_ORIGINS = [
   'http://localhost:3000',
@@ -41,7 +43,20 @@ app.use(cors({
 app.use(cookieParser());
 app.use(express.json());
 
+// Health check endpoint
+app.get('/health', (req, res) => {
+  res.json({
+    status: 'healthy',
+    timestamp: new Date().toISOString(),
+    service: 'learnflow-api',
+    version: '1.0.0'
+  });
+});
+
 app.use('/api/v1/auth', authRoutes);
+app.use('/api/v1/admin', adminRouter);
+app.use('/api/v1/organizations', organizationRouter);
+app.use('/api/v1/org', orgAdminRouter);
 
 export const start = (port: number | string = process.env.PORT ?? 4000) => {
   const p = typeof port === 'string' ? Number(port) : port;

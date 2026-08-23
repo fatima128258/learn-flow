@@ -22,6 +22,10 @@ export async function markUserEmailAsVerified(userId: string) {
   return prisma().user.update({ where: { id: userId }, data: { emailVerified: true } });
 }
 
+export async function updateUserProfile(userId: string, data: { name?: string | null }) {
+  return prisma().user.update({ where: { id: userId }, data });
+}
+
 // Session functions
 export async function createSession(data: { userId: string; tokenHash: string; expiresAt: Date }) {
   return prisma().session.create({ data });

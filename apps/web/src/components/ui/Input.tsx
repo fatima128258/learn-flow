@@ -16,7 +16,7 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
     const errorStyles = 'border-error-500 focus:border-error-500 focus:ring-error-500';
     const disabledStyles = 'disabled:bg-neutral-50 disabled:text-neutral-500 disabled:cursor-not-allowed';
     
-    const inputStyles = `${baseStyles} ${hasError ? errorStyles : normalStyles} ${disabledStyles} ${className} text-neutral-900 placeholder:text-neutral-400`;
+    const inputStyles = `${baseStyles} ${hasError ? errorStyles : normalStyles} ${disabledStyles} ${className} text-gray-900 placeholder:text-gray-400 bg-white px-3 py-2 text-base`;
 
     return (
       <div className="w-full">

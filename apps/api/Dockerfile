@@ -5,9 +5,11 @@ WORKDIR /app
 COPY package.json package-lock.json ./
 COPY tsconfig.json ./
 
-RUN npm ci
+RUN npm install --legacy-peer-deps || npm install
 
 COPY . .
+
+RUN npx prisma generate
 
 RUN npm run build
 

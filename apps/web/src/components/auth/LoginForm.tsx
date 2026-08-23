@@ -82,6 +82,7 @@ export const LoginForm: React.FC<LoginFormProps> = ({ onSubmit, error: externalE
           autoComplete="email"
           disabled={loading}
           required
+          style={{ color: '#000000', backgroundColor: '#ffffff' }}
         />
 
         <PasswordInput
@@ -93,6 +94,7 @@ export const LoginForm: React.FC<LoginFormProps> = ({ onSubmit, error: externalE
           autoComplete="current-password"
           disabled={loading}
           required
+          style={{ color: '#000000', backgroundColor: '#ffffff' }}
         />
 
         <SubmitButton

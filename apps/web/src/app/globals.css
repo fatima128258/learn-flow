@@ -2,6 +2,53 @@
 @tailwind components;
 @tailwind utilities;
 
+/* URGENT FIX: Force all input text to be BLACK */
+input[type="text"], 
+input[type="email"], 
+input[type="password"], 
+input[type="tel"], 
+input[type="url"], 
+input[type="search"], 
+textarea, 
+select {
+  color: #000000 !important;
+  background-color: #ffffff !important;
+  border: 1px solid #d1d5db !important;
+  padding: 8px 12px !important;
+  font-size: 16px !important;
+}
+
+/* Fix placeholder text */
+input::placeholder, 
+textarea::placeholder {
+  color: #9CA3AF !important;
+  opacity: 1 !important;
+}
+
+/* Fix focus state */
+input:focus, textarea:focus, select:focus {
+  color: #000000 !important;
+  background-color: #ffffff !important;
+  outline: 2px solid #4F46E5 !important;
+  outline-offset: 2px !important;
+}
+
+/* Fix selection color */
+input::selection, textarea::selection {
+  background-color: #4F46E5 !important;
+  color: #ffffff !important;
+}
+
+/* All other text should be visible too */
+body, div, span, p, h1, h2, h3, h4, h5, h6, label, button {
+  color: #111827 !important;
+}
+
+/* Links */
+a {
+  color: #4f46e5 !important;
+}
+
 :root {
   /* Semantic Colors - Light Mode */
   --color-primary: #4f46e5;

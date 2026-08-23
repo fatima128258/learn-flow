@@ -38,8 +38,8 @@ services:
 
   api:
     build:
-      context: .
-      dockerfile: ./apps/api/Dockerfile
+      context: ./apps/api
+      dockerfile: Dockerfile
     ports:
       - "4000:4000"
     environment:
@@ -61,7 +61,9 @@ services:
       - mailpit
 
   web:
-    build: ./apps/web
+    build:
+      context: ./apps/web
+      dockerfile: Dockerfile
     ports:
       - "3000:3000"
     environment:
@@ -70,6 +72,22 @@ services:
     depends_on:
       - api
       - db
+
+  api-setup:
+    image: node:20
+    working_dir: /workspace
+    volumes:
+      - ./apps/api:/workspace
+    environment:
+      DATABASE_URL: postgresql://learnflow:learnflow_pass@db:5432/learnflow_db?schema=public
+      ADMIN_EMAIL: ${ADMIN_EMAIL}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD}
+    depends_on:
+      db:
+        condition: service_healthy
+    command: sh -c "npm ci && npx prisma migrate deploy && node prisma/seed.js"
+    profiles:
+      - setup
 
 volumes:
   pgdata:

@@ -1,4 +1,5 @@
 import * as repo from '../repositories/authRepository';
+import getPrisma from '../prisma';
 import { generateToken, hashToken } from '../utils/tokens';
 import { getRedis } from '../utils/redis';
 import { sendVerificationEmail, sendPasswordResetEmail } from '../utils/email';
@@ -57,13 +58,26 @@ export async function loginUser({ email, password, ip = '127.0.0.1' }: { email: 
   const ok = await argon2.verify(user.passwordHash, password);
   if (!ok) throw new Error('INVALID_CREDENTIALS');
 
+  const membership = await getPrisma().userOrganization.findFirst({
+    where: { userId: user.id },
+    orderBy: { createdAt: 'asc' },
+  });
+
   const token = generateToken();
   const tokenHash = hashToken(token);
   const expiresAt = new Date(Date.now() + SESSION_TTL_SECONDS * 1000);
   await repo.createSession({ userId: user.id, tokenHash, expiresAt });
   const redis = getRedis();
   await redis.del(`rl:login:ip:${ip}`);
-  return { user, token, expiresAt };
+  return {
+    user: {
+      ...user,
+      role: membership?.role,
+      organizationId: membership?.organizationId,
+    },
+    token,
+    expiresAt,
+  };
 }
 
 export async function logoutSessionByToken(token: string) {
