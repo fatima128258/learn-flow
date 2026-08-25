@@ -551,4 +551,85 @@ describe('Organization Admin APIs', () => {
       expect(res.body.error).toBe('PASSWORD_TOO_SHORT');
     });
   });
+
+  describe('instructor creation authorization', () => {
+    function createPayload(overrides: Record<string, unknown> = {}) {
+      return {
+        name: 'New Instructor',
+        email: 'new.instructor@example.com',
+        password: 'securepass123',
+        ...overrides,
+      };
+    }
+
+    it('rejects unauthenticated instructor creation', async () => {
+      const res = await request(app)
+        .post('/api/v1/org/instructors')
+        .send(createPayload());
+
+      expect(res.status).toBe(401);
+      expect(res.body.error).toBe('NOT_AUTHENTICATED');
+      expect(prismaMock.user.create).not.toHaveBeenCalled();
+      expect(prismaMock.userOrganization.create).not.toHaveBeenCalled();
+    });
+
+    it.each(['PLATFORM_ADMIN', 'INSTRUCTOR', 'STUDENT'] as const)(
+      'rejects %s from creating an instructor',
+      async (role) => {
+        await authenticateAs(role, { organizationId: 'org-a' });
+
+        const res = await request(app)
+          .post('/api/v1/org/instructors')
+          .set('Cookie', cookie())
+          .send(createPayload());
+
+        expect(res.status).toBe(403);
+        expect(res.body.error).toBe('ORG_ADMIN_REQUIRED');
+        expect(prismaMock.user.create).not.toHaveBeenCalled();
+        expect(prismaMock.userOrganization.create).not.toHaveBeenCalled();
+      }
+    );
+
+    it('rejects requesting the ORG_ADMIN role through instructor creation', async () => {
+      await authenticateAs('ORG_ADMIN', { organizationId: 'org-a' });
+
+      const res = await request(app)
+        .post('/api/v1/org/instructors')
+        .set('Cookie', cookie())
+        .send(createPayload({ role: 'ORG_ADMIN' }));
+
+      expect(res.status).toBe(403);
+      expect(res.body.error).toBe('ROLE_NOT_ALLOWED');
+      expect(prismaMock.user.create).not.toHaveBeenCalled();
+      expect(prismaMock.userOrganization.create).not.toHaveBeenCalled();
+    });
+
+    it('rejects requesting the PLATFORM_ADMIN role through instructor creation', async () => {
+      await authenticateAs('ORG_ADMIN', { organizationId: 'org-a' });
+
+      const res = await request(app)
+        .post('/api/v1/org/instructors')
+        .set('Cookie', cookie())
+        .send(createPayload({ role: 'PLATFORM_ADMIN' }));
+
+      expect(res.status).toBe(403);
+      expect(res.body.error).toBe('ROLE_NOT_ALLOWED');
+      expect(prismaMock.user.create).not.toHaveBeenCalled();
+      expect(prismaMock.userOrganization.create).not.toHaveBeenCalled();
+    });
+
+    it('cannot escalate an existing instructor to ORG_ADMIN via update', async () => {
+      await authenticateAs('ORG_ADMIN', { organizationId: 'org-a' });
+      prismaMock.userOrganization.findUnique.mockResolvedValue(membershipRecord());
+
+      const res = await request(app)
+        .patch('/api/v1/org/users/instructor-1')
+        .set('Cookie', cookie())
+        .send({ role: 'ORG_ADMIN' });
+
+      expect(res.status).toBe(403);
+      expect(res.body.error).toBe('ROLE_NOT_ALLOWED');
+      expect(prismaMock.userOrganization.update).not.toHaveBeenCalled();
+    });
+  });
 });

@@ -1,8 +1,21 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Badge, EmptyState, EmptyStateIcons, ErrorState, Spinner } from '../../../components/ui';
+import {
+  Alert,
+  Badge,
+  Button,
+  EmptyState,
+  EmptyStateIcons,
+  ErrorState,
+  Input,
+  Modal,
+  Spinner,
+} from '../../../components/ui';
+import { FormError } from '../../../components/forms/FormError';
+import { PasswordInput } from '../../../components/forms/PasswordInput';
 import { getOrgAdminErrorMessage } from '../../../features/orgAdmin/orgAdminErrors';
+import { getCreateInstructorErrorMessage } from '../../../features/orgAdmin/createInstructorError';
 
 type OrganizationInfo = {
   id: string;
@@ -62,6 +75,16 @@ export default function OrganizationDashboardPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  const [showInstructorModal, setShowInstructorModal] = useState(false);
+  const [instructorName, setInstructorName] = useState('');
+  const [instructorEmail, setInstructorEmail] = useState('');
+  const [instructorPassword, setInstructorPassword] = useState('');
+  const [instructorEmailError, setInstructorEmailError] = useState<string>('');
+  const [instructorPasswordError, setInstructorPasswordError] = useState<string>('');
+  const [createInstructorError, setCreateInstructorError] = useState<string | null>(null);
+  const [creatingInstructor, setCreatingInstructor] = useState(false);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
+
   async function load() {
     setError(null);
     setLoading(true);
@@ -105,6 +128,89 @@ export default function OrganizationDashboardPage() {
       setError('Could not reach the API. Please try again.');
     } finally {
       setLoading(false);
+    }
+  }
+
+  function closeInstructorModal() {
+    if (creatingInstructor) return;
+    setShowInstructorModal(false);
+    setInstructorName('');
+    setInstructorEmail('');
+    setInstructorPassword('');
+    setInstructorEmailError('');
+    setInstructorPasswordError('');
+    setCreateInstructorError(null);
+  }
+
+  function clearInstructorCredentials() {
+    setInstructorName('');
+    setInstructorEmail('');
+    setInstructorPassword('');
+    setInstructorEmailError('');
+    setInstructorPasswordError('');
+  }
+
+  async function handleCreateInstructor(e: React.FormEvent) {
+    e.preventDefault();
+    if (creatingInstructor) return;
+    setCreateInstructorError(null);
+
+    const trimmedEmail = instructorEmail.trim();
+    let valid = true;
+
+    if (!trimmedEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmedEmail)) {
+      setInstructorEmailError('Please enter a valid email address');
+      valid = false;
+    } else {
+      setInstructorEmailError('');
+    }
+
+    if (!instructorPassword || instructorPassword.length < 8) {
+      setInstructorPasswordError('Password must be at least 8 characters');
+      valid = false;
+    } else {
+      setInstructorPasswordError('');
+    }
+
+    if (!valid) return;
+
+    setCreatingInstructor(true);
+    try {
+      const apiBase = process.env.NEXT_PUBLIC_API_URL || '';
+      const res = await fetch(`${apiBase}/api/v1/org/instructors`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: instructorName.trim() || undefined,
+          email: trimmedEmail,
+          password: instructorPassword,
+        }),
+        credentials: 'include',
+      });
+
+      let body: { success?: boolean; error?: string; data?: MemberItem } | null = null;
+      try {
+        body = await res.json();
+      } catch {
+        body = null;
+      }
+
+      clearInstructorCredentials();
+
+      if (!res.ok || !body?.data) {
+        setCreateInstructorError(getCreateInstructorErrorMessage(body?.error));
+        return;
+      }
+
+      const createdEmail = body.data.email;
+      setShowInstructorModal(false);
+      setSuccessMessage(`Instructor ${createdEmail} was added to your organization.`);
+      await load();
+    } catch {
+      clearInstructorCredentials();
+      setCreateInstructorError('Could not reach the API. Please try again.');
+    } finally {
+      setCreatingInstructor(false);
     }
   }
 
@@ -183,6 +289,14 @@ export default function OrganizationDashboardPage() {
           ) : null}
         </div>
 
+        {successMessage ? (
+          <div className="mb-6">
+            <Alert variant="success" onDismiss={() => setSuccessMessage(null)}>
+              {successMessage}
+            </Alert>
+          </div>
+        ) : null}
+
         {error ? (
           <div className="rounded-2xl border border-neutral-200 bg-white shadow-sm">
             <ErrorState
@@ -215,9 +329,14 @@ export default function OrganizationDashboardPage() {
             <div className="overflow-hidden rounded-2xl border border-neutral-200 bg-white shadow-sm">
               <div className="flex items-center justify-between border-b border-neutral-200 px-6 py-4">
                 <h2 className="text-lg font-semibold text-neutral-900">Members</h2>
-                <p className="text-sm text-neutral-600">
-                  {membersTotal !== null ? `${membersTotal} member${membersTotal === 1 ? '' : 's'}` : ''}
-                </p>
+                <div className="flex items-center gap-4">
+                  <p className="text-sm text-neutral-600">
+                    {membersTotal !== null ? `${membersTotal} member${membersTotal === 1 ? '' : 's'}` : ''}
+                  </p>
+                  <Button size="sm" onClick={() => setShowInstructorModal(true)}>
+                    Add Instructor
+                  </Button>
+                </div>
               </div>
               {members && members.length === 0 ? (
                 <EmptyState
@@ -257,6 +376,61 @@ export default function OrganizationDashboardPage() {
           </>
         ) : null}
       </div>
+
+      <Modal
+        isOpen={showInstructorModal}
+        onClose={closeInstructorModal}
+        title="Add Instructor"
+        closeOnOverlayClick={!creatingInstructor}
+      >
+        <form onSubmit={handleCreateInstructor} noValidate>
+          <div className="space-y-4">
+            {createInstructorError ? <FormError message={createInstructorError} /> : null}
+
+            <Input
+              label="Full name"
+              value={instructorName}
+              onChange={(e) => setInstructorName(e.target.value)}
+              placeholder="e.g. Imran Instructor"
+              autoComplete="off"
+              disabled={creatingInstructor}
+            />
+
+            <Input
+              label="Email address"
+              type="email"
+              value={instructorEmail}
+              onChange={(e) => setInstructorEmail(e.target.value)}
+              error={instructorEmailError}
+              placeholder="instructor@example.com"
+              autoComplete="off"
+              disabled={creatingInstructor}
+              required
+            />
+
+            <PasswordInput
+              label="Password"
+              value={instructorPassword}
+              onChange={(e) => setInstructorPassword(e.target.value)}
+              error={instructorPasswordError}
+              placeholder="At least 8 characters"
+              autoComplete="new-password"
+              helperText="Use at least 8 characters"
+              disabled={creatingInstructor}
+              required
+            />
+
+            <div className="flex items-center justify-end gap-3 pt-2">
+              <Button type="button" variant="ghost" onClick={closeInstructorModal} disabled={creatingInstructor}>
+                Cancel
+              </Button>
+              <Button type="submit" loading={creatingInstructor}>
+                Add Instructor
+              </Button>
+            </div>
+          </div>
+        </form>
+      </Modal>
     </main>
   );
 }

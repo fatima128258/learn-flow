@@ -1,3 +1,5 @@
 export function getPostLoginRedirect(user?: { role?: string | null } | null) {
-  return user?.role === 'PLATFORM_ADMIN' ? '/dashboard' : '/';
+  if (user?.role === 'PLATFORM_ADMIN') return '/dashboard';
+  if (user?.role === 'ORG_ADMIN') return '/dashboard/organization';
+  return '/';
 }

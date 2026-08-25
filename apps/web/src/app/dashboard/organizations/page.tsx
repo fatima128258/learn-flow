@@ -20,6 +20,7 @@ import { getOrganizationMembersErrorMessage } from '../../../features/admin/orga
 import { getAssignAdminErrorMessage } from '../../../features/admin/assignAdminError';
 import { FormError } from '../../../components/forms/FormError';
 import { PasswordInput } from '../../../components/forms/PasswordInput';
+import { AdminSidebar } from '../../../components/layout/AdminSidebar';
 
 type OrganizationAdmin = {
   id: string;
@@ -508,18 +509,23 @@ export default function OrganizationsPage() {
 
   if (loading && organizations === null && !error) {
     return (
-      <main className="min-h-screen bg-neutral-50 p-8">
-        <div className="mx-auto flex max-w-5xl items-center gap-3 text-neutral-700">
-          <Spinner size="lg" label="Loading organizations..." />
-          <span>Loading organizations...</span>
-        </div>
-      </main>
+      <div className="min-h-screen bg-neutral-50">
+        <AdminSidebar />
+        <main className="p-8 lg:pl-72">
+          <div className="mx-auto flex max-w-5xl items-center gap-3 text-neutral-700">
+            <Spinner size="lg" label="Loading organizations..." />
+            <span>Loading organizations...</span>
+          </div>
+        </main>
+      </div>
     );
   }
 
   return (
-    <main className="min-h-screen bg-neutral-50 p-8">
-      <div className="mx-auto max-w-5xl">
+    <div className="min-h-screen bg-neutral-50">
+      <AdminSidebar />
+      <main className="p-8 lg:pl-72">
+        <div className="mx-auto max-w-5xl">
         <div className="mb-8 rounded-2xl border border-neutral-200 bg-white p-6 shadow-sm">
           <p className="text-sm font-medium uppercase tracking-wide text-primary-600">Platform Admin</p>
           <h1 className="mt-2 text-3xl font-bold text-neutral-900">Organizations</h1>
@@ -882,6 +888,7 @@ export default function OrganizationsPage() {
           </div>
         </form>
       </Modal>
-    </main>
+      </main>
+    </div>
   );
 }

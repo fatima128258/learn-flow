@@ -165,6 +165,53 @@ describe('Platform Admin organization APIs', () => {
       });
     });
 
+    it('excludes the system organization from dashboard organization statistics', async () => {
+      await authenticateAs('PLATFORM_ADMIN');
+      prismaMock.organization.count
+        .mockResolvedValueOnce(2)
+        .mockResolvedValueOnce(2)
+        .mockResolvedValueOnce(0);
+      prismaMock.user.count.mockResolvedValue(12);
+      prismaMock.userOrganization.count.mockResolvedValue(1);
+
+      const res = await request(app)
+        .get('/api/v1/admin/dashboard')
+        .set('Cookie', cookie());
+
+      expect(res.status).toBe(200);
+      expect(res.body.data.organizations).toEqual({ total: 2, active: 2, suspended: 0 });
+      expect(prismaMock.organization.count).toHaveBeenNthCalledWith(1, {
+        where: { slug: { not: 'platform' } },
+      });
+      expect(prismaMock.organization.count).toHaveBeenNthCalledWith(2, {
+        where: { slug: { not: 'platform' }, status: 'ACTIVE' },
+      });
+      expect(prismaMock.organization.count).toHaveBeenNthCalledWith(3, {
+        where: { slug: { not: 'platform' }, status: 'SUSPENDED' },
+      });
+    });
+
+    it('counts multiple customer organizations correctly in dashboard statistics', async () => {
+      await authenticateAs('PLATFORM_ADMIN');
+      prismaMock.organization.count
+        .mockResolvedValueOnce(3)
+        .mockResolvedValueOnce(2)
+        .mockResolvedValueOnce(1);
+      prismaMock.user.count.mockResolvedValue(20);
+      prismaMock.userOrganization.count.mockResolvedValue(2);
+
+      const res = await request(app)
+        .get('/api/v1/admin/dashboard')
+        .set('Cookie', cookie());
+
+      expect(res.status).toBe(200);
+      expect(res.body.data.organizations).toEqual({ total: 3, active: 2, suspended: 1 });
+      expect(prismaMock.user.count).toHaveBeenCalledWith();
+      expect(prismaMock.userOrganization.count).toHaveBeenCalledWith({
+        where: { role: 'ORG_ADMIN' },
+      });
+    });
+
     it.each(['ORG_ADMIN', 'INSTRUCTOR', 'STUDENT'] as const)('rejects %s access to platform admin APIs', async (role) => {
       await authenticateAs(role, { organizationId: 'org-a' });
 

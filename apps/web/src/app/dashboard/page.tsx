@@ -1,6 +1,8 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { LinkButton } from '../../components/ui/LinkButton';
+import { AdminSidebar } from '../../components/layout/AdminSidebar';
 
 type DashboardSummary = {
   organizations: { total: number; active: number; suspended: number };
@@ -67,48 +69,62 @@ export default function DashboardPage() {
   }, []);
 
   if (loading) {
-    return <div className="p-8 text-neutral-700">Loading dashboard...</div>;
+    return (
+      <div className="min-h-screen bg-neutral-50">
+        <AdminSidebar />
+        <div className="p-8 lg:pl-72">
+          <div className="text-neutral-700">Loading dashboard...</div>
+        </div>
+      </div>
+    );
   }
 
   if (!user || !summary) {
-    return <div className="p-8 text-red-600">Access denied.</div>;
+    return (
+      <div className="min-h-screen bg-neutral-50">
+        <AdminSidebar />
+        <div className="p-8 lg:pl-72">
+          <div className="text-red-600">Access denied.</div>
+        </div>
+      </div>
+    );
   }
 
   return (
-    <main className="min-h-screen bg-neutral-50 p-8">
-      <div className="mx-auto max-w-5xl">
-        <div className="mb-8 rounded-2xl border border-neutral-200 bg-white p-6 shadow-sm">
-          <p className="text-sm font-medium uppercase tracking-wide text-primary-600">Platform Admin</p>
-          <h1 className="mt-2 text-3xl font-bold text-neutral-900">Dashboard</h1>
-          <div className="mt-4 space-y-1 text-neutral-700">
-            <p><span className="font-semibold">Name:</span> {user.name}</p>
-            <p><span className="font-semibold">Email:</span> {user.email}</p>
+    <div className="min-h-screen bg-neutral-50">
+      <AdminSidebar />
+      <main className="p-8 lg:pl-72">
+        <div className="mx-auto max-w-5xl">
+          <div className="mb-8 rounded-2xl border border-neutral-200 bg-white p-6 shadow-sm">
+            <p className="text-sm font-medium uppercase tracking-wide text-primary-600">Platform Admin</p>
+            <h1 className="mt-2 text-3xl font-bold text-neutral-900">Dashboard</h1>
+            <div className="mt-4 space-y-1 text-neutral-700">
+              <p><span className="font-semibold">Name:</span> {user.name}</p>
+              <p><span className="font-semibold">Email:</span> {user.email}</p>
+            </div>
+            <div className="mt-6">
+              <LinkButton href="/dashboard/organizations" variant="outline">
+                Manage Organizations
+              </LinkButton>
+            </div>
           </div>
-          <div className="mt-6">
-            <a
-              href="/dashboard/organizations"
-              className="inline-flex items-center justify-center rounded-lg bg-primary-600 px-4 py-2 font-medium text-white transition-colors hover:bg-primary-700"
-            >
-              Manage Organizations
-            </a>
-          </div>
-        </div>
 
-        <div className="grid gap-6 md:grid-cols-3">
-          <div className="rounded-2xl border border-neutral-200 bg-white p-6 shadow-sm">
-            <p className="text-sm text-neutral-500">Total organizations</p>
-            <p className="mt-3 text-3xl font-bold text-neutral-900">{summary.organizations.total}</p>
-          </div>
-          <div className="rounded-2xl border border-neutral-200 bg-white p-6 shadow-sm">
-            <p className="text-sm text-neutral-500">Active organizations</p>
-            <p className="mt-3 text-3xl font-bold text-emerald-600">{summary.organizations.active}</p>
-          </div>
-          <div className="rounded-2xl border border-neutral-200 bg-white p-6 shadow-sm">
-            <p className="text-sm text-neutral-500">Suspended organizations</p>
-            <p className="mt-3 text-3xl font-bold text-red-600">{summary.organizations.suspended}</p>
+          <div className="grid gap-6 md:grid-cols-3">
+            <div className="rounded-2xl border border-neutral-200 bg-white p-6 shadow-sm">
+              <p className="text-sm text-neutral-500">Total organizations</p>
+              <p className="mt-3 text-3xl font-bold text-neutral-900">{summary.organizations.total}</p>
+            </div>
+            <div className="rounded-2xl border border-neutral-200 bg-white p-6 shadow-sm">
+              <p className="text-sm text-neutral-500">Active organizations</p>
+              <p className="mt-3 text-3xl font-bold text-emerald-600">{summary.organizations.active}</p>
+            </div>
+            <div className="rounded-2xl border border-neutral-200 bg-white p-6 shadow-sm">
+              <p className="text-sm text-neutral-500">Suspended organizations</p>
+              <p className="mt-3 text-3xl font-bold text-red-600">{summary.organizations.suspended}</p>
+            </div>
           </div>
         </div>
-      </div>
-    </main>
+      </main>
+    </div>
   );
 }

@@ -98,10 +98,11 @@ export async function updateOrganization(
 }
 
 export async function getDashboardCounts() {
+  const customerOrganizationWhere = { slug: { not: SYSTEM_ORGANIZATION_SLUG } };
   const [organizations, activeOrganizations, suspendedOrganizations, users, organizationAdmins] = await Promise.all([
-    prisma().organization.count(),
-    prisma().organization.count({ where: { status: 'ACTIVE' } }),
-    prisma().organization.count({ where: { status: 'SUSPENDED' } }),
+    prisma().organization.count({ where: customerOrganizationWhere }),
+    prisma().organization.count({ where: { ...customerOrganizationWhere, status: 'ACTIVE' } }),
+    prisma().organization.count({ where: { ...customerOrganizationWhere, status: 'SUSPENDED' } }),
     prisma().user.count(),
     prisma().userOrganization.count({ where: { role: 'ORG_ADMIN' } }),
   ]);
