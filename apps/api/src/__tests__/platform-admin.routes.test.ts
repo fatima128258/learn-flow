@@ -111,6 +111,16 @@ describe('Platform Admin organization APIs', () => {
       expect(res.body.error).toBe('NOT_AUTHENTICATED');
     });
 
+    it('rejects unauthenticated organization creation', async () => {
+      const res = await request(app)
+        .post('/api/v1/organizations')
+        .send({ name: 'New Org' });
+
+      expect(res.status).toBe(401);
+      expect(res.body.error).toBe('NOT_AUTHENTICATED');
+      expect(prismaMock.organization.create).not.toHaveBeenCalled();
+    });
+
     it('allows a platform admin to view the dashboard summary', async () => {
       await authenticateAs('PLATFORM_ADMIN');
       prismaMock.organization.count
@@ -142,6 +152,65 @@ describe('Platform Admin organization APIs', () => {
 
       expect(res.status).toBe(403);
       expect(res.body.error).toBe('PLATFORM_ADMIN_REQUIRED');
+    });
+
+    it.each(['ORG_ADMIN', 'INSTRUCTOR', 'STUDENT'] as const)('rejects %s from creating an organization', async (role) => {
+      await authenticateAs(role, { organizationId: 'org-a' });
+
+      const res = await request(app)
+        .post('/api/v1/organizations')
+        .set('Cookie', cookie())
+        .send({ name: 'Unauthorized Org' });
+
+      expect(res.status).toBe(403);
+      expect(res.body.error).toBe('PLATFORM_ADMIN_REQUIRED');
+      expect(prismaMock.organization.create).not.toHaveBeenCalled();
+    });
+
+    it('rejects unauthenticated organization updates', async () => {
+      const res = await request(app)
+        .patch('/api/v1/organizations/org-1')
+        .send({ name: 'Renamed Org' });
+
+      expect(res.status).toBe(401);
+      expect(res.body.error).toBe('NOT_AUTHENTICATED');
+      expect(prismaMock.organization.update).not.toHaveBeenCalled();
+    });
+
+    it.each(['ORG_ADMIN', 'INSTRUCTOR', 'STUDENT'] as const)('rejects %s from updating an organization', async (role) => {
+      await authenticateAs(role, { organizationId: 'org-a' });
+
+      const res = await request(app)
+        .patch('/api/v1/organizations/org-1')
+        .set('Cookie', cookie())
+        .send({ name: 'Renamed Org' });
+
+      expect(res.status).toBe(403);
+      expect(res.body.error).toBe('PLATFORM_ADMIN_REQUIRED');
+      expect(prismaMock.organization.update).not.toHaveBeenCalled();
+    });
+
+    it('rejects unauthenticated organization status changes', async () => {
+      const res = await request(app)
+        .patch('/api/v1/organizations/org-1/status')
+        .send({ status: 'SUSPENDED' });
+
+      expect(res.status).toBe(401);
+      expect(res.body.error).toBe('NOT_AUTHENTICATED');
+      expect(prismaMock.organization.update).not.toHaveBeenCalled();
+    });
+
+    it.each(['ORG_ADMIN', 'INSTRUCTOR', 'STUDENT'] as const)('rejects %s from changing organization status', async (role) => {
+      await authenticateAs(role, { organizationId: 'org-a' });
+
+      const res = await request(app)
+        .patch('/api/v1/organizations/org-1/status')
+        .set('Cookie', cookie())
+        .send({ status: 'SUSPENDED' });
+
+      expect(res.status).toBe(403);
+      expect(res.body.error).toBe('PLATFORM_ADMIN_REQUIRED');
+      expect(prismaMock.organization.update).not.toHaveBeenCalled();
     });
   });
 
@@ -181,6 +250,50 @@ describe('Platform Admin organization APIs', () => {
       expect(res.body.error).toBe('ORGANIZATION_SLUG_TAKEN');
     });
 
+    it('shows a newly created organization in the organizations listing', async () => {
+      await authenticateAs('PLATFORM_ADMIN');
+
+      prismaMock.organization.findUnique.mockResolvedValue(null);
+      const created = orgRecord({
+        id: 'org-new',
+        name: 'Fresh Academy',
+        slug: 'fresh-academy',
+        status: 'ACTIVE',
+        createdAt: now,
+        _count: { users: 0 },
+      });
+      prismaMock.organization.create.mockResolvedValue(created);
+      prismaMock.organization.findMany.mockResolvedValue([created]);
+      prismaMock.organization.count.mockResolvedValue(1);
+
+      const createRes = await request(app)
+        .post('/api/v1/organizations')
+        .set('Cookie', cookie())
+        .send({ name: 'Fresh Academy' });
+
+      expect(createRes.status).toBe(201);
+      expect(createRes.body.success).toBe(true);
+      expect(createRes.body.data).toEqual(expect.objectContaining({
+        id: 'org-new',
+        name: 'Fresh Academy',
+        slug: 'fresh-academy',
+        status: 'ACTIVE',
+      }));
+
+      const listRes = await request(app)
+        .get('/api/v1/organizations')
+        .set('Cookie', cookie());
+
+      expect(listRes.status).toBe(200);
+      expect(listRes.body.meta.total).toBe(1);
+      expect(listRes.body.data[0]).toEqual(expect.objectContaining({
+        id: 'org-new',
+        name: 'Fresh Academy',
+        status: 'ACTIVE',
+        memberCount: 0,
+      }));
+    });
+
     it('lists organizations with pagination metadata', async () => {
       await authenticateAs('PLATFORM_ADMIN');
       prismaMock.organization.findMany.mockResolvedValue([orgRecord()]);
@@ -193,6 +306,53 @@ describe('Platform Admin organization APIs', () => {
       expect(res.status).toBe(200);
       expect(res.body.data).toHaveLength(1);
       expect(res.body.meta).toEqual({ page: 1, limit: 20, total: 1 });
+    });
+
+    it('allows a platform admin to list organizations with real database records and member counts', async () => {
+      await authenticateAs('PLATFORM_ADMIN');
+      prismaMock.organization.findMany.mockResolvedValue([
+        orgRecord({
+          name: 'Digitalsofts Academy',
+          status: 'ACTIVE',
+          createdAt: now,
+          _count: { users: 7 },
+        }),
+        orgRecord({
+          id: 'org-2',
+          name: 'Career Institute',
+          slug: 'career-institute',
+          status: 'SUSPENDED',
+          createdAt: new Date('2026-08-01T09:00:00.000Z'),
+          _count: { users: 3 },
+        }),
+      ]);
+      prismaMock.organization.count.mockResolvedValue(2);
+
+      const res = await request(app)
+        .get('/api/v1/organizations')
+        .set('Cookie', cookie());
+
+      expect(res.status).toBe(200);
+      expect(res.body.success).toBe(true);
+      expect(res.body.meta).toEqual({ page: 1, limit: 20, total: 2 });
+      expect(res.body.data[0]).toEqual(expect.objectContaining({
+        id: 'org-1',
+        name: 'Digitalsofts Academy',
+        status: 'ACTIVE',
+        createdAt: now.toISOString(),
+        memberCount: 7,
+      }));
+      expect(res.body.data[1]).toEqual(expect.objectContaining({
+        id: 'org-2',
+        name: 'Career Institute',
+        status: 'SUSPENDED',
+        memberCount: 3,
+      }));
+      expect(prismaMock.organization.findMany).toHaveBeenCalledWith(expect.objectContaining({
+        include: expect.objectContaining({
+          _count: { select: { users: true } },
+        }),
+      }));
     });
 
     it('returns organization details', async () => {
@@ -232,6 +392,68 @@ describe('Platform Admin organization APIs', () => {
       }));
     });
 
+    it('rejects an update with no editable fields supplied', async () => {
+      await authenticateAs('PLATFORM_ADMIN');
+
+      const res = await request(app)
+        .patch('/api/v1/organizations/org-1')
+        .set('Cookie', cookie())
+        .send({});
+
+      expect(res.status).toBe(400);
+      expect(res.body.error).toBe('MISSING_FIELDS');
+      expect(prismaMock.organization.update).not.toHaveBeenCalled();
+    });
+
+    it('rejects an update with an empty organization name', async () => {
+      await authenticateAs('PLATFORM_ADMIN');
+
+      const res = await request(app)
+        .patch('/api/v1/organizations/org-1')
+        .set('Cookie', cookie())
+        .send({ name: '   ' });
+
+      expect(res.status).toBe(400);
+      expect(res.body.error).toBe('MISSING_FIELDS');
+      expect(prismaMock.organization.update).not.toHaveBeenCalled();
+    });
+
+    it('shows the renamed organization in the listing after an update', async () => {
+      await authenticateAs('PLATFORM_ADMIN');
+
+      prismaMock.organization.findUnique.mockResolvedValue(
+        orgRecord({ id: 'org-1', name: 'Old Name', slug: 'old-name' })
+      );
+      const updated = orgRecord({ id: 'org-1', name: 'New Name', slug: 'old-name', _count: { users: 4 } });
+      prismaMock.organization.update.mockResolvedValue(updated);
+
+      const patchRes = await request(app)
+        .patch('/api/v1/organizations/org-1')
+        .set('Cookie', cookie())
+        .send({ name: 'New Name' });
+
+      expect(patchRes.status).toBe(200);
+      expect(patchRes.body.data).toEqual(expect.objectContaining({
+        id: 'org-1',
+        name: 'New Name',
+      }));
+
+      prismaMock.organization.findMany.mockResolvedValue([updated]);
+      prismaMock.organization.count.mockResolvedValue(1);
+
+      const listRes = await request(app)
+        .get('/api/v1/organizations')
+        .set('Cookie', cookie());
+
+      expect(listRes.status).toBe(200);
+      expect(listRes.body.data[0]).toEqual(expect.objectContaining({
+        id: 'org-1',
+        name: 'New Name',
+        status: 'ACTIVE',
+        memberCount: 4,
+      }));
+    });
+
     it('ignores client-supplied role and status on organization update', async () => {
       await authenticateAs('PLATFORM_ADMIN');
       prismaMock.organization.findUnique.mockResolvedValue(orgRecord());
@@ -248,9 +470,9 @@ describe('Platform Admin organization APIs', () => {
       }));
     });
 
-    it('suspends and activates an organization', async () => {
+    it('suspends an ACTIVE organization', async () => {
       await authenticateAs('PLATFORM_ADMIN');
-      prismaMock.organization.findUnique.mockResolvedValue(orgRecord());
+      prismaMock.organization.findUnique.mockResolvedValue(orgRecord({ status: 'ACTIVE' }));
       prismaMock.organization.update.mockResolvedValue(orgRecord({ status: 'SUSPENDED' }));
 
       const res = await request(app)
@@ -259,7 +481,74 @@ describe('Platform Admin organization APIs', () => {
         .send({ status: 'SUSPENDED' });
 
       expect(res.status).toBe(200);
+      expect(res.body.success).toBe(true);
       expect(res.body.data.status).toBe('SUSPENDED');
+      expect(prismaMock.organization.update).toHaveBeenCalledWith(expect.objectContaining({
+        where: { id: 'org-1' },
+        data: { status: 'SUSPENDED' },
+      }));
+    });
+
+    it('activates a SUSPENDED organization', async () => {
+      await authenticateAs('PLATFORM_ADMIN');
+      prismaMock.organization.findUnique.mockResolvedValue(orgRecord({ status: 'SUSPENDED' }));
+      prismaMock.organization.update.mockResolvedValue(orgRecord({ status: 'ACTIVE' }));
+
+      const res = await request(app)
+        .patch('/api/v1/organizations/org-1/status')
+        .set('Cookie', cookie())
+        .send({ status: 'ACTIVE' });
+
+      expect(res.status).toBe(200);
+      expect(res.body.success).toBe(true);
+      expect(res.body.data.status).toBe('ACTIVE');
+      expect(prismaMock.organization.update).toHaveBeenCalledWith(expect.objectContaining({
+        where: { id: 'org-1' },
+        data: { status: 'ACTIVE' },
+      }));
+    });
+
+    it('reflects the new status in the organizations listing', async () => {
+      await authenticateAs('PLATFORM_ADMIN');
+      prismaMock.organization.findUnique.mockResolvedValue(orgRecord({ status: 'ACTIVE' }));
+      const suspended = orgRecord({ id: 'org-1', status: 'SUSPENDED', _count: { users: 2 } });
+      prismaMock.organization.update.mockResolvedValue(suspended);
+
+      const patchRes = await request(app)
+        .patch('/api/v1/organizations/org-1/status')
+        .set('Cookie', cookie())
+        .send({ status: 'SUSPENDED' });
+
+      expect(patchRes.status).toBe(200);
+      expect(patchRes.body.data.status).toBe('SUSPENDED');
+
+      prismaMock.organization.findMany.mockResolvedValue([suspended]);
+      prismaMock.organization.count.mockResolvedValue(1);
+
+      const listRes = await request(app)
+        .get('/api/v1/organizations')
+        .set('Cookie', cookie());
+
+      expect(listRes.status).toBe(200);
+      expect(listRes.body.data[0]).toEqual(expect.objectContaining({
+        id: 'org-1',
+        status: 'SUSPENDED',
+        memberCount: 2,
+      }));
+    });
+
+    it('returns 404 when changing the status of an unknown organization', async () => {
+      await authenticateAs('PLATFORM_ADMIN');
+      prismaMock.organization.findUnique.mockResolvedValue(null);
+
+      const res = await request(app)
+        .patch('/api/v1/organizations/missing-org/status')
+        .set('Cookie', cookie())
+        .send({ status: 'SUSPENDED' });
+
+      expect(res.status).toBe(404);
+      expect(res.body.error).toBe('ORGANIZATION_NOT_FOUND');
+      expect(prismaMock.organization.update).not.toHaveBeenCalled();
     });
   });
 

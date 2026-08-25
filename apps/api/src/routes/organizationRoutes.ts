@@ -5,6 +5,7 @@ import {
   create,
   list,
   getById,
+  listMembers,
   update,
   updateStatus,
   assignAdmin,
@@ -19,6 +20,7 @@ organizationRouter.use(requireAuth, requirePlatformAdmin);
 organizationRouter.get('/', list);
 organizationRouter.post('/', create);
 organizationRouter.get('/:id', getById);
+organizationRouter.get('/:id/members', listMembers);
 organizationRouter.patch('/:id', update);
 organizationRouter.patch('/:id/status', updateStatus);
 organizationRouter.post('/:id/admins', assignAdmin);

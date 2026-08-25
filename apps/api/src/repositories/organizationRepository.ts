@@ -22,6 +22,13 @@ const organizationAdminInclude = {
   },
 };
 
+const organizationListInclude = {
+  ...organizationAdminInclude,
+  _count: {
+    select: { users: true },
+  },
+};
+
 export async function createOrganization(data: { name: string; slug: string; status?: OrganizationStatus }) {
   return prisma().organization.create({
     data: {
@@ -68,7 +75,7 @@ export async function listOrganizations(params: {
       skip: params.skip,
       take: params.take,
       orderBy: { createdAt: 'desc' },
-      include: organizationAdminInclude,
+      include: organizationListInclude,
     }),
     prisma().organization.count({ where }),
   ]);

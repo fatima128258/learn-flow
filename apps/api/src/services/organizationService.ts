@@ -1,6 +1,7 @@
 import argon2 from 'argon2';
 import { Prisma } from '@prisma/client';
 import * as orgRepo from '../repositories/organizationRepository';
+import * as orgAdminRepo from '../repositories/orgAdminRepository';
 import * as authRepo from '../repositories/authRepository';
 
 // Temporary inline validation functions
@@ -56,6 +57,7 @@ function toOrganizationDto(organization: any) {
     status: organization.status,
     createdAt: organization.createdAt,
     updatedAt: organization.updatedAt,
+    ...(organization._count ? { memberCount: organization._count.users } : {}),
     ...(admins ? { admins } : {}),
   };
 }
@@ -136,6 +138,36 @@ export async function getOrganization(id: string) {
   const organization = await orgRepo.findOrganizationById(id);
   if (!organization) throw new Error('ORGANIZATION_NOT_FOUND');
   return toOrganizationDto(organization);
+}
+
+export async function listOrganizationMembers(organizationId: string, input: { page?: number; limit?: number }) {
+  if (!organizationId) throw new Error('ORGANIZATION_NOT_FOUND');
+  const organization = await orgRepo.findOrganizationById(organizationId);
+  if (!organization) throw new Error('ORGANIZATION_NOT_FOUND');
+
+  const page = Number.isFinite(input.page) && Number(input.page) > 0 ? Math.floor(Number(input.page)) : 1;
+  const limitRaw = Number.isFinite(input.limit) && Number(input.limit) > 0 ? Math.floor(Number(input.limit)) : 20;
+  const limit = Math.min(100, limitRaw);
+
+  const { items, total } = await orgAdminRepo.listOrganizationMembers({
+    organizationId,
+    skip: (page - 1) * limit,
+    take: limit,
+  });
+
+  return {
+    organization: toOrganizationDto(organization),
+    members: items.map((membership: any) => ({
+      id: membership.id,
+      userId: membership.user.id,
+      name: membership.user.name,
+      email: membership.user.email,
+      emailVerified: membership.user.emailVerified,
+      role: membership.role,
+      joinedAt: membership.createdAt,
+    })),
+    meta: { page, limit, total },
+  };
 }
 
 export async function updateOrganization(id: string, input: { name?: string; slug?: string }) {

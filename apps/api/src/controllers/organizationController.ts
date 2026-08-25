@@ -84,6 +84,21 @@ export async function getById(req: Request, res: Response) {
   }
 }
 
+export async function listMembers(req: Request, res: Response) {
+  try {
+    const page = parsePage(req.query.page);
+    const limit = parsePage(req.query.limit);
+    const result = await service.listOrganizationMembers(req.params.id, { page, limit });
+    return res.json({
+      success: true,
+      data: { organization: result.organization, members: result.members },
+      meta: result.meta,
+    });
+  } catch (err: any) {
+    return handleError(res, err);
+  }
+}
+
 export async function update(req: Request, res: Response) {
   try {
     const { name, slug } = req.body || {};

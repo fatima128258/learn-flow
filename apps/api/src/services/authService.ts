@@ -58,22 +58,24 @@ export async function loginUser({ email, password, ip = '127.0.0.1' }: { email: 
   const ok = await argon2.verify(user.passwordHash, password);
   if (!ok) throw new Error('INVALID_CREDENTIALS');
 
-  const membership = await getPrisma().userOrganization.findFirst({
-    where: { userId: user.id },
-    orderBy: { createdAt: 'asc' },
-  });
-
   const token = generateToken();
   const tokenHash = hashToken(token);
   const expiresAt = new Date(Date.now() + SESSION_TTL_SECONDS * 1000);
   await repo.createSession({ userId: user.id, tokenHash, expiresAt });
   const redis = getRedis();
   await redis.del(`rl:login:ip:${ip}`);
+
+  const memberships: Array<{ role?: string; organizationId?: string }> = await repo.findUserOrganizationsByUserId(user.id);
+  const primaryMembership = memberships.find((membership) => membership.role === 'PLATFORM_ADMIN')
+    ?? memberships.find((membership) => membership.role === 'ORG_ADMIN')
+    ?? memberships.find((membership) => membership.role === 'INSTRUCTOR')
+    ?? memberships[0];
+
   return {
     user: {
       ...user,
-      role: membership?.role,
-      organizationId: membership?.organizationId,
+      role: primaryMembership?.role,
+      organizationId: primaryMembership?.organizationId,
     },
     token,
     expiresAt,

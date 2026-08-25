@@ -67,27 +67,8 @@ export async function login(req: Request, res: Response) {
     if (!email || !password) return res.status(400).json({ error: 'MISSING_FIELDS' });
     const { user, token, expiresAt } = await service.loginUser({ email, password, ip: getClientIp(req) });
     
-    // Fetch user organization memberships to get role and organizationId like the auth middleware does
-    const { getPrisma } = await import('../prisma');
-    const prisma = getPrisma();
-    const userOrganizations = await prisma.userOrganization.findMany({
-      where: { userId: user.id },
-    });
-    
-    // Find primary membership with same priority as auth middleware
-    const primaryMembership = userOrganizations.find((membership) => membership.role === 'PLATFORM_ADMIN')
-      ?? userOrganizations.find((membership) => membership.role === 'ORG_ADMIN')
-      ?? userOrganizations.find((membership) => membership.role === 'INSTRUCTOR')
-      ?? userOrganizations[0];
-
-    const userWithRole = {
-      ...user,
-      role: primaryMembership?.role,
-      organizationId: primaryMembership?.organizationId,
-    };
-    
     setSessionCookie(res, token, expiresAt);
-    return res.json({ user: userDto(userWithRole) });
+    return res.json({ user: userDto(user) });
   } catch (err: any) {
     if (err.message === 'INVALID_CREDENTIALS') return res.status(401).json({ error: 'INVALID_CREDENTIALS' });
     if (err.message === 'TOO_MANY_ATTEMPTS') return res.status(429).json({ error: 'TOO_MANY_ATTEMPTS' });

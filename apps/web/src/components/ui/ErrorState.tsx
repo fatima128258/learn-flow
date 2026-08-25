@@ -44,8 +44,8 @@ export const ErrorState: React.FC<ErrorStateProps> = ({
       {action && (
         <Button
           variant={action.variant || 'primary'}
-          onClick={action.onClick}
           {...action}
+          onClick={action.onClick}
         >
           {action.label}
         </Button>

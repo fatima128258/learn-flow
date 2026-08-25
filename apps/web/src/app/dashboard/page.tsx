@@ -84,6 +84,14 @@ export default function DashboardPage() {
             <p><span className="font-semibold">Name:</span> {user.name}</p>
             <p><span className="font-semibold">Email:</span> {user.email}</p>
           </div>
+          <div className="mt-6">
+            <a
+              href="/dashboard/organizations"
+              className="inline-flex items-center justify-center rounded-lg bg-primary-600 px-4 py-2 font-medium text-white transition-colors hover:bg-primary-700"
+            >
+              Manage Organizations
+            </a>
+          </div>
         </div>
 
         <div className="grid gap-6 md:grid-cols-3">
