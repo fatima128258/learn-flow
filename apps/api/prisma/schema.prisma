@@ -19,6 +19,13 @@ enum OrganizationStatus {
   SUSPENDED
 }
 
+enum CourseStatus {
+  DRAFT
+  REVIEW
+  PUBLISHED
+  ARCHIVED
+}
+
 model Organization {
   id        String             @id @default(cuid())
   name      String
@@ -27,6 +34,7 @@ model Organization {
   createdAt DateTime           @default(now())
   updatedAt DateTime           @updatedAt
   users     UserOrganization[]
+  courses   Course[]
 
   @@index([status])
 }
@@ -43,6 +51,7 @@ model User {
   verifications  EmailVerificationToken[]
   passwordResets PasswordResetToken[]
   organizations  UserOrganization[]
+  courses        Course[]
 }
 
 model UserOrganization {
@@ -93,4 +102,29 @@ model PasswordResetToken {
   used       Boolean  @default(false)
   createdAt  DateTime @default(now())
   @@index([userId])
+}
+
+model Course {
+  id                 String       @id @default(cuid())
+  organization       Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  organizationId     String
+  instructorUser     User         @relation(fields: [instructorUserId], references: [id], onDelete: Cascade)
+  instructorUserId   String
+  title              String
+  slug               String
+  description        String?
+  thumbnailUrl       String?
+  category           String?
+  price              Decimal?     @db.Decimal(10, 2)
+  discountPrice      Decimal?     @db.Decimal(10, 2)
+  status             CourseStatus @default(DRAFT)
+  publishedAt        DateTime?
+  estimatedMinutes   Int?
+  difficulty         String?
+  learningObjectives String[]
+  createdAt          DateTime     @default(now())
+  updatedAt          DateTime     @updatedAt
+
+  @@unique([organizationId, slug])
+  @@index([organizationId, status])
 }

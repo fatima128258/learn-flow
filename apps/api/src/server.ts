@@ -4,6 +4,7 @@ import cookieParser from 'cookie-parser';
 import authRoutes from './routes/authRoutes';
 import { adminRouter, organizationRouter } from './routes/organizationRoutes';
 import orgAdminRouter from './routes/orgAdminRoutes';
+import courseRouter from './routes/courseRoutes';
 
 const DEFAULT_ALLOWED_ORIGINS = [
   'http://localhost:3000',
@@ -55,6 +56,7 @@ app.get('/health', (req, res) => {
 
 app.use('/api/v1/auth', authRoutes);
 app.use('/api/v1/admin', adminRouter);
+app.use('/api/v1/organizations', courseRouter);
 app.use('/api/v1/organizations', organizationRouter);
 app.use('/api/v1/org', orgAdminRouter);
 
