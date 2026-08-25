@@ -60,6 +60,28 @@ function orgRecord(overrides: Record<string, unknown> = {}) {
   };
 }
 
+function memberRecord(overrides: Record<string, unknown> = {}) {
+  const user = {
+    id: 'user-10',
+    name: 'Sara Student',
+    email: 'sara@example.com',
+    emailVerified: true,
+    createdAt: now,
+    updatedAt: now,
+    ...(overrides.user as Record<string, unknown> | undefined),
+  };
+  return {
+    id: 'mem-1',
+    userId: 'user-10',
+    organizationId: 'org-1',
+    role: 'STUDENT',
+    createdAt: now,
+    updatedAt: now,
+    ...overrides,
+    user,
+  };
+}
+
 async function authenticateAs(role: 'PLATFORM_ADMIN' | 'ORG_ADMIN' | 'INSTRUCTOR' | 'STUDENT', options?: {
   userId?: string;
   organizationId?: string;
@@ -212,6 +234,29 @@ describe('Platform Admin organization APIs', () => {
       expect(res.body.error).toBe('PLATFORM_ADMIN_REQUIRED');
       expect(prismaMock.organization.update).not.toHaveBeenCalled();
     });
+
+    it('rejects unauthenticated organization admin assignment', async () => {
+      const res = await request(app)
+        .post('/api/v1/organizations/org-1/admins')
+        .send({ email: 'mina@example.com' });
+
+      expect(res.status).toBe(401);
+      expect(res.body.error).toBe('NOT_AUTHENTICATED');
+      expect(prismaMock.userOrganization.upsert).not.toHaveBeenCalled();
+    });
+
+    it.each(['ORG_ADMIN', 'INSTRUCTOR', 'STUDENT'] as const)('rejects %s from assigning an organization admin', async (role) => {
+      await authenticateAs(role, { organizationId: 'org-a' });
+
+      const res = await request(app)
+        .post('/api/v1/organizations/org-1/admins')
+        .set('Cookie', cookie())
+        .send({ email: 'mina@example.com' });
+
+      expect(res.status).toBe(403);
+      expect(res.body.error).toBe('PLATFORM_ADMIN_REQUIRED');
+      expect(prismaMock.userOrganization.upsert).not.toHaveBeenCalled();
+    });
   });
 
   describe('organization creation and lookup', () => {
@@ -308,6 +353,56 @@ describe('Platform Admin organization APIs', () => {
       expect(res.body.meta).toEqual({ page: 1, limit: 20, total: 1 });
     });
 
+    it('excludes the system organization from the customer organization listing', async () => {
+      await authenticateAs('PLATFORM_ADMIN');
+      prismaMock.organization.findMany.mockResolvedValue([
+        orgRecord({ id: 'org-9', name: 'Customer Corp', slug: 'customer-corp', _count: { users: 4 } }),
+      ]);
+      prismaMock.organization.count.mockResolvedValue(1);
+
+      const res = await request(app)
+        .get('/api/v1/organizations')
+        .set('Cookie', cookie());
+
+      expect(res.status).toBe(200);
+      expect(prismaMock.organization.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            slug: { not: 'platform' },
+          }),
+        })
+      );
+      expect(prismaMock.organization.count).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            slug: { not: 'platform' },
+          }),
+        })
+      );
+      const listedSlugs = res.body.data.map((org: { slug: string }) => org.slug);
+      expect(listedSlugs).toEqual(['customer-corp']);
+      expect(listedSlugs).not.toContain('platform');
+      expect(res.body.meta.total).toBe(1);
+    });
+
+    it('still lists multiple normal customer organizations alongside the exclusion', async () => {
+      await authenticateAs('PLATFORM_ADMIN');
+      prismaMock.organization.findMany.mockResolvedValue([
+        orgRecord({ id: 'org-9', name: 'Customer Corp', slug: 'customer-corp', _count: { users: 4 } }),
+        orgRecord({ id: 'org-10', name: 'Acme Learning', slug: 'acme-learning', _count: { users: 2 } }),
+      ]);
+      prismaMock.organization.count.mockResolvedValue(2);
+
+      const res = await request(app)
+        .get('/api/v1/organizations')
+        .set('Cookie', cookie());
+
+      expect(res.status).toBe(200);
+      const listedSlugs = res.body.data.map((org: { slug: string }) => org.slug);
+      expect(listedSlugs).toEqual(['customer-corp', 'acme-learning']);
+      expect(res.body.meta.total).toBe(2);
+    });
+
     it('allows a platform admin to list organizations with real database records and member counts', async () => {
       await authenticateAs('PLATFORM_ADMIN');
       prismaMock.organization.findMany.mockResolvedValue([
@@ -353,6 +448,71 @@ describe('Platform Admin organization APIs', () => {
           _count: { select: { users: true } },
         }),
       }));
+    });
+
+    it('exposes organization admins from the UserOrganization relationship in the listing', async () => {
+      await authenticateAs('PLATFORM_ADMIN');
+      prismaMock.organization.findMany.mockResolvedValue([
+        orgRecord({
+          users: [{
+            role: 'ORG_ADMIN',
+            user: { id: 'admin-1', name: 'Mina Admin', email: 'mina@example.com', emailVerified: true },
+          }],
+          _count: { users: 3 },
+        }),
+      ]);
+      prismaMock.organization.count.mockResolvedValue(1);
+
+      const res = await request(app)
+        .get('/api/v1/organizations')
+        .set('Cookie', cookie());
+
+      expect(res.status).toBe(200);
+      expect(res.body.data[0].admins).toEqual([
+        expect.objectContaining({
+          id: 'admin-1',
+          name: 'Mina Admin',
+          email: 'mina@example.com',
+          role: 'ORG_ADMIN',
+        }),
+      ]);
+      expect(prismaMock.organization.findMany).toHaveBeenCalledWith(expect.objectContaining({
+        include: expect.objectContaining({
+          users: expect.objectContaining({ where: { role: 'ORG_ADMIN' } }),
+        }),
+      }));
+    });
+
+    it('does not expose non-admin memberships as organization admins', async () => {
+      await authenticateAs('PLATFORM_ADMIN');
+      prismaMock.organization.findMany.mockResolvedValue([
+        orgRecord({
+          users: [{
+            role: 'ORG_ADMIN',
+            user: { id: 'admin-1', name: 'Mina Admin', email: 'mina@example.com', emailVerified: true },
+          }],
+          _count: { users: 5 },
+        }),
+        orgRecord({
+          id: 'org-2',
+          name: 'Career Institute',
+          slug: 'career-institute',
+          users: [],
+          _count: { users: 2 },
+        }),
+      ]);
+      prismaMock.organization.count.mockResolvedValue(2);
+
+      const res = await request(app)
+        .get('/api/v1/organizations')
+        .set('Cookie', cookie());
+
+      expect(res.status).toBe(200);
+      const adminRoles = res.body.data.flatMap((org: { admins?: Array<{ role: string }> }) =>
+        (org.admins ?? []).map((admin) => admin.role)
+      );
+      expect(adminRoles).toEqual(['ORG_ADMIN']);
+      expect(res.body.data[1].admins).toEqual([]);
     });
 
     it('returns organization details', async () => {
@@ -552,6 +712,117 @@ describe('Platform Admin organization APIs', () => {
     });
   });
 
+  describe('organization members (read-only)', () => {
+    it('lists members of an organization for a platform admin using real records', async () => {
+      await authenticateAs('PLATFORM_ADMIN');
+      prismaMock.organization.findUnique.mockResolvedValue(orgRecord());
+      prismaMock.userOrganization.findMany.mockResolvedValue([
+        memberRecord(),
+        memberRecord({
+          id: 'mem-2',
+          userId: 'user-11',
+          organizationId: 'org-1',
+          role: 'INSTRUCTOR',
+          createdAt: new Date('2026-07-01T08:00:00.000Z'),
+          user: {
+            id: 'user-11',
+            name: 'Imran Instructor',
+            email: 'imran@example.com',
+            emailVerified: true,
+            createdAt: now,
+            updatedAt: now,
+          },
+        }),
+      ]);
+      prismaMock.userOrganization.count.mockResolvedValue(2);
+
+      const res = await request(app)
+        .get('/api/v1/organizations/org-1/members')
+        .set('Cookie', cookie());
+
+      expect(res.status).toBe(200);
+      expect(res.body.success).toBe(true);
+      expect(res.body.data.organization).toEqual(expect.objectContaining({
+        id: 'org-1',
+        name: 'Digitalsofts Academy',
+      }));
+      expect(res.body.data.members).toHaveLength(2);
+      expect(res.body.data.members[0]).toEqual(expect.objectContaining({
+        id: 'mem-1',
+        userId: 'user-10',
+        organizationId: 'org-1',
+        name: 'Sara Student',
+        email: 'sara@example.com',
+        role: 'STUDENT',
+        joinedAt: now.toISOString(),
+      }));
+      expect(res.body.data.members[1]).toEqual(expect.objectContaining({
+        id: 'mem-2',
+        name: 'Imran Instructor',
+        role: 'INSTRUCTOR',
+      }));
+      expect(res.body.meta).toEqual({ page: 1, limit: 20, total: 2 });
+    });
+
+    it('only returns memberships of the requested organization', async () => {
+      await authenticateAs('PLATFORM_ADMIN');
+      prismaMock.organization.findUnique.mockResolvedValue(orgRecord());
+      prismaMock.userOrganization.findMany.mockResolvedValue([memberRecord()]);
+      prismaMock.userOrganization.count.mockResolvedValue(1);
+
+      const res = await request(app)
+        .get('/api/v1/organizations/org-1/members')
+        .set('Cookie', cookie());
+
+      expect(res.status).toBe(200);
+      expect(prismaMock.userOrganization.findMany).toHaveBeenCalledWith(expect.objectContaining({
+        where: { organizationId: 'org-1' },
+      }));
+      const memberOrgIds = res.body.data.members.map((member: { organizationId: string }) => member.organizationId);
+      expect(memberOrgIds).toEqual(['org-1']);
+      expect(memberOrgIds).not.toContain('org-2');
+    });
+
+    it('rejects unauthenticated member listing', async () => {
+      const res = await request(app).get('/api/v1/organizations/org-1/members');
+
+      expect(res.status).toBe(401);
+      expect(res.body.error).toBe('NOT_AUTHENTICATED');
+      expect(prismaMock.userOrganization.findMany).not.toHaveBeenCalledWith(
+        expect.objectContaining({ where: { organizationId: 'org-1' } })
+      );
+    });
+
+    it.each(['ORG_ADMIN', 'INSTRUCTOR', 'STUDENT'] as const)('rejects %s from listing organization members', async (role) => {
+      await authenticateAs(role, { organizationId: 'org-a' });
+
+      const res = await request(app)
+        .get('/api/v1/organizations/org-1/members')
+        .set('Cookie', cookie());
+
+      expect(res.status).toBe(403);
+      expect(res.body.error).toBe('PLATFORM_ADMIN_REQUIRED');
+      expect(prismaMock.userOrganization.findMany).not.toHaveBeenCalledWith(
+        expect.objectContaining({ where: { organizationId: 'org-1' } })
+      );
+    });
+
+    it('returns 404 for an unknown organization', async () => {
+      await authenticateAs('PLATFORM_ADMIN');
+      prismaMock.organization.findUnique.mockResolvedValue(null);
+
+      const res = await request(app)
+        .get('/api/v1/organizations/missing-org/members')
+        .set('Cookie', cookie());
+
+      expect(res.status).toBe(404);
+      expect(res.body.error).toBe('ORGANIZATION_NOT_FOUND');
+      expect(prismaMock.userOrganization.findMany).not.toHaveBeenCalledWith(
+        expect.objectContaining({ where: { organizationId: 'missing-org' } })
+      );
+    });
+  });
+
   describe('organization admin assignment', () => {
     it('assigns an existing user as organization admin', async () => {
       await authenticateAs('PLATFORM_ADMIN');
@@ -588,6 +859,98 @@ describe('Platform Admin organization APIs', () => {
           role: 'ORG_ADMIN',
         }),
       }));
+    });
+
+    it('uses the organization id from the route and exposes no password material', async () => {
+      await authenticateAs('PLATFORM_ADMIN');
+      prismaMock.organization.findUnique.mockResolvedValue(
+        orgRecord({ id: 'org-2', name: 'Career Institute', slug: 'career-institute' })
+      );
+      prismaMock.user.findUnique.mockResolvedValue({
+        id: 'user-22',
+        name: 'Mina',
+        email: 'mina@example.com',
+        emailVerified: true,
+        passwordHash: 'hash',
+        createdAt: now,
+        updatedAt: now,
+      });
+      prismaMock.userOrganization.upsert.mockResolvedValue({
+        id: 'mem-9',
+        userId: 'user-22',
+        organizationId: 'org-2',
+        role: 'ORG_ADMIN',
+      });
+
+      const res = await request(app)
+        .post('/api/v1/organizations/org-2/admins')
+        .set('Cookie', cookie())
+        .send({ email: 'mina@example.com' });
+
+      expect(res.status).toBe(201);
+      expect(res.body.data.organizationId).toBe('org-2');
+      expect(res.body.data.role).toBe('ORG_ADMIN');
+      expect(prismaMock.organization.findUnique).toHaveBeenCalledWith(
+        expect.objectContaining({ where: { id: 'org-2' } })
+      );
+      expect(prismaMock.userOrganization.upsert).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { userId_organizationId: { userId: 'user-22', organizationId: 'org-2' } },
+        })
+      );
+      expect(res.body.data.user).toEqual(
+        expect.objectContaining({ id: 'user-22', email: 'mina@example.com' })
+      );
+      expect(res.body.data.user).not.toHaveProperty('passwordHash');
+      expect(JSON.stringify(res.body)).not.toContain('passwordHash');
+      expect(JSON.stringify(res.body)).not.toContain('hashed-password');
+    });
+
+    it('reflects the newly assigned admin in the organizations listing', async () => {
+      await authenticateAs('PLATFORM_ADMIN');
+      prismaMock.organization.findUnique.mockResolvedValue(orgRecord());
+      prismaMock.user.findUnique.mockResolvedValue({
+        id: 'user-22',
+        name: 'Mina',
+        email: 'mina@example.com',
+        emailVerified: true,
+        passwordHash: 'hash',
+        createdAt: now,
+        updatedAt: now,
+      });
+      prismaMock.userOrganization.upsert.mockResolvedValue({
+        id: 'mem-1',
+        userId: 'user-22',
+        organizationId: 'org-1',
+        role: 'ORG_ADMIN',
+      });
+
+      const assignRes = await request(app)
+        .post('/api/v1/organizations/org-1/admins')
+        .set('Cookie', cookie())
+        .send({ email: 'mina@example.com' });
+
+      expect(assignRes.status).toBe(201);
+
+      prismaMock.organization.findMany.mockResolvedValue([
+        orgRecord({
+          users: [{
+            role: 'ORG_ADMIN',
+            user: { id: 'user-22', name: 'Mina', email: 'mina@example.com', emailVerified: true },
+          }],
+          _count: { users: 1 },
+        }),
+      ]);
+      prismaMock.organization.count.mockResolvedValue(1);
+
+      const listRes = await request(app)
+        .get('/api/v1/organizations')
+        .set('Cookie', cookie());
+
+      expect(listRes.status).toBe(200);
+      expect(listRes.body.data[0].admins).toEqual([
+        expect.objectContaining({ id: 'user-22', email: 'mina@example.com', role: 'ORG_ADMIN' }),
+      ]);
     });
 
     it('creates a user when assigning the initial organization admin', async () => {

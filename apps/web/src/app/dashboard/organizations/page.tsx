@@ -16,7 +16,18 @@ import {
 import { getCreateOrganizationErrorMessage } from '../../../features/admin/createOrganizationError';
 import { getEditOrganizationErrorMessage } from '../../../features/admin/editOrganizationError';
 import { getOrganizationStatusErrorMessage } from '../../../features/admin/organizationStatusError';
+import { getOrganizationMembersErrorMessage } from '../../../features/admin/organizationMembersError';
+import { getAssignAdminErrorMessage } from '../../../features/admin/assignAdminError';
 import { FormError } from '../../../components/forms/FormError';
+import { PasswordInput } from '../../../components/forms/PasswordInput';
+
+type OrganizationAdmin = {
+  id: string;
+  name: string | null;
+  email: string;
+  emailVerified: boolean;
+  role: string;
+};
 
 type OrganizationItem = {
   id: string;
@@ -26,6 +37,7 @@ type OrganizationItem = {
   createdAt: string;
   updatedAt: string;
   memberCount?: number;
+  admins?: OrganizationAdmin[];
 };
 
 type OrganizationsResponse = {
@@ -50,6 +62,42 @@ type StatusAction = {
 type StatusUpdateResponse = {
   success?: boolean;
   data?: OrganizationItem;
+  error?: string;
+};
+
+type MemberRole = 'PLATFORM_ADMIN' | 'ORG_ADMIN' | 'INSTRUCTOR' | 'STUDENT';
+
+type MemberItem = {
+  id: string;
+  userId: string;
+  name: string | null;
+  email: string;
+  emailVerified: boolean;
+  role: MemberRole;
+  joinedAt: string;
+};
+
+type MembersData = {
+  organization?: { id: string; name: string; slug: string; status: string };
+  members?: MemberItem[];
+};
+
+type MembersResponse = {
+  success?: boolean;
+  data?: MembersData;
+  meta?: { page: number; limit: number; total: number };
+  error?: string;
+};
+
+type AssignAdminMode = 'existing' | 'new';
+
+type AssignAdminResponse = {
+  success?: boolean;
+  data?: {
+    organizationId: string;
+    role: string;
+    user?: { id: string; name: string | null; email: string; emailVerified: boolean };
+  };
   error?: string;
 };
 
@@ -79,6 +127,21 @@ export default function OrganizationsPage() {
   const [statusAction, setStatusAction] = useState<StatusAction | null>(null);
   const [statusUpdating, setStatusUpdating] = useState(false);
   const [statusError, setStatusError] = useState<string | null>(null);
+
+  const [membersOrg, setMembersOrg] = useState<OrganizationItem | null>(null);
+  const [membersData, setMembersData] = useState<MembersData | null>(null);
+  const [membersLoading, setMembersLoading] = useState(false);
+  const [membersError, setMembersError] = useState<string | null>(null);
+
+  const [assignOrg, setAssignOrg] = useState<OrganizationItem | null>(null);
+  const [assignMode, setAssignMode] = useState<AssignAdminMode>('existing');
+  const [adminEmail, setAdminEmail] = useState('');
+  const [adminName, setAdminName] = useState('');
+  const [adminPassword, setAdminPassword] = useState('');
+  const [adminEmailError, setAdminEmailError] = useState<string>('');
+  const [adminPasswordError, setAdminPasswordError] = useState<string>('');
+  const [assignError, setAssignError] = useState<string | null>(null);
+  const [assigning, setAssigning] = useState(false);
 
   async function load() {
     setError(null);
@@ -160,6 +223,147 @@ export default function OrganizationsPage() {
     setSuccessMessage(null);
     setStatusError(null);
     setStatusAction({ org, next: org.status === 'ACTIVE' ? 'SUSPENDED' : 'ACTIVE' });
+  }
+
+  function openMembersModal(org: OrganizationItem) {
+    setMembersOrg(org);
+    setMembersData(null);
+    setMembersError(null);
+    setMembersLoading(true);
+
+    (async () => {
+      try {
+        const apiBase = process.env.NEXT_PUBLIC_API_URL || '';
+        const res = await fetch(`${apiBase}/api/v1/organizations/${org.id}/members`, {
+          credentials: 'include',
+        });
+
+        let body: MembersResponse | null = null;
+        try {
+          body = await res.json();
+        } catch {
+          body = null;
+        }
+
+        if (!res.ok || !body?.data) {
+          setMembersError(getOrganizationMembersErrorMessage(body?.error));
+          return;
+        }
+        setMembersData(body.data);
+      } catch {
+        setMembersError('Could not reach the API. Please try again.');
+      } finally {
+        setMembersLoading(false);
+      }
+    })();
+  }
+
+  function closeMembersModal() {
+    setMembersOrg(null);
+    setMembersData(null);
+    setMembersError(null);
+    setMembersLoading(false);
+  }
+
+  function openAssignModal(org: OrganizationItem) {
+    setSuccessMessage(null);
+    setAssignOrg(org);
+    setAssignMode('existing');
+    setAdminEmail('');
+    setAdminName('');
+    setAdminPassword('');
+    setAdminEmailError('');
+    setAdminPasswordError('');
+    setAssignError(null);
+  }
+
+  function closeAssignModal() {
+    if (assigning) return;
+    setAssignOrg(null);
+    setAssignMode('existing');
+    setAdminEmail('');
+    setAdminName('');
+    setAdminPassword('');
+    setAdminEmailError('');
+    setAdminPasswordError('');
+    setAssignError(null);
+  }
+
+  function clearAdminCredentials() {
+    setAdminEmail('');
+    setAdminName('');
+    setAdminPassword('');
+  }
+
+  async function handleAssignAdmin(e: React.FormEvent) {
+    e.preventDefault();
+    if (assigning || !assignOrg) return;
+    setAssignError(null);
+
+    const trimmedEmail = adminEmail.trim();
+    let valid = true;
+
+    if (!trimmedEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmedEmail)) {
+      setAdminEmailError('Please enter a valid email address');
+      valid = false;
+    } else {
+      setAdminEmailError('');
+    }
+
+    if (assignMode === 'new') {
+      if (!adminPassword || adminPassword.length < 8) {
+        setAdminPasswordError('Password must be at least 8 characters');
+        valid = false;
+      } else {
+        setAdminPasswordError('');
+      }
+    } else {
+      setAdminPasswordError('');
+    }
+
+    if (!valid) return;
+
+    setAssigning(true);
+    try {
+      const apiBase = process.env.NEXT_PUBLIC_API_URL || '';
+      const body =
+        assignMode === 'new'
+          ? { name: adminName.trim() || undefined, email: trimmedEmail, password: adminPassword }
+          : { email: trimmedEmail };
+
+      const res = await fetch(`${apiBase}/api/v1/organizations/${assignOrg.id}/admins`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+        credentials: 'include',
+      });
+
+      let resBody: AssignAdminResponse | null = null;
+      try {
+        resBody = await res.json();
+      } catch {
+        resBody = null;
+      }
+
+      clearAdminCredentials();
+
+      if (!res.ok || !resBody?.data?.user) {
+        setAssignError(getAssignAdminErrorMessage(resBody?.error));
+        return;
+      }
+
+      const adminEmailAssigned = resBody.data.user.email;
+      setAssignOrg(null);
+      setSuccessMessage(
+        `Organization admin ${adminEmailAssigned} assigned to "${assignOrg.name}".`
+      );
+      await load();
+    } catch {
+      clearAdminCredentials();
+      setAssignError('Could not reach the API. Please try again.');
+    } finally {
+      setAssigning(false);
+    }
   }
 
   function closeStatusModal() {
@@ -376,6 +580,7 @@ export default function OrganizationsPage() {
                 <tr>
                   <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-neutral-500">Name</th>
                   <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-neutral-500">Status</th>
+                  <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-neutral-500">Admins</th>
                   <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-neutral-500">Members</th>
                   <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-neutral-500">Created</th>
                   <th className="px-6 py-3 text-right text-xs font-semibold uppercase tracking-wide text-neutral-500">
@@ -395,6 +600,20 @@ export default function OrganizationsPage() {
                         {org.status}
                       </Badge>
                     </td>
+                    <td className="px-6 py-4">
+                      {org.admins && org.admins.length > 0 ? (
+                        <div className="space-y-2">
+                          {org.admins.map((admin) => (
+                            <div key={admin.id}>
+                              <p className="text-sm font-medium text-neutral-900">{admin.name ?? '—'}</p>
+                              <p className="text-xs text-neutral-500">{admin.email}</p>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <span className="text-sm text-neutral-400">No admin assigned</span>
+                      )}
+                    </td>
                     <td className="px-6 py-4 text-sm text-neutral-700">
                       {typeof org.memberCount === 'number' ? org.memberCount : '—'}
                     </td>
@@ -403,6 +622,12 @@ export default function OrganizationsPage() {
                     </td>
                     <td className="px-6 py-4 text-right">
                       <div className="flex items-center justify-end gap-2">
+                        <Button variant="secondary" size="sm" onClick={() => openMembersModal(org)}>
+                          Members
+                        </Button>
+                        <Button variant="ghost" size="sm" onClick={() => openAssignModal(org)}>
+                          Assign Admin
+                        </Button>
                         <Button variant="outline" size="sm" onClick={() => openEditModal(org)}>
                           Edit
                         </Button>
@@ -500,6 +725,163 @@ export default function OrganizationsPage() {
         variant={statusAction?.next === 'SUSPENDED' ? 'danger' : 'primary'}
         loading={statusUpdating}
       />
+
+      <Modal
+        isOpen={membersOrg !== null}
+        onClose={closeMembersModal}
+        title={membersOrg ? `Members — ${membersOrg.name}` : 'Members'}
+        size="lg"
+      >
+        {membersError ? (
+          <FormError message={membersError} />
+        ) : membersLoading ? (
+          <div className="flex items-center justify-center gap-3 py-10 text-neutral-700">
+            <Spinner size="lg" label="Loading members..." />
+            <span>Loading members...</span>
+          </div>
+        ) : membersData && membersData.members && membersData.members.length === 0 ? (
+          <EmptyState
+            icon={EmptyStateIcons.NoData}
+            title="No members yet"
+            description="This organization does not have any members."
+          />
+        ) : membersData?.organization && membersData.members ? (
+          <div className="space-y-4">
+            <p className="text-sm text-neutral-600">
+              {membersData.organization.name}
+              <span className="mx-2 text-neutral-300">|</span>
+              {membersData.members.length} member{membersData.members.length === 1 ? '' : 's'}
+            </p>
+            <div className="overflow-hidden rounded-lg border border-neutral-200">
+              <table className="min-w-full divide-y divide-neutral-200">
+                <thead className="bg-neutral-50">
+                  <tr>
+                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-neutral-500">Name</th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-neutral-500">Email</th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-neutral-500">Role</th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-neutral-500">Joined</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-neutral-200">
+                  {membersData.members.map((member) => (
+                    <tr key={member.id} className="hover:bg-neutral-50">
+                      <td className="px-4 py-3 text-sm font-medium text-neutral-900">
+                        {member.name ?? '—'}
+                      </td>
+                      <td className="px-4 py-3 text-sm text-neutral-700">{member.email}</td>
+                      <td className="px-4 py-3">
+                        <Badge
+                          variant={
+                            member.role === 'PLATFORM_ADMIN'
+                              ? 'primary'
+                              : member.role === 'ORG_ADMIN'
+                                ? 'info'
+                                : member.role === 'INSTRUCTOR'
+                                  ? 'warning'
+                                  : 'default'
+                          }
+                          size="sm"
+                        >
+                          {member.role}
+                        </Badge>
+                      </td>
+                      <td className="px-4 py-3 text-sm text-neutral-700">
+                        {new Date(member.joinedAt).toLocaleDateString()}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        ) : null}
+      </Modal>
+
+      <Modal
+        isOpen={assignOrg !== null}
+        onClose={closeAssignModal}
+        title={assignOrg ? `Assign Admin — ${assignOrg.name}` : 'Assign Admin'}
+        closeOnOverlayClick={!assigning}
+      >
+        <form onSubmit={handleAssignAdmin} noValidate>
+          <div className="space-y-4">
+            {assignError ? <FormError message={assignError} /> : null}
+
+            <div className="grid grid-cols-2 gap-2">
+              <Button
+                type="button"
+                size="sm"
+                variant={assignMode === 'existing' ? 'primary' : 'outline'}
+                onClick={() => setAssignMode('existing')}
+                disabled={assigning}
+              >
+                Assign existing user
+              </Button>
+              <Button
+                type="button"
+                size="sm"
+                variant={assignMode === 'new' ? 'primary' : 'outline'}
+                onClick={() => setAssignMode('new')}
+                disabled={assigning}
+              >
+                Create new admin
+              </Button>
+            </div>
+
+            {assignMode === 'new' ? (
+              <Input
+                label="Full name"
+                value={adminName}
+                onChange={(e) => setAdminName(e.target.value)}
+                placeholder="e.g. Mina Admin"
+                autoComplete="off"
+                disabled={assigning}
+              />
+            ) : null}
+
+            <Input
+              label="Email address"
+              type="email"
+              value={adminEmail}
+              onChange={(e) => setAdminEmail(e.target.value)}
+              error={adminEmailError}
+              placeholder="admin@example.com"
+              autoComplete="off"
+              disabled={assigning}
+              required
+            />
+
+            {assignMode === 'new' ? (
+              <PasswordInput
+                label="Password"
+                value={adminPassword}
+                onChange={(e) => setAdminPassword(e.target.value)}
+                error={adminPasswordError}
+                placeholder="At least 8 characters"
+                autoComplete="new-password"
+                helperText="Use at least 8 characters"
+                disabled={assigning}
+                required
+              />
+            ) : null}
+
+            <p className="text-xs text-neutral-500">
+              {assignMode === 'existing'
+                ? 'The user must already exist. They will be granted the ORG_ADMIN role for this organization.'
+                : 'A new user account will be created with a verified email and granted the ORG_ADMIN role.'}
+            </p>
+
+            <div className="flex items-center justify-end gap-3 pt-2">
+              <Button type="button" variant="ghost" onClick={closeAssignModal} disabled={assigning}>
+                Cancel
+              </Button>
+              <Button type="submit" loading={assigning}>
+                Assign Admin
+              </Button>
+            </div>
+          </div>
+        </form>
+      </Modal>
     </main>
   );
 }

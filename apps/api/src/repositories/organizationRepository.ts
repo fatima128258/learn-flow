@@ -22,6 +22,8 @@ const organizationAdminInclude = {
   },
 };
 
+export const SYSTEM_ORGANIZATION_SLUG = 'platform';
+
 const organizationListInclude = {
   ...organizationAdminInclude,
   _count: {
@@ -58,6 +60,7 @@ export async function listOrganizations(params: {
   q?: string;
 }) {
   const where = {
+    slug: { not: SYSTEM_ORGANIZATION_SLUG },
     ...(params.status ? { status: params.status } : {}),
     ...(params.q
       ? {

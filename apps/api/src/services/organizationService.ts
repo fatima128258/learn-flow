@@ -160,6 +160,7 @@ export async function listOrganizationMembers(organizationId: string, input: { p
     members: items.map((membership: any) => ({
       id: membership.id,
       userId: membership.user.id,
+      organizationId: membership.organizationId,
       name: membership.user.name,
       email: membership.user.email,
       emailVerified: membership.user.emailVerified,
