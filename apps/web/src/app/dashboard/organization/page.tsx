@@ -16,6 +16,7 @@ import { FormError } from '../../../components/forms/FormError';
 import { PasswordInput } from '../../../components/forms/PasswordInput';
 import { getOrgAdminErrorMessage } from '../../../features/orgAdmin/orgAdminErrors';
 import { getCreateInstructorErrorMessage } from '../../../features/orgAdmin/createInstructorError';
+import { LinkButton } from '../../../components/ui/LinkButton';
 
 type OrganizationInfo = {
   id: string;
@@ -287,6 +288,11 @@ export default function OrganizationDashboardPage() {
               <p><span className="font-semibold">Email:</span> {user.email}</p>
             </div>
           ) : null}
+          <div className="mt-4">
+            <LinkButton href="/dashboard/organization/courses/new" size="sm">
+              Create Course
+            </LinkButton>
+          </div>
         </div>
 
         {successMessage ? (
