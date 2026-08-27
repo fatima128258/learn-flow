@@ -101,6 +101,8 @@ export default function CoursesPage() {
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [searchQuery, setSearchQuery] = useState('');
   const [enrollingCourseId, setEnrollingCourseId] = useState<number | null>(null);
+  const [enrollmentSuccess, setEnrollmentSuccess] = useState<number | null>(null);
+  const [enrollmentError, setEnrollmentError] = useState<{ courseId: number; message: string } | null>(null);
 
   const filteredCourses = courses.filter(course => {
     const matchesCategory = selectedCategory === 'All' || course.category === selectedCategory;
@@ -111,13 +113,50 @@ export default function CoursesPage() {
 
   const handleEnroll = async (courseId: number) => {
     setEnrollingCourseId(courseId);
+    setEnrollmentError(null);
+    setEnrollmentSuccess(null);
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      // Handle enrollment success
-      alert('Successfully enrolled! This would redirect to the course.');
-    } catch (error) {
-      alert('Enrollment failed. Please try again.');
+      const apiBase = process.env.NEXT_PUBLIC_API_URL || '';
+      const meRes = await fetch(`${apiBase}/api/v1/auth/me`, { credentials: 'include' });
+      if (!meRes.ok) {
+        window.location.href = '/login';
+        return;
+      }
+      const meData = await meRes.json();
+      const user = meData?.user;
+      if (!user || user.role !== 'STUDENT') {
+        setEnrollmentError({ courseId, message: 'Only students can enroll in courses.' });
+        return;
+      }
+      if (!user.emailVerified) {
+        setEnrollmentError({ courseId, message: 'Please verify your email before enrolling.' });
+        return;
+      }
+      const orgId = user.organizationId;
+      if (!orgId) {
+        setEnrollmentError({ courseId, message: 'No organization associated with your account.' });
+        return;
+      }
+      const res = await fetch(`${apiBase}/api/v1/organizations/${orgId}/enrollments/${courseId}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+      });
+      const body = await res.json();
+      if (!res.ok) {
+        const errorMsg = body?.error === 'ALREADY_ENROLLED'
+          ? 'You are already enrolled in this course.'
+          : body?.error === 'COURSE_NOT_FOUND'
+          ? 'Course not found.'
+          : body?.error === 'COURSE_NOT_PUBLISHED'
+          ? 'This course is not yet available.'
+          : 'Enrollment failed. Please try again.';
+        setEnrollmentError({ courseId, message: errorMsg });
+        return;
+      }
+      setEnrollmentSuccess(courseId);
+    } catch {
+      setEnrollmentError({ courseId, message: 'Could not reach the server. Please try again.' });
     } finally {
       setEnrollingCourseId(null);
     }
@@ -262,6 +301,14 @@ export default function CoursesPage() {
                           {enrollingCourseId === course.id ? 'Enrolling...' : 'Enroll Now'}
                         </Button>
                       </div>
+
+                      {/* Enrollment feedback */}
+                      {enrollmentSuccess === course.id && (
+                        <p className="mt-3 text-sm text-green-600 font-medium">Successfully enrolled!</p>
+                      )}
+                      {enrollmentError?.courseId === course.id && (
+                        <p className="mt-3 text-sm text-red-600 font-medium">{enrollmentError.message}</p>
+                      )}
                     </CardHeader>
                   </div>
                 </Card>

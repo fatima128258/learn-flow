@@ -53,6 +53,7 @@ model User {
   organizations  UserOrganization[]
   courses        Course[]
   quizAttempts   QuizAttempt[]
+  enrollments    Enrollment[]
 }
 
 model UserOrganization {
@@ -126,6 +127,7 @@ model Course {
   createdAt          DateTime     @default(now())
   updatedAt          DateTime     @updatedAt
   modules            Module[]
+  enrollments        Enrollment[]
 
   @@unique([organizationId, slug])
   @@index([organizationId, status])
@@ -231,4 +233,30 @@ model QuizAttempt {
   @@unique([quizId, userId, attemptNumber])
   @@index([quizId, userId])
   @@index([userId])
+}
+
+enum EnrollmentStatus {
+  ACTIVE
+  COMPLETED
+  DROPPED
+}
+
+model Enrollment {
+  id             String           @id @default(cuid())
+  user           User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId         String
+  course         Course           @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  courseId        String
+  organization   Organization     @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  organizationId String
+  status         EnrollmentStatus @default(ACTIVE)
+  enrolledAt     DateTime         @default(now())
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+
+  @@unique([userId, courseId])
+  @@index([userId])
+  @@index([courseId])
+  @@index([organizationId])
+  @@index([userId, organizationId])
 }
