@@ -29,7 +29,8 @@ export default function DashboardPage() {
 
     async function load() {
       try {
-        const meRes = await fetch('/api/v1/auth/me', { credentials: 'include' });
+        const apiBase = process.env.NEXT_PUBLIC_API_URL || '';
+        const meRes = await fetch(`${apiBase}/api/v1/auth/me`, { credentials: 'include' });
         if (!meRes.ok) {
           window.location.href = '/login';
           return;
@@ -41,7 +42,7 @@ export default function DashboardPage() {
           return;
         }
 
-        const dashRes = await fetch('/api/v1/admin/dashboard', { credentials: 'include' });
+        const dashRes = await fetch(`${apiBase}/api/v1/admin/dashboard`, { credentials: 'include' });
         if (!dashRes.ok) {
           window.location.href = '/login';
           return;

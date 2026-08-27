@@ -6,6 +6,8 @@ import { adminRouter, organizationRouter } from './routes/organizationRoutes';
 import orgAdminRouter from './routes/orgAdminRoutes';
 import courseRouter from './routes/courseRoutes';
 import moduleRouter from './routes/moduleRoutes';
+import lessonRouter from './routes/lessonRoutes';
+import quizRouter from './routes/quizRoutes';
 
 const DEFAULT_ALLOWED_ORIGINS = [
   'http://localhost:3000',
@@ -59,6 +61,8 @@ app.use('/api/v1/auth', authRoutes);
 app.use('/api/v1/admin', adminRouter);
 app.use('/api/v1/organizations', courseRouter);
 app.use('/api/v1/organizations', moduleRouter);
+app.use('/api/v1/organizations', lessonRouter);
+app.use('/api/v1/organizations', quizRouter);
 app.use('/api/v1/organizations', organizationRouter);
 app.use('/api/v1/org', orgAdminRouter);
 

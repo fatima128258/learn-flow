@@ -7,6 +7,7 @@ import { FormError } from '../../../../../../components/forms/FormError';
 import { Input } from '../../../../../../components/ui/Input';
 import { LinkButton } from '../../../../../../components/ui/LinkButton';
 import { Modal } from '../../../../../../components/ui/Modal';
+import Link from 'next/link';
 import { getModuleErrorMessage } from '../../../../../../features/course/moduleErrors';
 
 type MeResponse = {
@@ -410,6 +411,18 @@ export default function CourseModulesPage() {
                       </td>
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-2">
+                          <Link
+                            href={`/dashboard/organization/courses/${courseId}/modules/${module.id}/lessons`}
+                            className="inline-flex items-center rounded-md px-3 py-1.5 text-sm font-medium text-primary-600 hover:text-primary-700 hover:bg-primary-50 transition-colors"
+                          >
+                            Lessons
+                          </Link>
+                          <Link
+                            href={`/dashboard/organization/courses/${courseId}/modules/${module.id}/quizzes`}
+                            className="inline-flex items-center rounded-md px-3 py-1.5 text-sm font-medium text-primary-600 hover:text-primary-700 hover:bg-primary-50 transition-colors"
+                          >
+                            Quizzes
+                          </Link>
                           <Button variant="ghost" size="sm" onClick={() => openEditModal(module)}>
                             Edit
                           </Button>

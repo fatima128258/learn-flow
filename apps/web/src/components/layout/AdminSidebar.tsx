@@ -1,7 +1,7 @@
 'use client';
 import React from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 
 export interface AdminSidebarItem {
   href: string;
@@ -61,7 +61,21 @@ function getActiveItem(pathname: string | null): AdminSidebarItem | null {
 
 export const AdminSidebar: React.FC = () => {
   const pathname = usePathname();
+  const router = useRouter();
   const activeItem = getActiveItem(pathname);
+
+  async function handleLogout() {
+    try {
+      const apiBase = process.env.NEXT_PUBLIC_API_URL || '';
+      await fetch(`${apiBase}/api/v1/auth/logout`, {
+        method: 'POST',
+        credentials: 'include',
+      });
+    } catch {
+      // ignore
+    }
+    window.location.href = '/login';
+  }
 
   return (
     <aside className="fixed inset-y-0 left-0 z-40 hidden w-64 flex-col border-r border-neutral-200 bg-white lg:flex">
@@ -97,6 +111,18 @@ export const AdminSidebar: React.FC = () => {
           );
         })}
       </nav>
+
+      <div className="border-t border-neutral-200 px-4 py-4">
+        <button
+          onClick={handleLogout}
+          className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-neutral-600 transition-colors hover:bg-neutral-100"
+        >
+          <svg className="h-5 w-5 flex-shrink-0" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a2 2 0 01-2 2H6a2 2 0 01-2-2V7a2 2 0 012-2h5a2 2 0 012 2v1" />
+          </svg>
+          <span>Log out</span>
+        </button>
+      </div>
     </aside>
   );
 };
