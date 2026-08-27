@@ -15,6 +15,9 @@ describe('getCreateCourseErrorMessage', () => {
     expect(getCreateCourseErrorMessage('COURSE_SLUG_TAKEN')).toBe(
       'A course with this slug already exists in your organization. Please choose another slug.'
     );
+    expect(getCreateCourseErrorMessage('COURSE_NOT_FOUND')).toBe(
+      'This course was not found in your organization.'
+    );
   });
 
   it('falls back to a generic message for unknown or missing error codes', () => {

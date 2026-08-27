@@ -288,7 +288,10 @@ export default function OrganizationDashboardPage() {
               <p><span className="font-semibold">Email:</span> {user.email}</p>
             </div>
           ) : null}
-          <div className="mt-4">
+          <div className="mt-4 flex items-center gap-3">
+            <LinkButton href="/dashboard/organization/courses" size="sm">
+              My Courses
+            </LinkButton>
             <LinkButton href="/dashboard/organization/courses/new" size="sm">
               Create Course
             </LinkButton>

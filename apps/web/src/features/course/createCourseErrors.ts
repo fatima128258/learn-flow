@@ -3,6 +3,7 @@ const ERROR_MESSAGES: Record<string, string> = {
   INVALID_SLUG: 'Slug may only contain lowercase letters, numbers and hyphens (2-50 characters).',
   ORGANIZATION_REQUIRED: 'Your organization could not be determined. Please try again.',
   COURSE_SLUG_TAKEN: 'A course with this slug already exists in your organization. Please choose another slug.',
+  COURSE_NOT_FOUND: 'This course was not found in your organization.',
 };
 
 export function getCreateCourseErrorMessage(code?: unknown): string {

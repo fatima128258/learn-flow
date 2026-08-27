@@ -124,7 +124,22 @@ model Course {
   learningObjectives String[]
   createdAt          DateTime     @default(now())
   updatedAt          DateTime     @updatedAt
+  modules            Module[]
 
   @@unique([organizationId, slug])
   @@index([organizationId, status])
+}
+
+model Module {
+  id          String   @id @default(cuid())
+  course      Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  courseId    String
+  title       String
+  description String?
+  order       Int
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([courseId, order])
+  @@unique([courseId, order])
 }

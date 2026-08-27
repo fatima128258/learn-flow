@@ -92,6 +92,30 @@ function toCourseDto(course: any) {
   };
 }
 
+function toCourseListItemDto(course: any) {
+  return {
+    id: course.id,
+    title: course.title,
+    slug: course.slug,
+    status: course.status,
+    difficulty: course.difficulty,
+    createdAt: course.createdAt,
+  };
+}
+
+export async function getCourse(organizationId: string, courseId: string) {
+  const course = await courseRepo.getById(organizationId, courseId);
+  if (!course) {
+    throw new Error('COURSE_NOT_FOUND');
+  }
+  return toCourseDto(course);
+}
+
+export async function listCourses(organizationId: string) {
+  const courses = await courseRepo.listByOrganization(organizationId);
+  return courses.map(toCourseListItemDto);
+}
+
 export async function createCourse(
   organizationId: string,
   instructorUserId: string,

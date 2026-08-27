@@ -41,3 +41,24 @@ export async function createCourse(data: CreateCourseData) {
     },
   });
 }
+
+export async function listByOrganization(organizationId: string) {
+  return prisma().course.findMany({
+    where: { organizationId },
+    select: {
+      id: true,
+      title: true,
+      slug: true,
+      status: true,
+      difficulty: true,
+      createdAt: true,
+    },
+    orderBy: { createdAt: 'desc' },
+  });
+}
+
+export async function getById(organizationId: string, courseId: string) {
+  return prisma().course.findFirst({
+    where: { id: courseId, organizationId },
+  });
+}

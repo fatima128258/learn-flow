@@ -23,8 +23,37 @@ function handleError(res: Response, err: any) {
       return fail(res, 400, 'ORGANIZATION_REQUIRED');
     case 'COURSE_SLUG_TAKEN':
       return fail(res, 409, 'COURSE_SLUG_TAKEN');
+    case 'COURSE_NOT_FOUND':
+      return fail(res, 404, 'COURSE_NOT_FOUND');
     default:
       return fail(res, 500, 'SERVER_ERROR');
+  }
+}
+
+export async function getCourse(req: AuthenticatedRequest, res: Response) {
+  try {
+    if (!req.user) {
+      return fail(res, 401, 'NOT_AUTHENTICATED');
+    }
+    const data = await service.getCourse(
+      tenantOrganizationId(req),
+      req.params.courseId,
+    );
+    return res.status(200).json({ success: true, data });
+  } catch (err: any) {
+    return handleError(res, err);
+  }
+}
+
+export async function listCourses(req: AuthenticatedRequest, res: Response) {
+  try {
+    if (!req.user) {
+      return fail(res, 401, 'NOT_AUTHENTICATED');
+    }
+    const data = await service.listCourses(tenantOrganizationId(req));
+    return res.status(200).json({ success: true, data });
+  } catch (err: any) {
+    return handleError(res, err);
   }
 }
 

@@ -188,6 +188,74 @@ export default function Home() {
         </Container>
       </section>
 
+      {/* Core Features Section */}
+      <section className="py-20 bg-white">
+        <Container>
+          <div className="text-center mb-12 animate-fade-in">
+            <h2 className="text-4xl sm:text-5xl font-bold text-neutral-900 tracking-tight mb-4">
+              Core features
+            </h2>
+            <p className="text-lg sm:text-xl text-neutral-600 max-w-2xl mx-auto">
+              What you get after signup: tools built around real coursework, not generic add-ons.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            {/* Study planner & reminders */}
+            <div className="bg-neutral-100 rounded-3xl p-6 flex flex-col items-center text-center transition-all duration-300 hover:shadow-lg hover:-translate-y-1 animate-slide-up">
+              <div className="h-16 w-16 rounded-full bg-neutral-200/80 flex items-center justify-center self-start mb-8">
+                <svg className="h-7 w-7 text-neutral-800" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3.75 8.25h16.5M4.5 5.25h15a.75.75 0 01.75.75v13a.75.75 0 01-.75.75h-15a.75.75 0 01-.75-.75v-13a.75.75 0 01.75-.75zM9 12h.008v.008H9V12zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 2.25a.375.375 0 11-.75 0 .375.375 0 01.75 0zm3.375-2.25h.008v.008h-.008V12zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 2.25a.375.375 0 11-.75 0 .375.375 0 01.75 0zm3.375-2.25h.008v.008h-.008V12zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z" />
+                </svg>
+              </div>
+              <h3 className="text-xl font-bold text-neutral-900 mb-3">Study planner &amp; reminders</h3>
+              <p className="text-base text-neutral-600 leading-relaxed">
+                Plan around deadlines and get reminders so revision and assignments stay on track.
+              </p>
+            </div>
+
+            {/* Quizzes & topics */}
+            <div className="bg-neutral-100 rounded-3xl p-6 flex flex-col items-center text-center transition-all duration-300 hover:shadow-lg hover:-translate-y-1 animate-slide-up" style={{ animationDelay: '0.1s' }}>
+              <div className="h-16 w-16 rounded-full bg-neutral-200/80 flex items-center justify-center self-start mb-8">
+                <svg className="h-7 w-7 text-neutral-800" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M10.125 8.25L7.5 10.875l-1.5-1.5M10.125 15L7.5 17.625l-1.5-1.5M14.25 9.75h4.5M14.25 16.5h4.5M6 3.75h12A2.25 2.25 0 0120.25 6v12A2.25 2.25 0 0118 20.25H6A2.25 2.25 0 013.75 18V6A2.25 2.25 0 016 3.75z" />
+                </svg>
+              </div>
+              <h3 className="text-xl font-bold text-neutral-900 mb-3">Quizzes &amp; topics</h3>
+              <p className="text-base text-neutral-600 leading-relaxed">
+                Link quizzes to topics, run attempts, and revisit weak spots before exams.
+              </p>
+            </div>
+
+            {/* Notes & goals */}
+            <div className="bg-neutral-100 rounded-3xl p-6 flex flex-col items-center text-center transition-all duration-300 hover:shadow-lg hover:-translate-y-1 animate-slide-up" style={{ animationDelay: '0.2s' }}>
+              <div className="h-16 w-16 rounded-full bg-neutral-200/80 flex items-center justify-center self-start mb-8">
+                <svg className="h-7 w-7 text-neutral-800" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zM19.5 14.25v3.75a2.25 2.25 0 01-2.25 2.25H6a2.25 2.25 0 01-2.25-2.25V6A2.25 2.25 0 016 3.75h7.5" />
+                </svg>
+              </div>
+              <h3 className="text-xl font-bold text-neutral-900 mb-3">Notes &amp; goals</h3>
+              <p className="text-base text-neutral-600 leading-relaxed">
+                Keep notes next to goals and tasks in one workspace instead of many apps.
+              </p>
+            </div>
+
+            {/* Study assistant */}
+            <div className="bg-neutral-100 rounded-3xl p-6 flex flex-col items-center text-center transition-all duration-300 hover:shadow-lg hover:-translate-y-1 animate-slide-up" style={{ animationDelay: '0.3s' }}>
+              <div className="h-16 w-16 rounded-full bg-neutral-200/80 flex items-center justify-center self-start mb-8">
+                <svg className="h-7 w-7 text-neutral-800" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09zM18.259 8.715L18 9.75l-.259-1.035a3.375 3.375 0 00-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 002.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 002.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 00-2.456 2.456z" />
+                </svg>
+              </div>
+              <h3 className="text-xl font-bold text-neutral-900 mb-3">Study assistant</h3>
+              <p className="text-base text-neutral-600 leading-relaxed">
+                Ask for quick explanations and checks without leaving your study flow.
+              </p>
+            </div>
+          </div>
+        </Container>
+      </section>
+
       {/* CTA Section */}
       <section className="relative py-24 overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-br from-primary-600 via-primary-700 to-primary-900" />
