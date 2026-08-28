@@ -57,7 +57,7 @@ export async function register(req: Request, res: Response) {
   } catch (err: any) {
     if (err.message === 'EMAIL_TAKEN') return res.status(409).json({ error: 'EMAIL_TAKEN' });
     if (err.message === 'TOO_MANY_ATTEMPTS') return res.status(429).json({ error: 'TOO_MANY_ATTEMPTS' });
-    return res.status(500).json({ error: 'SERVER_ERROR' });
+    return res.status(500).json({ success: false, error: 'SERVER_ERROR' });
   }
 }
 
@@ -72,7 +72,7 @@ export async function login(req: Request, res: Response) {
   } catch (err: any) {
     if (err.message === 'INVALID_CREDENTIALS') return res.status(401).json({ error: 'INVALID_CREDENTIALS' });
     if (err.message === 'TOO_MANY_ATTEMPTS') return res.status(429).json({ error: 'TOO_MANY_ATTEMPTS' });
-    return res.status(500).json({ error: 'SERVER_ERROR' });
+    return res.status(500).json({ success: false, error: 'SERVER_ERROR' });
   }
 }
 
@@ -101,7 +101,7 @@ export async function forgotPassword(req: Request, res: Response) {
     return res.json({ message: 'If an account exists, a password reset email has been sent' });
   } catch (err: any) {
     if (err.message === 'TOO_MANY_ATTEMPTS') return res.status(429).json({ error: 'TOO_MANY_ATTEMPTS' });
-    return res.status(500).json({ error: 'SERVER_ERROR' });
+    return res.status(500).json({ success: false, error: 'SERVER_ERROR' });
   }
 }
 
@@ -125,7 +125,7 @@ export async function resetPassword(req: Request, res: Response) {
     if (err.message === 'TOKEN_ALREADY_USED') return res.status(400).json({ error: 'TOKEN_ALREADY_USED' });
     if (err.message === 'TOKEN_EXPIRED') return res.status(400).json({ error: 'TOKEN_EXPIRED' });
     if (err.message === 'TOO_MANY_ATTEMPTS') return res.status(429).json({ error: 'TOO_MANY_ATTEMPTS' });
-    return res.status(500).json({ error: 'SERVER_ERROR' });
+    return res.status(500).json({ success: false, error: 'SERVER_ERROR' });
   }
 }
 
@@ -141,7 +141,7 @@ export async function verifyEmail(req: Request, res: Response) {
     if (err.message === 'TOKEN_ALREADY_USED') return res.status(400).json({ error: 'TOKEN_ALREADY_USED' });
     if (err.message === 'TOKEN_EXPIRED') return res.status(400).json({ error: 'TOKEN_EXPIRED' });
     if (err.message === 'TOO_MANY_ATTEMPTS') return res.status(429).json({ error: 'TOO_MANY_ATTEMPTS' });
-    return res.status(500).json({ error: 'SERVER_ERROR' });
+    return res.status(500).json({ success: false, error: 'SERVER_ERROR' });
   }
 }
 
@@ -155,14 +155,14 @@ export async function resendVerification(req: Request, res: Response) {
     return res.json({ message: 'If unverified, a verification email has been sent' });
   } catch (err: any) {
     if (err.message === 'TOO_MANY_ATTEMPTS') return res.status(429).json({ error: 'TOO_MANY_ATTEMPTS' });
-    return res.status(500).json({ error: 'SERVER_ERROR' });
+    return res.status(500).json({ success: false, error: 'SERVER_ERROR' });
   }
 }
 
 export async function getMe(req: AuthenticatedRequest, res: Response) {
   try {
     if (!req.user) {
-      return res.status(401).json({ error: 'NOT_AUTHENTICATED' });
+      return res.status(401).json({ success: false, error: 'NOT_AUTHENTICATED' });
     }
 
     return res.json({
@@ -177,6 +177,6 @@ export async function getMe(req: AuthenticatedRequest, res: Response) {
       }),
     });
   } catch (err: any) {
-    return res.status(500).json({ error: 'SERVER_ERROR' });
+    return res.status(500).json({ success: false, error: 'SERVER_ERROR' });
   }
 }

@@ -58,8 +58,14 @@ export async function listCourses(req: AuthenticatedRequest, res: Response) {
     if (!req.user) {
       return fail(res, 401, 'NOT_AUTHENTICATED');
     }
-    const data = await service.listCourses(tenantOrganizationId(req));
-    return res.status(200).json({ success: true, data });
+    const result = await service.listCourses(tenantOrganizationId(req), {
+      page: req.query.page,
+      limit: req.query.limit,
+      status: req.query.status,
+      sort: req.query.sort,
+      order: req.query.order,
+    });
+    return res.status(200).json({ success: true, data: result.items, meta: result.meta });
   } catch (err: any) {
     return handleError(res, err);
   }

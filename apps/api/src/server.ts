@@ -1,4 +1,4 @@
-import express from 'express';
+import express, { Request, Response, NextFunction } from 'express';
 import cors from 'cors';
 import cookieParser from 'cookie-parser';
 import authRoutes from './routes/authRoutes';
@@ -17,6 +17,7 @@ import searchRouter from './routes/searchRoutes';
 import notificationRouter from './routes/notificationRoutes';
 import mediaRouter from './routes/mediaRoutes';
 import { startNotificationWorker } from './queues/notificationWorker';
+import { apiRateLimiter } from './middleware/rateLimit';
 
 const DEFAULT_ALLOWED_ORIGINS = [
   'http://localhost:3000',
@@ -56,6 +57,9 @@ app.use(cors({
 app.use(cookieParser());
 app.use(express.json());
 
+// General API rate limiting (per IP + method + path)
+app.use('/api/v1', apiRateLimiter);
+
 // Health check endpoint
 app.get('/health', (req, res) => {
   res.json({
@@ -83,6 +87,22 @@ app.use('/api/v1/organizations', mediaRouter);
 app.use('/api/v1/certificates', publicCertificateRouter);
 app.use('/api/v1/organizations', organizationRouter);
 app.use('/api/v1/org', orgAdminRouter);
+
+// JSON 404 responses for unknown API routes
+app.use('/api/v1', (req, res) => {
+  res.status(404).json({ success: false, error: 'NOT_FOUND' });
+});
+
+// JSON error handler
+app.use((err: any, req: Request, res: Response, next: NextFunction) => {
+  if (res.headersSent) {
+    return next(err);
+  }
+  if (err?.type === 'entity.parse.failed') {
+    return res.status(400).json({ success: false, error: 'INVALID_JSON' });
+  }
+  return res.status(err?.status ?? 500).json({ success: false, error: 'SERVER_ERROR' });
+});
 
 export const start = (port: number | string = process.env.PORT ?? 4000) => {
   const p = typeof port === 'string' ? Number(port) : port;

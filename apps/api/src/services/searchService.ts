@@ -1,4 +1,5 @@
 import * as searchRepo from '../repositories/searchRepository';
+import { parsePagination, parseSort, buildMeta } from '../utils/pagination';
 
 function optionalFilter(value: unknown): string | undefined {
   if (value === undefined || value === null || value === '') return undefined;
@@ -37,12 +38,24 @@ export async function searchCourses(organizationId: string, rawInput: unknown) {
   const query = optionalFilter(input.q);
   const category = optionalFilter(input.category);
   const difficulty = optionalFilter(input.difficulty);
+  const filters = { query, category, difficulty };
 
-  const results = await searchRepo.searchPublishedCourses(organizationId, {
-    query,
-    category,
-    difficulty,
-  });
+  const { page, limit, skip, take } = parsePagination(input);
+  const orderBy = parseSort(input.sort, input.order, [
+    { field: 'publishedAt', defaultOrder: 'desc' },
+    { field: 'title' },
+    { field: 'price' },
+    { field: 'difficulty' },
+    { field: 'createdAt' },
+  ]);
 
-  return results.map(toCourseSearchDto);
+  const [results, total] = await Promise.all([
+    searchRepo.searchPublishedCourses(organizationId, filters, { skip, take, orderBy }),
+    searchRepo.countPublishedCourses(organizationId, filters),
+  ]);
+
+  return {
+    items: results.map(toCourseSearchDto),
+    meta: buildMeta(page, limit, total),
+  };
 }

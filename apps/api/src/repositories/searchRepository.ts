@@ -10,7 +10,13 @@ export interface SearchFilters {
   difficulty?: string;
 }
 
-export async function searchPublishedCourses(organizationId: string, filters: SearchFilters) {
+export interface SearchOptions {
+  skip?: number;
+  take?: number;
+  orderBy?: Record<string, 'asc' | 'desc'>;
+}
+
+function buildWhere(organizationId: string, filters: SearchFilters) {
   const query = filters.query?.trim();
   const where: any = {
     organizationId,
@@ -32,8 +38,16 @@ export async function searchPublishedCourses(organizationId: string, filters: Se
     where.difficulty = filters.difficulty;
   }
 
+  return where;
+}
+
+export async function searchPublishedCourses(
+  organizationId: string,
+  filters: SearchFilters,
+  options: SearchOptions = {},
+) {
   return prisma().course.findMany({
-    where,
+    where: buildWhere(organizationId, filters),
     include: {
       instructorUser: {
         select: {
@@ -42,6 +56,14 @@ export async function searchPublishedCourses(organizationId: string, filters: Se
         },
       },
     },
-    orderBy: { publishedAt: 'desc' },
+    orderBy: options.orderBy ?? { publishedAt: 'desc' },
+    skip: options.skip,
+    take: options.take,
+  });
+}
+
+export async function countPublishedCourses(organizationId: string, filters: SearchFilters) {
+  return prisma().course.count({
+    where: buildWhere(organizationId, filters),
   });
 }

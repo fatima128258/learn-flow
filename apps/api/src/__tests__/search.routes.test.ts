@@ -12,6 +12,7 @@ const prismaMock = {
   },
   course: {
     findMany: vi.fn(),
+    count: vi.fn(),
   },
 };
 
@@ -119,6 +120,7 @@ function resetMocks() {
   prismaMock.userOrganization.findUnique.mockReset();
   prismaMock.organization.findUnique.mockReset();
   prismaMock.course.findMany.mockReset();
+  prismaMock.course.count.mockReset();
   vi.mocked(authService.getSessionFromToken).mockReset();
   vi.mocked(authService.getUserById).mockReset();
 }
@@ -175,6 +177,7 @@ describe('GET /api/v1/organizations/:organizationId/student/search', () => {
     await authenticateAs('STUDENT');
     prismaMock.userOrganization.findUnique.mockResolvedValue(membershipRecord());
     prismaMock.course.findMany.mockResolvedValue([searchableCourse()]);
+    prismaMock.course.count.mockResolvedValue(1);
 
     const res = await request(app)
       .get(`${SEARCH_PATH}?q=react`)
@@ -210,6 +213,7 @@ describe('GET /api/v1/organizations/:organizationId/student/search', () => {
       searchableCourse(),
       searchableCourse({ id: 'course-2', title: 'Hidden Draft', status: 'DRAFT' }),
     ]);
+    prismaMock.course.count.mockResolvedValue(2);
 
     const res = await request(app).get(`${SEARCH_PATH}?q=react`).set('Cookie', cookie());
 
@@ -226,6 +230,7 @@ describe('GET /api/v1/organizations/:organizationId/student/search', () => {
     await authenticateAs('STUDENT');
     prismaMock.userOrganization.findUnique.mockResolvedValue(membershipRecord());
     prismaMock.course.findMany.mockResolvedValue([searchableCourse()]);
+    prismaMock.course.count.mockResolvedValue(1);
 
     const res = await request(app)
       .get(`${SEARCH_PATH}?category=Development&difficulty=Beginner`)
@@ -241,6 +246,7 @@ describe('GET /api/v1/organizations/:organizationId/student/search', () => {
     await authenticateAs('STUDENT');
     prismaMock.userOrganization.findUnique.mockResolvedValue(membershipRecord());
     prismaMock.course.findMany.mockResolvedValue([]);
+    prismaMock.course.count.mockResolvedValue(0);
 
     const res = await request(app)
       .get(`${SEARCH_PATH}?q=nonexistent`)
@@ -248,5 +254,63 @@ describe('GET /api/v1/organizations/:organizationId/student/search', () => {
 
     expect(res.status).toBe(200);
     expect(res.body.data).toEqual([]);
+  });
+
+  it('paginates search results and returns meta', async () => {
+    await authenticateAs('STUDENT');
+    prismaMock.userOrganization.findUnique.mockResolvedValue(membershipRecord());
+    prismaMock.course.findMany.mockResolvedValue([
+      searchableCourse({ id: 'course-2', title: 'React Advanced', slug: 'react-advanced' }),
+    ]);
+    prismaMock.course.count.mockResolvedValue(25);
+
+    const res = await request(app)
+      .get(`${SEARCH_PATH}?q=react&page=3&limit=5`)
+      .set('Cookie', cookie());
+
+    expect(res.status).toBe(200);
+    expect(res.body.success).toBe(true);
+    expect(res.body.data).toHaveLength(1);
+    expect(res.body.data[0].id).toBe('course-2');
+    expect(res.body.meta).toEqual({ page: 3, limit: 5, total: 25 });
+    const args = prismaMock.course.findMany.mock.calls[0][0];
+    expect(args.skip).toBe(10);
+    expect(args.take).toBe(5);
+    expect(prismaMock.course.count).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({ status: 'PUBLISHED' }),
+      }),
+    );
+  });
+
+  it('sorts search results by an allowed field and order', async () => {
+    await authenticateAs('STUDENT');
+    prismaMock.userOrganization.findUnique.mockResolvedValue(membershipRecord());
+    prismaMock.course.findMany.mockResolvedValue([searchableCourse()]);
+    prismaMock.course.count.mockResolvedValue(1);
+
+    const res = await request(app)
+      .get(`${SEARCH_PATH}?q=react&sort=title&order=asc`)
+      .set('Cookie', cookie());
+
+    expect(res.status).toBe(200);
+    const args = prismaMock.course.findMany.mock.calls[0][0];
+    expect(args.orderBy).toEqual({ title: 'asc' });
+  });
+
+  it('defaults search sort and pagination when not provided', async () => {
+    await authenticateAs('STUDENT');
+    prismaMock.userOrganization.findUnique.mockResolvedValue(membershipRecord());
+    prismaMock.course.findMany.mockResolvedValue([searchableCourse()]);
+    prismaMock.course.count.mockResolvedValue(1);
+
+    const res = await request(app).get(`${SEARCH_PATH}?q=react`).set('Cookie', cookie());
+
+    expect(res.status).toBe(200);
+    expect(res.body.meta).toEqual({ page: 1, limit: 20, total: 1 });
+    const args = prismaMock.course.findMany.mock.calls[0][0];
+    expect(args.orderBy).toEqual({ publishedAt: 'desc' });
+    expect(args.skip).toBe(0);
+    expect(args.take).toBe(20);
   });
 });

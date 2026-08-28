@@ -42,9 +42,20 @@ export async function createCourse(data: CreateCourseData) {
   });
 }
 
-export async function listByOrganization(organizationId: string) {
+export interface ListCoursesOptions {
+  skip?: number;
+  take?: number;
+  status?: string;
+  orderBy?: Record<string, 'asc' | 'desc'>;
+}
+
+export async function listByOrganization(organizationId: string, options: ListCoursesOptions = {}) {
+  const where: any = { organizationId };
+  if (options.status) {
+    where.status = options.status;
+  }
   return prisma().course.findMany({
-    where: { organizationId },
+    where,
     select: {
       id: true,
       title: true,
@@ -53,8 +64,18 @@ export async function listByOrganization(organizationId: string) {
       difficulty: true,
       createdAt: true,
     },
-    orderBy: { createdAt: 'desc' },
+    orderBy: options.orderBy ?? { createdAt: 'desc' },
+    skip: options.skip,
+    take: options.take,
   });
+}
+
+export async function countByOrganization(organizationId: string, status?: string) {
+  const where: any = { organizationId };
+  if (status) {
+    where.status = status;
+  }
+  return prisma().course.count({ where });
 }
 
 export async function getById(organizationId: string, courseId: string) {

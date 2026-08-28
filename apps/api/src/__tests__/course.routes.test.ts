@@ -14,6 +14,7 @@ const prismaMock = {
   course: {
     create: vi.fn(),
     findMany: vi.fn(),
+    count: vi.fn(),
   },
 };
 
@@ -121,6 +122,7 @@ function resetMocks() {
   prismaMock.organization.findUnique.mockReset();
   prismaMock.course.create.mockReset();
   prismaMock.course.findMany.mockReset();
+  prismaMock.course.count.mockReset();
 }
 
 describe('POST /api/v1/organizations/:organizationId/courses', () => {
@@ -448,6 +450,7 @@ describe('GET /api/v1/organizations/:organizationId/courses', () => {
       courseRecord({ id: 'course-1', title: 'Course One', slug: 'course-one' }),
       courseRecord({ id: 'course-2', title: 'Course Two', slug: 'course-two', status: 'PUBLISHED' }),
     ]);
+    prismaMock.course.count.mockResolvedValue(2);
 
     const res = await request(app)
       .get('/api/v1/organizations/org-a/courses')
@@ -479,6 +482,8 @@ describe('GET /api/v1/organizations/:organizationId/courses', () => {
         createdAt: true,
       }),
       orderBy: { createdAt: 'desc' },
+      skip: 0,
+      take: 20,
     });
   });
 
@@ -491,6 +496,7 @@ describe('GET /api/v1/organizations/:organizationId/courses', () => {
     prismaMock.course.findMany.mockResolvedValue([
       courseRecord({ id: 'course-1', title: 'Admin Course', slug: 'admin-course' }),
     ]);
+    prismaMock.course.count.mockResolvedValue(1);
 
     const res = await request(app)
       .get('/api/v1/organizations/org-a/courses')
@@ -511,6 +517,8 @@ describe('GET /api/v1/organizations/:organizationId/courses', () => {
         createdAt: true,
       }),
       orderBy: { createdAt: 'desc' },
+      skip: 0,
+      take: 20,
     });
   });
 
@@ -531,6 +539,7 @@ describe('GET /api/v1/organizations/:organizationId/courses', () => {
     await authenticateAs('INSTRUCTOR');
     prismaMock.userOrganization.findUnique.mockResolvedValue(membershipRecord());
     prismaMock.course.findMany.mockResolvedValue([]);
+    prismaMock.course.count.mockResolvedValue(0);
 
     const res = await request(app)
       .get('/api/v1/organizations/org-a/courses')
@@ -550,6 +559,8 @@ describe('GET /api/v1/organizations/:organizationId/courses', () => {
         createdAt: true,
       }),
       orderBy: { createdAt: 'desc' },
+      skip: 0,
+      take: 20,
     });
   });
 
@@ -559,6 +570,7 @@ describe('GET /api/v1/organizations/:organizationId/courses', () => {
     prismaMock.course.findMany.mockResolvedValue([
       courseRecord({ id: 'course-1', organizationId: 'org-a', title: 'Org A Course', slug: 'org-a-course' }),
     ]);
+    prismaMock.course.count.mockResolvedValue(1);
 
     const res = await request(app)
       .get('/api/v1/organizations/org-a/courses')
@@ -580,6 +592,119 @@ describe('GET /api/v1/organizations/:organizationId/courses', () => {
         createdAt: true,
       }),
       orderBy: { createdAt: 'desc' },
+      skip: 0,
+      take: 20,
     });
+  });
+
+  it('paginates results with page/limit and returns meta', async () => {
+    await authenticateAs('INSTRUCTOR');
+    prismaMock.userOrganization.findUnique.mockResolvedValue(membershipRecord());
+    prismaMock.course.findMany.mockResolvedValue([
+      courseRecord({ id: 'course-2', title: 'Course Two', slug: 'course-two' }),
+    ]);
+    prismaMock.course.count.mockResolvedValue(3);
+
+    const res = await request(app)
+      .get('/api/v1/organizations/org-a/courses?page=2&limit=1')
+      .set('Cookie', cookie());
+
+    expect(res.status).toBe(200);
+    expect(res.body.success).toBe(true);
+    expect(res.body.data).toHaveLength(1);
+    expect(res.body.data[0].id).toBe('course-2');
+    expect(res.body.meta).toEqual({ page: 2, limit: 1, total: 3 });
+    expect(prismaMock.course.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({ skip: 1, take: 1 }),
+    );
+    expect(prismaMock.course.count).toHaveBeenCalledWith({
+      where: { organizationId: 'org-a' },
+    });
+  });
+
+  it('clamps limit above the maximum of 100', async () => {
+    await authenticateAs('INSTRUCTOR');
+    prismaMock.userOrganization.findUnique.mockResolvedValue(membershipRecord());
+    prismaMock.course.findMany.mockResolvedValue([]);
+    prismaMock.course.count.mockResolvedValue(0);
+
+    const res = await request(app)
+      .get('/api/v1/organizations/org-a/courses?page=3&limit=500')
+      .set('Cookie', cookie());
+
+    expect(res.status).toBe(200);
+    expect(res.body.meta.limit).toBe(100);
+    expect(res.body.meta.page).toBe(3);
+    expect(prismaMock.course.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({ skip: 200, take: 100 }),
+    );
+  });
+
+  it('filters by normalized course status', async () => {
+    await authenticateAs('INSTRUCTOR');
+    prismaMock.userOrganization.findUnique.mockResolvedValue(membershipRecord());
+    prismaMock.course.findMany.mockResolvedValue([
+      courseRecord({ id: 'course-1', title: 'Published Course', status: 'PUBLISHED' }),
+    ]);
+    prismaMock.course.count.mockResolvedValue(1);
+
+    const res = await request(app)
+      .get('/api/v1/organizations/org-a/courses?status=published')
+      .set('Cookie', cookie());
+
+    expect(res.status).toBe(200);
+    expect(res.body.meta).toEqual({ page: 1, limit: 20, total: 1 });
+    expect(prismaMock.course.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({ where: { organizationId: 'org-a', status: 'PUBLISHED' } }),
+    );
+    expect(prismaMock.course.count).toHaveBeenCalledWith({
+      where: { organizationId: 'org-a', status: 'PUBLISHED' },
+    });
+  });
+
+  it('rejects an unknown status filter with 400', async () => {
+    await authenticateAs('INSTRUCTOR');
+    prismaMock.userOrganization.findUnique.mockResolvedValue(membershipRecord());
+
+    const res = await request(app)
+      .get('/api/v1/organizations/org-a/courses?status=bogus')
+      .set('Cookie', cookie());
+
+    expect(res.status).toBe(400);
+    expect(res.body.success).toBe(false);
+    expect(res.body.error).toBe('INVALID_STATUS');
+    expect(prismaMock.course.findMany).not.toHaveBeenCalled();
+  });
+
+  it('sorts by an allowed field and order', async () => {
+    await authenticateAs('INSTRUCTOR');
+    prismaMock.userOrganization.findUnique.mockResolvedValue(membershipRecord());
+    prismaMock.course.findMany.mockResolvedValue([]);
+    prismaMock.course.count.mockResolvedValue(0);
+
+    const res = await request(app)
+      .get('/api/v1/organizations/org-a/courses?sort=title&order=asc')
+      .set('Cookie', cookie());
+
+    expect(res.status).toBe(200);
+    expect(prismaMock.course.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({ orderBy: { title: 'asc' } }),
+    );
+  });
+
+  it('falls back to the default sort field for an unknown sort field', async () => {
+    await authenticateAs('INSTRUCTOR');
+    prismaMock.userOrganization.findUnique.mockResolvedValue(membershipRecord());
+    prismaMock.course.findMany.mockResolvedValue([]);
+    prismaMock.course.count.mockResolvedValue(0);
+
+    const res = await request(app)
+      .get('/api/v1/organizations/org-a/courses?sort=bogus&order=asc')
+      .set('Cookie', cookie());
+
+    expect(res.status).toBe(200);
+    expect(prismaMock.course.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({ orderBy: { createdAt: 'asc' } }),
+    );
   });
 });

@@ -2,6 +2,7 @@ import { Prisma } from '@prisma/client';
 import * as courseRepo from '../repositories/courseRepository';
 import { dispatchNotification } from './notificationDispatcher';
 import * as storage from '../storage';
+import { parsePagination, parseSort, buildMeta } from '../utils/pagination';
 
 const VALID_COURSE_STATUSES = new Set(['DRAFT', 'REVIEW', 'PUBLISHED', 'ARCHIVED']);
 
@@ -115,9 +116,35 @@ export async function getCourse(organizationId: string, courseId: string) {
   return toCourseDto(course);
 }
 
-export async function listCourses(organizationId: string) {
-  const courses = await courseRepo.listByOrganization(organizationId);
-  return courses.map(toCourseListItemDto);
+export async function listCourses(
+  organizationId: string,
+  input: { page?: unknown; limit?: unknown; status?: unknown; sort?: unknown; order?: unknown } = {},
+) {
+  let status: string | undefined;
+  if (input.status !== undefined && input.status !== null && input.status !== '') {
+    const rawStatus = String(input.status).toUpperCase();
+    if (!VALID_COURSE_STATUSES.has(rawStatus)) {
+      throw new Error('INVALID_STATUS');
+    }
+    status = rawStatus;
+  }
+
+  const { page, limit, skip, take } = parsePagination(input);
+  const orderBy = parseSort(input.sort, input.order, [
+    { field: 'createdAt', defaultOrder: 'desc' },
+    { field: 'title' },
+    { field: 'difficulty' },
+  ]);
+
+  const [courses, total] = await Promise.all([
+    courseRepo.listByOrganization(organizationId, { skip, take, status, orderBy }),
+    courseRepo.countByOrganization(organizationId, status),
+  ]);
+
+  return {
+    items: courses.map(toCourseListItemDto),
+    meta: buildMeta(page, limit, total),
+  };
 }
 
 export async function createCourse(

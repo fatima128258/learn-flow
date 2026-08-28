@@ -29,11 +29,11 @@ export async function searchCourses(req: AuthenticatedRequest, res: Response) {
     if (!req.user) {
       return fail(res, 401, 'NOT_AUTHENTICATED');
     }
-    const data = await service.searchCourses(
+    const result = await service.searchCourses(
       tenantOrganizationId(req),
       req.query,
     );
-    return res.status(200).json({ success: true, data });
+    return res.status(200).json({ success: true, data: result.items, meta: result.meta });
   } catch (err: any) {
     return handleError(res, err);
   }

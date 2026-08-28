@@ -9,10 +9,10 @@ import { searchCourses } from '../controllers/searchController';
 
 function requireStudentOnly(req: AuthenticatedRequest, res: Response, next: NextFunction) {
   if (!req.user) {
-    return res.status(401).json({ error: 'NOT_AUTHENTICATED' });
+    return res.status(401).json({ success: false, error: 'NOT_AUTHENTICATED' });
   }
   if (req.user.role !== 'STUDENT') {
-    return res.status(403).json({ error: 'INSUFFICIENT_PERMISSIONS' });
+    return res.status(403).json({ success: false, error: 'INSUFFICIENT_PERMISSIONS' });
   }
   next();
 }

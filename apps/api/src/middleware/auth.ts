@@ -39,17 +39,17 @@ export async function requireAuth(req: AuthenticatedRequest, res: Response, next
   try {
     const token = req.cookies?.[COOKIE_NAME] || null;
     if (!token) {
-      return res.status(401).json({ error: 'NOT_AUTHENTICATED' });
+      return res.status(401).json({ success: false, error: 'NOT_AUTHENTICATED' });
     }
 
     const session = await authService.getSessionFromToken(token);
     if (!session) {
-      return res.status(401).json({ error: 'SESSION_INVALID' });
+      return res.status(401).json({ success: false, error: 'SESSION_INVALID' });
     }
 
     const user = await authService.getUserById(session.userId);
     if (!user) {
-      return res.status(401).json({ error: 'USER_NOT_FOUND' });
+      return res.status(401).json({ success: false, error: 'USER_NOT_FOUND' });
     }
 
     req.userId = user.id;
@@ -73,17 +73,17 @@ export async function requireAuth(req: AuthenticatedRequest, res: Response, next
 
     next();
   } catch (err) {
-    return res.status(500).json({ error: 'SERVER_ERROR' });
+    return res.status(500).json({ success: false, error: 'SERVER_ERROR' });
   }
 }
 
 export async function requireVerifiedEmail(req: AuthenticatedRequest, res: Response, next: NextFunction) {
   if (!req.user) {
-    return res.status(401).json({ error: 'NOT_AUTHENTICATED' });
+    return res.status(401).json({ success: false, error: 'NOT_AUTHENTICATED' });
   }
 
   if (!req.user.emailVerified) {
-    return res.status(403).json({ error: 'EMAIL_NOT_VERIFIED' });
+    return res.status(403).json({ success: false, error: 'EMAIL_NOT_VERIFIED' });
   }
 
   next();
@@ -91,7 +91,7 @@ export async function requireVerifiedEmail(req: AuthenticatedRequest, res: Respo
 
 export async function requireOrganizationContext(req: AuthenticatedRequest, res: Response, next: NextFunction) {
   if (!req.user) {
-    return res.status(401).json({ error: 'NOT_AUTHENTICATED' });
+    return res.status(401).json({ success: false, error: 'NOT_AUTHENTICATED' });
   }
 
   try {
@@ -99,7 +99,7 @@ export async function requireOrganizationContext(req: AuthenticatedRequest, res:
     const orgId = Array.isArray(rawOrgId) ? rawOrgId[0] : rawOrgId;
 
     if (!orgId || typeof orgId !== 'string') {
-      return res.status(400).json({ error: 'ORGANIZATION_REQUIRED' });
+      return res.status(400).json({ success: false, error: 'ORGANIZATION_REQUIRED' });
     }
 
     const prisma = getPrisma();
@@ -116,7 +116,7 @@ export async function requireOrganizationContext(req: AuthenticatedRequest, res:
       });
 
       if (!organization) {
-        return res.status(404).json({ error: 'ORGANIZATION_NOT_FOUND' });
+        return res.status(404).json({ success: false, error: 'ORGANIZATION_NOT_FOUND' });
       }
 
       req.organizationId = orgId;
@@ -135,7 +135,7 @@ export async function requireOrganizationContext(req: AuthenticatedRequest, res:
     });
 
     if (!userOrg) {
-      return res.status(403).json({ error: 'ORGANIZATION_ACCESS_DENIED' });
+      return res.status(403).json({ success: false, error: 'ORGANIZATION_ACCESS_DENIED' });
     }
 
     req.organizationId = orgId;
@@ -144,18 +144,18 @@ export async function requireOrganizationContext(req: AuthenticatedRequest, res:
 
     next();
   } catch (err) {
-    return res.status(500).json({ error: 'SERVER_ERROR' });
+    return res.status(500).json({ success: false, error: 'SERVER_ERROR' });
   }
 }
 
 export function requireRole(...allowedRoles: string[]) {
   return (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     if (!req.user) {
-      return res.status(401).json({ error: 'NOT_AUTHENTICATED' });
+      return res.status(401).json({ success: false, error: 'NOT_AUTHENTICATED' });
     }
 
     if (!hasRequiredRole(req.user.role, allowedRoles)) {
-      return res.status(403).json({ error: 'INSUFFICIENT_PERMISSIONS' });
+      return res.status(403).json({ success: false, error: 'INSUFFICIENT_PERMISSIONS' });
     }
 
     next();
@@ -164,7 +164,7 @@ export function requireRole(...allowedRoles: string[]) {
 
 export async function requirePlatformAdmin(req: AuthenticatedRequest, res: Response, next: NextFunction) {
   if (!req.user) {
-    return res.status(401).json({ error: 'NOT_AUTHENTICATED' });
+    return res.status(401).json({ success: false, error: 'NOT_AUTHENTICATED' });
   }
 
   try {
@@ -177,7 +177,7 @@ export async function requirePlatformAdmin(req: AuthenticatedRequest, res: Respo
     });
 
     if (!adminRole) {
-      return res.status(403).json({ error: 'PLATFORM_ADMIN_REQUIRED' });
+      return res.status(403).json({ success: false, error: 'PLATFORM_ADMIN_REQUIRED' });
     }
 
     req.user.role = 'PLATFORM_ADMIN';
@@ -186,13 +186,13 @@ export async function requirePlatformAdmin(req: AuthenticatedRequest, res: Respo
 
     next();
   } catch (err) {
-    return res.status(500).json({ error: 'SERVER_ERROR' });
+    return res.status(500).json({ success: false, error: 'SERVER_ERROR' });
   }
 }
 
 export async function requireOrgAdmin(req: AuthenticatedRequest, res: Response, next: NextFunction) {
   if (!req.user) {
-    return res.status(401).json({ error: 'NOT_AUTHENTICATED' });
+    return res.status(401).json({ success: false, error: 'NOT_AUTHENTICATED' });
   }
 
   try {
@@ -206,7 +206,7 @@ export async function requireOrgAdmin(req: AuthenticatedRequest, res: Response, 
     });
 
     if (!membership) {
-      return res.status(403).json({ error: 'ORG_ADMIN_REQUIRED' });
+      return res.status(403).json({ success: false, error: 'ORG_ADMIN_REQUIRED' });
     }
 
     req.user.role = 'ORG_ADMIN';
@@ -215,6 +215,6 @@ export async function requireOrgAdmin(req: AuthenticatedRequest, res: Response, 
 
     next();
   } catch (err) {
-    return res.status(500).json({ error: 'SERVER_ERROR' });
+    return res.status(500).json({ success: false, error: 'SERVER_ERROR' });
   }
 }
