@@ -2,6 +2,7 @@ import * as courseRepo from '../repositories/courseRepository';
 import * as enrollmentRepo from '../repositories/enrollmentRepository';
 import * as orderRepo from '../repositories/orderRepository';
 import { processMockPayment } from './paymentService';
+import { dispatchNotification } from './notificationDispatcher';
 
 function round2(value: number) {
   return Math.round(value * 100) / 100;
@@ -59,6 +60,20 @@ export async function purchaseCourse(organizationId: string, userId: string, cou
     totalAmount,
     currency,
     providerRef: payment.providerRef,
+  });
+
+  await dispatchNotification({
+    type: 'COURSE_PURCHASED',
+    title: `Course purchased: ${course.title}`,
+    body: `Your purchase of ${course.title} was successful and you are now enrolled.`,
+    data: {
+      orderId: order.id,
+      courseId: course.id,
+      courseTitle: course.title,
+    },
+    userId,
+    organizationId,
+    email: { courseTitle: course.title },
   });
 
   return toPurchaseDto(order, enrollment, course);

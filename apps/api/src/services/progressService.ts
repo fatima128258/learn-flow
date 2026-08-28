@@ -3,6 +3,7 @@ import * as moduleRepo from '../repositories/moduleRepository';
 import * as lessonRepo from '../repositories/lessonRepository';
 import * as enrollmentRepo from '../repositories/enrollmentRepository';
 import * as progressRepo from '../repositories/progressRepository';
+import { dispatchNotification } from './notificationDispatcher';
 import getPrisma from '../prisma';
 
 function round2(value: number) {
@@ -225,6 +226,21 @@ export async function recordLessonProgress(
 
   if (courseProgress && progress.courseComplete !== courseProgress.completed) {
     await progressRepo.markCourseCompleted(userId, courseId, progress.courseComplete);
+  }
+
+  if (progress.courseComplete && !(courseProgress && courseProgress.completed)) {
+    await dispatchNotification({
+      type: 'COURSE_COMPLETION',
+      title: `Course completed: ${course?.title ?? 'Your course'}`,
+      body: `Congratulations! You completed ${course?.title ?? 'your course'}.`,
+      data: {
+        courseId,
+        courseTitle: course?.title ?? null,
+      },
+      userId,
+      organizationId,
+      email: { courseTitle: course?.title ?? null },
+    });
   }
 
   return {

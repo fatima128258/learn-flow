@@ -1,5 +1,6 @@
 import * as enrollmentRepo from '../repositories/enrollmentRepository';
 import * as courseRepo from '../repositories/courseRepository';
+import { dispatchNotification } from './notificationDispatcher';
 
 function toEnrollmentDto(enrollment: any) {
   return {
@@ -47,6 +48,20 @@ export async function enroll(organizationId: string, userId: string, courseId: s
     userId,
     courseId,
     organizationId,
+  });
+
+  await dispatchNotification({
+    type: 'ENROLLMENT_CONFIRMATION',
+    title: `Enrolled in ${course.title}`,
+    body: `You have been enrolled in ${course.title}.`,
+    data: {
+      courseId: course.id,
+      courseTitle: course.title,
+      organizationName: organizationId,
+    },
+    userId,
+    organizationId,
+    email: { courseTitle: course.title },
   });
 
   return toEnrollmentDto(enrollment);

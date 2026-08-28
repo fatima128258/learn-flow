@@ -1,9 +1,107 @@
 import nodemailer from 'nodemailer';
+import { NotificationType } from '@prisma/client';
 
 interface MailOptions {
   to: string;
   subject: string;
   html: string;
+}
+
+export interface NotificationEmailContext {
+  to: string;
+  name?: string | null;
+  courseTitle?: string | null;
+  organizationName?: string | null;
+  verifyUrl?: string;
+  resetUrl?: string;
+  certificateUrl?: string;
+}
+
+function layout(title: string, bodyHtml: string) {
+  return `
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+      <h2>${title}</h2>
+      ${bodyHtml}
+      <hr style="border: none; border-top: 1px solid #E5E7EB; margin: 24px 0;" />
+      <p style="color: #9CA3AF; font-size: 12px;">Sent by LearnFlow</p>
+    </div>
+  `;
+}
+
+export function buildNotificationEmail(type: NotificationType, ctx: NotificationEmailContext) {
+  const course = ctx.courseTitle ?? 'course';
+  const org = ctx.organizationName ?? 'your organization';
+  const greeting = ctx.name ? `Hi ${ctx.name},` : 'Hi there,';
+
+  switch (type) {
+    case 'ENROLLMENT_CONFIRMATION':
+      return {
+        subject: `Enrollment confirmed: ${course}`,
+        html: layout('Enrollment confirmed', `
+          <p>${greeting}</p>
+          <p>You have been enrolled in <strong>${course}</strong> at ${org}.</p>
+          <p>You can start learning right away from your dashboard.</p>
+        `),
+      };
+    case 'COURSE_PURCHASED':
+      return {
+        subject: `Purchase confirmed: ${course}`,
+        html: layout('Purchase confirmed', `
+          <p>${greeting}</p>
+          <p>Your purchase and enrollment for <strong>${course}</strong> at ${org} were successful.</p>
+          <p>You can now access all lessons and materials.</p>
+        `),
+      };
+    case 'COURSE_COMPLETION':
+      return {
+        subject: `Congratulations! You completed ${course}`,
+        html: layout('Course completed', `
+          <p>${greeting}</p>
+          <p>Congratulations on completing <strong>${course}</strong> at ${org}.</p>
+          <p>You can now generate your certificate from your dashboard.</p>
+        `),
+      };
+    case 'CERTIFICATE_GENERATED':
+      return {
+        subject: `Your certificate for ${course} is ready`,
+        html: layout('Certificate generated', `
+          <p>${greeting}</p>
+          <p>Your certificate for <strong>${course}</strong> has been generated.</p>
+          ${ctx.certificateUrl ? `<p><a href="${ctx.certificateUrl}" style="display:inline-block;padding:12px 24px;background-color:#4F46E5;color:white;text-decoration:none;border-radius:6px;">View Certificate</a></p>` : ''}
+        `),
+      };
+    case 'COURSE_PUBLISHED':
+      return {
+        subject: `Your course "${course}" is published`,
+        html: layout('Course published', `
+          <p>${greeting}</p>
+          <p>Great news — your course <strong>${course}</strong> at ${org} is now published and available to students.</p>
+        `),
+      };
+    case 'WELCOME':
+      return {
+        subject: `Welcome to LearnFlow`,
+        html: layout('Welcome', `
+          <p>${greeting}</p>
+          <p>Your LearnFlow account is ready at ${org}.</p>
+        `),
+      };
+    case 'PASSWORD_RESET':
+      return {
+        subject: 'Your password was reset',
+        html: layout('Password reset', `
+          <p>${greeting}</p>
+          <p>Your LearnFlow password has been reset successfully. If this wasn't you, please contact support.</p>
+        `),
+      };
+    default:
+      return { subject: 'LearnFlow notification', html: layout('Notification', `<p>${greeting}</p>`) };
+  }
+}
+
+export async function sendNotificationEmail(type: NotificationType, ctx: NotificationEmailContext) {
+  const { subject, html } = buildNotificationEmail(type, ctx);
+  return sendMail({ to: ctx.to, subject, html });
 }
 
 let transporter: nodemailer.Transporter | null = null;

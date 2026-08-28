@@ -5,6 +5,7 @@ import * as progressRepo from '../repositories/progressRepository';
 import * as organizationRepo from '../repositories/organizationRepository';
 import * as certificateRepo from '../repositories/certificateRepository';
 import * as authService from './authService';
+import { dispatchNotification } from './notificationDispatcher';
 
 const API_BASE_URL = process.env.API_BASE_URL ?? 'http://localhost:4000';
 
@@ -88,6 +89,24 @@ export async function generateCertificate(organizationId: string, userId: string
     studentName: student?.name ?? student?.email ?? 'Student',
     courseTitle: course.title,
     completionDate: issued,
+  });
+
+  await dispatchNotification({
+    type: 'CERTIFICATE_GENERATED',
+    title: `Certificate for ${course.title}`,
+    body: `Your certificate for ${course.title} has been generated.`,
+    data: {
+      certificateId: certificate.certificateId,
+      courseId,
+      courseTitle: course.title,
+      verificationUrl: verificationUrl(certificate.verificationToken),
+    },
+    userId,
+    organizationId,
+    email: {
+      courseTitle: course.title,
+      certificateUrl: verificationUrl(certificate.verificationToken),
+    },
   });
 
   return toCertificateDto(certificate);

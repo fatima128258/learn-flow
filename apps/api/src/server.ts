@@ -15,6 +15,7 @@ import commerceRouter from './routes/commerceRoutes';
 import certificateRouter, { publicCertificateRouter } from './routes/certificateRoutes';
 import searchRouter from './routes/searchRoutes';
 import notificationRouter from './routes/notificationRoutes';
+import { startNotificationWorker } from './queues/notificationWorker';
 
 const DEFAULT_ALLOWED_ORIGINS = [
   'http://localhost:3000',
@@ -83,6 +84,7 @@ app.use('/api/v1/org', orgAdminRouter);
 
 export const start = (port: number | string = process.env.PORT ?? 4000) => {
   const p = typeof port === 'string' ? Number(port) : port;
+  startNotificationWorker();
   return app.listen(p, () => {
     // eslint-disable-next-line no-console
     console.log(`API server listening on http://localhost:${p}`);
