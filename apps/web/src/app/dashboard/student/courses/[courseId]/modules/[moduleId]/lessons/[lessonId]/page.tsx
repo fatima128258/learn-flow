@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
-import { Badge, ErrorState, Spinner } from '@/components/ui';
+import { Badge, Button, ErrorState, Spinner } from '@/components/ui';
 
 type MeResponse = {
   user?: {
@@ -43,6 +43,9 @@ export default function StudentLessonPage() {
   const [data, setData] = useState<LessonData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [marking, setMarking] = useState(false);
+  const [markError, setMarkError] = useState<string | null>(null);
+  const [organizationId, setOrganizationId] = useState<string | null>(null);
 
   useEffect(() => {
     let active = true;
@@ -67,6 +70,7 @@ export default function StudentLessonPage() {
           window.location.href = '/login';
           return;
         }
+        setOrganizationId(orgId);
         if (courseId && moduleId && lessonId) {
           await loadLesson(orgId, courseId, moduleId, lessonId);
         }
@@ -82,6 +86,32 @@ export default function StudentLessonPage() {
       active = false;
     };
   }, [courseId, moduleId, lessonId]);
+
+  async function markComplete(completed: boolean) {
+    if (!organizationId || !courseId || !moduleId || !lessonId) return;
+    setMarking(true);
+    setMarkError(null);
+    try {
+      const apiBase = process.env.NEXT_PUBLIC_API_URL || '';
+      const res = await fetch(
+        `${apiBase}/api/v1/organizations/${organizationId}/student/courses/${courseId}/modules/${moduleId}/lessons/${lessonId}/progress`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({ completed }),
+        },
+      );
+      if (!res.ok) {
+        setMarkError('Could not update your progress. Please try again.');
+        return;
+      }
+    } catch {
+      setMarkError('Could not reach the server. Please try again.');
+    } finally {
+      setMarking(false);
+    }
+  }
 
   async function loadLesson(orgId: string, cid: string, mid: string, lid: string) {
     try {
@@ -188,12 +218,41 @@ export default function StudentLessonPage() {
             </div>
 
             <div className="border-t border-neutral-200 p-6">
-              <Link
-                href={`/dashboard/student/courses/${courseId}/modules/${moduleId}`}
-                className="text-sm text-primary-600 hover:text-primary-700"
-              >
-                &larr; Back to Module
-              </Link>
+              <div className="flex flex-wrap items-center justify-between gap-4">
+                <Link
+                  href={`/dashboard/student/courses/${courseId}/modules/${moduleId}`}
+                  className="text-sm text-primary-600 hover:text-primary-700"
+                >
+                  &larr; Back to Module
+                </Link>
+                <div className="flex flex-wrap items-center gap-3">
+                  {markError && (
+                    <span className="text-sm text-error-600">{markError}</span>
+                  )}
+                  <Link
+                    href={`/dashboard/student/courses/${courseId}/progress`}
+                    className="text-sm text-primary-600 hover:text-primary-700"
+                  >
+                    View Course Progress
+                  </Link>
+                  <Button
+                    size="sm"
+                    variant="primary"
+                    disabled={marking}
+                    onClick={() => markComplete(true)}
+                  >
+                    {marking ? 'Saving...' : 'Mark as Complete'}
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    disabled={marking}
+                    onClick={() => markComplete(false)}
+                  >
+                    Mark as Incomplete
+                  </Button>
+                </div>
+              </div>
             </div>
           </div>
         ) : null}

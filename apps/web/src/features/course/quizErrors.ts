@@ -11,6 +11,12 @@ const ERROR_MESSAGES: Record<string, string> = {
   QUESTION_ORDER_TAKEN: 'A question with this order already exists in the quiz. Please choose another order.',
   OPTION_NOT_FOUND: 'This option was not found in the question.',
   OPTION_ORDER_TAKEN: 'An option with this order already exists in the question. Please choose another order.',
+  INVALID_ANSWERS: 'One of your answers is invalid. Please check your selections and try again.',
+  ALL_QUESTIONS_REQUIRED: 'Please answer every question before submitting.',
+  QUIZ_HAS_NO_QUESTIONS: 'This quiz does not have any questions yet.',
+  STUDENT_NOT_ENROLLED: 'You must be enrolled in this course to take the quiz.',
+  MAX_ATTEMPTS_REACHED: 'You have used all of your allowed attempts for this quiz.',
+  ATTEMPT_ALREADY_SUBMITTED: 'This attempt has already been submitted. Please refresh to see your result.',
 };
 
 export function getQuizErrorMessage(code?: unknown): string {

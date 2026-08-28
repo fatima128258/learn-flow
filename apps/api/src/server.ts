@@ -10,6 +10,8 @@ import lessonRouter from './routes/lessonRoutes';
 import quizRouter from './routes/quizRoutes';
 import enrollmentRouter from './routes/enrollmentRoutes';
 import studentLearningRouter from './routes/studentLearningRoutes';
+import progressRouter from './routes/progressRoutes';
+import commerceRouter from './routes/commerceRoutes';
 
 const DEFAULT_ALLOWED_ORIGINS = [
   'http://localhost:3000',
@@ -67,6 +69,8 @@ app.use('/api/v1/organizations', lessonRouter);
 app.use('/api/v1/organizations', quizRouter);
 app.use('/api/v1/organizations', enrollmentRouter);
 app.use('/api/v1/organizations', studentLearningRouter);
+app.use('/api/v1/organizations', progressRouter);
+app.use('/api/v1/organizations', commerceRouter);
 app.use('/api/v1/organizations', organizationRouter);
 app.use('/api/v1/org', orgAdminRouter);
 

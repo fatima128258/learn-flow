@@ -12,6 +12,10 @@ import {
   listModuleLessons,
   getLessonContent,
 } from '../controllers/studentLearningController';
+import {
+  getQuizForTaking,
+  submitQuizAttempt,
+} from '../controllers/quizAttemptController';
 
 function requireStudentOnly(req: AuthenticatedRequest, res: Response, next: NextFunction) {
   if (!req.user) {
@@ -60,6 +64,18 @@ studentLearningRouter.get(
   '/:organizationId/student/courses/:courseId/modules/:moduleId/lessons/:lessonId',
   ...studentMiddleware,
   getLessonContent,
+);
+
+studentLearningRouter.get(
+  '/:organizationId/student/courses/:courseId/modules/:moduleId/quizzes/:quizId',
+  ...studentMiddleware,
+  getQuizForTaking,
+);
+
+studentLearningRouter.post(
+  '/:organizationId/student/courses/:courseId/modules/:moduleId/quizzes/:quizId/attempts',
+  ...studentMiddleware,
+  submitQuizAttempt,
 );
 
 export default studentLearningRouter;

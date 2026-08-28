@@ -5,6 +5,7 @@ import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import {
   Badge,
+  Button,
   EmptyState,
   EmptyStateIcons,
   ErrorState,
@@ -161,14 +162,23 @@ export default function StudentCoursePage() {
               {course.description && (
                 <p className="mt-3 text-neutral-600">{course.description}</p>
               )}
-              <div className="mt-4 flex flex-wrap items-center gap-4 text-sm text-neutral-500">
-                {course.estimatedMinutes && (
-                  <span>Estimated time: {Math.round(course.estimatedMinutes / 60)}h {course.estimatedMinutes % 60}m</span>
-                )}
-                <span>{course.modules.length} module{course.modules.length !== 1 ? 's' : ''}</span>
-                <span>
-                  {course.modules.reduce((sum, m) => sum + m.lessonCount, 0)} lesson{course.modules.reduce((sum, m) => sum + m.lessonCount, 0) !== 1 ? 's' : ''}
-                </span>
+              <div className="mt-4 flex flex-wrap items-center gap-4">
+                <div className="flex items-center gap-4 text-sm text-neutral-500">
+                  {course.estimatedMinutes && (
+                    <span>Estimated time: {Math.round(course.estimatedMinutes / 60)}h {course.estimatedMinutes % 60}m</span>
+                  )}
+                  <span>{course.modules.length} module{course.modules.length !== 1 ? 's' : ''}</span>
+                  <span>
+                    {course.modules.reduce((sum, m) => sum + m.lessonCount, 0)} lesson{course.modules.reduce((sum, m) => sum + m.lessonCount, 0) !== 1 ? 's' : ''}
+                  </span>
+                </div>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => { window.location.href = `/dashboard/student/courses/${courseId}/progress`; }}
+                >
+                  View Progress
+                </Button>
               </div>
               {course.learningObjectives.length > 0 && (
                 <div className="mt-4">

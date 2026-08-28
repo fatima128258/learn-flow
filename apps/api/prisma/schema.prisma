@@ -33,8 +33,11 @@ model Organization {
   status    OrganizationStatus @default(ACTIVE)
   createdAt DateTime           @default(now())
   updatedAt DateTime           @updatedAt
-  users     UserOrganization[]
-  courses   Course[]
+  users        UserOrganization[]
+  courses      Course[]
+  enrollments  Enrollment[]
+  orders       Order[]
+  certificates Certificate[]
 
   @@index([status])
 }
@@ -54,6 +57,11 @@ model User {
   courses        Course[]
   quizAttempts   QuizAttempt[]
   enrollments    Enrollment[]
+  orders         Order[]
+  payments       Payment[]
+  lessonProgress LessonProgress[]
+  courseProgress CourseProgress[]
+  certificates   Certificate[]
 }
 
 model UserOrganization {
@@ -128,6 +136,10 @@ model Course {
   updatedAt          DateTime     @updatedAt
   modules            Module[]
   enrollments        Enrollment[]
+  orderItems         OrderItem[]
+  lessonProgress     LessonProgress[]
+  courseProgress     CourseProgress[]
+  certificates       Certificate[]
 
   @@unique([organizationId, slug])
   @@index([organizationId, status])
@@ -144,6 +156,7 @@ model Module {
   updatedAt   DateTime @updatedAt
   lessons     Lesson[]
   quizzes     Quiz[]
+  progress    LessonProgress[]
 
   @@index([courseId, order])
   @@unique([courseId, order])
@@ -162,6 +175,7 @@ model Lesson {
   isPreview    Boolean  @default(false)
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
+  progress     LessonProgress[]
 
   @@index([moduleId, order])
   @@unique([moduleId, order])
@@ -241,6 +255,20 @@ enum EnrollmentStatus {
   DROPPED
 }
 
+enum OrderStatus {
+  PENDING
+  PAID
+  FAILED
+  CANCELLED
+  REFUNDED
+}
+
+enum PaymentStatus {
+  PENDING
+  SUCCEEDED
+  FAILED
+}
+
 model Enrollment {
   id             String           @id @default(cuid())
   user           User             @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -259,4 +287,130 @@ model Enrollment {
   @@index([courseId])
   @@index([organizationId])
   @@index([userId, organizationId])
+}
+
+model Order {
+  id             String      @id @default(cuid())
+  user           User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId         String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  organizationId String
+  status         OrderStatus @default(PENDING)
+  totalAmount    Decimal     @db.Decimal(10, 2)
+  currency       String      @default("USD")
+  items          OrderItem[]
+  payments       Payment[]
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @updatedAt
+
+  @@index([userId])
+  @@index([organizationId])
+  @@index([userId, organizationId, status])
+}
+
+model OrderItem {
+  id          String   @id @default(cuid())
+  order       Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  orderId     String
+  course      Course   @relation(fields: [courseId], references: [id])
+  courseId    String
+  courseTitle String
+  unitPrice   Decimal  @db.Decimal(10, 2)
+  quantity    Int      @default(1)
+  lineTotal   Decimal  @db.Decimal(10, 2)
+  createdAt   DateTime @default(now())
+
+  @@index([orderId])
+  @@index([courseId])
+}
+
+model Payment {
+  id             String        @id @default(cuid())
+  order          Order         @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  orderId        String
+  user           User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId         String
+  organizationId String
+  provider       String        @default("MOCK")
+  providerRef    String?
+  amount         Decimal       @db.Decimal(10, 2)
+  currency       String        @default("USD")
+  status         PaymentStatus @default(PENDING)
+  paidAt         DateTime?
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+
+  @@index([orderId])
+  @@index([userId])
+  @@index([organizationId])
+}
+
+model LessonProgress {
+  id             String   @id @default(cuid())
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId         String
+  lesson         Lesson   @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  lessonId       String
+  module         Module   @relation(fields: [moduleId], references: [id], onDelete: Cascade)
+  moduleId       String
+  course         Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  courseId       String
+  organizationId String
+  completed      Boolean  @default(false)
+  completedAt    DateTime?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@unique([userId, lessonId])
+  @@index([userId])
+  @@index([courseId])
+  @@index([moduleId])
+  @@index([organizationId])
+  @@index([userId, courseId])
+}
+
+model CourseProgress {
+  id                  String   @id @default(cuid())
+  user                User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId              String
+  course              Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  courseId            String
+  organizationId      String
+  lastVisitedModuleId String?
+  lastVisitedLessonId String?
+  lastVisitedAt       DateTime?
+  completed           Boolean  @default(false)
+  completedAt         DateTime?
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  @@unique([userId, courseId])
+  @@index([userId])
+  @@index([courseId])
+  @@index([organizationId])
+}
+
+model Certificate {
+  id                String   @id @default(cuid())
+  certificateId     String   @unique
+  verificationToken String   @unique
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId            String
+  course            Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  courseId          String
+  organization      Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  organizationId    String
+  organizationName  String
+  instructorUserId  String
+  instructorName    String
+  studentName       String
+  courseTitle       String
+  completionDate    DateTime
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@unique([userId, courseId])
+  @@index([userId])
+  @@index([courseId])
+  @@index([organizationId])
 }
