@@ -15,6 +15,7 @@ import commerceRouter from './routes/commerceRoutes';
 import certificateRouter, { publicCertificateRouter } from './routes/certificateRoutes';
 import searchRouter from './routes/searchRoutes';
 import notificationRouter from './routes/notificationRoutes';
+import mediaRouter from './routes/mediaRoutes';
 import { startNotificationWorker } from './queues/notificationWorker';
 
 const DEFAULT_ALLOWED_ORIGINS = [
@@ -78,6 +79,7 @@ app.use('/api/v1/organizations', commerceRouter);
 app.use('/api/v1/organizations', certificateRouter);
 app.use('/api/v1/organizations', searchRouter);
 app.use('/api/v1/organizations', notificationRouter);
+app.use('/api/v1/organizations', mediaRouter);
 app.use('/api/v1/certificates', publicCertificateRouter);
 app.use('/api/v1/organizations', organizationRouter);
 app.use('/api/v1/org', orgAdminRouter);

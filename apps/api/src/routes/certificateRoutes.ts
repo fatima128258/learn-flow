@@ -10,6 +10,7 @@ import {
   listCertificates,
   getCertificate,
   verifyCertificate,
+  downloadCertificate,
 } from '../controllers/certificateController';
 
 function requireStudentOnly(req: AuthenticatedRequest, res: Response, next: NextFunction) {
@@ -47,6 +48,14 @@ certificateRouter.get(
   '/:organizationId/student/certificates/:certificateId',
   ...studentMiddleware,
   getCertificate,
+);
+
+certificateRouter.get(
+  '/:organizationId/certificates/:certificateId/download',
+  requireAuth,
+  requireVerifiedEmail,
+  requireOrganizationContext,
+  downloadCertificate,
 );
 
 export const publicCertificateRouter = Router();

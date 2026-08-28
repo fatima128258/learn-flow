@@ -24,6 +24,7 @@ const prismaMock = {
     findFirst: vi.fn(),
     findMany: vi.fn(),
     create: vi.fn(),
+    update: vi.fn(),
   },
 };
 
@@ -35,6 +36,20 @@ vi.mock('../services/authService', () => ({
 vi.mock('../prisma', () => ({
   default: () => prismaMock,
 }));
+
+vi.mock('../storage', async (importOriginal) => {
+  const original = await importOriginal<typeof import('../storage')>();
+  return {
+    ...original,
+    putObject: vi.fn().mockResolvedValue({
+      key: 'orgs/org-a/certificates/cert-1/certificate.pdf',
+      publicUrl:
+        'http://localhost:9000/learnflow/orgs/org-a/certificates/cert-1/certificate.pdf',
+    }),
+    getPresignedUrl: vi.fn().mockResolvedValue('http://localhost:9000/signed/certificate.pdf'),
+    deleteObjects: vi.fn().mockResolvedValue(undefined),
+  };
+});
 
 import app from '../server';
 import * as authService from '../services/authService';
@@ -187,6 +202,7 @@ function resetMocks() {
   prismaMock.certificate.findFirst.mockReset();
   prismaMock.certificate.findMany.mockReset();
   prismaMock.certificate.create.mockReset();
+  prismaMock.certificate.update.mockReset();
   vi.mocked(authService.getSessionFromToken).mockReset();
   vi.mocked(authService.getUserById).mockReset();
 }
@@ -321,6 +337,7 @@ describe('POST /api/v1/organizations/:organizationId/student/courses/:courseId/c
     });
 
     prismaMock.certificate.create.mockResolvedValue(certificateRecord());
+    prismaMock.certificate.update.mockResolvedValue(certificateRecord());
 
     const res = await request(app).post(GENERATE_PATH).set('Cookie', cookie());
 
@@ -336,7 +353,13 @@ describe('POST /api/v1/organizations/:organizationId/student/courses/:courseId/c
     expect(data.verificationUrl).toContain(
       `/api/v1/certificates/verify/${data.verificationToken}`,
     );
+    expect(data.pdfUrl).toContain('certificate.pdf');
+    expect(data.pdfDownloadUrl).toContain('/certificates/CRT-ABC123/download');
     expect(prismaMock.certificate.create).toHaveBeenCalledTimes(1);
+    expect(prismaMock.certificate.update).toHaveBeenCalledWith({
+      where: { id: 'cert-1' },
+      data: { pdfUrl: expect.stringContaining('certificate.pdf') },
+    });
   });
 });
 
@@ -453,5 +476,98 @@ describe('GET /api/v1/certificates/verify/:verificationToken', () => {
 
     expect(res.status).toBe(404);
     expect(res.body.error).toBe('CERTIFICATE_NOT_FOUND');
+  });
+});
+
+describe('GET /api/v1/organizations/:organizationId/certificates/:certificateId/download', () => {
+  const DOWNLOAD_PATH = '/api/v1/organizations/org-a/certificates/CRT-ABC123/download';
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    resetMocks();
+  });
+
+  async function setupRole(role: 'PLATFORM_ADMIN' | 'ORG_ADMIN' | 'INSTRUCTOR' | 'STUDENT') {
+    await authenticateAs(role, { userId: role === 'STUDENT' ? 'user-1' : 'staff-1' });
+    prismaMock.userOrganization.findUnique.mockResolvedValue(
+      membershipRecord({ role, userId: role === 'STUDENT' ? 'user-1' : 'staff-1' }),
+    );
+  }
+
+  it('rejects unauthenticated requests with 401', async () => {
+    const res = await request(app).get(DOWNLOAD_PATH);
+    expect(res.status).toBe(401);
+    expect(res.body.error).toBe('NOT_AUTHENTICATED');
+  });
+
+  it('redirects a student to the presigned URL of their own certificate', async () => {
+    await setupRole('STUDENT');
+    prismaMock.certificate.findFirst.mockResolvedValue(
+      certificateRecord({ pdfUrl: 'http://localhost:9000/learnflow/orgs/org-a/certificates/cert-1/certificate.pdf' }),
+    );
+
+    const res = await request(app).get(DOWNLOAD_PATH).set('Cookie', cookie());
+
+    expect(res.status).toBe(302);
+    expect(res.headers.location).toBe('http://localhost:9000/signed/certificate.pdf');
+  });
+
+  it('allows org staff to download a certificate PDF', async () => {
+    await setupRole('ORG_ADMIN');
+    prismaMock.certificate.findFirst.mockResolvedValue(
+      certificateRecord({ pdfUrl: 'http://localhost:9000/learnflow/orgs/org-a/certificates/cert-1/certificate.pdf' }),
+    );
+
+    const res = await request(app).get(DOWNLOAD_PATH).set('Cookie', cookie());
+
+    expect(res.status).toBe(302);
+    expect(res.headers.location).toBe('http://localhost:9000/signed/certificate.pdf');
+  });
+
+  it('forbids a student downloading another student certificate', async () => {
+    await authenticateAs('STUDENT', { userId: 'other-student' });
+    prismaMock.userOrganization.findUnique.mockResolvedValue(
+      membershipRecord({ role: 'STUDENT', userId: 'other-student' }),
+    );
+    prismaMock.certificate.findFirst.mockResolvedValue(
+      certificateRecord({ pdfUrl: 'http://localhost:9000/learnflow/orgs/org-a/certificates/cert-1/certificate.pdf' }),
+    );
+
+    const res = await request(app).get(DOWNLOAD_PATH).set('Cookie', cookie());
+
+    expect(res.status).toBe(403);
+    expect(res.body.error).toBe('FORBIDDEN');
+  });
+
+  it('returns 403 for cross-tenant access', async () => {
+    await authenticateAs('STUDENT', { organizationId: 'org-a' });
+    prismaMock.userOrganization.findUnique.mockResolvedValue(null);
+
+    const res = await request(app)
+      .get('/api/v1/organizations/org-b/certificates/CRT-ABC123/download')
+      .set('Cookie', cookie());
+
+    expect(res.status).toBe(403);
+    expect(res.body.error).toBe('ORGANIZATION_ACCESS_DENIED');
+  });
+
+  it('returns 404 when the certificate does not exist', async () => {
+    await setupRole('STUDENT');
+    prismaMock.certificate.findFirst.mockResolvedValue(null);
+
+    const res = await request(app).get(DOWNLOAD_PATH).set('Cookie', cookie());
+
+    expect(res.status).toBe(404);
+    expect(res.body.error).toBe('CERTIFICATE_NOT_FOUND');
+  });
+
+  it('returns 404 when the certificate has no stored PDF', async () => {
+    await setupRole('STUDENT');
+    prismaMock.certificate.findFirst.mockResolvedValue(certificateRecord({ pdfUrl: null }));
+
+    const res = await request(app).get(DOWNLOAD_PATH).set('Cookie', cookie());
+
+    expect(res.status).toBe(404);
+    expect(res.body.error).toBe('CERTIFICATE_PDF_NOT_FOUND');
   });
 });

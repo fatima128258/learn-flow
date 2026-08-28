@@ -36,6 +36,24 @@ services:
       - "8025:8025"
       - "1025:1025"
 
+  minio:
+    image: minio/minio:latest
+    restart: unless-stopped
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: ${STORAGE_ACCESS_KEY:-minioadmin}
+      MINIO_ROOT_PASSWORD: ${STORAGE_SECRET_KEY:-minioadmin}
+    volumes:
+      - miniodata:/data
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
   api:
     build:
       context: ./apps/api
@@ -55,10 +73,20 @@ services:
       SESSION_TTL_SECONDS: ${SESSION_TTL_SECONDS}
       ADMIN_EMAIL: ${ADMIN_EMAIL}
       ADMIN_PASSWORD: ${ADMIN_PASSWORD}
+      STORAGE_DRIVER: ${STORAGE_DRIVER}
+      STORAGE_ENDPOINT: minio
+      STORAGE_PORT: 9000
+      STORAGE_USE_SSL: ${STORAGE_USE_SSL}
+      STORAGE_ACCESS_KEY: ${STORAGE_ACCESS_KEY:-minioadmin}
+      STORAGE_SECRET_KEY: ${STORAGE_SECRET_KEY:-minioadmin}
+      STORAGE_BUCKET: ${STORAGE_BUCKET:-learnflow}
+      STORAGE_REGION: ${STORAGE_REGION:-us-east-1}
+      STORAGE_PUBLIC_URL: ${STORAGE_PUBLIC_URL:-http://localhost:9000}
     depends_on:
       - db
       - redis
       - mailpit
+      - minio
 
   web:
     build:
@@ -92,3 +120,5 @@ services:
 volumes:
   pgdata:
     name: learnflow_pgdata
+  miniodata:
+    name: learnflow_miniodata

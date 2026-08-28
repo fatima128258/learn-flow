@@ -6,6 +6,8 @@ import * as organizationRepo from '../repositories/organizationRepository';
 import * as certificateRepo from '../repositories/certificateRepository';
 import * as authService from './authService';
 import { dispatchNotification } from './notificationDispatcher';
+import * as certificatePdfService from './certificatePdfService';
+import * as storage from '../storage';
 
 const API_BASE_URL = process.env.API_BASE_URL ?? 'http://localhost:4000';
 
@@ -22,6 +24,10 @@ function verificationUrl(verificationToken: string) {
   return `${API_BASE_URL}/api/v1/certificates/verify/${verificationToken}`;
 }
 
+function certificatePdfDownloadUrl(organizationId: string, certificateId: string) {
+  return `${API_BASE_URL}/api/v1/organizations/${organizationId}/certificates/${certificateId}/download`;
+}
+
 function toCertificateDto(certificate: any) {
   return {
     certificateId: certificate.certificateId,
@@ -35,6 +41,10 @@ function toCertificateDto(certificate: any) {
     studentName: certificate.studentName,
     completionDate: certificate.completionDate,
     issuedAt: certificate.createdAt,
+    pdfUrl: certificate.pdfUrl ?? null,
+    pdfDownloadUrl: certificate.pdfUrl
+      ? certificatePdfDownloadUrl(certificate.organizationId, certificate.certificateId)
+      : null,
   };
 }
 
@@ -109,7 +119,35 @@ export async function generateCertificate(organizationId: string, userId: string
     },
   });
 
+  const pdfUrl = await createCertificatePdf(certificate, organizationId);
+  if (pdfUrl) {
+    certificate.pdfUrl = pdfUrl;
+  }
+
   return toCertificateDto(certificate);
+}
+
+async function createCertificatePdf(certificate: any, organizationId: string) {
+  try {
+    const pdfUrl = await certificatePdfService.uploadCertificatePdf(
+      organizationId,
+      certificate.id,
+      {
+        certificateId: certificate.certificateId,
+        verificationUrl: verificationUrl(certificate.verificationToken),
+        studentName: certificate.studentName,
+        courseTitle: certificate.courseTitle,
+        organizationName: certificate.organizationName,
+        instructorName: certificate.instructorName,
+        completionDate: certificate.completionDate,
+      },
+    );
+    await certificateRepo.updatePdfUrl(certificate.id, pdfUrl);
+    return pdfUrl;
+  } catch (err) {
+    // Best-effort: certificate still issued without a stored PDF file.
+    return null;
+  }
 }
 
 export async function listCertificates(organizationId: string, userId: string) {
@@ -131,4 +169,30 @@ export async function verifyCertificate(verificationToken: string) {
     throw new Error('CERTIFICATE_NOT_FOUND');
   }
   return toCertificateDto(certificate);
+}
+
+const STAFF_ROLES = new Set(['ORG_ADMIN', 'INSTRUCTOR', 'PLATFORM_ADMIN']);
+
+export async function getCertificateDownloadUrl(
+  organizationId: string,
+  userId: string,
+  userRole: string | undefined,
+  certificateId: string,
+) {
+  const certificate = await certificateRepo.findByOrganizationAndCertificateId(
+    organizationId,
+    certificateId,
+  );
+  if (!certificate) {
+    throw new Error('CERTIFICATE_NOT_FOUND');
+  }
+  if (certificate.userId !== userId && !(userRole && STAFF_ROLES.has(userRole))) {
+    throw new Error('FORBIDDEN');
+  }
+  if (!certificate.pdfUrl) {
+    throw new Error('CERTIFICATE_PDF_NOT_FOUND');
+  }
+
+  const pdfKey = storage.certificatePdfKey(organizationId, certificate.id);
+  return storage.getPresignedUrl(pdfKey, { expiresInSeconds: 900 });
 }

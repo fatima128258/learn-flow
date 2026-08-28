@@ -11,6 +11,8 @@ function toLessonDto(lesson: any) {
     description: lesson.description,
     content: lesson.content,
     type: lesson.type,
+    resourceUrl: lesson.resourceUrl,
+    resourceMimeType: lesson.resourceMimeType,
     duration: lesson.duration,
     order: lesson.order,
     isPreview: lesson.isPreview,
@@ -112,6 +114,8 @@ export async function createLesson(organizationId: string, courseId: string, mod
       description: optionalString(input.description),
       content: optionalString(input.content),
       type: optionalString(input.type),
+      resourceUrl: optionalString(input.resourceUrl),
+      resourceMimeType: optionalString(input.resourceMimeType),
       duration: optionalPositiveInt(input.duration),
       order,
       isPreview: requireBoolean(input.isPreview),
@@ -139,6 +143,8 @@ export async function updateLesson(organizationId: string, courseId: string, mod
     description?: string | null;
     content?: string | null;
     type?: string | null;
+    resourceUrl?: string | null;
+    resourceMimeType?: string | null;
     duration?: number | null;
     order?: number;
     isPreview?: boolean;
@@ -158,6 +164,14 @@ export async function updateLesson(organizationId: string, courseId: string, mod
 
   if (input.type !== undefined) {
     updateData.type = optionalString(input.type);
+  }
+
+  if (input.resourceUrl !== undefined) {
+    updateData.resourceUrl = optionalString(input.resourceUrl);
+  }
+
+  if (input.resourceMimeType !== undefined) {
+    updateData.resourceMimeType = optionalString(input.resourceMimeType);
   }
 
   if (input.duration !== undefined) {

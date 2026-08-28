@@ -1,6 +1,7 @@
 import { Prisma } from '@prisma/client';
 import * as courseRepo from '../repositories/courseRepository';
 import { dispatchNotification } from './notificationDispatcher';
+import * as storage from '../storage';
 
 const VALID_COURSE_STATUSES = new Set(['DRAFT', 'REVIEW', 'PUBLISHED', 'ARCHIVED']);
 
@@ -199,5 +200,44 @@ export async function updateCourseStatus(
     });
   }
 
+  return toCourseDto(updated);
+}
+
+export async function updateCourseThumbnail(
+  organizationId: string,
+  courseId: string,
+  file: { originalname: string; mimetype: string; size: number; buffer: Buffer } | undefined,
+) {
+  if (!file || !file.buffer || file.buffer.length === 0) {
+    throw new Error('MISSING_FILE');
+  }
+  if (file.size > storage.MEDIA_MAX_SIZE_BYTES) {
+    throw new Error('MEDIA_TOO_LARGE');
+  }
+  if (!storage.isAllowedThumbnailType(file.mimetype)) {
+    throw new Error('MEDIA_TYPE_NOT_ALLOWED');
+  }
+
+  const course = await courseRepo.getById(organizationId, courseId);
+  if (!course) {
+    throw new Error('COURSE_NOT_FOUND');
+  }
+
+  const extension = storage.extensionForContentType(file.mimetype);
+  if (!extension) {
+    throw new Error('MEDIA_TYPE_NOT_ALLOWED');
+  }
+
+  const key = storage.courseThumbnailKey(organizationId, courseId, extension);
+  const stored = await storage.putObject({
+    key,
+    data: file.buffer,
+    contentType: file.mimetype,
+  });
+
+  const updated = await courseRepo.updateThumbnail(organizationId, courseId, stored.publicUrl);
+  if (!updated) {
+    throw new Error('COURSE_NOT_FOUND');
+  }
   return toCourseDto(updated);
 }

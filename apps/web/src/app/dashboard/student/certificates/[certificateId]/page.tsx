@@ -33,6 +33,8 @@ type Certificate = {
   studentName: string;
   completionDate: string;
   issuedAt: string;
+  pdfUrl?: string | null;
+  pdfDownloadUrl?: string | null;
 };
 
 function formatDate(value: string) {
@@ -204,6 +206,16 @@ export default function StudentCertificateViewPage() {
               </div>
 
               <div className="mt-4 flex flex-wrap gap-3">
+                {certificate.pdfUrl && certificate.pdfDownloadUrl ? (
+                  <a
+                    href={certificate.pdfDownloadUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-2 rounded-lg border-2 border-neutral-900 bg-neutral-900 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-neutral-800"
+                  >
+                    Download PDF
+                  </a>
+                ) : null}
                 <a
                   href={certificate.verificationUrl}
                   target="_blank"

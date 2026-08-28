@@ -82,3 +82,20 @@ export async function updateCourseStatus(
     where: { id: courseId, organizationId },
   });
 }
+
+export async function updateThumbnail(
+  organizationId: string,
+  courseId: string,
+  thumbnailUrl: string,
+) {
+  const result = await prisma().course.updateMany({
+    where: { id: courseId, organizationId },
+    data: { thumbnailUrl },
+  });
+  if (result.count === 0) {
+    return null;
+  }
+  return prisma().course.findFirst({
+    where: { id: courseId, organizationId },
+  });
+}

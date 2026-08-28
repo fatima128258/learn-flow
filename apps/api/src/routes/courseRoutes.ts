@@ -10,7 +10,9 @@ import {
   getCourse,
   createCourse,
   updateCourseStatus,
+  updateCourseThumbnail,
 } from '../controllers/courseController';
+import { uploadSingle } from '../middleware/multipart';
 
 const courseRouter = Router();
 
@@ -48,6 +50,16 @@ courseRouter.patch(
   requireOrganizationContext,
   requireRole('ORG_ADMIN', 'INSTRUCTOR'),
   updateCourseStatus,
+);
+
+courseRouter.patch(
+  '/:organizationId/courses/:courseId/thumbnail',
+  requireAuth,
+  requireVerifiedEmail,
+  requireOrganizationContext,
+  requireRole('ORG_ADMIN', 'INSTRUCTOR'),
+  uploadSingle('thumbnail'),
+  updateCourseThumbnail,
 );
 
 export default courseRouter;

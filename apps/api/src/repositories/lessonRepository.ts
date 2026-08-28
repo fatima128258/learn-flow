@@ -10,6 +10,8 @@ export interface CreateLessonData {
   description?: string | null;
   content?: string | null;
   type?: string | null;
+  resourceUrl?: string | null;
+  resourceMimeType?: string | null;
   duration?: number | null;
   order: number;
   isPreview?: boolean;
@@ -23,6 +25,8 @@ export async function createLesson(data: CreateLessonData) {
       description: data.description,
       content: data.content,
       type: data.type,
+      resourceUrl: data.resourceUrl,
+      resourceMimeType: data.resourceMimeType,
       duration: data.duration,
       order: data.order,
       isPreview: data.isPreview ?? false,
@@ -59,6 +63,8 @@ export async function updateLesson(moduleId: string, lessonId: string, data: {
   description?: string | null;
   content?: string | null;
   type?: string | null;
+  resourceUrl?: string | null;
+  resourceMimeType?: string | null;
   duration?: number | null;
   order?: number;
   isPreview?: boolean;

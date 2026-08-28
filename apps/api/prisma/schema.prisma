@@ -39,6 +39,7 @@ model Organization {
   orders       Order[]
   certificates Certificate[]
   notifications Notification[]
+  media        Media[]
 
   @@index([status])
 }
@@ -64,6 +65,7 @@ model User {
   courseProgress CourseProgress[]
   certificates   Certificate[]
   notifications  Notification[]
+  media          Media[]
 }
 
 model UserOrganization {
@@ -172,6 +174,8 @@ model Lesson {
   description  String?
   content      String?
   type         String?  // Video, Article, PDF, External
+  resourceUrl  String?  // Object-storage URL for PDF/resource lesson attachments
+  resourceMimeType String? // MIME type of the attached resource file
   duration     Int?
   order        Int
   isPreview    Boolean  @default(false)
@@ -437,6 +441,7 @@ model Certificate {
   studentName       String
   courseTitle       String
   completionDate    DateTime
+  pdfUrl            String?  // Object-storage URL of the downloadable PDF certificate
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
 
@@ -444,4 +449,22 @@ model Certificate {
   @@index([userId])
   @@index([courseId])
   @@index([organizationId])
+}
+
+model Media {
+  id             String       @id @default(cuid())
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  organizationId String
+  uploader       User         @relation(fields: [uploaderId], references: [id], onDelete: Cascade)
+  uploaderId     String
+  bucket         String
+  key            String       @unique
+  fileName       String
+  mimeType       String
+  size           Int
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  @@index([organizationId])
+  @@index([uploaderId])
 }

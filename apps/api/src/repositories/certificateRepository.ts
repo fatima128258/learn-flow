@@ -62,3 +62,19 @@ export async function createCertificate(data: CreateCertificateData) {
     },
   });
 }
+
+export async function findByOrganizationAndCertificateId(
+  organizationId: string,
+  certificateId: string,
+) {
+  return prisma().certificate.findFirst({
+    where: { certificateId, organizationId },
+  });
+}
+
+export async function updatePdfUrl(id: string, pdfUrl: string) {
+  return prisma().certificate.update({
+    where: { id },
+    data: { pdfUrl },
+  });
+}

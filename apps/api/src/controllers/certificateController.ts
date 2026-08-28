@@ -21,6 +21,10 @@ function handleError(res: Response, err: any) {
       return fail(res, 404, 'COURSE_NOT_FOUND');
     case 'CERTIFICATE_NOT_FOUND':
       return fail(res, 404, 'CERTIFICATE_NOT_FOUND');
+    case 'CERTIFICATE_PDF_NOT_FOUND':
+      return fail(res, 404, 'CERTIFICATE_PDF_NOT_FOUND');
+    case 'FORBIDDEN':
+      return fail(res, 403, 'FORBIDDEN');
     case 'STUDENT_NOT_ENROLLED':
       return fail(res, 403, 'STUDENT_NOT_ENROLLED');
     case 'COURSE_NOT_COMPLETED':
@@ -80,6 +84,23 @@ export async function verifyCertificate(req: AuthenticatedRequest, res: Response
   try {
     const data = await service.verifyCertificate(req.params.verificationToken);
     return res.status(200).json({ success: true, data });
+  } catch (err: any) {
+    return handleError(res, err);
+  }
+}
+
+export async function downloadCertificate(req: AuthenticatedRequest, res: Response) {
+  try {
+    if (!req.user) {
+      return fail(res, 401, 'NOT_AUTHENTICATED');
+    }
+    const url = await service.getCertificateDownloadUrl(
+      tenantOrganizationId(req),
+      req.user.id,
+      req.user.role,
+      req.params.certificateId,
+    );
+    return res.redirect(url);
   } catch (err: any) {
     return handleError(res, err);
   }

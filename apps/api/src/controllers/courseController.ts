@@ -25,6 +25,12 @@ function handleError(res: Response, err: any) {
       return fail(res, 409, 'COURSE_SLUG_TAKEN');
     case 'INVALID_STATUS':
       return fail(res, 400, 'INVALID_STATUS');
+    case 'MISSING_FILE':
+      return fail(res, 400, 'MISSING_FILE');
+    case 'MEDIA_TYPE_NOT_ALLOWED':
+      return fail(res, 400, 'MEDIA_TYPE_NOT_ALLOWED');
+    case 'MEDIA_TOO_LARGE':
+      return fail(res, 413, 'MEDIA_TOO_LARGE');
     case 'COURSE_NOT_FOUND':
       return fail(res, 404, 'COURSE_NOT_FOUND');
     default:
@@ -84,6 +90,26 @@ export async function updateCourseStatus(req: AuthenticatedRequest, res: Respons
       tenantOrganizationId(req),
       req.params.courseId,
       req.body,
+    );
+    return res.status(200).json({ success: true, data });
+  } catch (err: any) {
+    return handleError(res, err);
+  }
+}
+
+interface MulterRequest extends AuthenticatedRequest {
+  file?: Express.Multer.File;
+}
+
+export async function updateCourseThumbnail(req: MulterRequest, res: Response) {
+  try {
+    if (!req.user) {
+      return fail(res, 401, 'NOT_AUTHENTICATED');
+    }
+    const data = await service.updateCourseThumbnail(
+      tenantOrganizationId(req),
+      req.params.courseId,
+      req.file,
     );
     return res.status(200).json({ success: true, data });
   } catch (err: any) {
