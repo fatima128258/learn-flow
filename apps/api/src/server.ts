@@ -13,6 +13,8 @@ import studentLearningRouter from './routes/studentLearningRoutes';
 import progressRouter from './routes/progressRoutes';
 import commerceRouter from './routes/commerceRoutes';
 import certificateRouter, { publicCertificateRouter } from './routes/certificateRoutes';
+import searchRouter from './routes/searchRoutes';
+import notificationRouter from './routes/notificationRoutes';
 
 const DEFAULT_ALLOWED_ORIGINS = [
   'http://localhost:3000',
@@ -73,6 +75,8 @@ app.use('/api/v1/organizations', studentLearningRouter);
 app.use('/api/v1/organizations', progressRouter);
 app.use('/api/v1/organizations', commerceRouter);
 app.use('/api/v1/organizations', certificateRouter);
+app.use('/api/v1/organizations', searchRouter);
+app.use('/api/v1/organizations', notificationRouter);
 app.use('/api/v1/certificates', publicCertificateRouter);
 app.use('/api/v1/organizations', organizationRouter);
 app.use('/api/v1/org', orgAdminRouter);

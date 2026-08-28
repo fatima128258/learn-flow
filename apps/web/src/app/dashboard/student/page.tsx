@@ -130,6 +130,12 @@ export default function StudentDashboardPage() {
             <Link href="/courses">
               <Button size="sm" variant="outline">Browse Courses</Button>
             </Link>
+            <Link href="/dashboard/student/search">
+              <Button size="sm" variant="primary">Search Courses</Button>
+            </Link>
+            <Link href="/dashboard/student/notifications">
+              <Button size="sm" variant="outline">Notifications</Button>
+            </Link>
           </div>
         </div>
 

@@ -38,6 +38,7 @@ model Organization {
   enrollments  Enrollment[]
   orders       Order[]
   certificates Certificate[]
+  notifications Notification[]
 
   @@index([status])
 }
@@ -62,6 +63,7 @@ model User {
   lessonProgress LessonProgress[]
   courseProgress CourseProgress[]
   certificates   Certificate[]
+  notifications  Notification[]
 }
 
 model UserOrganization {
@@ -286,7 +288,36 @@ model Enrollment {
   @@index([userId])
   @@index([courseId])
   @@index([organizationId])
+}
+
+enum NotificationType {
+  WELCOME
+  ENROLLMENT_CONFIRMATION
+  COURSE_COMPLETION
+  CERTIFICATE_GENERATED
+  PASSWORD_RESET
+  COURSE_PUBLISHED
+  COURSE_PURCHASED
+}
+
+model Notification {
+  id             String           @id @default(cuid())
+  type           NotificationType
+  title          String
+  body           String?
+  data           Json?
+  readAt         DateTime?
+  user           User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId         String
+  organization   Organization     @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  organizationId String
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+
   @@index([userId, organizationId])
+  @@index([userId, readAt])
+  @@index([organizationId])
+  @@index([type])
 }
 
 model Order {
