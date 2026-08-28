@@ -27,6 +27,10 @@ vi.mock('../services/authService', () => ({
   getUserById: vi.fn(),
 }));
 
+vi.mock('../services/notificationDispatcher', () => ({
+  dispatchNotification: vi.fn(async () => true),
+}));
+
 vi.mock('../prisma', () => ({
   default: () => prismaMock,
 }));

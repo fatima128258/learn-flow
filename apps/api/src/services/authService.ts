@@ -3,6 +3,7 @@ import getPrisma from '../prisma';
 import { generateToken, hashToken } from '../utils/tokens';
 import { getRedis } from '../utils/redis';
 import { sendVerificationEmail, sendPasswordResetEmail } from '../utils/email';
+import { dispatchNotification } from './notificationDispatcher';
 import argon2 from 'argon2';
 
 const SESSION_TTL_SECONDS = 60 * 60 * 24 * 7; // 7 days
@@ -21,6 +22,15 @@ async function enforceRateLimit({ ip, keyPrefix, maxAttempts, windowSeconds }: {
 
 export async function getUserById(userId: string) {
   return repo.findUserById(userId);
+}
+
+async function getPrimaryOrganizationId(userId: string) {
+  const memberships: Array<{ role?: string; organizationId?: string }> = await repo.findUserOrganizationsByUserId(userId);
+  const primary = memberships.find((membership) => membership.role === 'PLATFORM_ADMIN')
+    ?? memberships.find((membership) => membership.role === 'ORG_ADMIN')
+    ?? memberships.find((membership) => membership.role === 'INSTRUCTOR')
+    ?? memberships[0];
+  return primary?.organizationId ?? null;
 }
 
 export async function registerUser({ name, email, password, sendEmail = true, ip = '127.0.0.1', role }: { name?: string; email: string; password: string; sendEmail?: boolean; ip?: string; role?: string }) {
@@ -134,6 +144,19 @@ export async function resetPassword(token: string, newPassword: string, ip = '12
 
   await repo.markPasswordResetTokenAsUsed(resetToken.id);
   await repo.revokeAllSessionsByUserId(user.id);
+
+  const primaryOrganizationId = await getPrimaryOrganizationId(user.id);
+  if (primaryOrganizationId) {
+    await dispatchNotification({
+      type: 'PASSWORD_RESET',
+      title: 'Password reset',
+      body: 'Your LearnFlow password was reset successfully.',
+      data: { organizationName: primaryOrganizationId },
+      userId: user.id,
+      organizationId: primaryOrganizationId,
+      email: { name: user.name },
+    });
+  }
 
   return { success: true };
 }

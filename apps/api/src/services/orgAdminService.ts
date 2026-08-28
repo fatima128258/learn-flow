@@ -2,6 +2,7 @@ import argon2 from 'argon2';
 import { UserRole } from '@prisma/client';
 import * as orgRepo from '../repositories/organizationRepository';
 import * as orgAdminRepo from '../repositories/orgAdminRepository';
+import { dispatchNotification } from './notificationDispatcher';
 
 // Temporary inline validation functions
 function isValidEmail(email: string) {
@@ -140,6 +141,7 @@ export async function createManagedUser(organizationId: string, input: {
   }
 
   let user = await authRepo.findUserByEmail(email);
+  let createdNew = false;
   if (!user) {
     if (!input.password) {
       throw new Error('MISSING_FIELDS');
@@ -155,6 +157,7 @@ export async function createManagedUser(organizationId: string, input: {
     });
     await authRepo.markUserEmailAsVerified(user.id);
     user = await authRepo.findUserById(user.id);
+    createdNew = true;
   }
 
   if (!user) {
@@ -171,6 +174,18 @@ export async function createManagedUser(organizationId: string, input: {
     organizationId,
     role: input.requestedRole,
   });
+
+  if (createdNew) {
+    await dispatchNotification({
+      type: 'WELCOME',
+      title: `Welcome to ${organization.name}`,
+      body: `Your LearnFlow account is ready in ${organization.name}.`,
+      data: { organizationName: organization.name },
+      userId: user.id,
+      organizationId,
+      email: { name: user.name },
+    });
+  }
 
   return toMemberDto(membership);
 }

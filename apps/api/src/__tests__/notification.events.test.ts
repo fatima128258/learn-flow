@@ -153,7 +153,10 @@ describe('notification events wiring', () => {
     lessonRepoMock.getById.mockResolvedValue({ id: 'lesson-1', moduleId: 'mod-1', order: 1 });
     progressRepoMock.upsertLessonProgress.mockResolvedValue({});
     progressRepoMock.upsertCourseProgressLastVisited.mockResolvedValue({});
-    progressRepoMock.getCourseProgress.mockResolvedValue(null);
+    progressRepoMock.getCourseProgress.mockResolvedValue({
+      completed: false,
+      completedAt: null,
+    });
     moduleRepoMock.listByCourse.mockResolvedValue([{ id: 'mod-1', title: 'Module 1', description: null, order: 1 }]);
     prismaMock.lesson.findMany.mockResolvedValue([{ id: 'lesson-1', title: 'Lesson 1', order: 1 }]);
     progressRepoMock.listLessonProgressForCourse.mockResolvedValue([{ lessonId: 'lesson-1' }]);

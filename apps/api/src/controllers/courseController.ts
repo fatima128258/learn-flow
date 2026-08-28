@@ -23,6 +23,8 @@ function handleError(res: Response, err: any) {
       return fail(res, 400, 'ORGANIZATION_REQUIRED');
     case 'COURSE_SLUG_TAKEN':
       return fail(res, 409, 'COURSE_SLUG_TAKEN');
+    case 'INVALID_STATUS':
+      return fail(res, 400, 'INVALID_STATUS');
     case 'COURSE_NOT_FOUND':
       return fail(res, 404, 'COURSE_NOT_FOUND');
     default:
@@ -68,6 +70,22 @@ export async function createCourse(req: AuthenticatedRequest, res: Response) {
       req.body,
     );
     return res.status(201).json({ success: true, data });
+  } catch (err: any) {
+    return handleError(res, err);
+  }
+}
+
+export async function updateCourseStatus(req: AuthenticatedRequest, res: Response) {
+  try {
+    if (!req.user) {
+      return fail(res, 401, 'NOT_AUTHENTICATED');
+    }
+    const data = await service.updateCourseStatus(
+      tenantOrganizationId(req),
+      req.params.courseId,
+      req.body,
+    );
+    return res.status(200).json({ success: true, data });
   } catch (err: any) {
     return handleError(res, err);
   }

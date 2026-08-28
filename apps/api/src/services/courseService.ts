@@ -1,5 +1,8 @@
 import { Prisma } from '@prisma/client';
 import * as courseRepo from '../repositories/courseRepository';
+import { dispatchNotification } from './notificationDispatcher';
+
+const VALID_COURSE_STATUSES = new Set(['DRAFT', 'REVIEW', 'PUBLISHED', 'ARCHIVED']);
 
 const MIN_SLUG_LENGTH = 2;
 const MAX_SLUG_LENGTH = 50;
@@ -150,4 +153,51 @@ export async function createCourse(
     }
     throw err;
   }
+}
+
+export async function updateCourseStatus(
+  organizationId: string,
+  courseId: string,
+  rawInput: unknown,
+) {
+  const input = (rawInput ?? {}) as Record<string, unknown>;
+  if (!input.status || typeof input.status !== 'string') {
+    throw new Error('MISSING_FIELDS');
+  }
+  const status = input.status.toUpperCase();
+  if (!VALID_COURSE_STATUSES.has(status)) {
+    throw new Error('INVALID_STATUS');
+  }
+
+  const course = await courseRepo.getById(organizationId, courseId);
+  if (!course) {
+    throw new Error('COURSE_NOT_FOUND');
+  }
+
+  const publishedAt = status === 'PUBLISHED' ? (course.publishedAt ?? new Date()) : null;
+  const updated = await courseRepo.updateCourseStatus(organizationId, courseId, {
+    status: status as 'DRAFT' | 'REVIEW' | 'PUBLISHED' | 'ARCHIVED',
+    publishedAt,
+  });
+  if (!updated) {
+    throw new Error('COURSE_NOT_FOUND');
+  }
+
+  if (status === 'PUBLISHED' && course.status !== 'PUBLISHED') {
+    await dispatchNotification({
+      type: 'COURSE_PUBLISHED',
+      title: `Course published: ${course.title}`,
+      body: `Your course "${course.title}" is now published and available to students.`,
+      data: {
+        courseId: course.id,
+        courseTitle: course.title,
+        organizationName: organizationId,
+      },
+      userId: course.instructorUserId,
+      organizationId,
+      email: { courseTitle: course.title },
+    });
+  }
+
+  return toCourseDto(updated);
 }

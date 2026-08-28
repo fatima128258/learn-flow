@@ -62,3 +62,23 @@ export async function getById(organizationId: string, courseId: string) {
     where: { id: courseId, organizationId },
   });
 }
+
+export async function updateCourseStatus(
+  organizationId: string,
+  courseId: string,
+  data: { status: 'DRAFT' | 'REVIEW' | 'PUBLISHED' | 'ARCHIVED'; publishedAt: Date | null },
+) {
+  const result = await prisma().course.updateMany({
+    where: { id: courseId, organizationId },
+    data: {
+      status: data.status,
+      publishedAt: data.publishedAt,
+    },
+  });
+  if (result.count === 0) {
+    return null;
+  }
+  return prisma().course.findFirst({
+    where: { id: courseId, organizationId },
+  });
+}

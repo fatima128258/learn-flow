@@ -3,6 +3,7 @@ import { Prisma } from '@prisma/client';
 import * as orgRepo from '../repositories/organizationRepository';
 import * as orgAdminRepo from '../repositories/orgAdminRepository';
 import * as authRepo from '../repositories/authRepository';
+import { dispatchNotification } from './notificationDispatcher';
 
 // Temporary inline validation functions
 function isValidEmail(email: string) {
@@ -231,6 +232,7 @@ export async function assignOrganizationAdmin(organizationId: string, input: {
   if (!organization) throw new Error('ORGANIZATION_NOT_FOUND');
 
   let user = null;
+  let createdNew = false;
   if (input.userId) {
     user = await authRepo.findUserById(input.userId);
     if (!user) throw new Error('USER_NOT_FOUND');
@@ -253,6 +255,7 @@ export async function assignOrganizationAdmin(organizationId: string, input: {
     });
     await authRepo.markUserEmailAsVerified(user.id);
     user = await authRepo.findUserById(user.id);
+    createdNew = true;
   }
 
   if (!user) throw new Error('USER_NOT_FOUND');
@@ -263,6 +266,18 @@ export async function assignOrganizationAdmin(organizationId: string, input: {
   }
 
   const membership = await orgRepo.upsertOrganizationAdmin(user.id, organizationId);
+
+  if (createdNew) {
+    await dispatchNotification({
+      type: 'WELCOME',
+      title: `Welcome to ${organization.name}`,
+      body: `Your LearnFlow account is ready in ${organization.name}.`,
+      data: { organizationName: organization.name },
+      userId: user.id,
+      organizationId,
+      email: { name: user.name },
+    });
+  }
 
   return {
     organizationId,
