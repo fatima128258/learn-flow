@@ -77,6 +77,8 @@ export default function StudentCourseProgressPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [organizationId, setOrganizationId] = useState<string | null>(null);
+  const [generating, setGenerating] = useState(false);
+  const [generateError, setGenerateError] = useState<string | null>(null);
 
   useEffect(() => {
     let active = true;
@@ -142,6 +144,44 @@ export default function StudentCourseProgressPage() {
       setProgress(body.data ?? null);
     } catch {
       setError('Could not reach the server. Please try again.');
+    }
+  }
+
+  async function generateCertificate(orgId: string, cid: string) {
+    setGenerating(true);
+    setGenerateError(null);
+    try {
+      const apiBase = process.env.NEXT_PUBLIC_API_URL || '';
+      const res = await fetch(
+        `${apiBase}/api/v1/organizations/${orgId}/student/courses/${cid}/certificate`,
+        { method: 'POST', credentials: 'include' },
+      );
+      if (!res.ok) {
+        let code: unknown = null;
+        try {
+          code = (await res.json())?.error;
+        } catch {
+          code = null;
+        }
+        if (code === 'COURSE_NOT_COMPLETED') {
+          setGenerateError('Complete all lessons before generating your certificate.');
+        } else if (code === 'CERTIFICATE_EXISTS') {
+          window.location.href = '/dashboard/student/certificates';
+          return;
+        } else {
+          setGenerateError('Could not generate your certificate. Please try again.');
+        }
+        return;
+      }
+      const body = await res.json();
+      const certId = body.data?.certificateId;
+      window.location.href = certId
+        ? `/dashboard/student/certificates/${certId}`
+        : '/dashboard/student/certificates';
+    } catch {
+      setGenerateError('Could not reach the server. Please try again.');
+    } finally {
+      setGenerating(false);
     }
   }
 
@@ -219,6 +259,28 @@ export default function StudentCourseProgressPage() {
                   </Link>
                 </div>
               )}
+
+              {progress.courseComplete && (
+                <div className="mt-5 flex flex-wrap items-center gap-3">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (organizationId && courseId) generateCertificate(organizationId, courseId);
+                    }}
+                    disabled={generating}
+                    className="inline-flex items-center gap-2 rounded-lg bg-success-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-success-700 disabled:cursor-not-allowed disabled:bg-neutral-300"
+                  >
+                    {generating ? 'Generating...' : 'Generate Certificate'}
+                  </button>
+                  <Link
+                    href="/dashboard/student/certificates"
+                    className="inline-flex items-center gap-2 rounded-lg border-2 border-primary-600 px-4 py-2 text-sm font-medium text-primary-600 transition-colors hover:bg-primary-50"
+                  >
+                    View Certificates
+                  </Link>
+                </div>
+              )}
+              {generateError && <p className="mt-2 text-sm text-error-600">{generateError}</p>}
             </div>
 
             <h2 className="mb-4 text-lg font-semibold text-neutral-900">Modules</h2>

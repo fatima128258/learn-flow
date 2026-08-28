@@ -12,6 +12,7 @@ import enrollmentRouter from './routes/enrollmentRoutes';
 import studentLearningRouter from './routes/studentLearningRoutes';
 import progressRouter from './routes/progressRoutes';
 import commerceRouter from './routes/commerceRoutes';
+import certificateRouter, { publicCertificateRouter } from './routes/certificateRoutes';
 
 const DEFAULT_ALLOWED_ORIGINS = [
   'http://localhost:3000',
@@ -71,6 +72,8 @@ app.use('/api/v1/organizations', enrollmentRouter);
 app.use('/api/v1/organizations', studentLearningRouter);
 app.use('/api/v1/organizations', progressRouter);
 app.use('/api/v1/organizations', commerceRouter);
+app.use('/api/v1/organizations', certificateRouter);
+app.use('/api/v1/certificates', publicCertificateRouter);
 app.use('/api/v1/organizations', organizationRouter);
 app.use('/api/v1/org', orgAdminRouter);
 
