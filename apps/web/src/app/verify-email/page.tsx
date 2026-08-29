@@ -1,5 +1,5 @@
 'use client';
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { AuthLayout } from '../../components/layout/AuthLayout';
 import { AuthCard } from '../../components/auth/AuthCard';
@@ -7,7 +7,7 @@ import { Alert } from '../../components/ui/Alert';
 import { Stack } from '../../components/ui/layout/Stack';
 import { SubmitButton } from '../../components/forms/SubmitButton';
 
-export default function VerifyEmailPage() {
+function VerifyEmailForm() {
   const searchParams = useSearchParams();
   const token = searchParams.get('token');
 
@@ -100,5 +100,13 @@ export default function VerifyEmailPage() {
         </Stack>
       </AuthCard>
     </AuthLayout>
+  );
+}
+
+export default function VerifyEmailPage() {
+  return (
+    <Suspense fallback={<AuthLayout><AuthCard title="Verifying email" description="Loading..."><Alert variant="info" title="Loading...">Please wait.</Alert></AuthCard></AuthLayout>}>
+      <VerifyEmailForm />
+    </Suspense>
   );
 }

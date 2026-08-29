@@ -14,8 +14,11 @@ describe('getPostLoginRedirect', () => {
     expect(getPostLoginRedirect({ role: 'STUDENT' })).toBe('/dashboard/student');
   });
 
+  it('redirects instructors to their instructor dashboard', () => {
+    expect(getPostLoginRedirect({ role: 'INSTRUCTOR' })).toBe('/dashboard/instructor');
+  });
+
   it('redirects all other users to the home page', () => {
-    expect(getPostLoginRedirect({ role: 'INSTRUCTOR' })).toBe('/');
     expect(getPostLoginRedirect({ role: null })).toBe('/');
     expect(getPostLoginRedirect()).toBe('/');
   });

@@ -96,6 +96,11 @@ export async function updateCourseStatus(req: AuthenticatedRequest, res: Respons
       tenantOrganizationId(req),
       req.params.courseId,
       req.body,
+      req.user && {
+        userId: req.user.id,
+        email: req.user.email,
+        role: req.user.role,
+      },
     );
     return res.status(200).json({ success: true, data });
   } catch (err: any) {

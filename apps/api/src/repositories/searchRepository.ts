@@ -31,7 +31,7 @@ function buildWhere(organizationId: string, filters: SearchFilters) {
   }
 
   if (filters.category) {
-    where.category = filters.category;
+    where.category = { name: filters.category };
   }
 
   if (filters.difficulty) {
@@ -55,6 +55,13 @@ export async function searchPublishedCourses(
           name: true,
         },
       },
+      category: {
+        select: {
+          id: true,
+          name: true,
+          slug: true,
+        },
+      },
     },
     orderBy: options.orderBy ?? { publishedAt: 'desc' },
     skip: options.skip,
@@ -65,5 +72,30 @@ export async function searchPublishedCourses(
 export async function countPublishedCourses(organizationId: string, filters: SearchFilters) {
   return prisma().course.count({
     where: buildWhere(organizationId, filters),
+  });
+}
+
+export async function getPublishedCourseById(organizationId: string, courseId: string) {
+  return prisma().course.findFirst({
+    where: {
+      id: courseId,
+      organizationId,
+      status: 'PUBLISHED',
+    },
+    include: {
+      instructorUser: {
+        select: {
+          id: true,
+          name: true,
+        },
+      },
+      category: {
+        select: {
+          id: true,
+          name: true,
+          slug: true,
+        },
+      },
+    },
   });
 }

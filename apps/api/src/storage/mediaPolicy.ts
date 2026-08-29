@@ -4,7 +4,6 @@ export const ALLOWED_MEDIA_MIME_TYPES = new Set([
   'image/gif',
   'image/webp',
   'image/avif',
-  'image/svg+xml',
   'application/pdf',
   'text/plain',
   'text/markdown',
@@ -32,7 +31,6 @@ export const ALLOWED_THUMBNAIL_MIME_TYPES = new Set([
   'image/gif',
   'image/webp',
   'image/avif',
-  'image/svg+xml',
 ]);
 
 export const MEDIA_MAX_SIZE_BYTES = 25 * 1024 * 1024;
@@ -51,7 +49,6 @@ const CONTENT_TYPE_EXTENSIONS: Record<string, string> = {
   'image/gif': 'gif',
   'image/webp': 'webp',
   'image/avif': 'avif',
-  'image/svg+xml': 'svg',
   'application/pdf': 'pdf',
 };
 

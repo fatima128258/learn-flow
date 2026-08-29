@@ -4,6 +4,7 @@ import * as orgRepo from '../repositories/organizationRepository';
 import * as orgAdminRepo from '../repositories/orgAdminRepository';
 import * as authRepo from '../repositories/authRepository';
 import { dispatchNotification } from './notificationDispatcher';
+import { record as recordAudit } from './auditLogService';
 
 // Temporary inline validation functions
 function isValidEmail(email: string) {
@@ -95,7 +96,17 @@ export async function getDashboardSummary() {
   };
 }
 
-export async function createOrganization(input: { name?: string; slug?: string }) {
+export async function createOrganization(
+  input: {
+    name?: string;
+    slug?: string;
+    actor?: {
+      userId: string;
+      email?: string | null;
+      role?: string | null;
+    } | null;
+  },
+) {
   const name = normalizeName(input.name);
   const slug = resolveSlug(input.slug, name);
 
@@ -106,6 +117,18 @@ export async function createOrganization(input: { name?: string; slug?: string }
 
   try {
     const organization = await orgRepo.createOrganization({ name, slug });
+    if (input.actor?.userId) {
+      await recordAudit({
+        action: 'ORGANIZATION_CREATED',
+        organizationId: organization.id,
+        actorUserId: input.actor.userId,
+        actorEmail: input.actor.email ?? null,
+        actorRole: input.actor.role ?? 'PLATFORM_ADMIN',
+        resourceType: 'ORGANIZATION',
+        resourceId: organization.id,
+        metadata: { name: organization.name, slug: organization.slug },
+      });
+    }
     return toOrganizationDto(organization);
   } catch (err) {
     mapPrismaError(err);

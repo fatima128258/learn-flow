@@ -2,6 +2,8 @@ import * as enrollmentRepo from '../repositories/enrollmentRepository';
 import * as courseRepo from '../repositories/courseRepository';
 import * as moduleRepo from '../repositories/moduleRepository';
 import * as lessonRepo from '../repositories/lessonRepository';
+import * as searchRepo from '../repositories/searchRepository';
+import { categoryLabel } from '../utils/categoryLabel';
 import getPrisma from '../prisma';
 
 function toEnrolledCourseListItem(enrollment: any, course: any) {
@@ -14,7 +16,7 @@ function toEnrolledCourseListItem(enrollment: any, course: any) {
     slug: course.slug,
     description: course.description,
     thumbnailUrl: course.thumbnailUrl,
-    category: course.category,
+    category: categoryLabel(course.category),
     difficulty: course.difficulty,
     estimatedMinutes: course.estimatedMinutes,
     learningObjectives: Array.isArray(course.learningObjectives) ? course.learningObjectives : [],
@@ -93,6 +95,50 @@ async function verifyLessonInModule(moduleId: string, lessonId: string) {
   return lesson;
 }
 
+export async function getCourseOverview(
+  organizationId: string,
+  userId: string,
+  courseId: string,
+) {
+  const course = await searchRepo.getPublishedCourseById(organizationId, courseId);
+  if (!course) {
+    throw new Error('COURSE_NOT_FOUND');
+  }
+
+  const prisma = getPrisma();
+  const [moduleCount, lessonCount, quizCount, enrollment] = await Promise.all([
+    prisma.module.count({ where: { courseId: course.id } }),
+    prisma.lesson.count({ where: { module: { courseId: course.id } } }),
+    prisma.quiz.count({ where: { module: { courseId: course.id } } }),
+    enrollmentRepo.findByUserAndCourse(userId, courseId),
+  ]);
+
+  return {
+    id: course.id,
+    organizationId: course.organizationId,
+    instructor: {
+      id: course.instructorUser?.id ?? course.instructorUserId,
+      name: course.instructorUser?.name ?? null,
+    },
+    title: course.title,
+    slug: course.slug,
+    description: course.description,
+    thumbnailUrl: course.thumbnailUrl,
+    category: categoryLabel(course.category),
+    difficulty: course.difficulty,
+    price: course.price,
+    discountPrice: course.discountPrice,
+    estimatedMinutes: course.estimatedMinutes,
+    learningObjectives: Array.isArray(course.learningObjectives) ? course.learningObjectives : [],
+    status: course.status,
+    publishedAt: course.publishedAt,
+    moduleCount,
+    lessonCount,
+    quizCount,
+    isEnrolled: Boolean(enrollment) && enrollment.organizationId === organizationId,
+  };
+}
+
 export async function listEnrolledCourses(organizationId: string, userId: string) {
   const enrollments = await enrollmentRepo.listByUser(userId);
   const orgEnrollments = enrollments.filter(
@@ -139,7 +185,7 @@ export async function getEnrolledCourseDetail(organizationId: string, userId: st
     slug: course.slug,
     description: course.description,
     thumbnailUrl: course.thumbnailUrl,
-    category: course.category,
+    category: categoryLabel(course.category),
     difficulty: course.difficulty,
     estimatedMinutes: course.estimatedMinutes,
     learningObjectives: Array.isArray(course.learningObjectives) ? course.learningObjectives : [],

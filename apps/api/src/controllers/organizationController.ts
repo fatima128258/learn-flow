@@ -1,4 +1,5 @@
 import { Request, Response } from 'express';
+import { AuthenticatedRequest } from '../middleware/auth';
 import * as service from '../services/organizationService';
 
 // Temporary inline validation function
@@ -49,10 +50,16 @@ export async function dashboard(_req: Request, res: Response) {
   }
 }
 
-export async function create(req: Request, res: Response) {
+export async function create(req: AuthenticatedRequest, res: Response) {
   try {
     const { name, slug } = req.body || {};
-    const data = await service.createOrganization({ name, slug });
+    const data = await service.createOrganization({
+      name,
+      slug,
+      actor: req.user
+        ? { userId: req.user.id, email: req.user.email, role: req.user.role }
+        : null,
+    });
     return res.status(201).json({ success: true, data });
   } catch (err: any) {
     return handleError(res, err);

@@ -17,6 +17,8 @@ import { PasswordInput } from '../../../components/forms/PasswordInput';
 import { getOrgAdminErrorMessage } from '../../../features/orgAdmin/orgAdminErrors';
 import { getCreateInstructorErrorMessage } from '../../../features/orgAdmin/createInstructorError';
 import { LinkButton } from '../../../components/ui/LinkButton';
+import { DashboardLayout } from '../../../components/layout/DashboardLayout';
+import { orgAdminNav } from '../../../features/organizationAdmin/nav';
 
 type OrganizationInfo = {
   id: string;
@@ -252,17 +254,17 @@ export default function OrganizationDashboardPage() {
 
   if (loading && summary === null && !error) {
     return (
-      <main className="min-h-screen bg-neutral-50 p-8">
+      <DashboardLayout navLabel="Organization Admin" items={orgAdminNav}>
         <div className="mx-auto flex max-w-5xl items-center gap-3 text-neutral-700">
           <Spinner size="lg" label="Loading organization dashboard..." />
           <span>Loading organization dashboard...</span>
         </div>
-      </main>
+      </DashboardLayout>
     );
   }
 
   return (
-    <main className="min-h-screen bg-neutral-50 p-8">
+    <DashboardLayout navLabel="Organization Admin" items={orgAdminNav}>
       <div className="mx-auto max-w-5xl">
         <div className="mb-8 rounded-2xl border border-neutral-200 bg-white p-6 shadow-sm">
           <p className="text-sm font-medium uppercase tracking-wide text-primary-600">Organization Admin</p>
@@ -440,6 +442,6 @@ export default function OrganizationDashboardPage() {
           </div>
         </form>
       </Modal>
-    </main>
+    </DashboardLayout>
   );
 }

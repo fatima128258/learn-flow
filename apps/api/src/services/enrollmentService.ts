@@ -1,6 +1,7 @@
 import * as enrollmentRepo from '../repositories/enrollmentRepository';
 import * as courseRepo from '../repositories/courseRepository';
 import { dispatchNotification } from './notificationDispatcher';
+import { record as recordAudit } from './auditLogService';
 
 function toEnrollmentDto(enrollment: any) {
   return {
@@ -48,6 +49,16 @@ export async function enroll(organizationId: string, userId: string, courseId: s
     userId,
     courseId,
     organizationId,
+  });
+
+  await recordAudit({
+    action: 'ENROLLMENT_CREATED',
+    organizationId,
+    actorUserId: userId,
+    actorRole: 'STUDENT',
+    resourceType: 'ENROLLMENT',
+    resourceId: enrollment.id,
+    metadata: { courseId: course.id, courseTitle: course.title },
   });
 
   await dispatchNotification({

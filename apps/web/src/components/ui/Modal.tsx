@@ -1,5 +1,5 @@
 'use client';
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useId, useRef } from 'react';
 import { Button, ButtonProps } from './Button';
 
 export interface ModalProps {
@@ -29,6 +29,8 @@ export const Modal: React.FC<ModalProps> = ({
   closeOnOverlayClick = true,
 }) => {
   const modalRef = useRef<HTMLDivElement>(null);
+  const previouslyFocusedRef = useRef<HTMLElement | null>(null);
+  const titleId = useId();
 
   useEffect(() => {
     const handleEscape = (e: KeyboardEvent) => {
@@ -38,15 +40,53 @@ export const Modal: React.FC<ModalProps> = ({
     };
 
     if (isOpen) {
+      previouslyFocusedRef.current = document.activeElement as HTMLElement | null;
       document.addEventListener('keydown', handleEscape);
       document.body.style.overflow = 'hidden';
+      const focusable = modalRef.current?.querySelectorAll<HTMLElement>(
+        'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])',
+      );
+      focusable?.[0]?.focus();
     }
 
     return () => {
       document.removeEventListener('keydown', handleEscape);
       document.body.style.overflow = 'unset';
+      if (isOpen) {
+        previouslyFocusedRef.current?.focus?.();
+      }
     };
   }, [isOpen, onClose]);
+
+  useEffect(() => {
+    if (!isOpen) return;
+
+    function trapFocus(e: KeyboardEvent) {
+      if (e.key !== 'Tab') return;
+      const container = modalRef.current;
+      if (!container) return;
+      const focusable = Array.from(
+        container.querySelectorAll<HTMLElement>(
+          'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])',
+        ),
+      ).filter((el) => !el.hasAttribute('disabled'));
+      if (focusable.length === 0) return;
+
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+
+      if (e.shiftKey && document.activeElement === first) {
+        e.preventDefault();
+        last.focus();
+      } else if (!e.shiftKey && document.activeElement === last) {
+        e.preventDefault();
+        first.focus();
+      }
+    }
+
+    document.addEventListener('keydown', trapFocus);
+    return () => document.removeEventListener('keydown', trapFocus);
+  }, [isOpen]);
 
   if (!isOpen) return null;
 
@@ -55,7 +95,7 @@ export const Modal: React.FC<ModalProps> = ({
       className="fixed inset-0 z-50 flex items-center justify-center p-4 animate-fade-in"
       role="dialog"
       aria-modal="true"
-      aria-labelledby={title ? 'modal-title' : undefined}
+      aria-labelledby={title ? titleId : undefined}
     >
       {/* Overlay */}
       <div
@@ -71,7 +111,7 @@ export const Modal: React.FC<ModalProps> = ({
         {/* Header */}
         {title && (
           <div className="flex items-center justify-between p-6 border-b border-neutral-200">
-            <h2 id="modal-title" className="text-xl font-semibold text-neutral-900">
+            <h2 id={titleId} className="text-xl font-semibold text-neutral-900">
               {title}
             </h2>
             <button

@@ -4,6 +4,7 @@ import cookieParser from 'cookie-parser';
 import authRoutes from './routes/authRoutes';
 import { adminRouter, organizationRouter } from './routes/organizationRoutes';
 import orgAdminRouter from './routes/orgAdminRoutes';
+import categoryRouter from './routes/categoryRoutes';
 import courseRouter from './routes/courseRoutes';
 import moduleRouter from './routes/moduleRoutes';
 import lessonRouter from './routes/lessonRoutes';
@@ -16,36 +17,24 @@ import certificateRouter, { publicCertificateRouter } from './routes/certificate
 import searchRouter from './routes/searchRoutes';
 import notificationRouter from './routes/notificationRoutes';
 import mediaRouter from './routes/mediaRoutes';
+import { platformAuditLogRouter, orgAuditLogRouter } from './routes/auditLogRoutes';
 import { startNotificationWorker } from './queues/notificationWorker';
 import { apiRateLimiter } from './middleware/rateLimit';
-
-const DEFAULT_ALLOWED_ORIGINS = [
-  'http://localhost:3000',
-  'http://127.0.0.1:3000',
-  'http://localhost:3001',
-  'http://127.0.0.1:3001',
-  'http://web:3000',
-  'http://frontend:3000',
-];
-
-function getAllowedOrigins() {
-  const configured = (process.env.CORS_ALLOWED_ORIGINS || '')
-    .split(',')
-    .map((value) => value.trim())
-    .filter(Boolean);
-
-  return Array.from(new Set([...DEFAULT_ALLOWED_ORIGINS, ...configured]));
-}
-
-const allowedOrigins = getAllowedOrigins();
+import { securityHeaders } from './middleware/security';
+import { csrfOriginCheck } from './middleware/csrf';
+import { isAllowedOrigin } from './config/origins';
 
 export const app = express();
+
+app.use(securityHeaders);
+
+// CSRF defense-in-depth: reject state-changing requests whose Origin is not allowlisted.
+app.use('/api/v1', csrfOriginCheck);
 
 app.use(cors({
   origin(origin, callback) {
     if (!origin) return callback(null, true);
-    const normalizedOrigin = origin.replace(/\/$/, '');
-    if (allowedOrigins.some((allowed) => allowed.replace(/\/$/, '') === normalizedOrigin)) {
+    if (isAllowedOrigin(origin)) {
       return callback(null, true);
     }
     return callback(new Error('Not allowed by CORS'));
@@ -55,7 +44,7 @@ app.use(cors({
   allowedHeaders: ['Content-Type', 'Authorization', 'X-Organization-Id'],
 }));
 app.use(cookieParser());
-app.use(express.json());
+app.use(express.json({ limit: '1mb' }));
 
 // General API rate limiting (per IP + method + path)
 app.use('/api/v1', apiRateLimiter);
@@ -87,6 +76,9 @@ app.use('/api/v1/organizations', mediaRouter);
 app.use('/api/v1/certificates', publicCertificateRouter);
 app.use('/api/v1/organizations', organizationRouter);
 app.use('/api/v1/org', orgAdminRouter);
+app.use('/api/v1/org/categories', categoryRouter);
+app.use('/api/v1/admin/audit-logs', platformAuditLogRouter);
+app.use('/api/v1/org/audit-logs', orgAuditLogRouter);
 
 // JSON 404 responses for unknown API routes
 app.use('/api/v1', (req, res) => {
@@ -100,6 +92,9 @@ app.use((err: any, req: Request, res: Response, next: NextFunction) => {
   }
   if (err?.type === 'entity.parse.failed') {
     return res.status(400).json({ success: false, error: 'INVALID_JSON' });
+  }
+  if (err?.type === 'entity.too.large') {
+    return res.status(413).json({ success: false, error: 'PAYLOAD_TOO_LARGE' });
   }
   return res.status(err?.status ?? 500).json({ success: false, error: 'SERVER_ERROR' });
 });

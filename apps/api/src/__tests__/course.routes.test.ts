@@ -16,6 +16,10 @@ const prismaMock = {
     findMany: vi.fn(),
     count: vi.fn(),
   },
+  category: {
+    findFirst: vi.fn(),
+    create: vi.fn(),
+  },
 };
 
 vi.mock('../services/authService', () => ({
@@ -123,6 +127,8 @@ function resetMocks() {
   prismaMock.course.create.mockReset();
   prismaMock.course.findMany.mockReset();
   prismaMock.course.count.mockReset();
+  prismaMock.category.findFirst.mockReset();
+  prismaMock.category.create.mockReset();
 }
 
 describe('POST /api/v1/organizations/:organizationId/courses', () => {
@@ -400,6 +406,89 @@ describe('POST /api/v1/organizations/:organizationId/courses', () => {
       data: expect.objectContaining({ slug: 'advanced-react-node' }),
     }));
     expect(res.body.data.slug).toBe('advanced-react-node');
+  });
+
+  it('auto-creates a category from the provided category name and links it to the course', async () => {
+    await authenticateAs('INSTRUCTOR');
+    prismaMock.userOrganization.findUnique.mockResolvedValue(membershipRecord());
+    prismaMock.category.findFirst.mockResolvedValue(null);
+    prismaMock.category.create.mockResolvedValue({
+      id: 'cat-1',
+      organizationId: 'org-a',
+      name: 'Dev Tools',
+      slug: 'dev-tools',
+      description: null,
+      createdAt: now,
+      updatedAt: now,
+    });
+    prismaMock.course.create.mockImplementation(async ({ data }: any) =>
+      courseRecord({
+        ...data,
+        category: { id: 'cat-1', name: 'Dev Tools', slug: 'dev-tools' },
+        createdAt: now,
+        updatedAt: now,
+      }),
+    );
+
+    const res = await request(app)
+      .post('/api/v1/organizations/org-a/courses')
+      .set('Cookie', cookie())
+      .send({ title: 'Mastering Docker', category: 'Dev Tools' });
+
+    expect(res.status).toBe(201);
+    expect(res.body.data.category).toBe('Dev Tools');
+    expect(res.body.data.categoryId).toBe('cat-1');
+    expect(prismaMock.category.findFirst).toHaveBeenCalledWith({
+      where: {
+        organizationId: 'org-a',
+        name: { equals: 'Dev Tools', mode: 'insensitive' },
+      },
+    });
+    expect(prismaMock.category.create).toHaveBeenCalledWith({
+      data: {
+        organizationId: 'org-a',
+        name: 'Dev Tools',
+        slug: 'dev-tools',
+        description: null,
+      },
+    });
+    expect(prismaMock.course.create).toHaveBeenCalledWith(expect.objectContaining({
+      data: expect.objectContaining({ categoryId: 'cat-1' }),
+    }));
+  });
+
+  it('reuses an existing category with the same name (case-insensitive) instead of creating a duplicate', async () => {
+    await authenticateAs('INSTRUCTOR');
+    prismaMock.userOrganization.findUnique.mockResolvedValue(membershipRecord());
+    prismaMock.category.findFirst.mockResolvedValue({
+      id: 'cat-1',
+      organizationId: 'org-a',
+      name: 'Dev Tools',
+      slug: 'dev-tools',
+      description: null,
+      createdAt: now,
+      updatedAt: now,
+    });
+    prismaMock.course.create.mockImplementation(async ({ data }: any) =>
+      courseRecord({
+        ...data,
+        category: { id: 'cat-1', name: 'Dev Tools', slug: 'dev-tools' },
+        createdAt: now,
+        updatedAt: now,
+      }),
+    );
+
+    const res = await request(app)
+      .post('/api/v1/organizations/org-a/courses')
+      .set('Cookie', cookie())
+      .send({ title: 'Mastering Docker', category: 'dev tools' });
+
+    expect(res.status).toBe(201);
+    expect(res.body.data.categoryId).toBe('cat-1');
+    expect(prismaMock.category.create).not.toHaveBeenCalled();
+    expect(prismaMock.course.create).toHaveBeenCalledWith(expect.objectContaining({
+      data: expect.objectContaining({ categoryId: 'cat-1' }),
+    }));
   });
 });
 

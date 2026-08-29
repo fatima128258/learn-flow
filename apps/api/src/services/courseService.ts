@@ -1,6 +1,9 @@
 import { Prisma } from '@prisma/client';
 import * as courseRepo from '../repositories/courseRepository';
+import * as categoryService from './categoryService';
+import { categoryLabel } from '../utils/categoryLabel';
 import { dispatchNotification } from './notificationDispatcher';
+import { record as recordAudit } from './auditLogService';
 import * as storage from '../storage';
 import { parsePagination, parseSort, buildMeta } from '../utils/pagination';
 
@@ -84,7 +87,8 @@ function toCourseDto(course: any) {
     slug: course.slug,
     description: course.description,
     thumbnailUrl: course.thumbnailUrl,
-    category: course.category,
+    category: categoryLabel(course.category),
+    categoryId: course.categoryId ?? null,
     price: course.price,
     discountPrice: course.discountPrice,
     status: course.status,
@@ -157,6 +161,11 @@ export async function createCourse(
   const title = requireTitle(input.title);
   const slug = resolveSlug(input.slug, title);
 
+  const category = optionalString(input.category);
+  const categoryId = category
+    ? await categoryService.resolveOrCreateCategoryId(organizationId, category)
+    : null;
+
   try {
     const course = await courseRepo.createCourse({
       organizationId,
@@ -165,7 +174,7 @@ export async function createCourse(
       slug,
       description: optionalString(input.description),
       thumbnailUrl: optionalString(input.thumbnailUrl),
-      category: optionalString(input.category),
+      categoryId,
       price: optionalMoney(input.price),
       discountPrice: optionalMoney(input.discountPrice),
       estimatedMinutes: optionalPositiveInt(input.estimatedMinutes),
@@ -187,6 +196,7 @@ export async function updateCourseStatus(
   organizationId: string,
   courseId: string,
   rawInput: unknown,
+  actor?: { userId?: string; email?: string | null; role?: string | null } | null,
 ) {
   const input = (rawInput ?? {}) as Record<string, unknown>;
   if (!input.status || typeof input.status !== 'string') {
@@ -212,6 +222,23 @@ export async function updateCourseStatus(
   }
 
   if (status === 'PUBLISHED' && course.status !== 'PUBLISHED') {
+    if (actor?.userId) {
+      await recordAudit({
+        action: 'COURSE_PUBLISHED',
+        organizationId,
+        actorUserId: actor.userId,
+        actorEmail: actor.email ?? null,
+        actorRole: actor.role ?? null,
+        resourceType: 'COURSE',
+        resourceId: course.id,
+        metadata: {
+          courseTitle: course.title,
+          fromStatus: course.status,
+          toStatus: status,
+          publishedAt: updated.publishedAt,
+        },
+      });
+    }
     await dispatchNotification({
       type: 'COURSE_PUBLISHED',
       title: `Course published: ${course.title}`,

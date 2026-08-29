@@ -9,7 +9,7 @@ import {
   EmptyStateIcons,
   ErrorState,
   Input,
-  Spinner,
+  LinkButton,
 } from '@/components/ui';
 
 type MeResponse = {
@@ -53,7 +53,6 @@ export default function StudentSearchPage() {
   const [results, setResults] = useState<CourseHit[] | null>(null);
   const [loading, setLoading] = useState(false);
   const [searchError, setSearchError] = useState<string | null>(null);
-  const [enrollingCourseId, setEnrollingCourseId] = useState<string | null>(null);
 
   useEffect(() => {
     let active = true;
@@ -117,27 +116,6 @@ export default function StudentSearchPage() {
       setSearchError('Could not reach the server. Please try again.');
     } finally {
       setLoading(false);
-    }
-  }
-
-  async function enroll(courseId: string) {
-    if (!organizationId) return;
-    setEnrollingCourseId(courseId);
-    try {
-      const apiBase = process.env.NEXT_PUBLIC_API_URL || '';
-      const res = await fetch(
-        `${apiBase}/api/v1/organizations/${organizationId}/enrollments/${courseId}`,
-        { method: 'POST', credentials: 'include' },
-      );
-      if (!res.ok) {
-        setSearchError('Enrollment failed. Please try again.');
-        return;
-      }
-      window.location.href = `/dashboard/student/courses/${courseId}`;
-    } catch {
-      setSearchError('Could not reach the server. Please try again.');
-    } finally {
-      setEnrollingCourseId(null);
     }
   }
 
@@ -217,16 +195,9 @@ export default function StudentSearchPage() {
                     <span className="font-semibold text-neutral-900">{formatPrice(course.price)}</span>
                   </div>
                   <div className="mt-4">
-                    <Button
-                      variant="primary"
-                      size="sm"
-                      fullWidth
-                      loading={enrollingCourseId === course.id}
-                      onClick={() => enroll(course.id)}
-                      disabled={enrollingCourseId !== null && enrollingCourseId !== course.id}
-                    >
-                      {enrollingCourseId === course.id ? 'Enrolling...' : 'Enroll Now'}
-                    </Button>
+                    <LinkButton href={`/courses/${course.id}`} variant="primary" size="sm" fullWidth>
+                      View & Enroll
+                    </LinkButton>
                   </div>
                 </div>
               ))}

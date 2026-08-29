@@ -34,6 +34,7 @@ model Organization {
   createdAt DateTime           @default(now())
   updatedAt DateTime           @updatedAt
   users        UserOrganization[]
+  categories   Category[]
   courses      Course[]
   enrollments  Enrollment[]
   orders       Order[]
@@ -118,6 +119,22 @@ model PasswordResetToken {
   @@index([userId])
 }
 
+model Category {
+  id             String       @id @default(cuid())
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  organizationId String
+  name           String
+  slug           String
+  description    String?
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  courses        Course[]
+
+  @@unique([organizationId, name])
+  @@unique([organizationId, slug])
+  @@index([organizationId])
+}
+
 model Course {
   id                 String       @id @default(cuid())
   organization       Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
@@ -128,7 +145,8 @@ model Course {
   slug               String
   description        String?
   thumbnailUrl       String?
-  category           String?
+  categoryId         String?
+  category           Category?    @relation(fields: [categoryId], references: [id], onDelete: SetNull)
   price              Decimal?     @db.Decimal(10, 2)
   discountPrice      Decimal?     @db.Decimal(10, 2)
   status             CourseStatus @default(DRAFT)
@@ -467,4 +485,25 @@ model Media {
 
   @@index([organizationId])
   @@index([uploaderId])
+}
+
+model AuditLog {
+  id             String    @id @default(cuid())
+  organizationId String?
+  actorUserId    String
+  actorEmail     String?
+  actorRole      String?
+  action         String
+  resourceType   String?
+  resourceId     String?
+  metadata       Json?
+  ipAddress      String?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  @@index([organizationId, createdAt])
+  @@index([actorUserId, createdAt])
+  @@index([action, createdAt])
+  @@index([resourceType, resourceId])
+  @@index([createdAt])
 }

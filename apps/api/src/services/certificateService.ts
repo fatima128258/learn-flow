@@ -8,6 +8,7 @@ import * as authService from './authService';
 import { dispatchNotification } from './notificationDispatcher';
 import * as certificatePdfService from './certificatePdfService';
 import * as storage from '../storage';
+import { record as recordAudit } from './auditLogService';
 
 const API_BASE_URL = process.env.API_BASE_URL ?? 'http://localhost:4000';
 
@@ -99,6 +100,20 @@ export async function generateCertificate(organizationId: string, userId: string
     studentName: student?.name ?? student?.email ?? 'Student',
     courseTitle: course.title,
     completionDate: issued,
+  });
+
+  await recordAudit({
+    action: 'CERTIFICATE_GENERATED',
+    organizationId,
+    actorUserId: userId,
+    actorRole: 'STUDENT',
+    resourceType: 'CERTIFICATE',
+    resourceId: certificate.id,
+    metadata: {
+      certificateId: certificate.certificateId,
+      courseId,
+      courseTitle: course.title,
+    },
   });
 
   await dispatchNotification({

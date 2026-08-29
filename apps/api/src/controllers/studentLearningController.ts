@@ -45,6 +45,22 @@ export async function listEnrolledCourses(req: AuthenticatedRequest, res: Respon
   }
 }
 
+export async function getCourseOverview(req: AuthenticatedRequest, res: Response) {
+  try {
+    if (!req.user) {
+      return fail(res, 401, 'NOT_AUTHENTICATED');
+    }
+    const data = await service.getCourseOverview(
+      tenantOrganizationId(req),
+      req.user.id,
+      req.params.courseId,
+    );
+    return res.status(200).json({ success: true, data });
+  } catch (err: any) {
+    return handleError(res, err);
+  }
+}
+
 export async function getEnrolledCourseDetail(req: AuthenticatedRequest, res: Response) {
   try {
     if (!req.user) {

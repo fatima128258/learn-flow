@@ -100,9 +100,6 @@ const categories = ['All', 'Development', 'Data Science', 'Design', 'Marketing',
 export default function CoursesPage() {
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [searchQuery, setSearchQuery] = useState('');
-  const [enrollingCourseId, setEnrollingCourseId] = useState<number | null>(null);
-  const [enrollmentSuccess, setEnrollmentSuccess] = useState<number | null>(null);
-  const [enrollmentError, setEnrollmentError] = useState<{ courseId: number; message: string } | null>(null);
 
   const filteredCourses = courses.filter(course => {
     const matchesCategory = selectedCategory === 'All' || course.category === selectedCategory;
@@ -110,57 +107,6 @@ export default function CoursesPage() {
                          course.description.toLowerCase().includes(searchQuery.toLowerCase());
     return matchesCategory && matchesSearch;
   });
-
-  const handleEnroll = async (courseId: number) => {
-    setEnrollingCourseId(courseId);
-    setEnrollmentError(null);
-    setEnrollmentSuccess(null);
-    try {
-      const apiBase = process.env.NEXT_PUBLIC_API_URL || '';
-      const meRes = await fetch(`${apiBase}/api/v1/auth/me`, { credentials: 'include' });
-      if (!meRes.ok) {
-        window.location.href = '/login';
-        return;
-      }
-      const meData = await meRes.json();
-      const user = meData?.user;
-      if (!user || user.role !== 'STUDENT') {
-        setEnrollmentError({ courseId, message: 'Only students can enroll in courses.' });
-        return;
-      }
-      if (!user.emailVerified) {
-        setEnrollmentError({ courseId, message: 'Please verify your email before enrolling.' });
-        return;
-      }
-      const orgId = user.organizationId;
-      if (!orgId) {
-        setEnrollmentError({ courseId, message: 'No organization associated with your account.' });
-        return;
-      }
-      const res = await fetch(`${apiBase}/api/v1/organizations/${orgId}/enrollments/${courseId}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-      });
-      const body = await res.json();
-      if (!res.ok) {
-        const errorMsg = body?.error === 'ALREADY_ENROLLED'
-          ? 'You are already enrolled in this course.'
-          : body?.error === 'COURSE_NOT_FOUND'
-          ? 'Course not found.'
-          : body?.error === 'COURSE_NOT_PUBLISHED'
-          ? 'This course is not yet available.'
-          : 'Enrollment failed. Please try again.';
-        setEnrollmentError({ courseId, message: errorMsg });
-        return;
-      }
-      setEnrollmentSuccess(courseId);
-    } catch {
-      setEnrollmentError({ courseId, message: 'Could not reach the server. Please try again.' });
-    } finally {
-      setEnrollingCourseId(null);
-    }
-  };
 
   return (
     <MainLayout>
@@ -174,9 +120,9 @@ export default function CoursesPage() {
               <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-white mb-6 tracking-tight animate-slide-up">
                 Explore Our Courses
               </h1>
-              <p className="text-xl text-primary-100 mb-8 animate-slide-up" style={{ animationDelay: '0.1s' }}>
-                Discover over 1,200 courses taught by expert instructors
-              </p>
+<p className="text-xl text-primary-100 mb-8 animate-slide-up" style={{ animationDelay: '0.1s' }}>
+                        Explore instructor-led courses for your organization
+                      </p>
               
               {/* Search Bar */}
               <div className="max-w-2xl mx-auto animate-slide-up" style={{ animationDelay: '0.2s' }}>
@@ -291,24 +237,13 @@ export default function CoursesPage() {
                           <div className="text-2xl font-bold text-neutral-900">{course.price}</div>
                           <div className="text-xs text-neutral-500">{course.lessons} lessons • {course.duration}</div>
                         </div>
-                        <Button 
-                          variant="primary" 
-                          size="sm" 
-                          className="shadow-sm"
-                          loading={enrollingCourseId === course.id}
-                          onClick={() => handleEnroll(course.id)}
+                        <Link
+                          href="/dashboard/student/search"
+                          className="inline-flex items-center justify-center rounded-lg bg-primary-600 px-3 py-1.5 text-sm font-medium text-white shadow-sm transition-colors hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2"
                         >
-                          {enrollingCourseId === course.id ? 'Enrolling...' : 'Enroll Now'}
-                        </Button>
+                          Browse Catalog
+                        </Link>
                       </div>
-
-                      {/* Enrollment feedback */}
-                      {enrollmentSuccess === course.id && (
-                        <p className="mt-3 text-sm text-green-600 font-medium">Successfully enrolled!</p>
-                      )}
-                      {enrollmentError?.courseId === course.id && (
-                        <p className="mt-3 text-sm text-red-600 font-medium">{enrollmentError.message}</p>
-                      )}
                     </CardHeader>
                   </div>
                 </Card>

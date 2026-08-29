@@ -4,6 +4,16 @@ function prisma() {
   return getPrisma();
 }
 
+const courseCategoryInclude = {
+  category: {
+    select: {
+      id: true,
+      name: true,
+      slug: true,
+    },
+  },
+} as const;
+
 export interface CreateCourseData {
   organizationId: string;
   instructorUserId: string;
@@ -11,7 +21,7 @@ export interface CreateCourseData {
   slug: string;
   description?: string | null;
   thumbnailUrl?: string | null;
-  category?: string | null;
+  categoryId?: string | null;
   price?: number | null;
   discountPrice?: number | null;
   estimatedMinutes?: number | null;
@@ -30,7 +40,7 @@ export async function createCourse(data: CreateCourseData) {
       slug: data.slug,
       description: data.description,
       thumbnailUrl: data.thumbnailUrl,
-      category: data.category,
+      categoryId: data.categoryId,
       price: data.price,
       discountPrice: data.discountPrice,
       status: data.status,
@@ -39,6 +49,7 @@ export async function createCourse(data: CreateCourseData) {
       difficulty: data.difficulty,
       learningObjectives: data.learningObjectives,
     },
+    include: courseCategoryInclude,
   });
 }
 
@@ -81,6 +92,7 @@ export async function countByOrganization(organizationId: string, status?: strin
 export async function getById(organizationId: string, courseId: string) {
   return prisma().course.findFirst({
     where: { id: courseId, organizationId },
+    include: courseCategoryInclude,
   });
 }
 
@@ -101,6 +113,7 @@ export async function updateCourseStatus(
   }
   return prisma().course.findFirst({
     where: { id: courseId, organizationId },
+    include: courseCategoryInclude,
   });
 }
 
@@ -118,5 +131,6 @@ export async function updateThumbnail(
   }
   return prisma().course.findFirst({
     where: { id: courseId, organizationId },
+    include: courseCategoryInclude,
   });
 }

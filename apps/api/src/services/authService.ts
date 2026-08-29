@@ -4,6 +4,7 @@ import { generateToken, hashToken } from '../utils/tokens';
 import { getRedis } from '../utils/redis';
 import { sendVerificationEmail, sendPasswordResetEmail } from '../utils/email';
 import { dispatchNotification } from './notificationDispatcher';
+import { record as recordAudit } from './auditLogService';
 import argon2 from 'argon2';
 
 const SESSION_TTL_SECONDS = 60 * 60 * 24 * 7; // 7 days
@@ -71,7 +72,7 @@ export async function loginUser({ email, password, ip = '127.0.0.1' }: { email: 
   const token = generateToken();
   const tokenHash = hashToken(token);
   const expiresAt = new Date(Date.now() + SESSION_TTL_SECONDS * 1000);
-  await repo.createSession({ userId: user.id, tokenHash, expiresAt });
+  const session = await repo.createSession({ userId: user.id, tokenHash, expiresAt });
   const redis = getRedis();
   await redis.del(`rl:login:ip:${ip}`);
 
@@ -80,6 +81,17 @@ export async function loginUser({ email, password, ip = '127.0.0.1' }: { email: 
     ?? memberships.find((membership) => membership.role === 'ORG_ADMIN')
     ?? memberships.find((membership) => membership.role === 'INSTRUCTOR')
     ?? memberships[0];
+
+  await recordAudit({
+    action: 'LOGIN',
+    organizationId: primaryMembership?.organizationId ?? null,
+    actorUserId: user.id,
+    actorEmail: user.email,
+    actorRole: primaryMembership?.role ?? null,
+    resourceType: 'SESSION',
+    resourceId: session?.id ?? null,
+    ipAddress: ip,
+  });
 
   return {
     user: {

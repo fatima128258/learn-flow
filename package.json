@@ -11,9 +11,11 @@
     "build": "npm --prefix ./apps/web run build",
     "start": "npm --prefix ./apps/web run start",
     "lint": "npm --prefix ./apps/web run lint",
-    "test": "vitest"
+    "test": "vitest run",
+    "test:coverage": "vitest run --coverage"
   },
   "devDependencies": {
+    "@vitest/coverage-v8": "^1.6.1",
     "eslint": "^9",
     "vitest": "^1.0.0"
   }

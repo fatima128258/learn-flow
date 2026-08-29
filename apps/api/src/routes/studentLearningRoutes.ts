@@ -8,6 +8,7 @@ import {
 import {
   listEnrolledCourses,
   getEnrolledCourseDetail,
+  getCourseOverview,
   listCourseModules,
   listModuleLessons,
   getLessonContent,
@@ -40,6 +41,12 @@ studentLearningRouter.get(
   '/:organizationId/student/courses',
   ...studentMiddleware,
   listEnrolledCourses,
+);
+
+studentLearningRouter.get(
+  '/:organizationId/student/courses/:courseId/overview',
+  ...studentMiddleware,
+  getCourseOverview,
 );
 
 studentLearningRouter.get(

@@ -1,4 +1,5 @@
 import * as searchRepo from '../repositories/searchRepository';
+import { categoryLabel } from '../utils/categoryLabel';
 import { parsePagination, parseSort, buildMeta } from '../utils/pagination';
 
 function optionalFilter(value: unknown): string | undefined {
@@ -21,7 +22,7 @@ function toCourseSearchDto(course: any) {
     slug: course.slug,
     description: course.description,
     thumbnailUrl: course.thumbnailUrl,
-    category: course.category,
+    category: categoryLabel(course.category),
     difficulty: course.difficulty,
     price: course.price,
     discountPrice: course.discountPrice,

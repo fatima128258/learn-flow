@@ -1,5 +1,5 @@
 'use client';
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { AuthLayout } from '../../components/layout/AuthLayout';
 import { AuthCard } from '../../components/auth/AuthCard';
@@ -9,7 +9,7 @@ import { FormError } from '../../components/forms/FormError';
 import { Alert } from '../../components/ui/Alert';
 import { Stack } from '../../components/ui/layout/Stack';
 
-export default function ResetPasswordPage() {
+function ResetPasswordForm() {
   const searchParams = useSearchParams();
   const token = searchParams.get('token');
 
@@ -157,5 +157,13 @@ export default function ResetPasswordPage() {
         </form>
       </AuthCard>
     </AuthLayout>
+  );
+}
+
+export default function ResetPasswordPage() {
+  return (
+    <Suspense fallback={<AuthLayout><AuthCard title="Set new password" description="Loading..."><FormError message="Loading reset form..." /></AuthCard></AuthLayout>}>
+      <ResetPasswordForm />
+    </Suspense>
   );
 }

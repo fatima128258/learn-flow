@@ -238,7 +238,7 @@ describe('GET /api/v1/organizations/:organizationId/student/search', () => {
 
     expect(res.status).toBe(200);
     const args = prismaMock.course.findMany.mock.calls[0][0];
-    expect(args.where.category).toBe('Development');
+    expect(args.where.category).toEqual({ name: 'Development' });
     expect(args.where.difficulty).toBe('Beginner');
   });
 
