@@ -10,7 +10,34 @@ function optionalFilter(value: unknown): string | undefined {
   return trimmed;
 }
 
-function toCourseSearchDto(course: any) {
+function optionalNumber(value: unknown): number | undefined {
+  if (value === undefined || value === null || value === '') return undefined;
+  if (typeof value !== 'string' && typeof value !== 'number') {
+    throw new Error('INVALID_QUERY');
+  }
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed) || parsed < 0) throw new Error('INVALID_QUERY');
+  return parsed;
+}
+
+function toCourseSearchDto(course: {
+  id: string;
+  organizationId: string;
+  instructorUser?: { id: string; name: string | null } | null;
+  instructorUserId: string;
+  title: string;
+  slug: string;
+  description: string | null;
+  thumbnailUrl: string | null;
+  category: unknown;
+  difficulty: string | null;
+  price: unknown;
+  discountPrice: unknown;
+  estimatedMinutes: number | null;
+  learningObjectives: string[];
+  status: string;
+  publishedAt: Date | null;
+}) {
   return {
     id: course.id,
     organizationId: course.organizationId,
@@ -39,7 +66,13 @@ export async function searchCourses(organizationId: string, rawInput: unknown) {
   const query = optionalFilter(input.q);
   const category = optionalFilter(input.category);
   const difficulty = optionalFilter(input.difficulty);
-  const filters = { query, category, difficulty };
+  const instructor = optionalFilter(input.instructor);
+  const minPrice = optionalNumber(input.minPrice);
+  const maxPrice = optionalNumber(input.maxPrice);
+  if (minPrice !== undefined && maxPrice !== undefined && minPrice > maxPrice) {
+    throw new Error('INVALID_QUERY');
+  }
+  const filters = { query, category, difficulty, instructor, minPrice, maxPrice };
 
   const { page, limit, skip, take } = parsePagination(input);
   const orderBy = parseSort(input.sort, input.order, [

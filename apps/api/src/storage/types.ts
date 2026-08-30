@@ -19,4 +19,6 @@ export interface StorageProvider {
   getPublicUrl(key: string): string;
   getPresignedUrl(key: string, options?: PresignedUrlOptions): Promise<string>;
   deleteObjects(keys: string[]): Promise<void>;
+  /** Liveness probe used by readiness checks. Resolves when storage is reachable. */
+  ping(): Promise<void>;
 }

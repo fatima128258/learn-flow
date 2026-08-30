@@ -9,7 +9,16 @@ function slugify(text: string) {
     .replace(/^-+|-+$/g, '');
 }
 
-function toCategoryDto(category: any) {
+function toCategoryDto(category: {
+  id: string;
+  organizationId: string;
+  name: string;
+  slug: string;
+  description: string | null;
+  createdAt: Date;
+  updatedAt: Date;
+  _count?: { courses?: number };
+}) {
   return {
     id: category.id,
     organizationId: category.organizationId,

@@ -102,7 +102,7 @@ async function authenticateAs(
     { role, organizationId, userId },
   ]);
 
-  prismaMock.userOrganization.findFirst.mockImplementation(async ({ where }: any) => {
+  prismaMock.userOrganization.findFirst.mockImplementation(async ({ where }: { where?: { role?: string; organizationId?: string; userId?: string; id?: string; courseId?: string; moduleId?: string; quizId?: string; status?: string } }) => {
     if (where?.role === 'PLATFORM_ADMIN') {
       return role === 'PLATFORM_ADMIN' ? { role, organizationId, userId } : null;
     }
@@ -281,6 +281,91 @@ describe('GET /api/v1/organizations/:organizationId/student/search', () => {
         where: expect.objectContaining({ status: 'PUBLISHED' }),
       }),
     );
+  });
+
+  it('filters by instructor name when provided', async () => {
+    await authenticateAs('STUDENT');
+    prismaMock.userOrganization.findUnique.mockResolvedValue(membershipRecord());
+    prismaMock.course.findMany.mockResolvedValue([searchableCourse()]);
+    prismaMock.course.count.mockResolvedValue(1);
+
+    const res = await request(app)
+      .get(`${SEARCH_PATH}?instructor=smith`)
+      .set('Cookie', cookie());
+
+    expect(res.status).toBe(200);
+    const args = prismaMock.course.findMany.mock.calls[0][0];
+    expect(args.where.instructorUser).toEqual({
+      is: { name: { contains: 'smith', mode: 'insensitive' } },
+    });
+  });
+
+  it('filters by discount price when a discount is set', async () => {
+    await authenticateAs('STUDENT');
+    prismaMock.userOrganization.findUnique.mockResolvedValue(membershipRecord());
+    prismaMock.course.findMany.mockResolvedValue([searchableCourse()]);
+    prismaMock.course.count.mockResolvedValue(1);
+
+    const res = await request(app)
+      .get(`${SEARCH_PATH}?minPrice=10&maxPrice=60`)
+      .set('Cookie', cookie());
+
+    expect(res.status).toBe(200);
+    const findManyArgs = prismaMock.course.findMany.mock.calls[0][0];
+    expect(findManyArgs.where.OR).toContainEqual({
+      discountPrice: { not: null, gte: 10, lte: 60 },
+    });
+    const countArgs = prismaMock.course.count.mock.calls[0][0];
+    expect(countArgs.where.OR).toContainEqual({
+      discountPrice: null,
+      price: { gte: 10, lte: 60 },
+    });
+  });
+
+  it('applies price bounds individually when only one is provided', async () => {
+    await authenticateAs('STUDENT');
+    prismaMock.userOrganization.findUnique.mockResolvedValue(membershipRecord());
+    prismaMock.course.findMany.mockResolvedValue([]);
+    prismaMock.course.count.mockResolvedValue(0);
+
+    const res = await request(app).get(`${SEARCH_PATH}?minPrice=25`).set('Cookie', cookie());
+
+    expect(res.status).toBe(200);
+    const args = prismaMock.course.findMany.mock.calls[0][0];
+    expect(args.where.OR).toContainEqual({
+      discountPrice: { not: null, gte: 25 },
+    });
+  });
+
+  it('rejects a nonsensical price range with 400', async () => {
+    await authenticateAs('STUDENT');
+    prismaMock.userOrganization.findUnique.mockResolvedValue(membershipRecord());
+
+    const res = await request(app)
+      .get(`${SEARCH_PATH}?minPrice=100&maxPrice=10`)
+      .set('Cookie', cookie());
+
+    expect(res.status).toBe(400);
+    expect(res.body.error).toBe('INVALID_QUERY');
+  });
+
+  it('rejects non-numeric or negative price bounds with 400', async () => {
+    await authenticateAs('STUDENT');
+    prismaMock.userOrganization.findUnique.mockResolvedValue(membershipRecord());
+
+    const res = await request(app)
+      .get(`${SEARCH_PATH}?minPrice=abc`)
+      .set('Cookie', cookie());
+
+    expect(res.status).toBe(400);
+    expect(res.body.error).toBe('INVALID_QUERY');
+
+    const negative = await request(app)
+      .get(`${SEARCH_PATH}?maxPrice=-5`)
+      .set('Cookie', cookie());
+
+    expect(negative.status).toBe(400);
+    expect(negative.body.error).toBe('INVALID_QUERY');
   });
 
   it('sorts search results by an allowed field and order', async () => {

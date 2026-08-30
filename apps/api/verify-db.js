@@ -1,4 +1,5 @@
 // Simple DB verification script that connects to Postgres via Prisma
+// eslint-disable-next-line @typescript-eslint/no-require-imports -- CommonJS script, require is appropriate
 const { PrismaClient } = require('@prisma/client');
 
 async function main() {
@@ -11,7 +12,7 @@ async function main() {
     process.exit(0);
   } catch (err) {
     console.error('Prisma connection error:', err);
-    try { await prisma.$disconnect(); } catch(e){}
+    try { await prisma.$disconnect(); } catch (e) { console.error(e); }
     process.exit(2);
   }
 }

@@ -121,7 +121,7 @@ async function authenticateAs(
     { role, organizationId, userId },
   ]);
 
-  prismaMock.userOrganization.findFirst.mockImplementation(async ({ where }: any) => {
+  prismaMock.userOrganization.findFirst.mockImplementation(async ({ where }: { where?: { role?: string; organizationId?: string; userId?: string; id?: string; courseId?: string; moduleId?: string; quizId?: string; status?: string } }) => {
     if (where?.role === 'PLATFORM_ADMIN') {
       return role === 'PLATFORM_ADMIN' ? { role, organizationId, userId } : null;
     }
@@ -211,7 +211,7 @@ describe('POST /api/v1/organizations/:organizationId/courses/:courseId/modules',
     await authenticateAs('INSTRUCTOR');
     prismaMock.userOrganization.findUnique.mockResolvedValue(membershipRecord());
     prismaMock.course.findFirst.mockResolvedValue(courseRecord());
-    prismaMock.module.create.mockImplementation(async ({ data }: any) =>
+    prismaMock.module.create.mockImplementation(async ({ data }: { data?: Record<string, unknown> }) =>
       moduleRecord({
         id: 'module-1',
         ...data,
@@ -249,7 +249,7 @@ describe('POST /api/v1/organizations/:organizationId/courses/:courseId/modules',
       role: 'ORG_ADMIN',
     }));
     prismaMock.course.findFirst.mockResolvedValue(courseRecord({ instructorUserId: 'admin-1' }));
-    prismaMock.module.create.mockImplementation(async ({ data }: any) =>
+    prismaMock.module.create.mockImplementation(async ({ data }: { data?: Record<string, unknown> }) =>
       moduleRecord({
         id: 'module-2',
         ...data,
@@ -546,7 +546,7 @@ describe('PATCH /api/v1/organizations/:organizationId/courses/:courseId/modules/
     prismaMock.userOrganization.findUnique.mockResolvedValue(membershipRecord());
     prismaMock.course.findFirst.mockResolvedValue(courseRecord());
     prismaMock.module.findFirst.mockResolvedValue(moduleRecord());
-    prismaMock.module.update.mockImplementation(async ({ data }: any) =>
+    prismaMock.module.update.mockImplementation(async ({ data }: { data?: Record<string, unknown> }) =>
       moduleRecord({ ...data, createdAt: now, updatedAt: now }),
     );
 

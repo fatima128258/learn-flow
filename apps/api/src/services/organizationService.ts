@@ -41,9 +41,28 @@ function mapPrismaError(err: unknown): never {
   throw err;
 }
 
-function toOrganizationDto(organization: any) {
+interface OrganizationMembership {
+  role: string;
+  user: {
+    id: string;
+    name: string | null;
+    email: string;
+    emailVerified: boolean;
+  };
+}
+
+function toOrganizationDto(organization: {
+  id: string;
+  name: string;
+  slug: string;
+  status: string;
+  createdAt: Date;
+  updatedAt: Date;
+  _count?: { users?: number };
+  users?: OrganizationMembership[];
+}) {
   const admins = Array.isArray(organization.users)
-    ? organization.users.map((membership: any) => ({
+    ? organization.users.map((membership: OrganizationMembership) => ({
         id: membership.user.id,
         name: membership.user.name,
         email: membership.user.email,
@@ -181,7 +200,18 @@ export async function listOrganizationMembers(organizationId: string, input: { p
 
   return {
     organization: toOrganizationDto(organization),
-    members: items.map((membership: any) => ({
+    members: items.map((membership: {
+      id: string;
+      organizationId: string;
+      role: string;
+      createdAt: Date;
+      user: {
+        id: string;
+        name: string | null;
+        email: string;
+        emailVerified: boolean;
+      };
+    }) => ({
       id: membership.id,
       userId: membership.user.id,
       organizationId: membership.organizationId,

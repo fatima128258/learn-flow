@@ -1137,7 +1137,7 @@ describe('Platform Admin organization APIs', () => {
       await requireOrganizationContext(req, res, next);
 
       expect(res.status).toHaveBeenCalledWith(403);
-      expect((res.json as any).mock.calls[0][0].error).toBe('ORGANIZATION_ACCESS_DENIED');
+      expect((res.json as unknown as { mock: { calls: Array<Array<{ error?: string }>> } }).mock.calls[0][0].error).toBe('ORGANIZATION_ACCESS_DENIED');
       expect(next).not.toHaveBeenCalled();
     });
 

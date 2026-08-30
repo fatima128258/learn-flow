@@ -74,7 +74,7 @@ async function authenticateAs(
     { role, organizationId, userId },
   ]);
 
-  prismaMock.userOrganization.findFirst.mockImplementation(async ({ where }: any) => {
+  prismaMock.userOrganization.findFirst.mockImplementation(async ({ where }: { where?: { role?: string; organizationId?: string; userId?: string; id?: string; courseId?: string; moduleId?: string; quizId?: string; status?: string } }) => {
     if (where?.role === 'PLATFORM_ADMIN') {
       return role === 'PLATFORM_ADMIN' ? { role, organizationId, userId } : null;
     }
@@ -99,7 +99,7 @@ function cookie() {
 }
 
 function resetMocks() {
-  Object.values(prismaMock.userOrganization).forEach((fn) => (fn as any).mockReset());
+  Object.values(prismaMock.userOrganization).forEach((fn) => vi.mocked(fn).mockReset());
   prismaMock.category.create.mockReset();
   prismaMock.category.findMany.mockReset();
   prismaMock.category.findFirst.mockReset();

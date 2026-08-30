@@ -6,7 +6,49 @@ import * as searchRepo from '../repositories/searchRepository';
 import { categoryLabel } from '../utils/categoryLabel';
 import getPrisma from '../prisma';
 
-function toEnrolledCourseListItem(enrollment: any, course: any) {
+interface EnrolledEnrollment {
+  id: string;
+  status: string;
+  enrolledAt: Date;
+  organizationId: string;
+  courseId: string;
+}
+
+interface EnrolledCourseRecord {
+  id: string;
+  title: string;
+  slug: string;
+  description: string | null;
+  thumbnailUrl: string | null;
+  category: unknown;
+  difficulty: string | null;
+  estimatedMinutes: number | null;
+  learningObjectives: string[];
+}
+
+interface CourseModuleRecord {
+  id: string;
+  title: string;
+  description: string | null;
+  order: number;
+}
+
+interface ModuleLessonRecord {
+  id: string;
+  title: string;
+  description: string | null;
+  type: string | null;
+  duration: number | null;
+  order: number;
+  isPreview: boolean;
+}
+
+interface LessonContentRecord extends ModuleLessonRecord {
+  moduleId: string;
+  content: string | null;
+}
+
+function toEnrolledCourseListItem(enrollment: EnrolledEnrollment, course: EnrolledCourseRecord) {
   return {
     enrollmentId: enrollment.id,
     enrollmentStatus: enrollment.status,
@@ -23,7 +65,7 @@ function toEnrolledCourseListItem(enrollment: any, course: any) {
   };
 }
 
-function toCourseModuleDto(module: any, lessonCount: number) {
+function toCourseModuleDto(module: CourseModuleRecord, lessonCount: number) {
   return {
     id: module.id,
     title: module.title,
@@ -33,7 +75,7 @@ function toCourseModuleDto(module: any, lessonCount: number) {
   };
 }
 
-function toModuleLessonDto(lesson: any) {
+function toModuleLessonDto(lesson: ModuleLessonRecord) {
   return {
     id: lesson.id,
     title: lesson.title,
@@ -45,7 +87,7 @@ function toModuleLessonDto(lesson: any) {
   };
 }
 
-function toLessonContentDto(lesson: any) {
+function toLessonContentDto(lesson: LessonContentRecord) {
   return {
     id: lesson.id,
     moduleId: lesson.moduleId,
@@ -77,22 +119,6 @@ async function verifyCourseAccess(organizationId: string, userId: string, course
   }
   await verifyEnrollment(userId, courseId, organizationId);
   return course;
-}
-
-async function verifyModuleInCourse(courseId: string, moduleId: string) {
-  const module = await moduleRepo.getById(courseId, moduleId);
-  if (!module) {
-    throw new Error('MODULE_NOT_FOUND');
-  }
-  return module;
-}
-
-async function verifyLessonInModule(moduleId: string, lessonId: string) {
-  const lesson = await lessonRepo.getById(moduleId, lessonId);
-  if (!lesson) {
-    throw new Error('LESSON_NOT_FOUND');
-  }
-  return lesson;
 }
 
 export async function getCourseOverview(
@@ -135,18 +161,18 @@ export async function getCourseOverview(
     moduleCount,
     lessonCount,
     quizCount,
-    isEnrolled: Boolean(enrollment) && enrollment.organizationId === organizationId,
+    isEnrolled: Boolean(enrollment) && enrollment?.organizationId === organizationId,
   };
 }
 
 export async function listEnrolledCourses(organizationId: string, userId: string) {
   const enrollments = await enrollmentRepo.listByUser(userId);
   const orgEnrollments = enrollments.filter(
-    (e: any) => e.organizationId === organizationId,
+    (e: { organizationId: string }) => e.organizationId === organizationId,
   );
 
   const courses = await Promise.all(
-    orgEnrollments.map(async (enrollment: any) => {
+    orgEnrollments.map(async (enrollment: EnrolledEnrollment) => {
       const course = await courseRepo.getById(organizationId, enrollment.courseId);
       return course ? toEnrolledCourseListItem(enrollment, course) : null;
     }),
@@ -170,7 +196,7 @@ export async function getEnrolledCourseDetail(organizationId: string, userId: st
 
   const prisma = getPrisma();
   const modulesWithCounts = await Promise.all(
-    modules.map(async (module: any) => {
+    modules.map(async (module: CourseModuleRecord) => {
       const lessonCount = await prisma.lesson.count({ where: { moduleId: module.id } });
       return toCourseModuleDto(module, lessonCount);
     }),
@@ -199,7 +225,7 @@ export async function listCourseModules(organizationId: string, userId: string, 
 
   const prisma = getPrisma();
   const modulesWithCounts = await Promise.all(
-    modules.map(async (module: any) => {
+    modules.map(async (module: CourseModuleRecord) => {
       const lessonCount = await prisma.lesson.count({ where: { moduleId: module.id } });
       return toCourseModuleDto(module, lessonCount);
     }),

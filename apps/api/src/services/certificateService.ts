@@ -29,7 +29,22 @@ function certificatePdfDownloadUrl(organizationId: string, certificateId: string
   return `${API_BASE_URL}/api/v1/organizations/${organizationId}/certificates/${certificateId}/download`;
 }
 
-function toCertificateDto(certificate: any) {
+interface CertificateRecord {
+  id: string;
+  certificateId: string;
+  verificationToken: string;
+  courseId: string;
+  courseTitle: string;
+  organizationId: string;
+  organizationName: string;
+  instructorName: string;
+  studentName: string;
+  completionDate: Date;
+  createdAt: Date;
+  pdfUrl: string | null;
+}
+
+function toCertificateDto(certificate: CertificateRecord) {
   return {
     certificateId: certificate.certificateId,
     verificationToken: certificate.verificationToken,
@@ -142,7 +157,7 @@ export async function generateCertificate(organizationId: string, userId: string
   return toCertificateDto(certificate);
 }
 
-async function createCertificatePdf(certificate: any, organizationId: string) {
+async function createCertificatePdf(certificate: CertificateRecord, organizationId: string) {
   try {
     const pdfUrl = await certificatePdfService.uploadCertificatePdf(
       organizationId,
@@ -159,7 +174,7 @@ async function createCertificatePdf(certificate: any, organizationId: string) {
     );
     await certificateRepo.updatePdfUrl(certificate.id, pdfUrl);
     return pdfUrl;
-  } catch (err) {
+  } catch {
     // Best-effort: certificate still issued without a stored PDF file.
     return null;
   }

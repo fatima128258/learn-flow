@@ -90,10 +90,10 @@ function userRecord(overrides: Record<string, unknown> = {}) {
 
 function resetMocks() {
   dispatchMock.dispatchNotification.mockReset();
-  Object.values(courseRepoMock).forEach((fn) => (fn as any).mockReset());
-  Object.values(orgRepoMock).forEach((fn) => (fn as any).mockReset());
-  Object.values(orgAdminRepoMock).forEach((fn) => (fn as any).mockReset());
-  Object.values(authRepoMock).forEach((fn) => (fn as any).mockReset());
+  Object.values(courseRepoMock).forEach((fn) => vi.mocked(fn).mockReset());
+  Object.values(orgRepoMock).forEach((fn) => vi.mocked(fn).mockReset());
+  Object.values(orgAdminRepoMock).forEach((fn) => vi.mocked(fn).mockReset());
+  Object.values(authRepoMock).forEach((fn) => vi.mocked(fn).mockReset());
 }
 
 describe('remaining notification event wiring', () => {

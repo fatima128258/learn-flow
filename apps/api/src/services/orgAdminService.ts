@@ -19,7 +19,18 @@ import * as authRepo from '../repositories/authRepository';
 
 const MANAGED_ROLES: UserRole[] = ['INSTRUCTOR', 'STUDENT'];
 
-function toMemberDto(membership: any) {
+function toMemberDto(membership: {
+  role: string;
+  organizationId: string;
+  user: {
+    id: string;
+    name: string | null;
+    email: string;
+    emailVerified: boolean;
+    createdAt: Date;
+    updatedAt: Date;
+  };
+}) {
   return {
     id: membership.user.id,
     name: membership.user.name,
@@ -32,7 +43,14 @@ function toMemberDto(membership: any) {
   };
 }
 
-function toOrganizationDto(organization: any) {
+function toOrganizationDto(organization: {
+  id: string;
+  name: string;
+  slug: string;
+  status: string;
+  createdAt: Date;
+  updatedAt: Date;
+}) {
   return {
     id: organization.id,
     name: organization.name,

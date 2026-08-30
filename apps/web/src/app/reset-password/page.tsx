@@ -1,5 +1,5 @@
 'use client';
-import React, { useState, useEffect, Suspense } from 'react';
+import React, { useState, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { AuthLayout } from '../../components/layout/AuthLayout';
 import { AuthCard } from '../../components/auth/AuthCard';
@@ -21,12 +21,6 @@ function ResetPasswordForm() {
 
   const [passwordError, setPasswordError] = useState<string>('');
   const [confirmPasswordError, setConfirmPasswordError] = useState<string>('');
-
-  useEffect(() => {
-    if (!token) {
-      setError('Invalid or missing reset token');
-    }
-  }, [token]);
 
   const validateForm = () => {
     let isValid = true;

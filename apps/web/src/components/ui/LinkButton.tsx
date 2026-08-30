@@ -10,6 +10,8 @@ export interface LinkButtonProps extends Omit<ButtonProps, 'onClick'> {
   showLoading?: boolean;
   /** Custom loading text during navigation */
   loadingText?: string;
+  /** Fired when the button is pressed, before navigation */
+  onClick?: React.MouseEventHandler<HTMLButtonElement>;
 }
 
 export const LinkButton = React.forwardRef<HTMLButtonElement, LinkButtonProps>(
@@ -19,6 +21,7 @@ export const LinkButton = React.forwardRef<HTMLButtonElement, LinkButtonProps>(
       showLoading = false,
       loadingText,
       children,
+      onClick,
       ...buttonProps
     },
     ref
@@ -27,15 +30,16 @@ export const LinkButton = React.forwardRef<HTMLButtonElement, LinkButtonProps>(
     const [isNavigating, setIsNavigating] = useState(false);
 
     const handleClick = async (e: React.MouseEvent<HTMLButtonElement>) => {
+      onClick?.(e);
       if (showLoading) {
         e.preventDefault();
         setIsNavigating(true);
-        
+
         try {
           router.push(href);
           // Reset after a brief delay to handle navigation completion
           setTimeout(() => setIsNavigating(false), 1000);
-        } catch (error) {
+        } catch {
           setIsNavigating(false);
         }
       }
@@ -45,7 +49,7 @@ export const LinkButton = React.forwardRef<HTMLButtonElement, LinkButtonProps>(
       // Simple link button without loading state
       return (
         <Link href={href}>
-          <Button ref={ref} {...buttonProps}>
+          <Button ref={ref} {...buttonProps} onClick={onClick}>
             {children}
           </Button>
         </Link>

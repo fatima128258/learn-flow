@@ -30,7 +30,7 @@ const prismaMock = {
   lesson: { count: vi.fn() },
   quiz: { count: vi.fn() },
   notification: { create: vi.fn() },
-  $transaction: vi.fn(async (callback: any) => callback(txMock)),
+  $transaction: vi.fn(async (callback: (tx: typeof txMock) => Promise<unknown>) => callback(txMock)),
 };
 
 vi.mock('../services/authService', () => ({
@@ -137,7 +137,7 @@ function setAuthenticatedStudent() {
   prismaMock.userOrganization.findMany.mockResolvedValue([
     { role: 'STUDENT', organizationId: ORG_ID, userId: STUDENT_ID },
   ]);
-  prismaMock.userOrganization.findFirst.mockImplementation(async ({ where }: any) => {
+  prismaMock.userOrganization.findFirst.mockImplementation(async ({ where }: { where?: { role?: string; organizationId?: string; userId?: string; id?: string; courseId?: string; moduleId?: string; quizId?: string; status?: string } }) => {
     if (where?.role === 'PLATFORM_ADMIN') return null;
     return null;
   });
@@ -246,6 +246,11 @@ describe('Student purchase journey (register → verify → login → browse →
         name: 'Journey Student',
         email: 'journey@example.com',
         emailVerified: true,
+        role: 'STUDENT',
+        organizationId: ORG_ID,
+        passwordHash: 'hash',
+        createdAt: now,
+        updatedAt: now,
       },
     });
 

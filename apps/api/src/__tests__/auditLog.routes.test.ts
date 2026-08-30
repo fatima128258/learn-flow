@@ -81,7 +81,7 @@ async function authenticateAs(
     { role, organizationId, userId },
   ]);
 
-  prismaMock.userOrganization.findFirst.mockImplementation(async ({ where }: any) => {
+  prismaMock.userOrganization.findFirst.mockImplementation(async ({ where }: { where?: { role?: string; organizationId?: string; userId?: string; id?: string; courseId?: string; moduleId?: string; quizId?: string; status?: string } }) => {
     if (where?.role === 'PLATFORM_ADMIN') {
       return role === 'PLATFORM_ADMIN' ? { role, organizationId, userId } : null;
     }
@@ -91,8 +91,8 @@ async function authenticateAs(
     return null;
   });
 
-  prismaMock.userOrganization.findUnique.mockImplementation(async ({ where }: any) => {
-    if (where.userId_organizationId?.organizationId === organizationId) {
+  prismaMock.userOrganization.findUnique.mockImplementation(async ({ where }: { where?: { role?: string; organizationId?: string; userId?: string; id?: string; courseId?: string; moduleId?: string; quizId?: string; status?: string; userId_organizationId?: { userId?: string; organizationId?: string } } }) => {
+    if (where?.userId_organizationId?.organizationId === organizationId) {
       return { role, organizationId, userId };
     }
     return null;
@@ -104,7 +104,7 @@ function cookie() {
 }
 
 function resetMocks() {
-  Object.values(prismaMock.userOrganization).forEach((fn) => (fn as any).mockReset());
+  Object.values(prismaMock.userOrganization).forEach((fn) => vi.mocked(fn).mockReset());
   prismaMock.auditLog.findMany.mockReset();
   prismaMock.auditLog.count.mockReset();
   prismaMock.auditLog.create.mockReset();

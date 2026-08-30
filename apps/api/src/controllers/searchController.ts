@@ -13,8 +13,9 @@ function tenantOrganizationId(req: AuthenticatedRequest) {
   return req.organizationId;
 }
 
-function handleError(res: Response, err: any) {
-  switch (err?.message) {
+function handleError(res: Response, err: unknown) {
+  const message = err instanceof Error ? err.message : undefined;
+  switch (message) {
     case 'ORGANIZATION_REQUIRED':
       return fail(res, 400, 'ORGANIZATION_REQUIRED');
     case 'INVALID_QUERY':
@@ -34,7 +35,7 @@ export async function searchCourses(req: AuthenticatedRequest, res: Response) {
       req.query,
     );
     return res.status(200).json({ success: true, data: result.items, meta: result.meta });
-  } catch (err: any) {
+  } catch (err) {
     return handleError(res, err);
   }
 }

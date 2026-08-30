@@ -1,31 +1,43 @@
 import { MainLayout } from '@/components/layout/MainLayout';
+import { Container } from '@/components/ui/layout/Container';
+import { FAQAccordion } from '@/components/public/FAQAccordion';
+import { SectionHeading } from '@/components/public/Section';
+import { LinkButton } from '@/components/ui/LinkButton';
+import { faqItems } from '@/lib/faqItems';
+
+export const metadata = {
+  title: 'FAQ',
+  description: 'Frequently asked questions about LearnFlow — courses, progress tracking, certificates, and more.',
+};
 
 export default function FAQPage() {
   return (
     <MainLayout>
-      <div className="max-w-3xl mx-auto px-4 py-16 sm:py-24">
-        <h1 className="text-3xl font-bold text-slate-900 mb-8">Frequently Asked Questions</h1>
-        <div className="space-y-6">
-          {[
-            {
-              q: 'What is Personal Study Mentor?',
-              a: 'Personal Study Mentor is an online learning platform that helps you organize courses, track progress, and achieve your educational goals.',
-            },
-            {
-              q: 'Is it free to use?',
-              a: 'Yes! You can sign up for free and access a wide range of courses and features.',
-            },
-            {
-              q: 'How do I get started?',
-              a: 'Simply click the Sign Up button, create your account, and start exploring courses right away.',
-            },
-          ].map((item) => (
-            <div key={item.q} className="border border-slate-200 rounded-xl p-6">
-              <h2 className="text-lg font-semibold text-slate-900 mb-2">{item.q}</h2>
-              <p className="text-slate-600">{item.a}</p>
+      <div className="min-h-screen bg-background">
+        <section className="border-b border-neutral-100 bg-background-alt py-16 sm:py-20">
+          <Container size="xl">
+            <div className="mx-auto max-w-3xl text-center">
+              <SectionHeading
+                eyebrow="SUPPORT"
+                title="Frequently asked questions"
+                description="Everything you need to know about learning with LearnFlow."
+                className="mb-0"
+              />
             </div>
-          ))}
-        </div>
+          </Container>
+        </section>
+
+        <section className="py-14 sm:py-20">
+          <Container size="xl">
+            <FAQAccordion items={faqItems} />
+            <div className="mt-12 text-center">
+              <p className="mb-4 text-neutral-600">Still have questions?</p>
+              <LinkButton href="/contact" variant="primary" size="lg" showLoading loadingText="Loading...">
+                Contact us
+              </LinkButton>
+            </div>
+          </Container>
+        </section>
       </div>
     </MainLayout>
   );

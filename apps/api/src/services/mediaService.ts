@@ -9,7 +9,14 @@ export interface UploadedFileInput {
   buffer: Buffer;
 }
 
-function toMediaDto(media: any) {
+function toMediaDto(media: {
+  id: string;
+  organizationId: string;
+  uploaderId: string;
+  fileName: string;
+  mimeType: string;
+  size: number;
+}) {
   return {
     id: media.id,
     organizationId: media.organizationId,
@@ -32,6 +39,9 @@ export async function uploadMedia(
     throw new Error('MEDIA_TOO_LARGE');
   }
   if (!storage.isAllowedMediaType(file.mimetype)) {
+    throw new Error('MEDIA_TYPE_NOT_ALLOWED');
+  }
+  if (storage.hasUnsafeExtension(file.originalname)) {
     throw new Error('MEDIA_TYPE_NOT_ALLOWED');
   }
 

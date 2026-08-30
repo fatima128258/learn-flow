@@ -71,8 +71,6 @@ export default function OrgUsersPage() {
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
   async function load() {
-    setError(null);
-    setLoading(true);
     try {
       const res = await fetch(`${API_BASE}/api/v1/org/users?page=1&limit=100`, { credentials: 'include' });
       if (!res.ok) {
@@ -101,7 +99,7 @@ export default function OrgUsersPage() {
       window.location.href = '/login';
       return;
     }
-    void load();
+    void (async () => { await load(); })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user, userLoading]);
 
@@ -170,6 +168,8 @@ export default function OrgUsersPage() {
       const roleLabel = addRole === 'INSTRUCTOR' ? 'Instructor' : 'Student';
       setSuccessMessage(`${roleLabel} ${body.data.email} was added to your organization.`);
       toast.success(`${body.data.email} was added as ${addRole === 'INSTRUCTOR' ? 'an instructor' : 'a student'}.`);
+      setError(null);
+      setLoading(true);
       await load();
     } catch {
       setFormError('Could not reach the API. Please try again.');
@@ -217,7 +217,7 @@ export default function OrgUsersPage() {
             <ErrorState
               title="Unable to load users"
               message={error}
-              action={{ label: 'Retry', onClick: load }}
+              action={{ label: 'Retry', onClick: () => { setError(null); setLoading(true); void load(); } }}
             />
           </div>
         ) : (

@@ -6,8 +6,9 @@ function fail(res: Response, status: number, error: string) {
   return res.status(status).json({ success: false, error });
 }
 
-function handleError(res: Response, err: any) {
-  switch (err?.message) {
+function handleError(res: Response, err: unknown) {
+  const message = err instanceof Error ? err.message : undefined;
+  switch (message) {
     case 'INVALID_FILTER':
       return fail(res, 400, 'INVALID_FILTER');
     case 'INVALID_DATE_FILTER':
@@ -40,7 +41,7 @@ export async function listPlatformAuditLogs(req: AuthenticatedRequest, res: Resp
       to: req.query.to,
     });
     return res.status(200).json({ success: true, data: result.items, meta: result.meta });
-  } catch (err: any) {
+  } catch (err) {
     return handleError(res, err);
   }
 }
@@ -66,7 +67,7 @@ export async function listOrgAuditLogs(req: AuthenticatedRequest, res: Response)
       to: req.query.to,
     });
     return res.status(200).json({ success: true, data: result.items, meta: result.meta });
-  } catch (err: any) {
+  } catch (err) {
     return handleError(res, err);
   }
 }

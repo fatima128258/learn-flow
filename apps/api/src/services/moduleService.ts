@@ -2,7 +2,25 @@ import { Prisma } from '@prisma/client';
 import * as moduleRepo from '../repositories/moduleRepository';
 import * as courseRepo from '../repositories/courseRepository';
 
-function toModuleDto(module: any) {
+interface ModuleRecord {
+  id: string;
+  courseId: string;
+  title: string;
+  description: string | null;
+  order: number;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+interface ModuleListItemRecord {
+  id: string;
+  title: string;
+  description: string | null;
+  order: number;
+  createdAt: Date;
+}
+
+function toModuleDto(module: ModuleRecord) {
   return {
     id: module.id,
     courseId: module.courseId,
@@ -14,7 +32,7 @@ function toModuleDto(module: any) {
   };
 }
 
-function toModuleListItemDto(module: any) {
+function toModuleListItemDto(module: ModuleListItemRecord) {
   return {
     id: module.id,
     title: module.title,

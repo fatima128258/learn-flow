@@ -3,7 +3,34 @@ import * as lessonRepo from '../repositories/lessonRepository';
 import * as moduleRepo from '../repositories/moduleRepository';
 import * as courseRepo from '../repositories/courseRepository';
 
-function toLessonDto(lesson: any) {
+interface LessonRecord {
+  id: string;
+  moduleId: string;
+  title: string;
+  description: string | null;
+  content: string | null;
+  type: string | null;
+  resourceUrl: string | null;
+  resourceMimeType: string | null;
+  duration: number | null;
+  order: number;
+  isPreview: boolean;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+interface LessonListItemRecord {
+  id: string;
+  title: string;
+  description: string | null;
+  type: string | null;
+  duration: number | null;
+  order: number;
+  isPreview: boolean;
+  createdAt: Date;
+}
+
+function toLessonDto(lesson: LessonRecord) {
   return {
     id: lesson.id,
     moduleId: lesson.moduleId,
@@ -21,7 +48,7 @@ function toLessonDto(lesson: any) {
   };
 }
 
-function toLessonListItemDto(lesson: any) {
+function toLessonListItemDto(lesson: LessonListItemRecord) {
   return {
     id: lesson.id,
     title: lesson.title,

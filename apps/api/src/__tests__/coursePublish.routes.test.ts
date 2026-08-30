@@ -86,15 +86,15 @@ async function authenticateAs(
     { role, organizationId, userId },
   ]);
 
-  prismaMock.userOrganization.findFirst.mockImplementation(async ({ where }: any) => {
+  prismaMock.userOrganization.findFirst.mockImplementation(async ({ where }: { where?: { role?: string; organizationId?: string; userId?: string; id?: string; courseId?: string; moduleId?: string; quizId?: string; status?: string } }) => {
     if (where?.role === 'PLATFORM_ADMIN') {
       return role === 'PLATFORM_ADMIN' ? { role, organizationId, userId } : null;
     }
     return null;
   });
 
-  prismaMock.userOrganization.findUnique.mockImplementation(async ({ where }: any) => {
-    if (where.userId_organizationId?.organizationId === organizationId) {
+  prismaMock.userOrganization.findUnique.mockImplementation(async ({ where }: { where?: { role?: string; organizationId?: string; userId?: string; id?: string; courseId?: string; moduleId?: string; quizId?: string; status?: string; userId_organizationId?: { userId?: string; organizationId?: string } } }) => {
+    if (where?.userId_organizationId?.organizationId === organizationId) {
       return { role, organizationId, userId };
     }
     return null;

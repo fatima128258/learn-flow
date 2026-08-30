@@ -2,65 +2,22 @@
 @tailwind components;
 @tailwind utilities;
 
-/* URGENT FIX: Force all input text to be BLACK */
-input[type="text"], 
-input[type="email"], 
-input[type="password"], 
-input[type="tel"], 
-input[type="url"], 
-input[type="search"], 
-textarea, 
-select {
-  color: #000000 !important;
-  background-color: #ffffff !important;
-  border: 1px solid #d1d5db !important;
-  padding: 8px 12px !important;
-  font-size: 16px !important;
-}
-
-/* Fix placeholder text */
-input::placeholder, 
-textarea::placeholder {
-  color: #9CA3AF !important;
-  opacity: 1 !important;
-}
-
-/* Fix focus state */
-input:focus, textarea:focus, select:focus {
-  color: #000000 !important;
-  background-color: #ffffff !important;
-  outline: 2px solid #4F46E5 !important;
-  outline-offset: 2px !important;
-}
-
-/* Fix selection color */
-input::selection, textarea::selection {
-  background-color: #4F46E5 !important;
-  color: #ffffff !important;
-}
-
-/* All other text should be visible too */
-body, div, span, p, h1, h2, h3, h4, h5, h6, label, button {
-  color: #111827 !important;
-}
-
-/* Links */
-a {
-  color: #4f46e5 !important;
-}
-
 :root {
   /* Semantic Colors - Light Mode */
-  --color-primary: #4f46e5;
-  --color-primary-hover: #4338ca;
-  --color-primary-active: #3730a3;
+  --color-primary: #7c3aed;
+  --color-primary-hover: #6d28d9;
+  --color-primary-active: #5b21b6;
+  --color-primary-soft: #ede9fe;
+  --color-accent: #ec4899;
+  --color-accent-hover: #db2777;
+  --color-accent-soft: #fce7f3;
   
   --color-background: #ffffff;
-  --color-background-alt: #f8fafc;
+  --color-background-alt: #faf9ff;
   --color-surface: #ffffff;
-  --color-surface-muted: #f1f5f9;
-  --color-border: #e2e8f0;
-  --color-border-focus: #4f46e5;
+  --color-surface-muted: #f5f3ff;
+  --color-border: #ece9f5;
+  --color-border-focus: #7c3aed;
   
   --color-text: #0f172a;
   --color-text-secondary: #475569;
@@ -106,23 +63,23 @@ a {
   --font-mono: var(--font-geist-mono), ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --color-background: #0f172a;
-    --color-background-alt: #1e293b;
-    --color-surface: #1e293b;
-    --color-surface-muted: #334155;
-    --color-border: #334155;
-    
-    --color-text: #f8fafc;
-    --color-text-secondary: #cbd5e1;
-    --color-text-muted: #94a3b8;
-  }
-}
-
 /* Base Styles */
 html, body, #__next {
   height: 100%;
+}
+
+/* Smooth scrolling for same-page anchor navigation, disabled for users who
+   prefer reduced motion. */
+@media (prefers-reduced-motion: no-preference) {
+  html {
+    scroll-behavior: smooth;
+  }
+}
+
+/* Offset anchored sections below the fixed navbar so they aren't hidden when
+   scrolled to directly (e.g. /#features). */
+[id] {
+  scroll-margin-top: 4.5rem;
 }
 
 body {
@@ -250,4 +207,32 @@ body {
 
 .animate-slide-down {
   animation: slide-down 0.3s ease-out;
+}
+
+/* Scroll reveal (used by the Reveal component) */
+.reveal {
+  opacity: 0;
+}
+
+.reveal.is-visible {
+  animation: reveal-up 650ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation-delay: var(--reveal-delay, 0ms);
+}
+
+@keyframes reveal-up {
+  from {
+    opacity: 0;
+    transform: translateY(var(--reveal-y, 30px));
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .reveal {
+    opacity: 1;
+    animation: none;
+  }
 }

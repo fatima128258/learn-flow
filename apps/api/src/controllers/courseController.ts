@@ -13,8 +13,9 @@ function tenantOrganizationId(req: AuthenticatedRequest) {
   return req.organizationId;
 }
 
-function handleError(res: Response, err: any) {
-  switch (err?.message) {
+function handleError(res: Response, err: unknown) {
+  const message = err instanceof Error ? err.message : undefined;
+  switch (message) {
     case 'MISSING_FIELDS':
       return fail(res, 400, 'MISSING_FIELDS');
     case 'INVALID_SLUG':
@@ -48,7 +49,7 @@ export async function getCourse(req: AuthenticatedRequest, res: Response) {
       req.params.courseId,
     );
     return res.status(200).json({ success: true, data });
-  } catch (err: any) {
+  } catch (err) {
     return handleError(res, err);
   }
 }
@@ -66,7 +67,7 @@ export async function listCourses(req: AuthenticatedRequest, res: Response) {
       order: req.query.order,
     });
     return res.status(200).json({ success: true, data: result.items, meta: result.meta });
-  } catch (err: any) {
+  } catch (err) {
     return handleError(res, err);
   }
 }
@@ -82,7 +83,7 @@ export async function createCourse(req: AuthenticatedRequest, res: Response) {
       req.body,
     );
     return res.status(201).json({ success: true, data });
-  } catch (err: any) {
+  } catch (err) {
     return handleError(res, err);
   }
 }
@@ -103,7 +104,7 @@ export async function updateCourseStatus(req: AuthenticatedRequest, res: Respons
       },
     );
     return res.status(200).json({ success: true, data });
-  } catch (err: any) {
+  } catch (err) {
     return handleError(res, err);
   }
 }
@@ -123,7 +124,7 @@ export async function updateCourseThumbnail(req: MulterRequest, res: Response) {
       req.file,
     );
     return res.status(200).json({ success: true, data });
-  } catch (err: any) {
+  } catch (err) {
     return handleError(res, err);
   }
 }

@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import { useCurrentUser } from '@/features/auth/useCurrentUser';
@@ -26,20 +26,22 @@ export default function CheckoutPage() {
   const [purchaseError, setPurchaseError] = useState<string | null>(null);
   const [order, setOrder] = useState<{ id: string; status: string; totalAmount: number } | null>(null);
 
-  useEffect(() => {
-    if (purchase.error) {
-      const code = purchase.error instanceof ApiError ? purchase.error.code : null;
-      setPurchaseError(getPurchaseErrorMessage(code));
-      toast.error(getPurchaseErrorMessage(code));
-    }
-  }, [purchase.error]);
-
-  useEffect(() => {
-    if (purchase.data) {
-      setOrder({ id: purchase.data.id, status: purchase.data.status, totalAmount: purchase.data.totalAmount });
-      toast.success('Purchase completed successfully.');
-    }
-  }, [purchase.data]);
+  function handlePurchase() {
+    purchase.mutate(undefined, {
+      onSuccess: (data) => {
+        if (data) {
+          setOrder({ id: data.id, status: data.status, totalAmount: data.totalAmount });
+          toast.success('Purchase completed successfully.');
+        }
+      },
+      onError: (err) => {
+        const code = err instanceof ApiError ? err.code : null;
+        const message = getPurchaseErrorMessage(code);
+        setPurchaseError(message);
+        toast.error(message);
+      },
+    });
+  }
 
   if (userLoading || courseLoading) {
     return (
@@ -192,7 +194,7 @@ export default function CheckoutPage() {
                 <Button
                   size="lg"
                   loading={purchase.isPending}
-                  onClick={() => purchase.mutate()}
+                  onClick={handlePurchase}
                   disabled={purchase.isPending}
                 >
                   {purchase.isPending ? 'Processing payment...' : `Pay ${currency(finalAmount)}`}

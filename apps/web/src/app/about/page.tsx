@@ -19,7 +19,7 @@ export default function AboutPage() {
                 About LearnFlow
               </h1>
               <p className="text-xl text-primary-100 leading-relaxed animate-slide-up" style={{ animationDelay: '0.1s' }}>
-                We're on a mission to make quality education accessible to everyone, everywhere.
+                We&apos;re on a mission to make quality education accessible to everyone, everywhere.
               </p>
             </div>
           </Container>

@@ -1,5 +1,6 @@
 'use client';
 import React, { useState } from 'react';
+import Link from 'next/link';
 import { Input } from '../ui/Input';
 import { PasswordInput } from '../forms/PasswordInput';
 import { SubmitButton } from '../forms/SubmitButton';
@@ -96,6 +97,15 @@ export const LoginForm: React.FC<LoginFormProps> = ({ onSubmit, error: externalE
           required
           style={{ color: '#000000', backgroundColor: '#ffffff' }}
         />
+
+        <div className="flex items-center justify-end -mt-2">
+          <Link
+            href="/forgot-password"
+            className="text-sm font-medium text-primary-600 hover:text-primary-700 transition-colors"
+          >
+            Forgot password?
+          </Link>
+        </div>
 
         <SubmitButton
           loading={loading}

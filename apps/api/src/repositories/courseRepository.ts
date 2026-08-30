@@ -1,4 +1,5 @@
 import getPrisma from '../prisma';
+import { Prisma } from '@prisma/client';
 
 function prisma() {
   return getPrisma();
@@ -61,9 +62,9 @@ export interface ListCoursesOptions {
 }
 
 export async function listByOrganization(organizationId: string, options: ListCoursesOptions = {}) {
-  const where: any = { organizationId };
+  const where: Prisma.CourseWhereInput = { organizationId };
   if (options.status) {
-    where.status = options.status;
+    where.status = options.status as Prisma.CourseWhereInput['status'];
   }
   return prisma().course.findMany({
     where,
@@ -82,9 +83,9 @@ export async function listByOrganization(organizationId: string, options: ListCo
 }
 
 export async function countByOrganization(organizationId: string, status?: string) {
-  const where: any = { organizationId };
+  const where: Prisma.CourseWhereInput = { organizationId };
   if (status) {
-    where.status = status;
+    where.status = status as Prisma.CourseWhereInput['status'];
   }
   return prisma().course.count({ where });
 }

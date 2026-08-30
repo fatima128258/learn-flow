@@ -15,51 +15,52 @@ function VerifyEmailForm() {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
 
-  useEffect(() => {
+  const verifyEmail = async () => {
     if (!token) {
       setError('Invalid or missing verification token');
       setLoading(false);
       return;
     }
 
-    const verifyEmail = async () => {
-      try {
-        const apiBase = process.env.NEXT_PUBLIC_API_URL || '';
-        const res = await fetch(`${apiBase}/api/v1/auth/verify-email`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ token }),
-        });
+    try {
+      const apiBase = process.env.NEXT_PUBLIC_API_URL || '';
+      const res = await fetch(`${apiBase}/api/v1/auth/verify-email`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token }),
+      });
 
-        const data = await res.json();
+      const data = await res.json();
 
-        if (!res.ok) {
-          if (data.error === 'TOKEN_EXPIRED') {
-            throw new Error('This verification link has expired. Please request a new one.');
-          }
-          if (data.error === 'TOKEN_ALREADY_USED') {
-            throw new Error('This email has already been verified.');
-          }
-          if (data.error === 'INVALID_TOKEN') {
-            throw new Error('Invalid verification link.');
-          }
-          throw new Error(data?.error || 'Failed to verify email');
+      if (!res.ok) {
+        if (data.error === 'TOKEN_EXPIRED') {
+          throw new Error('This verification link has expired. Please request a new one.');
         }
-
-        setSuccess(true);
-        // Redirect to home after 2 seconds
-        setTimeout(() => {
-          window.location.href = '/';
-        }, 2000);
-      } catch (err: unknown) {
-        const message = err instanceof Error ? err.message : 'An unexpected error occurred';
-        setError(message);
-      } finally {
-        setLoading(false);
+        if (data.error === 'TOKEN_ALREADY_USED') {
+          throw new Error('This email has already been verified.');
+        }
+        if (data.error === 'INVALID_TOKEN') {
+          throw new Error('Invalid verification link.');
+        }
+        throw new Error(data?.error || 'Failed to verify email');
       }
-    };
 
-    verifyEmail();
+      setSuccess(true);
+      // Redirect to home after 2 seconds
+      setTimeout(() => {
+        window.location.href = '/';
+      }, 2000);
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'An unexpected error occurred';
+      setError(message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    void (async () => { await verifyEmail(); })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token]);
 
   return (

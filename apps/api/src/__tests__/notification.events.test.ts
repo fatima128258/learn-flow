@@ -82,16 +82,16 @@ function courseRecord(overrides: Record<string, unknown> = {}) {
 
 function resetMocks() {
   dispatchMock.dispatchNotification.mockReset();
-  Object.values(courseRepoMock).forEach((fn) => (fn as any).mockReset());
-  Object.values(enrollmentRepoMock).forEach((fn) => (fn as any).mockReset());
-  Object.values(orderRepoMock).forEach((fn) => (fn as any).mockReset());
-  Object.values(paymentServiceMock).forEach((fn) => (fn as any).mockReset());
-  Object.values(progressRepoMock).forEach((fn) => (fn as any).mockReset());
-  Object.values(moduleRepoMock).forEach((fn) => (fn as any).mockReset());
-  Object.values(lessonRepoMock).forEach((fn) => (fn as any).mockReset());
-  Object.values(certificateRepoMock).forEach((fn) => (fn as any).mockReset());
-  Object.values(organizationRepoMock).forEach((fn) => (fn as any).mockReset());
-  Object.values(authServiceMock).forEach((fn) => (fn as any).mockReset());
+  Object.values(courseRepoMock).forEach((fn) => vi.mocked(fn).mockReset());
+  Object.values(enrollmentRepoMock).forEach((fn) => vi.mocked(fn).mockReset());
+  Object.values(orderRepoMock).forEach((fn) => vi.mocked(fn).mockReset());
+  Object.values(paymentServiceMock).forEach((fn) => vi.mocked(fn).mockReset());
+  Object.values(progressRepoMock).forEach((fn) => vi.mocked(fn).mockReset());
+  Object.values(moduleRepoMock).forEach((fn) => vi.mocked(fn).mockReset());
+  Object.values(lessonRepoMock).forEach((fn) => vi.mocked(fn).mockReset());
+  Object.values(certificateRepoMock).forEach((fn) => vi.mocked(fn).mockReset());
+  Object.values(organizationRepoMock).forEach((fn) => vi.mocked(fn).mockReset());
+  Object.values(authServiceMock).forEach((fn) => vi.mocked(fn).mockReset());
   prismaMock.lesson.findMany.mockReset();
 }
 

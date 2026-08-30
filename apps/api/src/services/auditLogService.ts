@@ -1,4 +1,5 @@
 import * as repo from '../repositories/auditLogRepository';
+import { Prisma } from '@prisma/client';
 import { parsePagination, buildMeta } from '../utils/pagination';
 
 export const AUDIT_ACTIONS = {
@@ -23,7 +24,19 @@ export interface AuditEventInput {
   ipAddress?: string | null;
 }
 
-function toAuditLogDto(log: any) {
+function toAuditLogDto(log: {
+  id: string;
+  action: string;
+  organizationId?: string | null;
+  actorUserId: string;
+  actorEmail?: string | null;
+  actorRole?: string | null;
+  resourceType?: string | null;
+  resourceId?: string | null;
+  metadata?: unknown;
+  ipAddress?: string | null;
+  createdAt: Date;
+}) {
   return {
     id: log.id,
     action: log.action,
@@ -57,11 +70,10 @@ export async function record(input: AuditEventInput) {
       action: input.action,
       resourceType: input.resourceType ?? null,
       resourceId: input.resourceId ?? null,
-      metadata: (input.metadata ?? null) as any,
+      metadata: (input.metadata ?? null) as unknown as Prisma.InputJsonValue | null,
       ipAddress: input.ipAddress ?? null,
     });
   } catch (err) {
-    // eslint-disable-next-line no-console
     console.error('Failed to record audit log:', err);
   }
   return null;

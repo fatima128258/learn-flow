@@ -23,6 +23,7 @@ import { apiRateLimiter } from './middleware/rateLimit';
 import { securityHeaders } from './middleware/security';
 import { csrfOriginCheck } from './middleware/csrf';
 import { isAllowedOrigin } from './config/origins';
+import { collectHealthReport } from './services/healthService';
 
 export const app = express();
 
@@ -59,6 +60,48 @@ app.get('/health', (req, res) => {
   });
 });
 
+// Liveness endpoint: always 200 while the app is running, with per-dependency statuses.
+app.get('/api/health', async (req, res) => {
+  try {
+    const report = await collectHealthReport();
+    res.status(200).json(report);
+  } catch {
+    res.status(200).json({
+      status: 'degraded',
+      service: 'learnflow-api',
+      version: '1.0.0',
+      timestamp: new Date().toISOString(),
+      uptimeSeconds: Math.floor(process.uptime()),
+      dependencies: {
+        database: { status: 'down', error: 'UNAVAILABLE' },
+        redis: { status: 'down', error: 'UNAVAILABLE' },
+        objectStorage: { status: 'down', error: 'UNAVAILABLE' },
+      },
+    });
+  }
+});
+
+// Readiness endpoint: 503 while any required dependency is unavailable.
+app.get('/api/ready', async (req, res) => {
+  try {
+    const report = await collectHealthReport();
+    res.status(report.status === 'ready' ? 200 : 503).json(report);
+  } catch {
+    res.status(503).json({
+      status: 'degraded',
+      service: 'learnflow-api',
+      version: '1.0.0',
+      timestamp: new Date().toISOString(),
+      uptimeSeconds: Math.floor(process.uptime()),
+      dependencies: {
+        database: { status: 'down', error: 'UNAVAILABLE' },
+        redis: { status: 'down', error: 'UNAVAILABLE' },
+        objectStorage: { status: 'down', error: 'UNAVAILABLE' },
+      },
+    });
+  }
+});
+
 app.use('/api/v1/auth', authRoutes);
 app.use('/api/v1/admin', adminRouter);
 app.use('/api/v1/organizations', courseRouter);
@@ -86,24 +129,24 @@ app.use('/api/v1', (req, res) => {
 });
 
 // JSON error handler
-app.use((err: any, req: Request, res: Response, next: NextFunction) => {
+app.use((err: unknown, req: Request, res: Response, next: NextFunction) => {
+  const e = err as { type?: string; status?: number };
   if (res.headersSent) {
-    return next(err);
+    return next(err as Error);
   }
-  if (err?.type === 'entity.parse.failed') {
+  if (e.type === 'entity.parse.failed') {
     return res.status(400).json({ success: false, error: 'INVALID_JSON' });
   }
-  if (err?.type === 'entity.too.large') {
+  if (e.type === 'entity.too.large') {
     return res.status(413).json({ success: false, error: 'PAYLOAD_TOO_LARGE' });
   }
-  return res.status(err?.status ?? 500).json({ success: false, error: 'SERVER_ERROR' });
+  return res.status(e.status ?? 500).json({ success: false, error: 'SERVER_ERROR' });
 });
 
 export const start = (port: number | string = process.env.PORT ?? 4000) => {
   const p = typeof port === 'string' ? Number(port) : port;
   startNotificationWorker();
   return app.listen(p, () => {
-    // eslint-disable-next-line no-console
     console.log(`API server listening on http://localhost:${p}`);
   });
 };

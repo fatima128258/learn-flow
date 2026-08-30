@@ -3,7 +3,7 @@ import { AuthenticatedRequest } from '../middleware/auth';
 import * as service from '../services/organizationService';
 
 // Temporary inline validation function
-function isOrganizationStatus(status: any) {
+function isOrganizationStatus(status: unknown) {
   return typeof status === 'string' && ['active', 'inactive', 'suspended'].includes(status);
 }
 
@@ -11,8 +11,9 @@ function fail(res: Response, status: number, error: string) {
   return res.status(status).json({ success: false, error });
 }
 
-function handleError(res: Response, err: any) {
-  switch (err?.message) {
+function handleError(res: Response, err: unknown) {
+  const message = err instanceof Error ? err.message : undefined;
+  switch (message) {
     case 'MISSING_FIELDS':
       return fail(res, 400, 'MISSING_FIELDS');
     case 'INVALID_SLUG':
@@ -45,7 +46,7 @@ export async function dashboard(_req: Request, res: Response) {
   try {
     const data = await service.getDashboardSummary();
     return res.json({ success: true, data });
-  } catch (err: any) {
+  } catch (err) {
     return handleError(res, err);
   }
 }
@@ -61,7 +62,7 @@ export async function create(req: AuthenticatedRequest, res: Response) {
         : null,
     });
     return res.status(201).json({ success: true, data });
-  } catch (err: any) {
+  } catch (err) {
     return handleError(res, err);
   }
 }
@@ -77,7 +78,7 @@ export async function list(req: Request, res: Response) {
     }
     const result = await service.listOrganizations({ page, limit, status, q });
     return res.json({ success: true, data: result.items, meta: result.meta });
-  } catch (err: any) {
+  } catch (err) {
     return handleError(res, err);
   }
 }
@@ -86,7 +87,7 @@ export async function getById(req: Request, res: Response) {
   try {
     const data = await service.getOrganization(req.params.id);
     return res.json({ success: true, data });
-  } catch (err: any) {
+  } catch (err) {
     return handleError(res, err);
   }
 }
@@ -101,7 +102,7 @@ export async function listMembers(req: Request, res: Response) {
       data: { organization: result.organization, members: result.members },
       meta: result.meta,
     });
-  } catch (err: any) {
+  } catch (err) {
     return handleError(res, err);
   }
 }
@@ -111,7 +112,7 @@ export async function update(req: Request, res: Response) {
     const { name, slug } = req.body || {};
     const data = await service.updateOrganization(req.params.id, { name, slug });
     return res.json({ success: true, data });
-  } catch (err: any) {
+  } catch (err) {
     return handleError(res, err);
   }
 }
@@ -121,7 +122,7 @@ export async function updateStatus(req: Request, res: Response) {
     const { status } = req.body || {};
     const data = await service.setOrganizationStatus(req.params.id, status);
     return res.json({ success: true, data });
-  } catch (err: any) {
+  } catch (err) {
     return handleError(res, err);
   }
 }
@@ -137,7 +138,7 @@ export async function assignAdmin(req: Request, res: Response) {
       role,
     });
     return res.status(201).json({ success: true, data });
-  } catch (err: any) {
+  } catch (err) {
     return handleError(res, err);
   }
 }

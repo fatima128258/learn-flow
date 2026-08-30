@@ -165,7 +165,7 @@ async function authenticateAs(
     { role, organizationId, userId },
   ]);
 
-  prismaMock.userOrganization.findFirst.mockImplementation(async ({ where }: any) => {
+  prismaMock.userOrganization.findFirst.mockImplementation(async ({ where }: { where?: { role?: string; organizationId?: string; userId?: string; id?: string; courseId?: string; moduleId?: string; quizId?: string; status?: string } }) => {
     if (where?.role === 'PLATFORM_ADMIN') {
       return role === 'PLATFORM_ADMIN' ? { role, organizationId, userId } : null;
     }
@@ -208,7 +208,7 @@ function setupProgressFixtures(
   prismaMock.enrollment.findUnique.mockResolvedValue(enrollmentRecord());
   prismaMock.course.findFirst.mockResolvedValue(courseRecord());
   prismaMock.module.findMany.mockResolvedValue([MODULE_ONE, MODULE_TWO]);
-  prismaMock.lesson.findMany.mockImplementation(async ({ where }: any) => {
+  prismaMock.lesson.findMany.mockImplementation(async ({ where }: { where?: { role?: string; organizationId?: string; userId?: string; id?: string; courseId?: string; moduleId?: string; quizId?: string; status?: string } }) => {
     if (where?.moduleId === 'module-1') {
       return [
         lessonRecord('lesson-1', 'module-1', 'Lesson One', 0),

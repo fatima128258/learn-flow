@@ -13,8 +13,9 @@ function tenantOrganizationId(req: AuthenticatedRequest) {
   return req.organizationId;
 }
 
-function handleError(res: Response, err: any) {
-  switch (err?.message) {
+function handleError(res: Response, err: unknown) {
+  const message = err instanceof Error ? err.message : undefined;
+  switch (message) {
     case 'ORGANIZATION_REQUIRED':
       return fail(res, 400, 'ORGANIZATION_REQUIRED');
     case 'COURSE_NOT_FOUND':
@@ -47,7 +48,7 @@ export async function generateCertificate(req: AuthenticatedRequest, res: Respon
       req.params.courseId,
     );
     return res.status(201).json({ success: true, data });
-  } catch (err: any) {
+  } catch (err) {
     return handleError(res, err);
   }
 }
@@ -59,7 +60,7 @@ export async function listCertificates(req: AuthenticatedRequest, res: Response)
     }
     const data = await service.listCertificates(tenantOrganizationId(req), req.user.id);
     return res.status(200).json({ success: true, data });
-  } catch (err: any) {
+  } catch (err) {
     return handleError(res, err);
   }
 }
@@ -75,7 +76,7 @@ export async function getCertificate(req: AuthenticatedRequest, res: Response) {
       req.params.certificateId,
     );
     return res.status(200).json({ success: true, data });
-  } catch (err: any) {
+  } catch (err) {
     return handleError(res, err);
   }
 }
@@ -84,7 +85,7 @@ export async function verifyCertificate(req: AuthenticatedRequest, res: Response
   try {
     const data = await service.verifyCertificate(req.params.verificationToken);
     return res.status(200).json({ success: true, data });
-  } catch (err: any) {
+  } catch (err) {
     return handleError(res, err);
   }
 }
@@ -101,7 +102,7 @@ export async function downloadCertificate(req: AuthenticatedRequest, res: Respon
       req.params.certificateId,
     );
     return res.redirect(url);
-  } catch (err: any) {
+  } catch (err) {
     return handleError(res, err);
   }
 }

@@ -47,6 +47,38 @@ export default function StudentLessonPage() {
   const [markError, setMarkError] = useState<string | null>(null);
   const [organizationId, setOrganizationId] = useState<string | null>(null);
 
+  async function loadLesson(orgId: string, cid: string, mid: string, lid: string) {
+    try {
+      const apiBase = process.env.NEXT_PUBLIC_API_URL || '';
+      const res = await fetch(
+        `${apiBase}/api/v1/organizations/${orgId}/student/courses/${cid}/modules/${mid}/lessons/${lid}`,
+        { credentials: 'include' }
+      );
+      if (!res.ok) {
+        let code: unknown = null;
+        try {
+          code = (await res.json())?.error;
+        } catch {
+          code = null;
+        }
+        if (code === 'STUDENT_NOT_ENROLLED') {
+          setError('You are not enrolled in this course.');
+        } else if (code === 'LESSON_NOT_FOUND') {
+          setError('Lesson not found.');
+        } else if (code === 'MODULE_NOT_FOUND') {
+          setError('Module not found.');
+        } else {
+          setError('Could not load lesson. Please try again.');
+        }
+        return;
+      }
+      const body = await res.json();
+      setData(body.data ?? null);
+    } catch {
+      setError('Could not reach the server. Please try again.');
+    }
+  }
+
   useEffect(() => {
     let active = true;
 
@@ -110,38 +142,6 @@ export default function StudentLessonPage() {
       setMarkError('Could not reach the server. Please try again.');
     } finally {
       setMarking(false);
-    }
-  }
-
-  async function loadLesson(orgId: string, cid: string, mid: string, lid: string) {
-    try {
-      const apiBase = process.env.NEXT_PUBLIC_API_URL || '';
-      const res = await fetch(
-        `${apiBase}/api/v1/organizations/${orgId}/student/courses/${cid}/modules/${mid}/lessons/${lid}`,
-        { credentials: 'include' }
-      );
-      if (!res.ok) {
-        let code: unknown = null;
-        try {
-          code = (await res.json())?.error;
-        } catch {
-          code = null;
-        }
-        if (code === 'STUDENT_NOT_ENROLLED') {
-          setError('You are not enrolled in this course.');
-        } else if (code === 'LESSON_NOT_FOUND') {
-          setError('Lesson not found.');
-        } else if (code === 'MODULE_NOT_FOUND') {
-          setError('Module not found.');
-        } else {
-          setError('Could not load lesson. Please try again.');
-        }
-        return;
-      }
-      const body = await res.json();
-      setData(body.data ?? null);
-    } catch {
-      setError('Could not reach the server. Please try again.');
     }
   }
 

@@ -3,7 +3,32 @@ import * as courseRepo from '../repositories/courseRepository';
 import { dispatchNotification } from './notificationDispatcher';
 import { record as recordAudit } from './auditLogService';
 
-function toEnrollmentDto(enrollment: any) {
+interface EnrollmentRecord {
+  id: string;
+  userId: string;
+  courseId: string;
+  organizationId: string;
+  status: string;
+  enrolledAt: Date;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+interface EnrollmentWithCourse extends EnrollmentRecord {
+  course?: {
+    id: string;
+    title: string;
+    slug: string;
+    description: string | null;
+    thumbnailUrl: string | null;
+    category: unknown;
+    difficulty: string | null;
+    status: string;
+    organizationId: string;
+  };
+}
+
+function toEnrollmentDto(enrollment: EnrollmentRecord) {
   return {
     id: enrollment.id,
     userId: enrollment.userId,
@@ -16,7 +41,7 @@ function toEnrollmentDto(enrollment: any) {
   };
 }
 
-function toEnrollmentWithCourseDto(enrollment: any) {
+function toEnrollmentWithCourseDto(enrollment: EnrollmentWithCourse) {
   return {
     id: enrollment.id,
     userId: enrollment.userId,
@@ -81,7 +106,7 @@ export async function enroll(organizationId: string, userId: string, courseId: s
 export async function listEnrollments(organizationId: string, userId: string) {
   const enrollments = await enrollmentRepo.listByUser(userId);
   const orgEnrollments = enrollments.filter(
-    (e: any) => e.organizationId === organizationId,
+    (e: { organizationId: string }) => e.organizationId === organizationId,
   );
   return orgEnrollments.map(toEnrollmentWithCourseDto);
 }

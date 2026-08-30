@@ -10,7 +10,15 @@ export interface NotifyParams {
   organizationId: string;
 }
 
-function toNotificationDto(notification: any) {
+function toNotificationDto(notification: {
+  id: string;
+  type: string;
+  title: string;
+  body: string | null;
+  data: unknown;
+  readAt: Date | null;
+  createdAt: Date;
+}) {
   return {
     id: notification.id,
     type: notification.type,
@@ -64,7 +72,8 @@ export async function markNotificationAsRead(
   if (result.count === 0) {
     throw new Error('NOTIFICATION_NOT_FOUND');
   }
-  return notificationRepo.findByUserAndId(userId, organizationId, notificationId).then(toNotificationDto);
+  const notification = await notificationRepo.findByUserAndId(userId, organizationId, notificationId);
+  return toNotificationDto(notification!);
 }
 
 export async function markAllNotificationsAsRead(organizationId: string, userId: string) {

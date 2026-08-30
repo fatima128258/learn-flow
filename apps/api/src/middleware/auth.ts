@@ -72,7 +72,7 @@ export async function requireAuth(req: AuthenticatedRequest, res: Response, next
     };
 
     next();
-  } catch (err) {
+  } catch {
     return res.status(500).json({ success: false, error: 'SERVER_ERROR' });
   }
 }
@@ -143,7 +143,7 @@ export async function requireOrganizationContext(req: AuthenticatedRequest, res:
     req.user.role = userOrg.role;
 
     next();
-  } catch (err) {
+  } catch {
     return res.status(500).json({ success: false, error: 'SERVER_ERROR' });
   }
 }
@@ -185,7 +185,7 @@ export async function requirePlatformAdmin(req: AuthenticatedRequest, res: Respo
     req.organizationId = adminRole.organizationId;
 
     next();
-  } catch (err) {
+  } catch {
     return res.status(500).json({ success: false, error: 'SERVER_ERROR' });
   }
 }
@@ -214,7 +214,7 @@ export async function requireOrgAdmin(req: AuthenticatedRequest, res: Response, 
     req.organizationId = membership.organizationId;
 
     next();
-  } catch (err) {
+  } catch {
     return res.status(500).json({ success: false, error: 'SERVER_ERROR' });
   }
 }

@@ -110,7 +110,6 @@ export function getTransporter() {
   if (!transporter) {
     const host = process.env.MAIL_SMTP_HOST || 'localhost';
     const port = Number(process.env.MAIL_SMTP_PORT || '1025');
-    const from = process.env.MAIL_FROM || 'no-reply@learnflow.local';
 
     transporter = nodemailer.createTransport({
       host,

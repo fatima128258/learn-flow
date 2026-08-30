@@ -13,8 +13,9 @@ function tenantOrganizationId(req: AuthenticatedRequest) {
   return req.organizationId;
 }
 
-function handleError(res: Response, err: any) {
-  switch (err?.message) {
+function handleError(res: Response, err: unknown) {
+  const message = err instanceof Error ? err.message : undefined;
+  switch (message) {
     case 'MISSING_FIELDS':
       return fail(res, 400, 'MISSING_FIELDS');
     case 'INVALID_EMAIL':
@@ -49,7 +50,7 @@ export async function dashboard(req: AuthenticatedRequest, res: Response) {
   try {
     const data = await service.getDashboard(tenantOrganizationId(req));
     return res.json({ success: true, data });
-  } catch (err: any) {
+  } catch (err) {
     return handleError(res, err);
   }
 }
@@ -58,7 +59,7 @@ export async function getOrganization(req: AuthenticatedRequest, res: Response) 
   try {
     const data = await service.getOrganization(tenantOrganizationId(req));
     return res.json({ success: true, data });
-  } catch (err: any) {
+  } catch (err) {
     return handleError(res, err);
   }
 }
@@ -70,7 +71,7 @@ export async function listUsers(req: AuthenticatedRequest, res: Response) {
     const role = typeof req.query.role === 'string' ? req.query.role : undefined;
     const result = await service.listUsers(tenantOrganizationId(req), { page, limit, role });
     return res.json({ success: true, data: result.items, meta: result.meta });
-  } catch (err: any) {
+  } catch (err) {
     return handleError(res, err);
   }
 }
@@ -79,7 +80,7 @@ export async function getUser(req: AuthenticatedRequest, res: Response) {
   try {
     const data = await service.getUser(tenantOrganizationId(req), req.params.userId);
     return res.json({ success: true, data });
-  } catch (err: any) {
+  } catch (err) {
     return handleError(res, err);
   }
 }
@@ -95,7 +96,7 @@ export async function createInstructor(req: AuthenticatedRequest, res: Response)
       requestedRole: 'INSTRUCTOR',
     });
     return res.status(201).json({ success: true, data });
-  } catch (err: any) {
+  } catch (err) {
     return handleError(res, err);
   }
 }
@@ -111,7 +112,7 @@ export async function createStudent(req: AuthenticatedRequest, res: Response) {
       requestedRole: 'STUDENT',
     });
     return res.status(201).json({ success: true, data });
-  } catch (err: any) {
+  } catch (err) {
     return handleError(res, err);
   }
 }
@@ -124,7 +125,7 @@ export async function updateUser(req: AuthenticatedRequest, res: Response) {
       role,
     });
     return res.json({ success: true, data });
-  } catch (err: any) {
+  } catch (err) {
     return handleError(res, err);
   }
 }

@@ -8,7 +8,33 @@ function round2(value: number) {
   return Math.round(value * 100) / 100;
 }
 
-function toQuizTakingDto(quiz: any, attemptCount: number, maxAttempts: number | null) {
+interface QuizTakingQuestionOption {
+  id: string;
+  text: string;
+  order: number;
+}
+
+interface QuizTakingQuestion {
+  id: string;
+  questionText: string;
+  marks: number;
+  order: number;
+  options: QuizTakingQuestionOption[];
+}
+
+interface QuizTakingRecord {
+  id: string;
+  moduleId: string;
+  title: string;
+  description: string | null;
+  timeLimitMinutes: number | null;
+  passingPercentage: number | null;
+  maxAttempts: number | null;
+  order: number;
+  questions: QuizTakingQuestion[];
+}
+
+function toQuizTakingDto(quiz: QuizTakingRecord, attemptCount: number, maxAttempts: number | null) {
   const attemptsRemaining =
     maxAttempts == null ? null : Math.max(0, maxAttempts - attemptCount);
 
@@ -21,12 +47,12 @@ function toQuizTakingDto(quiz: any, attemptCount: number, maxAttempts: number | 
     passingPercentage: quiz.passingPercentage,
     maxAttempts: quiz.maxAttempts,
     order: quiz.order,
-    questions: quiz.questions.map((question: any) => ({
+    questions: quiz.questions.map((question) => ({
       id: question.id,
       questionText: question.questionText,
       marks: question.marks,
       order: question.order,
-      options: question.options.map((option: any) => ({
+      options: question.options.map((option) => ({
         id: option.id,
         text: option.text,
         order: option.order,
@@ -201,8 +227,8 @@ export async function submitQuizAttempt(
       passingPercentage,
       totalMarks,
     };
-  } catch (err: any) {
-    if (err?.code === 'P2002') {
+  } catch (err) {
+    if ((err as { code?: string }).code === 'P2002') {
       throw new Error('ATTEMPT_ALREADY_SUBMITTED');
     }
     throw err;

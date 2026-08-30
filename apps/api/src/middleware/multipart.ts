@@ -11,9 +11,10 @@ const upload = multer({
 export function uploadSingle(fieldName: string) {
   const single = upload.single(fieldName);
   return (req: Request, res: Response, next: NextFunction) => {
-    single(req, res, (err: any) => {
+    single(req, res, (err: unknown) => {
       if (err) {
-        if (err?.code === 'LIMIT_FILE_SIZE') {
+        const e = err as { code?: string };
+        if (e.code === 'LIMIT_FILE_SIZE') {
           return res.status(413).json({ success: false, error: 'MEDIA_TOO_LARGE' });
         }
         return res.status(400).json({ success: false, error: 'MULTIPART_INVALID' });

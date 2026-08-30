@@ -3,7 +3,31 @@ import * as quizRepo from '../repositories/quizRepository';
 import * as moduleRepo from '../repositories/moduleRepository';
 import * as courseRepo from '../repositories/courseRepository';
 
-function toQuizDto(quiz: any) {
+interface QuizRecord {
+  id: string;
+  moduleId: string;
+  title: string;
+  description: string | null;
+  timeLimitMinutes: number | null;
+  passingPercentage: number | null;
+  maxAttempts: number | null;
+  order: number;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+interface QuizListItemRecord {
+  id: string;
+  title: string;
+  description: string | null;
+  timeLimitMinutes: number | null;
+  passingPercentage: number | null;
+  maxAttempts: number | null;
+  order: number;
+  createdAt: Date;
+}
+
+function toQuizDto(quiz: QuizRecord) {
   return {
     id: quiz.id,
     moduleId: quiz.moduleId,
@@ -18,7 +42,7 @@ function toQuizDto(quiz: any) {
   };
 }
 
-function toQuizListItemDto(quiz: any) {
+function toQuizListItemDto(quiz: QuizListItemRecord) {
   return {
     id: quiz.id,
     title: quiz.title,

@@ -3,7 +3,28 @@ import * as questionRepo from '../repositories/questionRepository';
 import * as quizRepo from '../repositories/quizRepository';
 import * as courseRepo from '../repositories/courseRepository';
 
-function toQuestionDto(question: any) {
+interface OptionRecord {
+  id: string;
+  questionId: string;
+  text: string;
+  isCorrect: boolean;
+  order: number;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+interface QuestionRecord {
+  id: string;
+  quizId: string;
+  questionText: string;
+  marks: number;
+  order: number;
+  createdAt: Date;
+  updatedAt: Date;
+  options?: OptionRecord[];
+}
+
+function toQuestionDto(question: QuestionRecord) {
   return {
     id: question.id,
     quizId: question.quizId,
@@ -15,7 +36,7 @@ function toQuestionDto(question: any) {
   };
 }
 
-function toQuestionDetailDto(question: any) {
+function toQuestionDetailDto(question: QuestionRecord) {
   return {
     id: question.id,
     quizId: question.quizId,
@@ -24,11 +45,11 @@ function toQuestionDetailDto(question: any) {
     order: question.order,
     createdAt: question.createdAt,
     updatedAt: question.updatedAt,
-    options: question.options.map(toOptionDto),
+    options: question.options?.map(toOptionDto) ?? [],
   };
 }
 
-function toOptionDto(option: any) {
+function toOptionDto(option: OptionRecord) {
   return {
     id: option.id,
     questionId: option.questionId,

@@ -56,7 +56,7 @@ function userRecord() {
 describe('login audit recording', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    Object.values(authRepoMock).forEach((fn) => (fn as any).mockReset());
+    Object.values(authRepoMock).forEach((fn) => vi.mocked(fn).mockReset());
     recordMock.create.mockReset();
     recordMock.create.mockResolvedValue({ id: 'log-1' });
   });

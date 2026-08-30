@@ -107,7 +107,7 @@ async function authenticateAs(
     { role, organizationId, userId },
   ]);
 
-  prismaMock.userOrganization.findFirst.mockImplementation(async ({ where }: any) => {
+  prismaMock.userOrganization.findFirst.mockImplementation(async ({ where }: { where?: { role?: string; organizationId?: string; userId?: string; id?: string; courseId?: string; moduleId?: string; quizId?: string; status?: string } }) => {
     if (where?.role === 'PLATFORM_ADMIN') {
       return role === 'PLATFORM_ADMIN' ? { role, organizationId, userId } : null;
     }
@@ -178,7 +178,7 @@ describe('POST /api/v1/organizations/:organizationId/courses', () => {
   it('creates a draft course for an instructor in their own organization', async () => {
     await authenticateAs('INSTRUCTOR');
     prismaMock.userOrganization.findUnique.mockResolvedValue(membershipRecord());
-    prismaMock.course.create.mockImplementation(async ({ data }: any) =>
+    prismaMock.course.create.mockImplementation(async ({ data }: { data?: Record<string, unknown> }) =>
       courseRecord({
         id: 'course-1',
         ...data,
@@ -220,7 +220,7 @@ describe('POST /api/v1/organizations/:organizationId/courses', () => {
       userId: 'admin-1',
       role: 'ORG_ADMIN',
     }));
-    prismaMock.course.create.mockImplementation(async ({ data }: any) =>
+    prismaMock.course.create.mockImplementation(async ({ data }: { data?: Record<string, unknown> }) =>
       courseRecord({
         id: 'course-2',
         instructorUserId: 'admin-1',
@@ -264,7 +264,7 @@ describe('POST /api/v1/organizations/:organizationId/courses', () => {
   it('ignores client-supplied tenant, instructor, status, and publishedAt fields', async () => {
     await authenticateAs('INSTRUCTOR');
     prismaMock.userOrganization.findUnique.mockResolvedValue(membershipRecord());
-    prismaMock.course.create.mockImplementation(async ({ data }: any) =>
+    prismaMock.course.create.mockImplementation(async ({ data }: { data?: Record<string, unknown> }) =>
       courseRecord({ ...data, createdAt: now, updatedAt: now }),
     );
 
@@ -320,7 +320,7 @@ describe('POST /api/v1/organizations/:organizationId/courses', () => {
   it('allows the same slug in different organizations', async () => {
     await authenticateAs('INSTRUCTOR', { userId: 'user-1', organizationId: 'org-a' });
     prismaMock.userOrganization.findUnique.mockResolvedValue(membershipRecord());
-    prismaMock.course.create.mockImplementation(async ({ data }: any) =>
+    prismaMock.course.create.mockImplementation(async ({ data }: { data?: Record<string, unknown> }) =>
       courseRecord({ ...data, createdAt: now, updatedAt: now }),
     );
 
@@ -392,7 +392,7 @@ describe('POST /api/v1/organizations/:organizationId/courses', () => {
   it('derives a valid slug from the title when none is supplied', async () => {
     await authenticateAs('INSTRUCTOR');
     prismaMock.userOrganization.findUnique.mockResolvedValue(membershipRecord());
-    prismaMock.course.create.mockImplementation(async ({ data }: any) =>
+    prismaMock.course.create.mockImplementation(async ({ data }: { data?: Record<string, unknown> }) =>
       courseRecord({ ...data, createdAt: now, updatedAt: now }),
     );
 
@@ -421,7 +421,7 @@ describe('POST /api/v1/organizations/:organizationId/courses', () => {
       createdAt: now,
       updatedAt: now,
     });
-    prismaMock.course.create.mockImplementation(async ({ data }: any) =>
+    prismaMock.course.create.mockImplementation(async ({ data }: { data?: Record<string, unknown> }) =>
       courseRecord({
         ...data,
         category: { id: 'cat-1', name: 'Dev Tools', slug: 'dev-tools' },
@@ -469,7 +469,7 @@ describe('POST /api/v1/organizations/:organizationId/courses', () => {
       createdAt: now,
       updatedAt: now,
     });
-    prismaMock.course.create.mockImplementation(async ({ data }: any) =>
+    prismaMock.course.create.mockImplementation(async ({ data }: { data?: Record<string, unknown> }) =>
       courseRecord({
         ...data,
         category: { id: 'cat-1', name: 'Dev Tools', slug: 'dev-tools' },

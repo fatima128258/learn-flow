@@ -8,7 +8,11 @@ function round2(value: number) {
   return Math.round(value * 100) / 100;
 }
 
-function toPurchaseDto(order: any, enrollment: any, course: any) {
+function toPurchaseDto(
+  order: { id: string; status: string; totalAmount: { toString(): string }; currency?: string },
+  enrollment: { id: string; status: string },
+  course: { id: string; title: string },
+) {
   return {
     orderId: order.id,
     orderStatus: order.status,

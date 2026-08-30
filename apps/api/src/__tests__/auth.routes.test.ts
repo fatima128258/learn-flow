@@ -1,5 +1,7 @@
 import request from 'supertest';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import type { Response } from 'express';
+import type { AuthenticatedRequest } from '../middleware/auth';
 
 vi.mock('../services/authService', () => ({
   registerUser: vi.fn(),
@@ -410,11 +412,11 @@ describe('Auth routes', () => {
           emailVerified: true,
           role: 'STUDENT',
         },
-      } as any;
+      } as unknown as AuthenticatedRequest;
       const res = {
         status: vi.fn().mockReturnThis(),
         json: vi.fn(),
-      } as any;
+      } as unknown as Response;
       const next = vi.fn();
 
       requireRole('INSTRUCTOR')(req, res, next);
@@ -433,11 +435,11 @@ describe('Auth routes', () => {
           role: 'STUDENT',
         },
         body: { role: 'PLATFORM_ADMIN' },
-      } as any;
+      } as unknown as AuthenticatedRequest;
       const res = {
         status: vi.fn().mockReturnThis(),
         json: vi.fn(),
-      } as any;
+      } as unknown as Response;
       const next = vi.fn();
 
       requireRole('ORG_ADMIN')(req, res, next);

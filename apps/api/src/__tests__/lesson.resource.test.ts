@@ -136,7 +136,7 @@ async function authenticateAs(
     { role, organizationId, userId },
   ]);
 
-  prismaMock.userOrganization.findFirst.mockImplementation(async ({ where }: any) => {
+  prismaMock.userOrganization.findFirst.mockImplementation(async ({ where }: { where?: { role?: string; organizationId?: string; userId?: string; id?: string; courseId?: string; moduleId?: string; quizId?: string; status?: string } }) => {
     if (where?.role === 'PLATFORM_ADMIN') {
       return role === 'PLATFORM_ADMIN' ? { role, organizationId, userId } : null;
     }
@@ -178,7 +178,7 @@ describe('Lesson PDF/resource attachments', () => {
 
   it('persists resourceUrl and resourceMimeType when creating a lesson', async () => {
     await setValidAuth();
-    prismaMock.lesson.create.mockImplementation(async ({ data }: any) =>
+    prismaMock.lesson.create.mockImplementation(async ({ data }: { data?: Record<string, unknown> }) =>
       lessonRecord({ ...data, createdAt: now, updatedAt: now }),
     );
 
@@ -214,7 +214,7 @@ describe('Lesson PDF/resource attachments', () => {
   it('updates resourceUrl and resourceMimeType on an existing lesson', async () => {
     await setValidAuth();
     prismaMock.lesson.findFirst.mockResolvedValue(lessonRecord());
-    prismaMock.lesson.update.mockImplementation(async ({ data }: any) =>
+    prismaMock.lesson.update.mockImplementation(async ({ data }: { data?: Record<string, unknown> }) =>
       lessonRecord({ ...data, createdAt: now, updatedAt: now }),
     );
 
@@ -238,7 +238,7 @@ describe('Lesson PDF/resource attachments', () => {
   it('clears a resource when an empty string is sent', async () => {
     await setValidAuth();
     prismaMock.lesson.findFirst.mockResolvedValue(lessonRecord());
-    prismaMock.lesson.update.mockImplementation(async ({ data }: any) =>
+    prismaMock.lesson.update.mockImplementation(async ({ data }: { data?: Record<string, unknown> }) =>
       lessonRecord({ ...data, createdAt: now, updatedAt: now }),
     );
 

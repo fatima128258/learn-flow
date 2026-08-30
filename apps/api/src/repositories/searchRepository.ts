@@ -1,4 +1,5 @@
 import getPrisma from '../prisma';
+import { Prisma } from '@prisma/client';
 
 function prisma() {
   return getPrisma();
@@ -8,6 +9,9 @@ export interface SearchFilters {
   query?: string;
   category?: string;
   difficulty?: string;
+  instructor?: string;
+  minPrice?: number;
+  maxPrice?: number;
 }
 
 export interface SearchOptions {
@@ -18,7 +22,7 @@ export interface SearchOptions {
 
 function buildWhere(organizationId: string, filters: SearchFilters) {
   const query = filters.query?.trim();
-  const where: any = {
+  const where: Prisma.CourseWhereInput = {
     organizationId,
     status: 'PUBLISHED',
   };
@@ -36,6 +40,29 @@ function buildWhere(organizationId: string, filters: SearchFilters) {
 
   if (filters.difficulty) {
     where.difficulty = filters.difficulty;
+  }
+
+  if (filters.instructor) {
+    where.instructorUser = {
+      is: { name: { contains: filters.instructor, mode: 'insensitive' } },
+    };
+  }
+
+  if (filters.minPrice !== undefined || filters.maxPrice !== undefined) {
+    const priceRange: Prisma.DecimalFilter = {};
+    if (filters.minPrice !== undefined) priceRange.gte = filters.minPrice;
+    if (filters.maxPrice !== undefined) priceRange.lte = filters.maxPrice;
+
+    // Match against the effective price customers actually pay: the discount
+    // price when one is set, otherwise the list price.
+    const existingOr = where.OR
+      ? Array.isArray(where.OR) ? where.OR : [where.OR]
+      : [];
+    where.OR = [
+      ...existingOr,
+      { discountPrice: { not: null, ...priceRange } },
+      { discountPrice: null, price: priceRange },
+    ];
   }
 
   return where;

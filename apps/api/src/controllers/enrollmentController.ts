@@ -13,8 +13,9 @@ function tenantOrganizationId(req: AuthenticatedRequest) {
   return req.organizationId;
 }
 
-function handleError(res: Response, err: any) {
-  switch (err?.message) {
+function handleError(res: Response, err: unknown) {
+  const message = err instanceof Error ? err.message : undefined;
+  switch (message) {
     case 'MISSING_FIELDS':
       return fail(res, 400, 'MISSING_FIELDS');
     case 'ORGANIZATION_REQUIRED':
@@ -43,7 +44,7 @@ export async function enroll(req: AuthenticatedRequest, res: Response) {
       req.params.courseId,
     );
     return res.status(201).json({ success: true, data });
-  } catch (err: any) {
+  } catch (err) {
     return handleError(res, err);
   }
 }
@@ -58,7 +59,7 @@ export async function listEnrollments(req: AuthenticatedRequest, res: Response) 
       req.user.id,
     );
     return res.status(200).json({ success: true, data });
-  } catch (err: any) {
+  } catch (err) {
     return handleError(res, err);
   }
 }
@@ -74,7 +75,7 @@ export async function getEnrollment(req: AuthenticatedRequest, res: Response) {
       req.params.courseId,
     );
     return res.status(200).json({ success: true, data });
-  } catch (err: any) {
+  } catch (err) {
     return handleError(res, err);
   }
 }
@@ -90,7 +91,7 @@ export async function unenroll(req: AuthenticatedRequest, res: Response) {
       req.params.courseId,
     );
     return res.status(200).json({ success: true, data });
-  } catch (err: any) {
+  } catch (err) {
     return handleError(res, err);
   }
 }

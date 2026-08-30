@@ -156,7 +156,7 @@ async function authenticateAs(
     { role, organizationId, userId },
   ]);
 
-  prismaMock.userOrganization.findFirst.mockImplementation(async ({ where }: any) => {
+  prismaMock.userOrganization.findFirst.mockImplementation(async ({ where }: { where?: { role?: string; organizationId?: string; userId?: string; id?: string; courseId?: string; moduleId?: string; quizId?: string; status?: string } }) => {
     if (where?.role === 'PLATFORM_ADMIN') {
       return role === 'PLATFORM_ADMIN' ? { role, organizationId, userId } : null;
     }
@@ -253,7 +253,7 @@ describe('POST /api/v1/organizations/:orgId/courses/:courseId/modules/:moduleId/
 
   it('creates a lesson for an authorized instructor', async () => {
     await setValidAuth('INSTRUCTOR');
-    prismaMock.lesson.create.mockImplementation(async ({ data }: any) =>
+    prismaMock.lesson.create.mockImplementation(async ({ data }: { data?: Record<string, unknown> }) =>
       lessonRecord({ id: 'lesson-1', ...data, createdAt: now, updatedAt: now }),
     );
 
@@ -288,7 +288,7 @@ describe('POST /api/v1/organizations/:orgId/courses/:courseId/modules/:moduleId/
       courseRecord({ instructorUserId: 'admin-1' }),
     );
     prismaMock.module.findFirst.mockResolvedValue(moduleRecord());
-    prismaMock.lesson.create.mockImplementation(async ({ data }: any) =>
+    prismaMock.lesson.create.mockImplementation(async ({ data }: { data?: Record<string, unknown> }) =>
       lessonRecord({ id: 'lesson-2', ...data, createdAt: now, updatedAt: now }),
     );
 
@@ -768,7 +768,7 @@ describe('PATCH /api/v1/organizations/:orgId/courses/:courseId/modules/:moduleId
   it('updates a lesson for an authorized instructor', async () => {
     await setValidAuth('INSTRUCTOR');
     prismaMock.lesson.findFirst.mockResolvedValue(lessonRecord());
-    prismaMock.lesson.update.mockImplementation(async ({ data }: any) =>
+    prismaMock.lesson.update.mockImplementation(async ({ data }: { data?: Record<string, unknown> }) =>
       lessonRecord({ ...data, createdAt: now, updatedAt: now }),
     );
 

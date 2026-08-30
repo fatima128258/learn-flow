@@ -99,10 +99,6 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
   const closeButtonRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
-    setMobileOpen(false);
-  }, [pathname]);
-
-  useEffect(() => {
     if (mobileOpen) {
       closeButtonRef.current?.focus();
     }
@@ -129,6 +125,7 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
           key={item.href}
           href={item.href}
           aria-current={isActive ? 'page' : undefined}
+          onClick={() => setMobileOpen(false)}
           className={`${navClassName} ${linkClassName(isActive)}`}
         >
           {item.icon}

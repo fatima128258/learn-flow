@@ -10,6 +10,7 @@ const { mediaRepoMock, storageMock } = vi.hoisted(() => ({
     MEDIA_MAX_SIZE_BYTES: 1024,
     isAllowedMediaType: vi.fn(),
     isAllowedThumbnailType: vi.fn(),
+    hasUnsafeExtension: vi.fn(() => false),
     mediaKey: vi.fn(() => 'orgs/org-a/media/media-1/notes.pdf'),
     storageBucket: vi.fn(() => 'learnflow'),
     putObject: vi.fn(),

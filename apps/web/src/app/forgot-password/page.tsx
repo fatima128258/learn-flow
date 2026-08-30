@@ -75,7 +75,7 @@ export default function ForgotPasswordPage() {
           <Stack spacing="md">
             {success && (
               <Alert variant="success" title="Check your email">
-                If an account exists with that email, we've sent password reset instructions.
+                If an account exists with that email, we&apos;ve sent password reset instructions.
               </Alert>
             )}
 

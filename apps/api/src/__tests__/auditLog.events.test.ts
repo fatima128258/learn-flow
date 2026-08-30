@@ -155,11 +155,11 @@ function resetMocks() {
   recordMock.create.mockReset();
   recordMock.list.mockReset();
   recordMock.count.mockReset();
-  Object.values(courseRepoMock).forEach((fn) => (fn as any).mockReset());
-  Object.values(enrollmentRepoMock).forEach((fn) => (fn as any).mockReset());
-  Object.values(progressRepoMock).forEach((fn) => (fn as any).mockReset());
-  Object.values(orgRepoMock).forEach((fn) => (fn as any).mockReset());
-  Object.values(certRepoMock).forEach((fn) => (fn as any).mockReset());
+  Object.values(courseRepoMock).forEach((fn) => vi.mocked(fn).mockReset());
+  Object.values(enrollmentRepoMock).forEach((fn) => vi.mocked(fn).mockReset());
+  Object.values(progressRepoMock).forEach((fn) => vi.mocked(fn).mockReset());
+  Object.values(orgRepoMock).forEach((fn) => vi.mocked(fn).mockReset());
+  Object.values(certRepoMock).forEach((fn) => vi.mocked(fn).mockReset());
   vi.mocked(authService.getUserById).mockReset();
 }
 

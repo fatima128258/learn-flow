@@ -13,8 +13,9 @@ function tenantOrganizationId(req: AuthenticatedRequest) {
   return req.organizationId;
 }
 
-function handleError(res: Response, err: any) {
-  switch (err?.message) {
+function handleError(res: Response, err: unknown) {
+  const message = err instanceof Error ? err.message : undefined;
+  switch (message) {
     case 'MISSING_FIELDS':
       return fail(res, 400, 'MISSING_FIELDS');
     case 'ORGANIZATION_REQUIRED':
@@ -32,7 +33,7 @@ export async function listCategories(req: AuthenticatedRequest, res: Response) {
   try {
     const data = await service.listCategories(tenantOrganizationId(req));
     return res.status(200).json({ success: true, data });
-  } catch (err: any) {
+  } catch (err) {
     return handleError(res, err);
   }
 }
@@ -41,7 +42,7 @@ export async function createCategory(req: AuthenticatedRequest, res: Response) {
   try {
     const data = await service.createCategory(tenantOrganizationId(req), req.body);
     return res.status(201).json({ success: true, data });
-  } catch (err: any) {
+  } catch (err) {
     return handleError(res, err);
   }
 }
@@ -54,7 +55,7 @@ export async function updateCategory(req: AuthenticatedRequest, res: Response) {
       req.body,
     );
     return res.status(200).json({ success: true, data });
-  } catch (err: any) {
+  } catch (err) {
     return handleError(res, err);
   }
 }
@@ -66,7 +67,7 @@ export async function deleteCategory(req: AuthenticatedRequest, res: Response) {
       req.params.categoryId,
     );
     return res.status(200).json({ success: true, ...result });
-  } catch (err: any) {
+  } catch (err) {
     return handleError(res, err);
   }
 }

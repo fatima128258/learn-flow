@@ -79,6 +79,30 @@ export default function StudentQuizTakingPage() {
   const [error, setError] = useState<string | null>(null);
   const [organizationId, setOrganizationId] = useState<string | null>(null);
 
+  async function loadQuiz(orgId: string, cid: string, mid: string, qid: string) {
+    try {
+      const apiBase = process.env.NEXT_PUBLIC_API_URL || '';
+      const res = await fetch(
+        `${apiBase}/api/v1/organizations/${orgId}/student/courses/${cid}/modules/${mid}/quizzes/${qid}`,
+        { credentials: 'include' }
+      );
+      if (!res.ok) {
+        let code: unknown = null;
+        try {
+          code = (await res.json())?.error;
+        } catch {
+          code = null;
+        }
+        setError(getQuizErrorMessage(code));
+        return;
+      }
+      const body = await res.json();
+      setQuiz(body.data ?? null);
+    } catch {
+      setError('Could not reach the server. Please try again.');
+    }
+  }
+
   useEffect(() => {
     let active = true;
 
@@ -118,30 +142,6 @@ export default function StudentQuizTakingPage() {
       active = false;
     };
   }, [courseId, moduleId, quizId]);
-
-  async function loadQuiz(orgId: string, cid: string, mid: string, qid: string) {
-    try {
-      const apiBase = process.env.NEXT_PUBLIC_API_URL || '';
-      const res = await fetch(
-        `${apiBase}/api/v1/organizations/${orgId}/student/courses/${cid}/modules/${mid}/quizzes/${qid}`,
-        { credentials: 'include' }
-      );
-      if (!res.ok) {
-        let code: unknown = null;
-        try {
-          code = (await res.json())?.error;
-        } catch {
-          code = null;
-        }
-        setError(getQuizErrorMessage(code));
-        return;
-      }
-      const body = await res.json();
-      setQuiz(body.data ?? null);
-    } catch {
-      setError('Could not reach the server. Please try again.');
-    }
-  }
 
   function selectOption(questionId: string, optionId: string) {
     if (result) return;

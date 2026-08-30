@@ -1,5 +1,4 @@
 import * as repo from '../repositories/authRepository';
-import getPrisma from '../prisma';
 import { generateToken, hashToken } from '../utils/tokens';
 import { getRedis } from '../utils/redis';
 import { sendVerificationEmail, sendPasswordResetEmail } from '../utils/email';

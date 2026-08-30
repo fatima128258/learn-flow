@@ -62,8 +62,12 @@ async function computeCourseProgress(
   userId: string,
   courseId: string,
   organizationId: string,
-  course: any,
-  courseProgress: any,
+  course: { id: string; title?: string },
+  courseProgress: {
+    lastVisitedModuleId: string | null;
+    lastVisitedLessonId: string | null;
+    lastVisitedAt: Date | null;
+  } | null,
 ) {
   const [modules, completedRows, attempts] = await Promise.all([
     moduleRepo.listByCourse(courseId),
@@ -72,9 +76,9 @@ async function computeCourseProgress(
   ]);
 
   const prisma = getPrisma();
-  const completedLessonIds = new Set(completedRows.map((row: any) => row.lessonId));
+  const completedLessonIds = new Set(completedRows.map((row: { lessonId: string }) => row.lessonId));
 
-  const lessonsByModule = new Map<string, any[]>();
+  const lessonsByModule = new Map<string, { id: string }[]>();
   let totalLessons = 0;
   for (const module of modules) {
     const lessons = await prisma.lesson.findMany({
@@ -87,7 +91,7 @@ async function computeCourseProgress(
   }
 
   let completedLessons = 0;
-  const moduleProgress = modules.map((module: any, index: number) => {
+  const moduleProgress = modules.map((module: { id: string; title: string; order: number; description: string | null }, index: number) => {
     const lessons = lessonsByModule.get(module.id) ?? [];
     let moduleCompleted = 0;
     for (const lesson of lessons) {

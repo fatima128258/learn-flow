@@ -13,8 +13,9 @@ function tenantOrganizationId(req: AuthenticatedRequest) {
   return req.organizationId;
 }
 
-function handleError(res: Response, err: any) {
-  switch (err?.message) {
+function handleError(res: Response, err: unknown) {
+  const message = err instanceof Error ? err.message : undefined;
+  switch (message) {
     case 'MISSING_FIELDS':
       return fail(res, 400, 'MISSING_FIELDS');
     case 'INVALID_ORDER':
@@ -54,7 +55,7 @@ export async function listQuestions(req: AuthenticatedRequest, res: Response) {
       req.params.quizId,
     );
     return res.status(200).json({ success: true, data });
-  } catch (err: any) {
+  } catch (err) {
     return handleError(res, err);
   }
 }
@@ -72,7 +73,7 @@ export async function getQuestion(req: AuthenticatedRequest, res: Response) {
       req.params.questionId,
     );
     return res.status(200).json({ success: true, data });
-  } catch (err: any) {
+  } catch (err) {
     return handleError(res, err);
   }
 }
@@ -90,7 +91,7 @@ export async function createQuestion(req: AuthenticatedRequest, res: Response) {
       req.body,
     );
     return res.status(201).json({ success: true, data });
-  } catch (err: any) {
+  } catch (err) {
     return handleError(res, err);
   }
 }
@@ -109,7 +110,7 @@ export async function updateQuestion(req: AuthenticatedRequest, res: Response) {
       req.body,
     );
     return res.status(200).json({ success: true, data });
-  } catch (err: any) {
+  } catch (err) {
     return handleError(res, err);
   }
 }
@@ -127,7 +128,7 @@ export async function deleteQuestion(req: AuthenticatedRequest, res: Response) {
       req.params.questionId,
     );
     return res.status(200).json({ success: true, data });
-  } catch (err: any) {
+  } catch (err) {
     return handleError(res, err);
   }
 }
@@ -145,7 +146,7 @@ export async function listOptions(req: AuthenticatedRequest, res: Response) {
       req.params.questionId,
     );
     return res.status(200).json({ success: true, data });
-  } catch (err: any) {
+  } catch (err) {
     return handleError(res, err);
   }
 }
@@ -164,7 +165,7 @@ export async function createOption(req: AuthenticatedRequest, res: Response) {
       req.body,
     );
     return res.status(201).json({ success: true, data });
-  } catch (err: any) {
+  } catch (err) {
     return handleError(res, err);
   }
 }
@@ -184,7 +185,7 @@ export async function updateOption(req: AuthenticatedRequest, res: Response) {
       req.body,
     );
     return res.status(200).json({ success: true, data });
-  } catch (err: any) {
+  } catch (err) {
     return handleError(res, err);
   }
 }
@@ -203,7 +204,7 @@ export async function deleteOption(req: AuthenticatedRequest, res: Response) {
       req.params.optionId,
     );
     return res.status(200).json({ success: true, data });
-  } catch (err: any) {
+  } catch (err) {
     return handleError(res, err);
   }
 }

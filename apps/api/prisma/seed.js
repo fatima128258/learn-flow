@@ -1,4 +1,6 @@
+// eslint-disable-next-line @typescript-eslint/no-require-imports -- CommonJS seed script, require is appropriate
 const { PrismaClient } = require('@prisma/client');
+// eslint-disable-next-line @typescript-eslint/no-require-imports -- CommonJS seed script, require is appropriate
 const argon2 = require('argon2');
 
 const prisma = new PrismaClient();

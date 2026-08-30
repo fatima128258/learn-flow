@@ -78,7 +78,28 @@ function optionalStringList(value: unknown) {
   });
 }
 
-function toCourseDto(course: any) {
+interface CourseRecord {
+  id: string;
+  organizationId: string;
+  instructorUserId: string;
+  title: string;
+  slug: string;
+  description: string | null;
+  thumbnailUrl: string | null;
+  categoryId: string | null;
+  category: unknown;
+  price: unknown;
+  discountPrice: unknown;
+  status: string;
+  publishedAt: Date | null;
+  estimatedMinutes: number | null;
+  difficulty: string | null;
+  learningObjectives: string[];
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+function toCourseDto(course: CourseRecord) {
   return {
     id: course.id,
     organizationId: course.organizationId,
@@ -101,7 +122,14 @@ function toCourseDto(course: any) {
   };
 }
 
-function toCourseListItemDto(course: any) {
+function toCourseListItemDto(course: {
+  id: string;
+  title: string;
+  slug: string;
+  status: string;
+  difficulty: string | null;
+  createdAt: Date;
+}) {
   return {
     id: course.id,
     title: course.title,
@@ -269,6 +297,9 @@ export async function updateCourseThumbnail(
     throw new Error('MEDIA_TOO_LARGE');
   }
   if (!storage.isAllowedThumbnailType(file.mimetype)) {
+    throw new Error('MEDIA_TYPE_NOT_ALLOWED');
+  }
+  if (storage.hasUnsafeExtension(file.originalname)) {
     throw new Error('MEDIA_TYPE_NOT_ALLOWED');
   }
 

@@ -43,8 +43,6 @@ export const AuditLogTable: React.FC<AuditLogTableProps> = ({
   const totalPages = meta ? Math.max(1, Math.ceil(meta.total / meta.limit)) : 1;
 
   const load = useCallback(async () => {
-    setLoading(true);
-    setError(null);
     try {
       const params = new URLSearchParams({ page: String(page), limit: String(pageSize) });
       if (actionFilter) params.set('action', actionFilter);
@@ -68,7 +66,7 @@ export const AuditLogTable: React.FC<AuditLogTableProps> = ({
   }, [apiPath, page, pageSize, actionFilter]);
 
   useEffect(() => {
-    void load();
+    void (async () => { await load(); })();
   }, [load]);
 
   return (
@@ -79,6 +77,8 @@ export const AuditLogTable: React.FC<AuditLogTableProps> = ({
           placeholder="e.g. LOGIN, COURSE_PUBLISHED"
           value={actionFilter}
           onChange={(e) => {
+            setError(null);
+            setLoading(true);
             setActionFilter(e.target.value);
             setPage(1);
           }}
@@ -95,7 +95,7 @@ export const AuditLogTable: React.FC<AuditLogTableProps> = ({
           <ErrorState
             title="Unable to load audit logs"
             message={error}
-            action={{ label: 'Retry', onClick: () => void load() }}
+            action={{ label: 'Retry', onClick: () => { setError(null); setLoading(true); void load(); } }}
           />
         ) : logs && logs.length === 0 ? (
           <EmptyState
@@ -161,7 +161,7 @@ export const AuditLogTable: React.FC<AuditLogTableProps> = ({
                 size="sm"
                 variant="outline"
                 disabled={page <= 1 || loading}
-                onClick={() => setPage((p) => Math.max(1, p - 1))}
+                onClick={() => { setError(null); setLoading(true); setPage((p) => Math.max(1, p - 1)); }}
               >
                 Previous
               </Button>
@@ -169,7 +169,7 @@ export const AuditLogTable: React.FC<AuditLogTableProps> = ({
                 size="sm"
                 variant="outline"
                 disabled={page >= totalPages || loading}
-                onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                onClick={() => { setError(null); setLoading(true); setPage((p) => Math.min(totalPages, p + 1)); }}
               >
                 Next
               </Button>

@@ -68,6 +68,10 @@ export class MinioStorageProvider implements StorageProvider {
     await this.client.removeObjects(this.bucket, keys);
   }
 
+  async ping(): Promise<void> {
+    await this.client.bucketExists(this.bucket);
+  }
+
   private ensureReady(): Promise<void> {
     if (!this.ready) {
       this.ready = this.initializeBucket();

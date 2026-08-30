@@ -1,23 +1,37 @@
 import { Page, expect } from '@playwright/test';
 
+interface MailpitMessageDetail {
+  HTML?: string;
+  Text?: string;
+}
+
+interface MailpitTo {
+  Address: string;
+}
+interface MailpitMessage {
+  Subject?: string;
+  ID?: string;
+  To?: MailpitTo[];
+}
+
 const MAILPIT_API = process.env.MAILPIT_API || 'http://localhost:8025/api/v1';
 
-async function request(path: string, init?: RequestInit) {
+async function request<T = unknown>(path: string, init?: RequestInit): Promise<T> {
   const res = await fetch(`${MAILPIT_API}${path}`, init);
   if (!res.ok) throw new Error(`Mailpit request failed: ${res.status} ${path}`);
-  return res.json();
+  return res.json() as Promise<T>;
 }
 
 export async function findVerificationToken(email: string, timeoutMs = 20_000): Promise<string> {
   const start = Date.now();
   while (Date.now() - start < timeoutMs) {
-    const { messages } = await request('/messages?limit=50');
+    const { messages } = await request<{ messages?: MailpitMessage[] }>('/messages?limit=50');
     const match = messages?.find(
-      (m: any) => m.Subject?.toLowerCase().includes('verify')
-        && m.To?.some((to: any) => to.Address === email),
+      (m: MailpitMessage) => m.Subject?.toLowerCase().includes('verify')
+        && m.To?.some((to: MailpitTo) => to.Address === email),
     );
     if (match) {
-      const detail = await request(`/message/${match.ID}`);
+      const detail = await request<MailpitMessageDetail>(`/message/${match.ID}`);
       const hit = detail.HTML?.match(/\/verify-email\?token=([A-Za-z0-9_-]+)/);
       if (hit) return decodeURIComponent(hit[1]);
     }

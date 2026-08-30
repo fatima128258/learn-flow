@@ -11,6 +11,7 @@
  * Run from apps/api:  node scripts/seed-e2e.mjs
  * The result (ids + credentials) is written to apps/web/e2e/.local/seed.json.
  */
+/* global console, process */
 import { PrismaClient } from '@prisma/client';
 import { hash } from 'argon2';
 import { mkdirSync, writeFileSync } from 'node:fs';

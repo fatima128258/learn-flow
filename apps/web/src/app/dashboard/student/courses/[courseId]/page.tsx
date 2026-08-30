@@ -182,7 +182,7 @@ export default function StudentCoursePage() {
               </div>
               {course.learningObjectives.length > 0 && (
                 <div className="mt-4">
-                  <h3 className="text-sm font-semibold text-neutral-900 mb-2">What you'll learn</h3>
+                  <h3 className="text-sm font-semibold text-neutral-900 mb-2">What you&apos;ll learn</h3>
                   <ul className="space-y-1">
                     {course.learningObjectives.map((obj, i) => (
                       <li key={i} className="flex items-start gap-2 text-sm text-neutral-700">

@@ -1,6 +1,5 @@
 import request from 'supertest';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { Prisma } from '@prisma/client';
 
 const prismaMock = {
   userOrganization: {
@@ -122,7 +121,7 @@ async function authenticateAs(
     { role, organizationId, userId },
   ]);
 
-  prismaMock.userOrganization.findFirst.mockImplementation(async ({ where }: any) => {
+  prismaMock.userOrganization.findFirst.mockImplementation(async ({ where }: { where?: { role?: string; organizationId?: string; userId?: string; id?: string; courseId?: string; moduleId?: string; quizId?: string; status?: string } }) => {
     if (where?.role === 'PLATFORM_ADMIN') {
       return role === 'PLATFORM_ADMIN' ? { role, organizationId, userId } : null;
     }
@@ -210,7 +209,7 @@ describe('POST /api/v1/organizations/:organizationId/enrollments/:courseId', () 
     prismaMock.userOrganization.findUnique.mockResolvedValue(membershipRecord());
     prismaMock.course.findFirst.mockResolvedValue(courseRecord());
     prismaMock.enrollment.findUnique.mockResolvedValue(null);
-    prismaMock.enrollment.create.mockImplementation(async ({ data }: any) =>
+    prismaMock.enrollment.create.mockImplementation(async ({ data }: { data?: Record<string, unknown> }) =>
       enrollmentRecord({ ...data, createdAt: now, updatedAt: now }),
     );
 
@@ -298,7 +297,7 @@ describe('POST /api/v1/organizations/:organizationId/enrollments/:courseId', () 
     );
     prismaMock.course.findFirst.mockResolvedValue(courseRecord());
     prismaMock.enrollment.findUnique.mockResolvedValue(null);
-    prismaMock.enrollment.create.mockImplementation(async ({ data }: any) =>
+    prismaMock.enrollment.create.mockImplementation(async ({ data }: { data?: Record<string, unknown> }) =>
       enrollmentRecord({ ...data, createdAt: now, updatedAt: now }),
     );
 
@@ -321,7 +320,7 @@ describe('POST /api/v1/organizations/:organizationId/enrollments/:courseId', () 
     prismaMock.userOrganization.findUnique.mockResolvedValue(membershipRecord());
     prismaMock.course.findFirst.mockResolvedValue(courseRecord());
     prismaMock.enrollment.findUnique.mockResolvedValue(null);
-    prismaMock.enrollment.create.mockImplementation(async ({ data }: any) =>
+    prismaMock.enrollment.create.mockImplementation(async ({ data }: { data?: Record<string, unknown> }) =>
       enrollmentRecord({ ...data, createdAt: now, updatedAt: now }),
     );
 

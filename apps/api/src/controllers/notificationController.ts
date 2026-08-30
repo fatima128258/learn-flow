@@ -13,8 +13,9 @@ function tenantOrganizationId(req: AuthenticatedRequest) {
   return req.organizationId;
 }
 
-function handleError(res: Response, err: any) {
-  switch (err?.message) {
+function handleError(res: Response, err: unknown) {
+  const message = err instanceof Error ? err.message : undefined;
+  switch (message) {
     case 'ORGANIZATION_REQUIRED':
       return fail(res, 400, 'ORGANIZATION_REQUIRED');
     case 'NOTIFICATION_NOT_FOUND':
@@ -37,7 +38,7 @@ export async function listNotifications(req: AuthenticatedRequest, res: Response
       { unreadOnly, limit },
     );
     return res.status(200).json({ success: true, data });
-  } catch (err: any) {
+  } catch (err) {
     return handleError(res, err);
   }
 }
@@ -52,7 +53,7 @@ export async function getUnreadCount(req: AuthenticatedRequest, res: Response) {
       req.user.id,
     );
     return res.status(200).json({ success: true, data });
-  } catch (err: any) {
+  } catch (err) {
     return handleError(res, err);
   }
 }
@@ -68,7 +69,7 @@ export async function markNotificationAsRead(req: AuthenticatedRequest, res: Res
       req.params.notificationId,
     );
     return res.status(200).json({ success: true, data });
-  } catch (err: any) {
+  } catch (err) {
     return handleError(res, err);
   }
 }
@@ -83,7 +84,7 @@ export async function markAllNotificationsAsRead(req: AuthenticatedRequest, res:
       req.user.id,
     );
     return res.status(200).json({ success: true, data });
-  } catch (err: any) {
+  } catch (err) {
     return handleError(res, err);
   }
 }

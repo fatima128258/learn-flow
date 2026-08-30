@@ -58,6 +58,29 @@ export default function StudentCertificateViewPage() {
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
 
+  async function loadCertificate(orgId: string, certId: string) {
+    try {
+      const apiBase = process.env.NEXT_PUBLIC_API_URL || '';
+      const res = await fetch(`${apiBase}/api/v1/organizations/${orgId}/student/certificates/${certId}`, {
+        credentials: 'include',
+      });
+      if (!res.ok) {
+        let code: unknown = null;
+        try {
+          code = (await res.json())?.error;
+        } catch {
+          code = null;
+        }
+        setError(code === 'CERTIFICATE_NOT_FOUND' ? 'Certificate not found.' : 'Could not load this certificate.');
+        return;
+      }
+      const body = await res.json();
+      setCertificate(body.data ?? null);
+    } catch {
+      setError('Could not reach the server. Please try again.');
+    }
+  }
+
   useEffect(() => {
     let active = true;
 
@@ -94,29 +117,6 @@ export default function StudentCertificateViewPage() {
       active = false;
     };
   }, [certificateId]);
-
-  async function loadCertificate(orgId: string, certId: string) {
-    try {
-      const apiBase = process.env.NEXT_PUBLIC_API_URL || '';
-      const res = await fetch(`${apiBase}/api/v1/organizations/${orgId}/student/certificates/${certId}`, {
-        credentials: 'include',
-      });
-      if (!res.ok) {
-        let code: unknown = null;
-        try {
-          code = (await res.json())?.error;
-        } catch {
-          code = null;
-        }
-        setError(code === 'CERTIFICATE_NOT_FOUND' ? 'Certificate not found.' : 'Could not load this certificate.');
-        return;
-      }
-      const body = await res.json();
-      setCertificate(body.data ?? null);
-    } catch {
-      setError('Could not reach the server. Please try again.');
-    }
-  }
 
   async function copyUrl() {
     if (!certificate) return;

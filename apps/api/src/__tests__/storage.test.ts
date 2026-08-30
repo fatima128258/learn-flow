@@ -26,6 +26,7 @@ import {
   isAllowedMediaType,
   isAllowedThumbnailType,
   extensionForContentType,
+  hasUnsafeExtension,
   MEDIA_MAX_SIZE_BYTES,
 } from '../storage/mediaPolicy';
 import { MinioStorageProvider } from '../storage/minioProvider';
@@ -103,6 +104,26 @@ describe('mediaPolicy', () => {
 
   it('enforces a maximum upload size', () => {
     expect(MEDIA_MAX_SIZE_BYTES).toBe(25 * 1024 * 1024);
+  });
+
+  it('no longer treats application/octet-stream as an allowed upload type', () => {
+    expect(isAllowedMediaType('application/octet-stream')).toBe(false);
+  });
+
+  it('flags executable and script extensions regardless of MIME type', () => {
+    expect(hasUnsafeExtension('calc.exe')).toBe(true);
+    expect(hasUnsafeExtension('shell.php')).toBe(true);
+    expect(hasUnsafeExtension('run.sh')).toBe(true);
+    expect(hasUnsafeExtension('payload.bat')).toBe(true);
+    expect(hasUnsafeExtension('evil.svg')).toBe(true);
+    expect(hasUnsafeExtension('dataset.json')).toBe(false);
+  });
+
+  it('flags unsafe extensions case-insensitively and when nested in the name', () => {
+    expect(hasUnsafeExtension('PAYLOAD.EXE')).toBe(true);
+    expect(hasUnsafeExtension('notes.tar.php')).toBe(true);
+    expect(hasUnsafeExtension('notes.pdf')).toBe(false);
+    expect(hasUnsafeExtension('no-extension')).toBe(false);
   });
 });
 

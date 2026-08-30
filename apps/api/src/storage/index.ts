@@ -42,6 +42,10 @@ export async function deleteObjects(keys: string[]): Promise<void> {
   return getProvider().deleteObjects(keys);
 }
 
+export async function storagePing(): Promise<void> {
+  return getProvider().ping();
+}
+
 export function storageBucket(): string {
   return getProvider().bucket;
 }
