@@ -11,6 +11,9 @@ import {
   Input,
   LinkButton,
 } from '@/components/ui';
+import { DashboardLayout } from '@/components/layout/DashboardLayout';
+import { studentNav } from '@/features/student/nav';
+import { PageHeader } from '@/components/dashboard';
 
 type MeResponse = {
   user?: {
@@ -120,18 +123,19 @@ export default function StudentSearchPage() {
   }
 
   return (
-    <main className="min-h-screen bg-neutral-50 p-8">
-      <div className="mx-auto max-w-5xl">
-        <div className="mb-4 flex items-center gap-2 text-sm">
-          <Link href="/dashboard/student" className="text-primary-600 hover:text-primary-700">My Courses</Link>
-          <span className="text-neutral-400">/</span>
-          <span className="text-neutral-600">Search Courses</span>
-        </div>
-
-        <div className="mb-6">
-          <p className="text-sm font-medium uppercase tracking-wide text-primary-600">Course Catalog</p>
-          <h1 className="mt-1 text-2xl font-bold text-neutral-900">Search Courses</h1>
-        </div>
+    <DashboardLayout navLabel="Student" items={studentNav}>
+      <div className="mx-auto max-w-6xl">
+        <PageHeader
+          subtitle="Course Catalog"
+          title="Search Courses"
+          breadcrumbs={
+            <div className="flex items-center gap-2 text-sm">
+              <Link href="/dashboard/student" className="text-primary-600 hover:text-primary-700">My Courses</Link>
+              <span className="text-neutral-400">/</span>
+              <span className="text-neutral-600">Search Courses</span>
+            </div>
+          }
+        />
 
         <form onSubmit={runSearch} className="mb-8 flex flex-col gap-3 sm:flex-row sm:items-end">
           <div className="flex-1">
@@ -205,6 +209,6 @@ export default function StudentSearchPage() {
           </>
         )}
       </div>
-    </main>
+    </DashboardLayout>
   );
 }

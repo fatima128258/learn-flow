@@ -3,6 +3,7 @@
 import { useCurrentUser } from '@/features/auth/useCurrentUser';
 import { Badge, Button, Card, CardSkeleton, ErrorState } from '@/components/ui';
 import { getPostLoginRedirect } from '@/features/auth/postLoginRedirect';
+import { PageHeader, UserAvatar } from '@/components/dashboard';
 
 const roleBadgeVariant = (role: string | null | undefined) => {
   if (role === 'PLATFORM_ADMIN') return 'primary' as const;
@@ -62,39 +63,35 @@ export default function ProfilePage() {
   return (
     <main className="min-h-screen bg-neutral-50 p-8">
       <div className="mx-auto max-w-2xl">
-        <div className="mb-6">
-          <Button variant="ghost" onClick={() => { window.location.href = dashboardHref; }}>
-            ← Back to dashboard
-          </Button>
-        </div>
+        <PageHeader
+          subtitle="Profile"
+          title="Your account"
+          actions={
+            <Button variant="ghost" onClick={() => { window.location.href = dashboardHref; }}>
+              ← Back to dashboard
+            </Button>
+          }
+        />
 
         <div className="rounded-2xl border border-neutral-200 bg-white shadow-sm">
-          <div className="border-b border-neutral-200 p-6">
-            <p className="text-sm font-medium uppercase tracking-wide text-primary-600">Profile</p>
-            <h1 className="mt-2 text-3xl font-bold text-neutral-900">Your account</h1>
+          <div className="flex flex-wrap items-center gap-4 border-b border-neutral-200 p-6">
+            <UserAvatar name={user.name} size="lg" />
+            <div className="min-w-0">
+              <h2 className="text-lg font-semibold text-neutral-900">{user.name ?? '—'}</h2>
+              <div className="mt-1 flex flex-wrap items-center gap-2">
+                <Badge variant={roleBadgeVariant(user.role)} size="sm">
+                  {user.role ?? 'UNASSIGNED'}
+                </Badge>
+                <Badge variant={user.emailVerified ? 'success' : 'warning'} size="sm">
+                  {user.emailVerified ? 'Email verified' : 'Email not verified'}
+                </Badge>
+              </div>
+            </div>
           </div>
           <dl className="divide-y divide-neutral-200 px-6">
             <div className="grid gap-1 py-4 sm:grid-cols-3">
-              <dt className="text-sm font-medium text-neutral-500">Name</dt>
-              <dd className="text-sm text-neutral-900 sm:col-span-2">{user.name ?? '—'}</dd>
-            </div>
-            <div className="grid gap-1 py-4 sm:grid-cols-3">
               <dt className="text-sm font-medium text-neutral-500">Email</dt>
               <dd className="text-sm text-neutral-900 sm:col-span-2">{user.email}</dd>
-            </div>
-            <div className="grid gap-1 py-4 sm:grid-cols-3">
-              <dt className="text-sm font-medium text-neutral-500">Role</dt>
-              <dd className="sm:col-span-2">
-                <Badge variant={roleBadgeVariant(user.role)} size="sm">{user.role ?? 'UNASSIGNED'}</Badge>
-              </dd>
-            </div>
-            <div className="grid gap-1 py-4 sm:grid-cols-3">
-              <dt className="text-sm font-medium text-neutral-500">Email verified</dt>
-              <dd className="sm:col-span-2">
-                <Badge variant={user.emailVerified ? 'success' : 'warning'} size="sm">
-                  {user.emailVerified ? 'Yes' : 'No'}
-                </Badge>
-              </dd>
             </div>
             <div className="grid gap-1 py-4 sm:grid-cols-3">
               <dt className="text-sm font-medium text-neutral-500">Member since</dt>

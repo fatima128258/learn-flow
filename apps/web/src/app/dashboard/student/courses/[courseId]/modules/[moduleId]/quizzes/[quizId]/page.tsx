@@ -10,6 +10,9 @@ import {
   ErrorState,
   Spinner,
 } from '@/components/ui';
+import { DashboardLayout } from '@/components/layout/DashboardLayout';
+import { studentNav } from '@/features/student/nav';
+import { PageHeader } from '@/components/dashboard';
 import { getQuizErrorMessage } from '@/features/course/quizErrors';
 
 type MeResponse = {
@@ -187,12 +190,12 @@ export default function StudentQuizTakingPage() {
 
   if (loading) {
     return (
-      <main className="min-h-screen bg-neutral-50 p-8">
+      <DashboardLayout navLabel="Student" items={studentNav}>
         <div className="mx-auto flex max-w-5xl items-center gap-3 text-neutral-700">
           <Spinner size="lg" label="Loading quiz..." />
           <span>Loading quiz...</span>
         </div>
-      </main>
+      </DashboardLayout>
     );
   }
 
@@ -201,25 +204,31 @@ export default function StudentQuizTakingPage() {
   const totalQuestions = quiz?.questions.length ?? 0;
 
   return (
-    <main className="min-h-screen bg-neutral-50 p-8">
-      <div className="mx-auto max-w-4xl">
-        <div className="mb-4 flex items-center gap-2 text-sm">
-          <Link href="/dashboard/student" className="text-primary-600 hover:text-primary-700">My Courses</Link>
-          <span className="text-neutral-400">/</span>
-          {quiz && (
-            <>
-              <Link href={`/dashboard/student/courses/${courseId}`} className="text-primary-600 hover:text-primary-700">
-                Course
-              </Link>
+    <DashboardLayout navLabel="Student" items={studentNav}>
+      <div className="mx-auto max-w-6xl">
+        <PageHeader
+          subtitle="Student"
+          title="Quiz"
+          breadcrumbs={
+            <div className="flex items-center gap-2 text-sm">
+              <Link href="/dashboard/student" className="text-primary-600 hover:text-primary-700">My Courses</Link>
               <span className="text-neutral-400">/</span>
-              <Link href={`/dashboard/student/courses/${courseId}/modules/${moduleId}`} className="text-primary-600 hover:text-primary-700">
-                Module
-              </Link>
-              <span className="text-neutral-400">/</span>
-            </>
-          )}
-          <span className="text-neutral-600">{quiz?.title ?? 'Quiz'}</span>
-        </div>
+              {quiz && (
+                <>
+                  <Link href={`/dashboard/student/courses/${courseId}`} className="text-primary-600 hover:text-primary-700">
+                    Course
+                  </Link>
+                  <span className="text-neutral-400">/</span>
+                  <Link href={`/dashboard/student/courses/${courseId}/modules/${moduleId}`} className="text-primary-600 hover:text-primary-700">
+                    Module
+                  </Link>
+                  <span className="text-neutral-400">/</span>
+                </>
+              )}
+              <span className="text-neutral-600">{quiz?.title ?? 'Quiz'}</span>
+            </div>
+          }
+        />
 
         {error && !result ? (
           <div className="mb-4">
@@ -391,6 +400,6 @@ export default function StudentQuizTakingPage() {
           </>
         ) : null}
       </div>
-    </main>
+    </DashboardLayout>
   );
 }

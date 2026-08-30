@@ -1,10 +1,9 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import {
   Badge,
-  Button,
   EmptyState,
   EmptyStateIcons,
   ErrorState,
@@ -14,6 +13,15 @@ import {
 import { DashboardLayout, NavIcons, type NavItem } from '@/components/layout/DashboardLayout';
 import { useCurrentUser } from '@/features/auth/useCurrentUser';
 import { getJson } from '@/lib/api';
+import {
+  PageHeader,
+  StatCard,
+  StatCardSkeleton,
+  TableCard,
+  tableHeadClass,
+  tableCellClass,
+  tableRowHoverClass,
+} from '@/components/dashboard';
 
 const instructorNav: NavItem[] = [
   { href: '/dashboard/instructor', label: 'Dashboard', icon: NavIcons.dashboard },
@@ -27,6 +35,24 @@ const statusBadgeVariant = (status: string) => {
   if (status === 'ARCHIVED') return 'default' as const;
   return 'warning' as const;
 };
+
+const CourseIcon = (
+  <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+    <path strokeLinecap="round" strokeLinejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.9-4.5-.4" />
+  </svg>
+);
+
+const PublishIcon = (
+  <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+    <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+  </svg>
+);
+
+const DraftIcon = (
+  <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+    <path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+  </svg>
+);
 
 export default function InstructorDashboardPage() {
   const { data: user, isLoading: userLoading } = useCurrentUser();
@@ -59,32 +85,35 @@ export default function InstructorDashboardPage() {
               ? '/dashboard/student'
               : '/';
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user, userLoading]);
 
   const publishedCount = (courses ?? []).filter((c) => c.status === 'PUBLISHED').length;
+  const draftCount = (courses?.length ?? 0) - publishedCount;
 
   return (
     <DashboardLayout navLabel="Instructor" items={instructorNav}>
-      <div className="mx-auto max-w-5xl">
-        <div className="mb-8 rounded-2xl border border-neutral-200 bg-white p-6 shadow-sm">
-          <div className="flex flex-wrap items-center justify-between gap-4">
-            <div>
-              <p className="text-sm font-medium uppercase tracking-wide text-primary-600">Instructor</p>
-              <h1 className="mt-2 text-3xl font-bold text-neutral-900">Welcome, {user?.name ?? 'Instructor'}</h1>
-              <p className="mt-2 text-sm text-neutral-600">
-                Create and publish courses, then manage modules, lessons, and quizzes for your students.
-              </p>
-            </div>
+      <div className="mx-auto max-w-6xl">
+        <PageHeader
+          subtitle="Instructor"
+          title={`Welcome, ${user?.name ?? 'Instructor'}`}
+          description="Create and publish courses, then manage modules, lessons, and quizzes for your students."
+          actions={
             <LinkButton href="/dashboard/organization/courses/new">Create Course</LinkButton>
-          </div>
-        </div>
+          }
+        />
 
         {isLoading ? (
-          <div className="flex items-center gap-3 text-neutral-700">
-            <Spinner size="lg" label="Loading your courses..." />
-            <span>Loading your courses...</span>
-          </div>
+          <>
+            <div className="mb-8 grid grid-cols-1 gap-4 sm:grid-cols-3">
+              <StatCardSkeleton />
+              <StatCardSkeleton />
+              <StatCardSkeleton />
+            </div>
+            <div className="flex items-center gap-3 text-neutral-700">
+              <Spinner size="lg" label="Loading your courses..." />
+              <span>Loading your courses...</span>
+            </div>
+          </>
         ) : isError ? (
           <div className="rounded-2xl border border-neutral-200 bg-white shadow-sm">
             <ErrorState
@@ -104,50 +133,61 @@ export default function InstructorDashboardPage() {
           </div>
         ) : (
           <>
-            <div className="mb-8 grid gap-6 md:grid-cols-3">
-              <div className="rounded-2xl border border-neutral-200 bg-white p-6 shadow-sm">
-                <p className="text-sm text-neutral-500">Total courses</p>
-                <p className="mt-3 text-3xl font-bold text-neutral-900">{courses?.length ?? 0}</p>
-              </div>
-              <div className="rounded-2xl border border-neutral-200 bg-white p-6 shadow-sm">
-                <p className="text-sm text-neutral-500">Published</p>
-                <p className="mt-3 text-3xl font-bold text-emerald-600">{publishedCount}</p>
-              </div>
-              <div className="rounded-2xl border border-neutral-200 bg-white p-6 shadow-sm">
-                <p className="text-sm text-neutral-500">In progress</p>
-                <p className="mt-3 text-3xl font-bold text-warning-600">
-                  {(courses?.length ?? 0) - publishedCount}
-                </p>
-              </div>
+            <div className="mb-8 grid grid-cols-1 gap-4 sm:grid-cols-3">
+              <StatCard
+                label="Total courses"
+                value={courses?.length ?? 0}
+                hint="Everything you're teaching"
+                icon={CourseIcon}
+                tone="primary"
+              />
+              <StatCard
+                label="Published"
+                value={publishedCount}
+                hint="Live and visible to students"
+                icon={PublishIcon}
+                tone="success"
+              />
+              <StatCard
+                label="In progress"
+                value={draftCount}
+                hint="Draft or in review"
+                icon={DraftIcon}
+                tone="warning"
+              />
             </div>
 
-            <div className="overflow-hidden rounded-2xl border border-neutral-200 bg-white shadow-sm">
-              <div className="flex items-center justify-between border-b border-neutral-200 px-6 py-4">
-                <h2 className="text-lg font-semibold text-neutral-900">My Courses</h2>
-                <p className="text-sm text-neutral-600">{courses?.length} course{courses?.length !== 1 ? 's' : ''}</p>
-              </div>
+            <TableCard
+              title="My Courses"
+              description={`${courses?.length ?? 0} course${(courses?.length ?? 0) !== 1 ? 's' : ''}`}
+              action={
+                <LinkButton href="/dashboard/organization/courses/new" size="sm">
+                  New Course
+                </LinkButton>
+              }
+            >
               <table className="min-w-full divide-y divide-neutral-200">
                 <thead className="bg-neutral-50">
                   <tr>
-                    <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-neutral-500">Title</th>
-                    <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-neutral-500">Difficulty</th>
-                    <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-neutral-500">Status</th>
-                    <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-neutral-500">Created</th>
-                    <th className="px-6 py-3 text-right text-xs font-semibold uppercase tracking-wide text-neutral-500">Actions</th>
+                    <th className={tableHeadClass}>Title</th>
+                    <th className={tableHeadClass}>Difficulty</th>
+                    <th className={tableHeadClass}>Status</th>
+                    <th className={tableHeadClass}>Created</th>
+                    <th className={`${tableHeadClass} text-right`}>Actions</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-neutral-200">
+                <tbody className="divide-y divide-neutral-100">
                   {courses?.map((course) => (
-                    <tr key={course.id} className="hover:bg-neutral-50">
-                      <td className="px-6 py-4 text-sm font-medium text-neutral-900">{course.title}</td>
-                      <td className="px-6 py-4 text-sm text-neutral-600">{course.difficulty ?? '—'}</td>
-                      <td className="px-6 py-4">
+                    <tr key={course.id} className={tableRowHoverClass}>
+                      <td className={`${tableCellClass} font-medium text-neutral-900`}>{course.title}</td>
+                      <td className={`${tableCellClass} text-neutral-600`}>{course.difficulty ?? '—'}</td>
+                      <td className={tableCellClass}>
                         <Badge variant={statusBadgeVariant(course.status)} size="sm">{course.status}</Badge>
                       </td>
-                      <td className="px-6 py-4 text-sm text-neutral-700">
+                      <td className={`${tableCellClass} text-neutral-600`}>
                         {new Date(course.createdAt).toLocaleDateString()}
                       </td>
-                      <td className="px-6 py-4 text-right">
+                      <td className={`${tableCellClass} text-right`}>
                         <LinkButton href={`/dashboard/organization/courses/${course.id}`} size="sm" variant="outline">
                           Manage
                         </LinkButton>
@@ -156,7 +196,7 @@ export default function InstructorDashboardPage() {
                   ))}
                 </tbody>
               </table>
-            </div>
+            </TableCard>
           </>
         )}
       </div>

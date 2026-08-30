@@ -19,6 +19,15 @@ import { getCreateInstructorErrorMessage } from '../../../features/orgAdmin/crea
 import { LinkButton } from '../../../components/ui/LinkButton';
 import { DashboardLayout } from '../../../components/layout/DashboardLayout';
 import { orgAdminNav } from '../../../features/organizationAdmin/nav';
+import {
+  PageHeader,
+  StatCard,
+  TableCard,
+  UserAvatar,
+  tableHeadClass,
+  tableCellClass,
+  tableRowHoverClass,
+} from '../../../components/dashboard';
 
 type OrganizationInfo = {
   id: string;
@@ -69,6 +78,30 @@ function roleBadgeVariant(role: MemberRole) {
   if (role === 'INSTRUCTOR') return 'warning' as const;
   return 'default' as const;
 }
+
+const MembersIcon = (
+  <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+    <path strokeLinecap="round" strokeLinejoin="round" d="M17 20h5v-2a3 3 0 00-4.974-2.337M14 20H2v-2a4 4 0 018-2.87M11 4a4 4 0 000 8M15.5 12a3.5 3.5 0 000-7M15 20h7v-2a3 3 0 00-2.97-3" />
+  </svg>
+);
+
+const AdminsIcon = (
+  <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+    <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197" />
+  </svg>
+);
+
+const InstructorsIcon = (
+  <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+    <path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+  </svg>
+);
+
+const StudentsIcon = (
+  <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+    <path strokeLinecap="round" strokeLinejoin="round" d="M12 14l9-5-9-5-9 5 9 5zm0 0l9-5v6m-9 5l-6-3.333V10m12 0v6" />
+  </svg>
+);
 
 export default function OrganizationDashboardPage() {
   const [user, setUser] = useState<{ name?: string | null; email?: string } | null>(null);
@@ -249,7 +282,6 @@ export default function OrganizationDashboardPage() {
     return () => {
       active = false;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   if (loading && summary === null && !error) {
@@ -265,39 +297,39 @@ export default function OrganizationDashboardPage() {
 
   return (
     <DashboardLayout navLabel="Organization Admin" items={orgAdminNav}>
-      <div className="mx-auto max-w-5xl">
-        <div className="mb-8 rounded-2xl border border-neutral-200 bg-white p-6 shadow-sm">
-          <p className="text-sm font-medium uppercase tracking-wide text-primary-600">Organization Admin</p>
-          {summary ? (
-            <>
-              <h1 className="mt-2 text-3xl font-bold text-neutral-900">{summary.organization.name}</h1>
-              <div className="mt-3 flex flex-wrap items-center gap-3 text-neutral-700">
-                <Badge variant={summary.organization.status === 'ACTIVE' ? 'success' : 'error'} size="sm">
-                  {summary.organization.status}
-                </Badge>
-                <span className="text-sm text-neutral-500">{summary.organization.slug}</span>
-                <span className="text-sm text-neutral-500">
-                  Created {new Date(summary.organization.createdAt).toLocaleDateString()}
-                </span>
-              </div>
-            </>
-          ) : (
-            <h1 className="mt-2 text-3xl font-bold text-neutral-900">Organization</h1>
-          )}
-          {user ? (
-            <div className="mt-4 space-y-1 text-neutral-700">
-              <p><span className="font-semibold">Name:</span> {user.name}</p>
-              <p><span className="font-semibold">Email:</span> {user.email}</p>
-            </div>
-          ) : null}
-          <div className="mt-4 flex items-center gap-3">
-            <LinkButton href="/dashboard/organization/courses" size="sm">
-              My Courses
-            </LinkButton>
-            <LinkButton href="/dashboard/organization/courses/new" size="sm">
-              Create Course
-            </LinkButton>
-          </div>
+      <div className="mx-auto max-w-6xl">
+        <div className="mb-8">
+          <PageHeader
+            subtitle="Organization Admin"
+            title={summary ? summary.organization.name : 'Organization'}
+            description={
+              summary
+                ? `${summary.organization.slug} · Created ${new Date(summary.organization.createdAt).toLocaleDateString()}`
+                : user
+                  ? `Signed in as ${user.name} · ${user.email}`
+                  : 'Organization overview and membership'
+            }
+            badges={
+              summary
+                ? [
+                    {
+                      label: summary.organization.status,
+                      variant: summary.organization.status === 'ACTIVE' ? 'success' : 'error',
+                    },
+                  ]
+                : undefined
+            }
+            actions={
+              <>
+                <LinkButton href="/dashboard/organization/courses" size="sm" variant="outline">
+                  My Courses
+                </LinkButton>
+                <LinkButton href="/dashboard/organization/courses/new" size="sm">
+                  Create Course
+                </LinkButton>
+              </>
+            }
+          />
         </div>
 
         {successMessage ? (
@@ -318,37 +350,48 @@ export default function OrganizationDashboardPage() {
           </div>
         ) : summary ? (
           <>
-            <div className="mb-8 grid gap-6 md:grid-cols-4">
-              <div className="rounded-2xl border border-neutral-200 bg-white p-6 shadow-sm">
-                <p className="text-sm text-neutral-500">Total members</p>
-                <p className="mt-3 text-3xl font-bold text-neutral-900">{summary.users.total}</p>
-              </div>
-              <div className="rounded-2xl border border-neutral-200 bg-white p-6 shadow-sm">
-                <p className="text-sm text-neutral-500">Organization admins</p>
-                <p className="mt-3 text-3xl font-bold text-neutral-900">{summary.users.organizationAdmins}</p>
-              </div>
-              <div className="rounded-2xl border border-neutral-200 bg-white p-6 shadow-sm">
-                <p className="text-sm text-neutral-500">Instructors</p>
-                <p className="mt-3 text-3xl font-bold text-neutral-900">{summary.users.instructors}</p>
-              </div>
-              <div className="rounded-2xl border border-neutral-200 bg-white p-6 shadow-sm">
-                <p className="text-sm text-neutral-500">Students</p>
-                <p className="mt-3 text-3xl font-bold text-neutral-900">{summary.users.students}</p>
-              </div>
+            <div className="mb-8 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+              <StatCard
+                label="Total members"
+                value={summary.users.total}
+                icon={MembersIcon}
+                tone="primary"
+                hint="Everyone in your organization"
+              />
+              <StatCard
+                label="Organization admins"
+                value={summary.users.organizationAdmins}
+                icon={AdminsIcon}
+                tone="neutral"
+                hint="Tenant-level administrators"
+              />
+              <StatCard
+                label="Instructors"
+                value={summary.users.instructors}
+                icon={InstructorsIcon}
+                tone="warning"
+                hint="Course creators"
+              />
+              <StatCard
+                label="Students"
+                value={summary.users.students}
+                icon={StudentsIcon}
+                tone="success"
+                hint="Active learners"
+              />
             </div>
 
-            <div className="overflow-hidden rounded-2xl border border-neutral-200 bg-white shadow-sm">
-              <div className="flex items-center justify-between border-b border-neutral-200 px-6 py-4">
-                <h2 className="text-lg font-semibold text-neutral-900">Members</h2>
-                <div className="flex items-center gap-4">
-                  <p className="text-sm text-neutral-600">
-                    {membersTotal !== null ? `${membersTotal} member${membersTotal === 1 ? '' : 's'}` : ''}
-                  </p>
-                  <Button size="sm" onClick={() => setShowInstructorModal(true)}>
-                    Add Instructor
-                  </Button>
-                </div>
-              </div>
+            <TableCard
+              title="Members"
+              description={
+                membersTotal !== null ? `${membersTotal} member${membersTotal === 1 ? '' : 's'}` : undefined
+              }
+              action={
+                <Button size="sm" onClick={() => setShowInstructorModal(true)}>
+                  Add Instructor
+                </Button>
+              }
+            >
               {members && members.length === 0 ? (
                 <EmptyState
                   icon={EmptyStateIcons.NoData}
@@ -359,23 +402,28 @@ export default function OrganizationDashboardPage() {
                 <table className="min-w-full divide-y divide-neutral-200">
                   <thead className="bg-neutral-50">
                     <tr>
-                      <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-neutral-500">Name</th>
-                      <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-neutral-500">Email</th>
-                      <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-neutral-500">Role</th>
-                      <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-neutral-500">Created</th>
+                      <th className={tableHeadClass}>Name</th>
+                      <th className={tableHeadClass}>Email</th>
+                      <th className={tableHeadClass}>Role</th>
+                      <th className={tableHeadClass}>Created</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-neutral-200">
+                  <tbody className="divide-y divide-neutral-100">
                     {(members ?? []).map((member) => (
-                      <tr key={member.id} className="hover:bg-neutral-50">
-                        <td className="px-6 py-4 text-sm font-medium text-neutral-900">{member.name ?? '—'}</td>
-                        <td className="px-6 py-4 text-sm text-neutral-700">{member.email}</td>
-                        <td className="px-6 py-4">
+                      <tr key={member.id} className={tableRowHoverClass}>
+                        <td className={tableCellClass}>
+                          <span className="flex items-center gap-3">
+                            <UserAvatar name={member.name} size="sm" />
+                            <span className="font-medium text-neutral-900">{member.name ?? '—'}</span>
+                          </span>
+                        </td>
+                        <td className={`${tableCellClass} text-neutral-700`}>{member.email}</td>
+                        <td className={tableCellClass}>
                           <Badge variant={roleBadgeVariant(member.role)} size="sm">
                             {member.role}
                           </Badge>
                         </td>
-                        <td className="px-6 py-4 text-sm text-neutral-700">
+                        <td className={`${tableCellClass} text-neutral-700`}>
                           {new Date(member.createdAt).toLocaleDateString()}
                         </td>
                       </tr>
@@ -383,7 +431,7 @@ export default function OrganizationDashboardPage() {
                   </tbody>
                 </table>
               )}
-            </div>
+            </TableCard>
           </>
         ) : null}
       </div>

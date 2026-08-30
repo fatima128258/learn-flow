@@ -5,6 +5,7 @@ import { Badge, Card, ErrorState, Skeleton } from '@/components/ui';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { orgAdminNav } from '@/features/organizationAdmin/nav';
 import { useCurrentUser } from '@/features/auth/useCurrentUser';
+import { PageHeader, SectionHeader } from '@/components/dashboard';
 
 type OrganizationInfo = {
   id: string;
@@ -49,16 +50,26 @@ export default function OrgSettingsPage() {
     }
 
     void load();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user, userLoading]);
 
   return (
     <DashboardLayout navLabel="Organization Admin" items={orgAdminNav}>
       <div className="mx-auto max-w-4xl">
-        <div className="mb-8 rounded-2xl border border-neutral-200 bg-white p-6 shadow-sm">
-          <p className="text-sm font-medium uppercase tracking-wide text-primary-600">Organization Admin</p>
-          <h1 className="mt-2 text-3xl font-bold text-neutral-900">Settings</h1>
-        </div>
+        <PageHeader
+          subtitle="Organization Admin"
+          title="Settings"
+          description="Organization administration and preferences."
+          badges={
+            organization
+              ? [
+                  {
+                    label: organization.status,
+                    variant: organization.status === 'ACTIVE' ? 'success' : 'error',
+                  },
+                ]
+              : undefined
+          }
+        />
 
         {loading ? (
           <Card>
@@ -76,7 +87,7 @@ export default function OrgSettingsPage() {
           <>
             <div className="mb-8 rounded-2xl border border-neutral-200 bg-white shadow-sm">
               <div className="border-b border-neutral-200 px-6 py-4">
-                <h2 className="text-lg font-semibold text-neutral-900">Organization</h2>
+                <SectionHeader title="Organization" />
               </div>
               <dl className="divide-y divide-neutral-200 px-6">
                 <div className="grid gap-1 py-4 sm:grid-cols-3">
@@ -106,7 +117,7 @@ export default function OrgSettingsPage() {
 
             <div className="rounded-2xl border border-neutral-200 bg-white shadow-sm">
               <div className="border-b border-neutral-200 px-6 py-4">
-                <h2 className="text-lg font-semibold text-neutral-900">Administration</h2>
+                <SectionHeader title="Administration" />
               </div>
               <ul className="divide-y divide-neutral-200 px-6">
                 <li className="py-4 text-sm text-neutral-700">

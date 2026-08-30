@@ -5,6 +5,13 @@ import { Badge, EmptyState, EmptyStateIcons, Spinner } from '../../../../compone
 import { FormError } from '../../../../components/forms/FormError';
 import { LinkButton } from '../../../../components/ui/LinkButton';
 import { getListCoursesErrorMessage } from '../../../../features/course/listCoursesErrors';
+import {
+  PageHeader,
+  TableCard,
+  tableHeadClass,
+  tableCellClass,
+  tableRowHoverClass,
+} from '../../../../components/dashboard';
 
 type MeResponse = {
   user?: {
@@ -138,88 +145,86 @@ export default function MyCoursesPage() {
   return (
     <main className="min-h-screen bg-neutral-50 p-8">
       <div className="mx-auto max-w-5xl">
-        <div className="mb-4 flex items-center justify-between">
-          <p className="text-sm font-medium uppercase tracking-wide text-primary-600">My Courses</p>
-          <LinkButton href="/dashboard/organization" variant="ghost" size="sm">
-            Back to dashboard
-          </LinkButton>
-        </div>
-
-        <div className="rounded-2xl border border-neutral-200 bg-white p-6 shadow-sm">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <div>
-              <h1 className="text-2xl font-bold text-neutral-900">Courses</h1>
-              <p className="mt-1 text-sm text-neutral-500">
-                Courses belonging to your organization.
-              </p>
-            </div>
+        <PageHeader
+          subtitle="My Courses"
+          title="Courses"
+          description="Courses belonging to your organization."
+          breadcrumbs={
+            <LinkButton href="/dashboard/organization" variant="ghost" size="sm">
+              Back to dashboard
+            </LinkButton>
+          }
+          actions={
             <LinkButton href="/dashboard/organization/courses/new" size="sm">
               Create Course
             </LinkButton>
+          }
+        />
+
+        {error ? (
+          <div className="mb-6">
+            <FormError message={error} />
           </div>
+        ) : null}
 
-          {error ? (
-            <div className="mt-6">
-              <FormError message={error} />
-            </div>
-          ) : null}
-
-          {loading ? (
-            <div className="mt-8 flex items-center gap-3 text-neutral-700">
-              <Spinner size="md" label="Loading courses..." />
-              <span>Loading courses...</span>
-            </div>
-          ) : courses !== null && courses.length === 0 ? (
-            <div className="mt-6">
-              <EmptyState
-                icon={EmptyStateIcons.NoCourses}
-                title="No courses yet"
-                description="Create your first course to see it listed here."
-                action={{
-                  label: 'Create Course',
-                  onClick: () => {
-                    window.location.href = '/dashboard/organization/courses/new';
-                  },
-                  variant: 'primary',
-                  size: 'sm',
-                }}
-              />
-            </div>
-          ) : courses !== null && courses.length > 0 ? (
-            <div className="mt-6 overflow-hidden rounded-2xl border border-neutral-200">
-              <table className="min-w-full divide-y divide-neutral-200">
-                <thead className="bg-neutral-50">
-                  <tr>
-                    <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-neutral-500">Title</th>
-                    <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-neutral-500">Slug</th>
-                    <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-neutral-500">Status</th>
-                    <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-neutral-500">Difficulty</th>
-                    <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-neutral-500">Created</th>
+        {loading ? (
+          <div className="flex items-center gap-3 text-neutral-700">
+            <Spinner size="md" label="Loading courses..." />
+            <span>Loading courses...</span>
+          </div>
+        ) : courses !== null && courses.length === 0 ? (
+          <TableCard title="Courses" description="No courses yet">
+            <EmptyState
+              icon={EmptyStateIcons.NoCourses}
+              title="No courses yet"
+              description="Create your first course to see it listed here."
+              action={{
+                label: 'Create Course',
+                onClick: () => {
+                  window.location.href = '/dashboard/organization/courses/new';
+                },
+                variant: 'primary',
+                size: 'sm',
+              }}
+            />
+          </TableCard>
+        ) : courses !== null && courses.length > 0 ? (
+          <TableCard
+            title="Courses"
+            description={`${courses.length} course${courses.length === 1 ? '' : 's'}`}
+          >
+            <table className="min-w-full divide-y divide-neutral-200">
+              <thead className="bg-neutral-50">
+                <tr>
+                  <th className={tableHeadClass}>Title</th>
+                  <th className={tableHeadClass}>Slug</th>
+                  <th className={tableHeadClass}>Status</th>
+                  <th className={tableHeadClass}>Difficulty</th>
+                  <th className={tableHeadClass}>Created</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-neutral-200">
+                {courses.map((course) => (
+                  <tr key={course.id} className={tableRowHoverClass}>
+                    <td className={`${tableCellClass} font-medium text-primary-600 hover:text-primary-700`}>
+                      <a href={`/dashboard/organization/courses/${course.id}`}>{course.title}</a>
+                    </td>
+                    <td className={`${tableCellClass} text-neutral-700`}>{course.slug}</td>
+                    <td className={tableCellClass}>
+                      <Badge variant={statusBadgeVariant(course.status)} size="sm">
+                        {course.status}
+                      </Badge>
+                    </td>
+                    <td className={`${tableCellClass} text-neutral-700`}>{course.difficulty ?? '—'}</td>
+                    <td className={`${tableCellClass} text-neutral-700`}>
+                      {new Date(course.createdAt).toLocaleDateString()}
+                    </td>
                   </tr>
-                </thead>
-                <tbody className="divide-y divide-neutral-200 bg-white">
-                  {courses.map((course) => (
-                    <tr key={course.id} className="hover:bg-neutral-50">
-                      <td className="px-6 py-4 text-sm font-medium text-primary-600 hover:text-primary-700">
-                        <a href={`/dashboard/organization/courses/${course.id}`}>{course.title}</a>
-                      </td>
-                      <td className="px-6 py-4 text-sm text-neutral-700">{course.slug}</td>
-                      <td className="px-6 py-4">
-                        <Badge variant={statusBadgeVariant(course.status)} size="sm">
-                          {course.status}
-                        </Badge>
-                      </td>
-                      <td className="px-6 py-4 text-sm text-neutral-700">{course.difficulty ?? '—'}</td>
-                      <td className="px-6 py-4 text-sm text-neutral-700">
-                        {new Date(course.createdAt).toLocaleDateString()}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          ) : null}
-        </div>
+                ))}
+              </tbody>
+            </table>
+          </TableCard>
+        ) : null}
       </div>
     </main>
   );

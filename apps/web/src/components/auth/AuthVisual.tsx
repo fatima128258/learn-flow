@@ -1,5 +1,5 @@
 import React from 'react';
-import { Logo } from '../public/Logo';
+import { LearnFlowLogo } from '../public/LearnFlowLogo';
 
 const FEATURES = [
   'Structured courses and lessons',
@@ -34,7 +34,7 @@ export const AuthVisual: React.FC = () => {
       <div className="pointer-events-none absolute inset-0 bg-primary-800/40" aria-hidden="true" />
 
       <div className="relative flex items-center animate-slide-up">
-        <Logo href="/" tone="light" />
+        <LearnFlowLogo href="/" tone="light" />
       </div>
 
       <div className="relative my-10 animate-slide-up" style={{ animationDelay: '80ms' }}>

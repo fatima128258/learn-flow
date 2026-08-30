@@ -1,7 +1,9 @@
 'use client';
-import React from 'react';
+import React, { useState } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
+import { LearnFlowLogo } from '../public/LearnFlowLogo';
+import { ButtonSpinner } from '../ui/Spinner';
 
 export interface AdminSidebarItem {
   href: string;
@@ -63,8 +65,11 @@ export const AdminSidebar: React.FC = () => {
   const pathname = usePathname();
   const router = useRouter();
   const activeItem = getActiveItem(pathname);
+  const [loggingOut, setLoggingOut] = useState(false);
 
   async function handleLogout() {
+    if (loggingOut) return;
+    setLoggingOut(true);
     try {
       const apiBase = process.env.NEXT_PUBLIC_API_URL || '';
       await fetch(`${apiBase}/api/v1/auth/logout`, {
@@ -80,12 +85,7 @@ export const AdminSidebar: React.FC = () => {
   return (
     <aside className="fixed inset-y-0 left-0 z-40 hidden w-64 flex-col border-r border-neutral-200 bg-white lg:flex">
       <div className="flex h-16 items-center border-b border-neutral-200 px-6">
-        <Link href="/" className="flex items-center space-x-2" aria-label="LearnFlow Home">
-          <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-gradient-to-br from-primary-600 to-primary-800 shadow-sm">
-            <span className="text-lg font-bold text-white">L</span>
-          </span>
-          <span className="text-lg font-bold text-neutral-900">LearnFlow</span>
-        </Link>
+        <LearnFlowLogo href="/" />
       </div>
 
       <nav className="flex-1 space-y-1 overflow-y-auto px-4 py-6" aria-label="Platform Admin">
@@ -115,12 +115,16 @@ export const AdminSidebar: React.FC = () => {
       <div className="border-t border-neutral-200 px-4 py-4">
         <button
           onClick={handleLogout}
-          className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-neutral-600 transition-colors hover:bg-neutral-100"
+          disabled={loggingOut}
+          aria-busy={loggingOut}
+          className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-neutral-600 transition-colors hover:bg-neutral-100 disabled:cursor-not-allowed disabled:opacity-60"
         >
-          <svg className="h-5 w-5 flex-shrink-0" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a2 2 0 01-2 2H6a2 2 0 01-2-2V7a2 2 0 012-2h5a2 2 0 012 2v1" />
-          </svg>
-          <span>Log out</span>
+          {loggingOut ? <ButtonSpinner /> : (
+            <svg className="h-5 w-5 flex-shrink-0" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a2 2 0 01-2 2H6a2 2 0 01-2-2V7a2 2 0 012-2h5a2 2 0 012 2v1" />
+            </svg>
+          )}
+          <span>{loggingOut ? 'Logging out...' : 'Log out'}</span>
         </button>
       </div>
     </aside>

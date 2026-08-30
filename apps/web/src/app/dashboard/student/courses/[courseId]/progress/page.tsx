@@ -10,6 +10,9 @@ import {
   ErrorState,
   Spinner,
 } from '@/components/ui';
+import { DashboardLayout } from '@/components/layout/DashboardLayout';
+import { studentNav } from '@/features/student/nav';
+import { PageHeader } from '@/components/dashboard';
 
 type MeResponse = {
   user?: {
@@ -187,29 +190,42 @@ export default function StudentCourseProgressPage() {
 
   if (loading) {
     return (
-      <main className="min-h-screen bg-neutral-50 p-8">
+      <DashboardLayout navLabel="Student" items={studentNav}>
         <div className="mx-auto flex max-w-5xl items-center gap-3 text-neutral-700">
           <Spinner size="lg" label="Loading progress..." />
           <span>Loading progress...</span>
         </div>
-      </main>
+      </DashboardLayout>
     );
   }
 
   return (
-    <main className="min-h-screen bg-neutral-50 p-8">
-      <div className="mx-auto max-w-5xl">
-        <div className="mb-4 flex items-center gap-2 text-sm">
-          <Link href="/dashboard/student" className="text-primary-600 hover:text-primary-700">My Courses</Link>
-          <span className="text-neutral-400">/</span>
-          {progress && (
-            <Link href={`/dashboard/student/courses/${courseId}`} className="text-primary-600 hover:text-primary-700">
-              {progress.courseTitle}
-            </Link>
-          )}
-          <span className="text-neutral-400">/</span>
-          <span className="text-neutral-600">Progress</span>
-        </div>
+    <DashboardLayout navLabel="Student" items={studentNav}>
+      <div className="mx-auto max-w-6xl">
+        <PageHeader
+          subtitle="Course Progress"
+          title={progress?.courseTitle ?? 'Course Progress'}
+          breadcrumbs={
+            <div className="flex items-center gap-2 text-sm">
+              <Link href="/dashboard/student" className="text-primary-600 hover:text-primary-700">My Courses</Link>
+              <span className="text-neutral-400">/</span>
+              {progress && (
+                <Link href={`/dashboard/student/courses/${courseId}`} className="text-primary-600 hover:text-primary-700">
+                  {progress.courseTitle}
+                </Link>
+              )}
+              <span className="text-neutral-400">/</span>
+              <span className="text-neutral-600">Progress</span>
+            </div>
+          }
+          actions={
+            progress ? (
+              <Badge variant={progress.courseComplete ? 'success' : 'default'} size="sm">
+                {progress.courseComplete ? 'Completed' : 'In Progress'}
+              </Badge>
+            ) : undefined
+          }
+        />
 
         {error ? (
           <div className="rounded-2xl border border-neutral-200 bg-white shadow-sm">
@@ -222,16 +238,6 @@ export default function StudentCourseProgressPage() {
         ) : progress ? (
           <>
             <div className="mb-6 rounded-2xl border border-neutral-200 bg-white p-6 shadow-sm">
-              <div className="flex flex-wrap items-start justify-between gap-4">
-                <div>
-                  <p className="text-sm font-medium uppercase tracking-wide text-primary-600">Course Progress</p>
-                  <h1 className="mt-1 text-2xl font-bold text-neutral-900">{progress.courseTitle}</h1>
-                </div>
-                <Badge variant={progress.courseComplete ? 'success' : 'default'} size="sm">
-                  {progress.courseComplete ? 'Completed' : 'In Progress'}
-                </Badge>
-              </div>
-
               <div className="mt-6">
                 <div className="mb-2 flex items-center justify-between text-sm">
                   <span className="text-neutral-600">
@@ -348,6 +354,6 @@ export default function StudentCourseProgressPage() {
           </>
         ) : null}
       </div>
-    </main>
+    </DashboardLayout>
   );
 }

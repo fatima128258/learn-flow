@@ -1,11 +1,18 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Badge, EmptyState, EmptyStateIcons, ErrorState, Spinner } from '@/components/ui';
+import { EmptyState, EmptyStateIcons, ErrorState, Spinner } from '@/components/ui';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { orgAdminNav } from '@/features/organizationAdmin/nav';
 import { useCurrentUser } from '@/features/auth/useCurrentUser';
 import { getOrgAdminErrorMessage } from '@/features/orgAdmin/orgAdminErrors';
+import {
+  PageHeader,
+  StatCard,
+  ChartCard,
+  BarList,
+  type BarDatum,
+} from '@/components/dashboard';
 
 type OrganizationInfo = {
   id: string;
@@ -23,11 +30,35 @@ type DashboardSummary = {
 type CourseItem = { id: string; title: string; status: string; createdAt: string };
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || '';
-const courseStatusBadge = (status: string) => {
-  if (status === 'PUBLISHED') return 'success' as const;
-  if (status === 'ARCHIVED') return 'default' as const;
-  return 'warning' as const;
+const statusBarTone = (status: string): BarDatum['tone'] => {
+  if (status === 'PUBLISHED') return 'success';
+  if (status === 'ARCHIVED') return 'neutral';
+  return 'warning';
 };
+
+const MembersIcon = (
+  <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+    <path strokeLinecap="round" strokeLinejoin="round" d="M17 20h5v-2a3 3 0 00-4.974-2.337M14 20H2v-2a4 4 0 018-2.87M11 4a4 4 0 000 8M15.5 12a3.5 3.5 0 000-7M15 20h7v-2a3 3 0 00-2.97-3" />
+  </svg>
+);
+
+const AdminsIcon = (
+  <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+    <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197" />
+  </svg>
+);
+
+const InstructorsIcon = (
+  <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+    <path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+  </svg>
+);
+
+const StudentsIcon = (
+  <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+    <path strokeLinecap="round" strokeLinejoin="round" d="M12 14l9-5-9-5-9 5 9 5zm0 0l9-5v6m-9 5l-6-3.333V10m12 0v6" />
+  </svg>
+);
 
 export default function OrgAnalyticsPage() {
   const { data: user, isLoading: userLoading } = useCurrentUser();
@@ -81,7 +112,6 @@ export default function OrgAnalyticsPage() {
     }
 
     void load();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user, userLoading]);
 
   const statusCounts = (courses ?? []).reduce<Record<string, number>>((acc, c) => {
@@ -89,16 +119,36 @@ export default function OrgAnalyticsPage() {
     return acc;
   }, {});
 
+  const statusDistribution: BarDatum[] = Object.keys(statusCounts)
+    .sort()
+    .map((status) => ({
+      label: status,
+      value: statusCounts[status],
+      tone: statusBarTone(status),
+    }));
+
   return (
     <DashboardLayout navLabel="Organization Admin" items={orgAdminNav}>
       <div className="mx-auto max-w-5xl">
-        <div className="mb-8 rounded-2xl border border-neutral-200 bg-white p-6 shadow-sm">
-          <p className="text-sm font-medium uppercase tracking-wide text-primary-600">Organization Admin</p>
-          <h1 className="mt-2 text-3xl font-bold text-neutral-900">Analytics</h1>
-          <p className="mt-2 max-w-2xl text-sm text-neutral-600">
-            Usage and engagement metrics for <span className="font-semibold">{summary?.organization.name ?? 'your organization'}</span>.
-          </p>
-        </div>
+        <PageHeader
+          subtitle="Organization Admin"
+          title="Analytics"
+          description={
+            summary
+              ? `Usage and engagement metrics for ${summary.organization.name}.`
+              : 'Usage and engagement metrics for your organization.'
+          }
+          badges={
+            summary
+              ? [
+                  {
+                    label: summary.organization.status,
+                    variant: summary.organization.status === 'ACTIVE' ? 'success' : 'error',
+                  },
+                ]
+              : undefined
+          }
+        />
 
         {loading && summary === null ? (
           <div className="flex items-center gap-3 text-neutral-700">
@@ -115,29 +165,45 @@ export default function OrgAnalyticsPage() {
           </div>
         ) : summary ? (
           <>
-            <div className="mb-8 grid gap-6 md:grid-cols-4">
-              <div className="rounded-2xl border border-neutral-200 bg-white p-6 shadow-sm">
-                <p className="text-sm text-neutral-500">Total members</p>
-                <p className="mt-3 text-3xl font-bold text-neutral-900">{summary.users.total}</p>
-              </div>
-              <div className="rounded-2xl border border-neutral-200 bg-white p-6 shadow-sm">
-                <p className="text-sm text-neutral-500">Instructors</p>
-                <p className="mt-3 text-3xl font-bold text-neutral-900">{summary.users.instructors}</p>
-              </div>
-              <div className="rounded-2xl border border-neutral-200 bg-white p-6 shadow-sm">
-                <p className="text-sm text-neutral-500">Students</p>
-                <p className="mt-3 text-3xl font-bold text-neutral-900">{summary.users.students}</p>
-              </div>
-              <div className="rounded-2xl border border-neutral-200 bg-white p-6 shadow-sm">
-                <p className="text-sm text-neutral-500">Organization admins</p>
-                <p className="mt-3 text-3xl font-bold text-neutral-900">{summary.users.organizationAdmins}</p>
-              </div>
+            <div className="mb-8 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+              <StatCard
+                label="Total members"
+                value={summary.users.total}
+                icon={MembersIcon}
+                tone="primary"
+                hint="Everyone in your organization"
+              />
+              <StatCard
+                label="Organization admins"
+                value={summary.users.organizationAdmins}
+                icon={AdminsIcon}
+                tone="neutral"
+                hint="Tenant-level administrators"
+              />
+              <StatCard
+                label="Instructors"
+                value={summary.users.instructors}
+                icon={InstructorsIcon}
+                tone="warning"
+                hint="Course creators"
+              />
+              <StatCard
+                label="Students"
+                value={summary.users.students}
+                icon={StudentsIcon}
+                tone="success"
+                hint="Active learners"
+              />
             </div>
 
-            <div className="overflow-hidden rounded-2xl border border-neutral-200 bg-white shadow-sm">
-              <div className="border-b border-neutral-200 px-6 py-4">
-                <h2 className="text-lg font-semibold text-neutral-900">Courses by status</h2>
-              </div>
+            <ChartCard
+              title="Courses by status"
+              description={
+                courses
+                  ? `${courses.length} total course${courses.length === 1 ? '' : 's'}`
+                  : undefined
+              }
+            >
               {courses && courses.length === 0 ? (
                 <EmptyState
                   icon={EmptyStateIcons.NoCourses}
@@ -145,26 +211,9 @@ export default function OrgAnalyticsPage() {
                   description="Create and publish courses to start tracking your catalog analytics."
                 />
               ) : (
-                <div className="grid gap-4 p-6 sm:grid-cols-3">
-                  {Object.keys(statusCounts)
-                    .sort()
-                    .map((status) => (
-                      <div key={status} className="rounded-xl border border-neutral-200 bg-neutral-50 p-4">
-                        <div className="flex items-center justify-between">
-                          <Badge variant={courseStatusBadge(status)} size="sm">{status}</Badge>
-                          <span className="text-2xl font-bold text-neutral-900">{statusCounts[status]}</span>
-                        </div>
-                      </div>
-                    ))}
-                  <div className="rounded-xl border border-neutral-200 bg-neutral-50 p-4">
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm font-medium text-neutral-600">Total courses</span>
-                      <span className="text-2xl font-bold text-neutral-900">{courses?.length ?? 0}</span>
-                    </div>
-                  </div>
-                </div>
+                <BarList data={statusDistribution} />
               )}
-            </div>
+            </ChartCard>
           </>
         ) : null}
       </div>

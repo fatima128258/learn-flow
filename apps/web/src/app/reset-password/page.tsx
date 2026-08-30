@@ -7,7 +7,9 @@ import { PasswordInput } from '../../components/forms/PasswordInput';
 import { SubmitButton } from '../../components/forms/SubmitButton';
 import { FormError } from '../../components/forms/FormError';
 import { Alert } from '../../components/ui/Alert';
+import { PageLoader } from '../../components/ui/Spinner';
 import { Stack } from '../../components/ui/layout/Stack';
+import { useSubmitState } from '../../lib/useSubmitState';
 
 function ResetPasswordForm() {
   const searchParams = useSearchParams();
@@ -15,9 +17,8 @@ function ResetPasswordForm() {
 
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
+  const { isSubmitting, error, setError, submit } = useSubmitState();
 
   const [passwordError, setPasswordError] = useState<string>('');
   const [confirmPasswordError, setConfirmPasswordError] = useState<string>('');
@@ -48,7 +49,7 @@ function ResetPasswordForm() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError(null);
+    if (isSubmitting || success) return;
 
     if (!token) {
       setError('Invalid or missing reset token');
@@ -59,8 +60,7 @@ function ResetPasswordForm() {
       return;
     }
 
-    setLoading(true);
-    try {
+    await submit(async () => {
       const apiBase = process.env.NEXT_PUBLIC_API_URL || '';
       const res = await fetch(`${apiBase}/api/v1/auth/reset-password`, {
         method: 'POST',
@@ -88,12 +88,7 @@ function ResetPasswordForm() {
       setTimeout(() => {
         window.location.href = '/login';
       }, 2000);
-    } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : 'An unexpected error occurred';
-      setError(message);
-    } finally {
-      setLoading(false);
-    }
+    });
   };
 
   return (
@@ -124,7 +119,7 @@ function ResetPasswordForm() {
               error={passwordError}
               placeholder="At least 8 characters"
               autoComplete="new-password"
-              disabled={loading || success || !token}
+              disabled={isSubmitting || success || !token}
               // helperText="Use at least 8 characters"
               required
             />
@@ -136,12 +131,12 @@ function ResetPasswordForm() {
               error={confirmPasswordError}
               placeholder="Re-enter your password"
               autoComplete="new-password"
-              disabled={loading || success || !token}
+              disabled={isSubmitting || success || !token}
               required
             />
 
             <SubmitButton
-              loading={loading}
+              loading={isSubmitting}
               loadingText="Resetting password..."
               disabled={success || !token}
             >
@@ -156,7 +151,7 @@ function ResetPasswordForm() {
 
 export default function ResetPasswordPage() {
   return (
-    <Suspense fallback={<AuthLayout><AuthCard title="Set new password" description="Loading..."><FormError message="Loading reset form..." /></AuthCard></AuthLayout>}>
+    <Suspense fallback={<AuthLayout><AuthCard title="Set new password" description="Loading..."><PageLoader label="Loading reset form..." compact /></AuthCard></AuthLayout>}>
       <ResetPasswordForm />
     </Suspense>
   );

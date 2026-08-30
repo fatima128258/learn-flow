@@ -3,6 +3,9 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { Badge, EmptyState, EmptyStateIcons, ErrorState, Spinner } from '@/components/ui';
+import { DashboardLayout } from '@/components/layout/DashboardLayout';
+import { studentNav } from '@/features/student/nav';
+import { PageHeader } from '@/components/dashboard';
 
 type MeResponse = {
   user?: {
@@ -142,43 +145,42 @@ export default function StudentNotificationsPage() {
 
   if (loading) {
     return (
-      <main className="min-h-screen bg-neutral-50 p-8">
+      <DashboardLayout navLabel="Student" items={studentNav}>
         <div className="mx-auto flex max-w-3xl items-center gap-3 text-neutral-700">
           <Spinner size="lg" label="Loading notifications..." />
           <span>Loading notifications...</span>
         </div>
-      </main>
+      </DashboardLayout>
     );
   }
 
   const hasUnread = notifications?.some((n) => !n.read) ?? false;
 
   return (
-    <main className="min-h-screen bg-neutral-50 p-8">
-      <div className="mx-auto max-w-3xl">
-        <div className="mb-4 flex items-center gap-2 text-sm">
-          <Link href="/dashboard/student" className="text-primary-600 hover:text-primary-700">My Courses</Link>
-          <span className="text-neutral-400">/</span>
-          <span className="text-neutral-600">Notifications</span>
-        </div>
-
-        <div className="mb-6 flex flex-wrap items-start justify-between gap-4">
-          <div>
-            <p className="text-sm font-medium uppercase tracking-wide text-primary-600">Inbox</p>
-            <h1 className="mt-1 text-2xl font-bold text-neutral-900">Notifications</h1>
-            {unreadCount > 0 && (
-              <p className="mt-1 text-sm text-neutral-600">{unreadCount} unread</p>
-            )}
-          </div>
-          {hasUnread && (
-            <button
-              onClick={markAllAsRead}
-              className="rounded-lg border border-neutral-300 bg-white px-4 py-2 text-sm font-medium text-neutral-700 transition-colors hover:bg-neutral-100"
-            >
-              Mark all as read
-            </button>
-          )}
-        </div>
+    <DashboardLayout navLabel="Student" items={studentNav}>
+      <div className="mx-auto max-w-6xl">
+        <PageHeader
+          subtitle="Inbox"
+          title="Notifications"
+          description={unreadCount > 0 ? `${unreadCount} unread` : undefined}
+          breadcrumbs={
+            <div className="flex items-center gap-2 text-sm">
+              <Link href="/dashboard/student" className="text-primary-600 hover:text-primary-700">My Courses</Link>
+              <span className="text-neutral-400">/</span>
+              <span className="text-neutral-600">Notifications</span>
+            </div>
+          }
+          actions={
+            hasUnread ? (
+              <button
+                onClick={markAllAsRead}
+                className="rounded-lg border border-neutral-300 bg-white px-4 py-2 text-sm font-medium text-neutral-700 transition-colors hover:bg-neutral-100"
+              >
+                Mark all as read
+              </button>
+            ) : undefined
+          }
+        />
 
         {error ? (
           <div className="rounded-2xl border border-neutral-200 bg-white shadow-sm">
@@ -229,6 +231,6 @@ export default function StudentNotificationsPage() {
           </div>
         ) : null}
       </div>
-    </main>
+    </DashboardLayout>
   );
 }

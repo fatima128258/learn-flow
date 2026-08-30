@@ -7,13 +7,13 @@ import { SubmitButton } from '../../components/forms/SubmitButton';
 import { FormError } from '../../components/forms/FormError';
 import { Alert } from '../../components/ui/Alert';
 import { Stack } from '../../components/ui/layout/Stack';
+import { useSubmitState } from '../../lib/useSubmitState';
 
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
   const [emailError, setEmailError] = useState<string>('');
+  const { isSubmitting, error, submit } = useSubmitState();
 
   const validateEmail = () => {
     if (!email) {
@@ -30,14 +30,13 @@ export default function ForgotPasswordPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError(null);
+    if (isSubmitting || success) return;
 
     if (!validateEmail()) {
       return;
     }
 
-    setLoading(true);
-    try {
+    await submit(async () => {
       const apiBase = process.env.NEXT_PUBLIC_API_URL || '';
       const res = await fetch(`${apiBase}/api/v1/auth/forgot-password`, {
         method: 'POST',
@@ -52,12 +51,7 @@ export default function ForgotPasswordPage() {
       }
 
       setSuccess(true);
-    } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : 'An unexpected error occurred';
-      setError(message);
-    } finally {
-      setLoading(false);
-    }
+    });
   };
 
   return (
@@ -89,12 +83,12 @@ export default function ForgotPasswordPage() {
               error={emailError}
               placeholder="you@example.com"
               autoComplete="email"
-              disabled={loading || success}
+              disabled={isSubmitting || success}
               required
             />
 
             <SubmitButton
-              loading={loading}
+              loading={isSubmitting}
               loadingText="Sending..."
               disabled={success}
             >

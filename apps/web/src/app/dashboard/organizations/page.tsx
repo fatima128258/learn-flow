@@ -22,6 +22,14 @@ import { FormError } from '../../../components/forms/FormError';
 import { PasswordInput } from '../../../components/forms/PasswordInput';
 import { DashboardLayout } from '../../../components/layout/DashboardLayout';
 import { platformAdminNav } from '../../../features/platformAdmin/nav';
+import {
+  PageHeader,
+  StatCard,
+  TableCard,
+  tableHeadClass,
+  tableCellClass,
+  tableRowHoverClass,
+} from '../../../components/dashboard';
 
 type OrganizationAdmin = {
   id: string;
@@ -106,6 +114,12 @@ type AssignAdminResponse = {
 type MeResponse = {
   user?: { role?: string | null };
 };
+
+const OrgIcon = (
+  <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+    <path strokeLinecap="round" strokeLinejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0H3m4-12h4m-4 4h4m-4 4h4m4-8h2m-2 4h2m-2 4h2" />
+  </svg>
+);
 
 export default function OrganizationsPage() {
   const [organizations, setOrganizations] = useState<OrganizationItem[] | null>(null);
@@ -193,7 +207,6 @@ export default function OrganizationsPage() {
     return () => {
       active = false;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   function closeCreateModal() {
@@ -508,6 +521,10 @@ export default function OrganizationsPage() {
     }
   }
 
+  const activeCount = organizations?.filter((org) => org.status === 'ACTIVE').length ?? 0;
+  const suspendedCount = organizations?.filter((org) => org.status === 'SUSPENDED').length ?? 0;
+  const totalOrganizations = meta?.total ?? organizations?.length ?? 0;
+
   if (loading && organizations === null && !error) {
     return (
       <DashboardLayout navLabel="Platform Admin" items={platformAdminNav}>
@@ -522,26 +539,24 @@ export default function OrganizationsPage() {
   return (
     <DashboardLayout navLabel="Platform Admin" items={platformAdminNav}>
       <div className="mx-auto max-w-5xl">
-        <div className="mb-8 rounded-2xl border border-neutral-200 bg-white p-6 shadow-sm">
-          <p className="text-sm font-medium uppercase tracking-wide text-primary-600">Platform Admin</p>
-          <h1 className="mt-2 text-3xl font-bold text-neutral-900">Organizations</h1>
-          <div className="mt-4 flex items-center justify-between">
-            <p className="text-sm text-neutral-600">
-              {meta ? `${meta.total} organization${meta.total === 1 ? '' : 's'}` : ''}
-            </p>
-            <div className="flex items-center gap-4">
-              <Button size="sm" onClick={() => setShowCreateModal(true)}>
-                Create Organization
-              </Button>
+        <PageHeader
+          subtitle="Platform Admin"
+          title="Organizations"
+          description={meta ? `${meta.total} organization${meta.total === 1 ? '' : 's'}` : undefined}
+          actions={
+            <>
               <a
                 href="/dashboard"
                 className="text-sm font-medium text-primary-600 hover:text-primary-700"
               >
                 Back to dashboard
               </a>
-            </div>
-          </div>
-        </div>
+              <Button size="sm" onClick={() => setShowCreateModal(true)}>
+                Create Organization
+              </Button>
+            </>
+          }
+        />
 
         {successMessage ? (
           <div className="mb-6">
@@ -576,79 +591,81 @@ export default function OrganizationsPage() {
             />
           </div>
         ) : organizations ? (
-          <div className="overflow-hidden rounded-2xl border border-neutral-200 bg-white shadow-sm">
-            <table className="min-w-full divide-y divide-neutral-200">
-              <thead className="bg-neutral-50">
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-neutral-500">Name</th>
-                  <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-neutral-500">Status</th>
-                  <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-neutral-500">Admins</th>
-                  <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-neutral-500">Members</th>
-                  <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-neutral-500">Created</th>
-                  <th className="px-6 py-3 text-right text-xs font-semibold uppercase tracking-wide text-neutral-500">
-                    <span className="sr-only">Actions</span>
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-neutral-200">
-                {organizations.map((org) => (
-                  <tr key={org.id} className="hover:bg-neutral-50">
-                    <td className="px-6 py-4">
-                      <p className="font-medium text-neutral-900">{org.name}</p>
-                      <p className="text-sm text-neutral-500">{org.slug}</p>
-                    </td>
-                    <td className="px-6 py-4">
-                      <Badge variant={org.status === 'ACTIVE' ? 'success' : 'error'} size="sm">
-                        {org.status}
-                      </Badge>
-                    </td>
-                    <td className="px-6 py-4">
-                      {org.admins && org.admins.length > 0 ? (
-                        <div className="space-y-2">
-                          {org.admins.map((admin) => (
-                            <div key={admin.id}>
-                              <p className="text-sm font-medium text-neutral-900">{admin.name ?? '—'}</p>
-                              <p className="text-xs text-neutral-500">{admin.email}</p>
-                            </div>
-                          ))}
-                        </div>
-                      ) : (
-                        <span className="text-sm text-neutral-400">No admin assigned</span>
-                      )}
-                    </td>
-                    <td className="px-6 py-4 text-sm text-neutral-700">
-                      {typeof org.memberCount === 'number' ? org.memberCount : '—'}
-                    </td>
-                    <td className="px-6 py-4 text-sm text-neutral-700">
-                      {new Date(org.createdAt).toLocaleDateString()}
-                    </td>
-                    <td className="px-6 py-4 text-right">
-                      <div className="flex items-center justify-end gap-2">
-                        <Button variant="secondary" size="sm" onClick={() => openMembersModal(org)}>
-                          Members
-                        </Button>
-                        <Button variant="ghost" size="sm" onClick={() => openAssignModal(org)}>
-                          Assign Admin
-                        </Button>
-                        <Button variant="outline" size="sm" onClick={() => openEditModal(org)}>
-                          Edit
-                        </Button>
-                        {org.status === 'ACTIVE' ? (
-                          <Button variant="danger" size="sm" onClick={() => requestStatusChange(org)}>
-                            Suspend
-                          </Button>
-                        ) : (
-                          <Button variant="secondary" size="sm" onClick={() => requestStatusChange(org)}>
-                            Activate
-                          </Button>
-                        )}
-                      </div>
-                    </td>
+          <>
+            <TableCard>
+              <table className="min-w-full divide-y divide-neutral-200">
+                <thead className="bg-neutral-50">
+                  <tr>
+                    <th className={tableHeadClass}>Name</th>
+                    <th className={tableHeadClass}>Status</th>
+                    <th className={tableHeadClass}>Admins</th>
+                    <th className={tableHeadClass}>Members</th>
+                    <th className={tableHeadClass}>Created</th>
+                    <th className={tableHeadClass}>
+                      <span className="sr-only">Actions</span>
+                    </th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody className="divide-y divide-neutral-200">
+                  {organizations.map((org) => (
+                    <tr key={org.id} className={tableRowHoverClass}>
+                      <td className={tableCellClass}>
+                        <p className="font-medium text-neutral-900">{org.name}</p>
+                        <p className="text-sm text-neutral-500">{org.slug}</p>
+                      </td>
+                      <td className={tableCellClass}>
+                        <Badge variant={org.status === 'ACTIVE' ? 'success' : 'error'} size="sm">
+                          {org.status}
+                        </Badge>
+                      </td>
+                      <td className={tableCellClass}>
+                        {org.admins && org.admins.length > 0 ? (
+                          <div className="space-y-2">
+                            {org.admins.map((admin) => (
+                              <div key={admin.id}>
+                                <p className="text-sm font-medium text-neutral-900">{admin.name ?? '—'}</p>
+                                <p className="text-xs text-neutral-500">{admin.email}</p>
+                              </div>
+                            ))}
+                          </div>
+                        ) : (
+                          <span className="text-sm text-neutral-400">No admin assigned</span>
+                        )}
+                      </td>
+                      <td className={`${tableCellClass} text-neutral-700`}>
+                        {typeof org.memberCount === 'number' ? org.memberCount : '—'}
+                      </td>
+                      <td className={`${tableCellClass} text-neutral-700`}>
+                        {new Date(org.createdAt).toLocaleDateString()}
+                      </td>
+                      <td className={`${tableCellClass} text-right`}>
+                        <div className="flex items-center justify-end gap-2">
+                          <Button variant="secondary" size="sm" onClick={() => openMembersModal(org)}>
+                            Members
+                          </Button>
+                          <Button variant="ghost" size="sm" onClick={() => openAssignModal(org)}>
+                            Assign Admin
+                          </Button>
+                          <Button variant="outline" size="sm" onClick={() => openEditModal(org)}>
+                            Edit
+                          </Button>
+                          {org.status === 'ACTIVE' ? (
+                            <Button variant="danger" size="sm" onClick={() => requestStatusChange(org)}>
+                              Suspend
+                            </Button>
+                          ) : (
+                            <Button variant="secondary" size="sm" onClick={() => requestStatusChange(org)}>
+                              Activate
+                            </Button>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </TableCard>
+          </>
         ) : null}
       </div>
 
@@ -758,36 +775,34 @@ export default function OrganizationsPage() {
               <table className="min-w-full divide-y divide-neutral-200">
                 <thead className="bg-neutral-50">
                   <tr>
-                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-neutral-500">Name</th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-neutral-500">Email</th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-neutral-500">Role</th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-neutral-500">Joined</th>
+                    <th className={tableHeadClass}>Name</th>
+                    <th className={tableHeadClass}>Email</th>
+                    <th className={tableHeadClass}>Role</th>
+                    <th className={tableHeadClass}>Joined</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-neutral-200">
                   {membersData.members.map((member) => (
-                    <tr key={member.id} className="hover:bg-neutral-50">
-                      <td className="px-4 py-3 text-sm font-medium text-neutral-900">
+                    <tr key={member.id} className={tableRowHoverClass}>
+                      <td className={`${tableCellClass} font-medium text-neutral-900`}>
                         {member.name ?? '—'}
                       </td>
-                      <td className="px-4 py-3 text-sm text-neutral-700">{member.email}</td>
-                      <td className="px-4 py-3">
+                      <td className={`${tableCellClass} text-neutral-700`}>{member.email}</td>
+                      <td className={tableCellClass}>
                         <Badge
                           variant={
-                            member.role === 'PLATFORM_ADMIN'
-                              ? 'primary'
-                              : member.role === 'ORG_ADMIN'
-                                ? 'info'
-                                : member.role === 'INSTRUCTOR'
-                                  ? 'warning'
-                                  : 'default'
+                            member.role === 'ORG_ADMIN'
+                              ? 'info'
+                              : member.role === 'INSTRUCTOR'
+                                ? 'warning'
+                                : 'default'
                           }
                           size="sm"
                         >
                           {member.role}
                         </Badge>
                       </td>
-                      <td className="px-4 py-3 text-sm text-neutral-700">
+                      <td className={`${tableCellClass} text-neutral-700`}>
                         {new Date(member.joinedAt).toLocaleDateString()}
                       </td>
                     </tr>

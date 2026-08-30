@@ -6,6 +6,7 @@ import { PasswordInput } from '../forms/PasswordInput';
 import { SubmitButton } from '../forms/SubmitButton';
 import { FormError } from '../forms/FormError';
 import { Stack } from '../ui/layout/Stack';
+import { useSubmitState } from '../../lib/useSubmitState';
 
 export interface LoginFormProps {
   onSubmit: (data: LoginFormData) => Promise<void>;
@@ -20,8 +21,7 @@ export interface LoginFormData {
 export const LoginForm: React.FC<LoginFormProps> = ({ onSubmit, error: externalError }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const { isSubmitting, error, submit } = useSubmitState();
 
   const [emailError, setEmailError] = useState<string>('');
   const [passwordError, setPasswordError] = useState<string>('');
@@ -49,21 +49,12 @@ export const LoginForm: React.FC<LoginFormProps> = ({ onSubmit, error: externalE
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError(null);
+    if (isSubmitting) return;
+    if (!validateForm()) return;
 
-    if (!validateForm()) {
-      return;
-    }
-
-    setLoading(true);
-    try {
+    await submit(async () => {
       await onSubmit({ email, password });
-    } catch (err) {
-      const message = err instanceof Error ? err.message : 'An error occurred';
-      setError(message);
-    } finally {
-      setLoading(false);
-    }
+    });
   };
 
   const displayError = error || externalError;
@@ -82,7 +73,7 @@ export const LoginForm: React.FC<LoginFormProps> = ({ onSubmit, error: externalE
           error={emailError}
           placeholder="you@example.com"
           autoComplete="email"
-          disabled={loading}
+          disabled={isSubmitting}
           required
         />
 
@@ -94,7 +85,7 @@ export const LoginForm: React.FC<LoginFormProps> = ({ onSubmit, error: externalE
           error={passwordError}
           placeholder="Enter your password"
           autoComplete="current-password"
-          disabled={loading}
+          disabled={isSubmitting}
           required
         />
 
@@ -108,7 +99,7 @@ export const LoginForm: React.FC<LoginFormProps> = ({ onSubmit, error: externalE
         </div>
 
         <SubmitButton
-          loading={loading}
+          loading={isSubmitting}
           loadingText="Signing in..."
         >
           Sign in

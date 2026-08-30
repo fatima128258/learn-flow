@@ -2,7 +2,14 @@ import React from 'react';
 import Link from 'next/link';
 import { Container } from '../ui/layout/Container';
 import { LinkButton } from '../ui/LinkButton';
-import { Logo } from '../public/Logo';
+import { LearnFlowLogo } from '../public/LearnFlowLogo';
+import { Reveal } from '../public/Reveal';
+
+const ColumnHeading: React.FC<{ children: React.ReactNode }> = ({ children }) => (
+  <h4 className="text-xs font-semibold uppercase tracking-wider text-white/60">
+    {children}
+  </h4>
+);
 
 export const Footer: React.FC = () => {
   const currentYear = new Date().getFullYear();
@@ -50,52 +57,48 @@ export const Footer: React.FC = () => {
     },
   ];
 
-  const ColumnHeading: React.FC<{ children: React.ReactNode }> = ({ children }) => (
-    <h4 className="text-xs font-semibold uppercase tracking-wider text-white/60">
-      {children}
-    </h4>
-  );
-
   return (
     <footer className="bg-primary-800">
       <Container size="xl" className="py-14 sm:py-16">
         {/* Top CTA */}
-        <div className="flex flex-col gap-6 rounded-2xl bg-primary-900 px-6 py-8 sm:px-10 sm:py-10 md:flex-row md:items-center md:justify-between">
-          <div className="max-w-xl">
-            <p className="text-xs font-semibold uppercase tracking-wider text-white/80">
-              Need help?
-            </p>
-            <h3 className="mt-2 text-2xl font-bold text-white sm:text-3xl">
-              If you have any query, contact us
-            </h3>
-            <a
-              href="tel:03017277128"
-              className="mt-3 inline-flex items-center gap-2 text-sm text-white/80 transition-colors hover:text-white"
+        <Reveal y={18}>
+          <div className="flex flex-col gap-6 rounded-2xl bg-primary-900 px-6 py-8 sm:px-10 sm:py-10 md:flex-row md:items-center md:justify-between">
+            <div className="max-w-xl">
+              <p className="text-xs font-semibold uppercase tracking-wider text-white/80">
+                Need help?
+              </p>
+              <h3 className="mt-2 text-2xl font-bold text-white sm:text-3xl">
+                If you have any query, contact us
+              </h3>
+              <a
+                href="tel:03017277128"
+                className="mt-3 inline-flex items-center gap-2 text-sm text-white/80 transition-colors hover:text-white"
+              >
+                <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8} aria-hidden="true">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+                </svg>
+                03017277128
+              </a>
+            </div>
+            <LinkButton
+              href="/register"
+              variant="primary"
+              size="lg"
+              fullWidth
+              className="shrink-0 bg-white !text-primary-700 hover:!bg-primary-50 rounded-lg md:w-auto"
+              showLoading
+              loadingText="Redirecting..."
             >
-              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8} aria-hidden="true">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
-              </svg>
-              03017277128
-            </a>
+              Enroll now
+            </LinkButton>
           </div>
-          <LinkButton
-            href="/register"
-            variant="primary"
-            size="lg"
-            fullWidth
-            className="shrink-0 bg-white !text-primary-700 hover:!bg-primary-50 rounded-lg md:w-auto"
-            showLoading
-            loadingText="Redirecting..."
-          >
-            Enroll now
-          </LinkButton>
-        </div>
+        </Reveal>
 
         {/* Main content */}
         <div className="mt-14 grid grid-cols-1 gap-10 sm:grid-cols-2 lg:grid-cols-[2fr_1.6fr_1fr_1fr]">
           {/* Brand */}
-          <div className="lg:pr-6">
-            <Logo href="/" tone="light" />
+          <Reveal y={18} delay={80} className="lg:pr-6">
+            <LearnFlowLogo href="/" tone="light" />
             <p className="mt-4 text-base font-semibold text-white">
               The learning platform for focused study
             </p>
@@ -105,7 +108,7 @@ export const Footer: React.FC = () => {
               can create and manage courses, and organizations can manage their own learning
               programs.
             </p>
-          </div>
+          </Reveal>
 
           {/* Contact */}
           <div>

@@ -9,6 +9,9 @@ import {
   ErrorState,
   Spinner,
 } from '@/components/ui';
+import { DashboardLayout } from '@/components/layout/DashboardLayout';
+import { studentNav } from '@/features/student/nav';
+import { PageHeader } from '@/components/dashboard';
 
 type MeResponse = {
   user?: {
@@ -109,30 +112,29 @@ export default function StudentCertificatesPage() {
 
   if (loading) {
     return (
-      <main className="min-h-screen bg-neutral-50 p-8">
+      <DashboardLayout navLabel="Student" items={studentNav}>
         <div className="mx-auto flex max-w-5xl items-center gap-3 text-neutral-700">
           <Spinner size="lg" label="Loading certificates..." />
           <span>Loading certificates...</span>
         </div>
-      </main>
+      </DashboardLayout>
     );
   }
 
   return (
-    <main className="min-h-screen bg-neutral-50 p-8">
-      <div className="mx-auto max-w-5xl">
-        <div className="mb-4 flex items-center gap-2 text-sm">
-          <Link href="/dashboard/student" className="text-primary-600 hover:text-primary-700">My Courses</Link>
-          <span className="text-neutral-400">/</span>
-          <span className="text-neutral-600">Certificates</span>
-        </div>
-
-        <div className="mb-6 flex flex-wrap items-start justify-between gap-4">
-          <div>
-            <p className="text-sm font-medium uppercase tracking-wide text-primary-600">Credentials</p>
-            <h1 className="mt-1 text-2xl font-bold text-neutral-900">My Certificates</h1>
-          </div>
-        </div>
+    <DashboardLayout navLabel="Student" items={studentNav}>
+      <div className="mx-auto max-w-6xl">
+        <PageHeader
+          subtitle="Credentials"
+          title="My Certificates"
+          breadcrumbs={
+            <div className="flex items-center gap-2 text-sm">
+              <Link href="/dashboard/student" className="text-primary-600 hover:text-primary-700">My Courses</Link>
+              <span className="text-neutral-400">/</span>
+              <span className="text-neutral-600">Certificates</span>
+            </div>
+          }
+        />
 
         {error ? (
           <div className="rounded-2xl border border-neutral-200 bg-white shadow-sm">
@@ -177,6 +179,6 @@ export default function StudentCertificatesPage() {
           </div>
         ) : null}
       </div>
-    </main>
+    </DashboardLayout>
   );
 }

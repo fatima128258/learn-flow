@@ -10,6 +10,9 @@ import {
   ErrorState,
   Spinner,
 } from '@/components/ui';
+import { DashboardLayout } from '@/components/layout/DashboardLayout';
+import { studentNav } from '@/features/student/nav';
+import { PageHeader } from '@/components/dashboard';
 
 type MeResponse = {
   user?: {
@@ -149,31 +152,37 @@ export default function StudentModuleLessonsPage() {
 
   if (loading) {
     return (
-      <main className="min-h-screen bg-neutral-50 p-8">
+      <DashboardLayout navLabel="Student" items={studentNav}>
         <div className="mx-auto flex max-w-5xl items-center gap-3 text-neutral-700">
           <Spinner size="lg" label="Loading lessons..." />
           <span>Loading lessons...</span>
         </div>
-      </main>
+      </DashboardLayout>
     );
   }
 
   return (
-    <main className="min-h-screen bg-neutral-50 p-8">
-      <div className="mx-auto max-w-5xl">
-        <div className="mb-4 flex items-center gap-2 text-sm">
-          <Link href="/dashboard/student" className="text-primary-600 hover:text-primary-700">My Courses</Link>
-          <span className="text-neutral-400">/</span>
-          {data && (
-            <>
-              <Link href={`/dashboard/student/courses/${courseId}`} className="text-primary-600 hover:text-primary-700">
-                {data.courseName}
-              </Link>
+    <DashboardLayout navLabel="Student" items={studentNav}>
+      <div className="mx-auto max-w-6xl">
+        <PageHeader
+          subtitle="Student"
+          title="Module Lessons"
+          breadcrumbs={
+            <div className="flex items-center gap-2 text-sm">
+              <Link href="/dashboard/student" className="text-primary-600 hover:text-primary-700">My Courses</Link>
               <span className="text-neutral-400">/</span>
-            </>
-          )}
-          <span className="text-neutral-600">{data?.moduleTitle ?? 'Module'}</span>
-        </div>
+              {data && (
+                <>
+                  <Link href={`/dashboard/student/courses/${courseId}`} className="text-primary-600 hover:text-primary-700">
+                    {data.courseName}
+                  </Link>
+                  <span className="text-neutral-400">/</span>
+                </>
+              )}
+              <span className="text-neutral-600">{data?.moduleTitle ?? 'Module'}</span>
+            </div>
+          }
+        />
 
         {error ? (
           <div className="rounded-2xl border border-neutral-200 bg-white shadow-sm">
@@ -244,6 +253,6 @@ export default function StudentModuleLessonsPage() {
           </>
         ) : null}
       </div>
-    </main>
+    </DashboardLayout>
   );
 }

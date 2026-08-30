@@ -149,7 +149,7 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
           placeholder="At least 8 characters"
           autoComplete="new-password"
           disabled={loading || success}
-          // helperText="Use at least 8 characters"
+          helperText="Use at least 8 characters"
           required
         />
 

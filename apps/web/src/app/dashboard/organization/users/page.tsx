@@ -20,6 +20,15 @@ import { getCreateInstructorErrorMessage } from '@/features/orgAdmin/createInstr
 import { FormError } from '@/components/forms/FormError';
 import { PasswordInput } from '@/components/forms/PasswordInput';
 import { useToast } from '@/components/ui/ToastProvider';
+import {
+  PageHeader,
+  StatCard,
+  TableCard,
+  UserAvatar,
+  tableHeadClass,
+  tableCellClass,
+  tableRowHoverClass,
+} from '@/components/dashboard';
 
 type MemberRole = 'PLATFORM_ADMIN' | 'ORG_ADMIN' | 'INSTRUCTOR' | 'STUDENT';
 
@@ -47,6 +56,30 @@ function roleBadgeVariant(role: MemberRole) {
   if (role === 'INSTRUCTOR') return 'warning' as const;
   return 'default' as const;
 }
+
+const MembersIcon = (
+  <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+    <path strokeLinecap="round" strokeLinejoin="round" d="M17 20h5v-2a3 3 0 00-4.974-2.337M14 20H2v-2a4 4 0 018-2.87M11 4a4 4 0 000 8M15.5 12a3.5 3.5 0 000-7M15 20h7v-2a3 3 0 00-2.97-3" />
+  </svg>
+);
+
+const AdminsIcon = (
+  <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+    <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197" />
+  </svg>
+);
+
+const InstructorsIcon = (
+  <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+    <path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+  </svg>
+);
+
+const StudentsIcon = (
+  <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+    <path strokeLinecap="round" strokeLinejoin="round" d="M12 14l9-5-9-5-9 5 9 5zm0 0l9-5v6m-9 5l-6-3.333V10m12 0v6" />
+  </svg>
+);
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || '';
 
@@ -100,7 +133,6 @@ export default function OrgUsersPage() {
       return;
     }
     void (async () => { await load(); })();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user, userLoading]);
 
   function openAdd(role: 'INSTRUCTOR' | 'STUDENT') {
@@ -179,25 +211,29 @@ export default function OrgUsersPage() {
     }
   }
 
+  const memberCount = (members ?? []).length;
+  const adminCount = (members ?? []).filter((m) => m.role === 'ORG_ADMIN').length;
+  const instructorCount = (members ?? []).filter((m) => m.role === 'INSTRUCTOR').length;
+  const studentCount = (members ?? []).filter((m) => m.role === 'STUDENT').length;
+
   return (
     <DashboardLayout navLabel="Organization Admin" items={orgAdminNav}>
       <div className="mx-auto max-w-5xl">
-        <div className="mb-8 rounded-2xl border border-neutral-200 bg-white p-6 shadow-sm">
-          <div className="flex flex-wrap items-center justify-between gap-4">
-            <div>
-              <p className="text-sm font-medium uppercase tracking-wide text-primary-600">Organization Admin</p>
-              <h1 className="mt-2 text-3xl font-bold text-neutral-900">Users</h1>
-            </div>
-            <div className="flex gap-3">
+        <PageHeader
+          subtitle="Organization Admin"
+          title="Users"
+          description="Add and manage the members of your organization."
+          actions={
+            <>
               <Button size="sm" variant="outline" onClick={() => openAdd('STUDENT')}>
                 Add Student
               </Button>
               <Button size="sm" onClick={() => openAdd('INSTRUCTOR')}>
                 Add Instructor
               </Button>
-            </div>
-          </div>
-        </div>
+            </>
+          }
+        />
 
         {successMessage ? (
           <div className="mb-6">
@@ -221,48 +257,83 @@ export default function OrgUsersPage() {
             />
           </div>
         ) : (
-          <div className="overflow-hidden rounded-2xl border border-neutral-200 bg-white shadow-sm">
-            <div className="flex items-center justify-between border-b border-neutral-200 px-6 py-4">
-              <h2 className="text-lg font-semibold text-neutral-900">Members</h2>
-              <p className="text-sm text-neutral-600">
-                {total !== null ? `${total} member${total === 1 ? '' : 's'}` : ''}
-              </p>
-            </div>
-            {members && members.length === 0 ? (
-              <EmptyState
-                icon={EmptyStateIcons.NoData}
-                title="No members yet"
-                description="Members of your organization will appear here. Add your first instructor or student to get started."
+          <>
+            <div className="mb-8 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+              <StatCard
+                label="Total members"
+                value={total ?? memberCount}
+                icon={MembersIcon}
+                tone="primary"
+                hint="Everyone in your organization"
               />
-            ) : (
-              <table className="min-w-full divide-y divide-neutral-200">
-                <thead className="bg-neutral-50">
-                  <tr>
-                    <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-neutral-500">Name</th>
-                    <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-neutral-500">Email</th>
-                    <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-neutral-500">Role</th>
-                    <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-neutral-500">Created</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-neutral-200">
-                  {(members ?? []).map((member) => (
-                    <tr key={member.id} className="hover:bg-neutral-50">
-                      <td className="px-6 py-4 text-sm font-medium text-neutral-900">{member.name ?? '—'}</td>
-                      <td className="px-6 py-4 text-sm text-neutral-700">{member.email}</td>
-                      <td className="px-6 py-4">
-                        <Badge variant={roleBadgeVariant(member.role)} size="sm">
-                          {member.role}
-                        </Badge>
-                      </td>
-                      <td className="px-6 py-4 text-sm text-neutral-700">
-                        {new Date(member.createdAt).toLocaleDateString()}
-                      </td>
+              <StatCard
+                label="Organization admins"
+                value={adminCount}
+                icon={AdminsIcon}
+                tone="neutral"
+                hint="Tenant-level administrators"
+              />
+              <StatCard
+                label="Instructors"
+                value={instructorCount}
+                icon={InstructorsIcon}
+                tone="warning"
+                hint="Course creators"
+              />
+              <StatCard
+                label="Students"
+                value={studentCount}
+                icon={StudentsIcon}
+                tone="success"
+                hint="Active learners"
+              />
+            </div>
+
+            <TableCard
+              title="Members"
+              description={total !== null ? `${total} member${total === 1 ? '' : 's'}` : undefined}
+            >
+              {members && members.length === 0 ? (
+                <EmptyState
+                  icon={EmptyStateIcons.NoData}
+                  title="No members yet"
+                  description="Members of your organization will appear here. Add your first instructor or student to get started."
+                />
+              ) : (
+                <table className="min-w-full divide-y divide-neutral-200">
+                  <thead className="bg-neutral-50">
+                    <tr>
+                      <th className={tableHeadClass}>Name</th>
+                      <th className={tableHeadClass}>Email</th>
+                      <th className={tableHeadClass}>Role</th>
+                      <th className={tableHeadClass}>Created</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            )}
-          </div>
+                  </thead>
+                  <tbody className="divide-y divide-neutral-100">
+                    {(members ?? []).map((member) => (
+                      <tr key={member.id} className={tableRowHoverClass}>
+                        <td className={tableCellClass}>
+                          <span className="flex items-center gap-3">
+                            <UserAvatar name={member.name} size="sm" />
+                            <span className="font-medium text-neutral-900">{member.name ?? '—'}</span>
+                          </span>
+                        </td>
+                        <td className={`${tableCellClass} text-neutral-700`}>{member.email}</td>
+                        <td className={tableCellClass}>
+                          <Badge variant={roleBadgeVariant(member.role)} size="sm">
+                            {member.role}
+                          </Badge>
+                        </td>
+                        <td className={`${tableCellClass} text-neutral-700`}>
+                          {new Date(member.createdAt).toLocaleDateString()}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              )}
+            </TableCard>
+          </>
         )}
       </div>
 
