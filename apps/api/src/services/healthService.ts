@@ -22,6 +22,7 @@ export interface HealthReport {
     database: DependencyStatus;
     redis: DependencyStatus;
     objectStorage: DependencyStatus;
+    search: DependencyStatus;
   };
 }
 
@@ -81,22 +82,49 @@ async function probeObjectStorage(): Promise<DependencyStatus> {
   }
 }
 
+async function probeSearch(): Promise<DependencyStatus> {
+  const host = process.env.MEILISEARCH_HOST;
+  const apiKey = process.env.MEILISEARCH_API_KEY;
+  if (!host) {
+    return { status: 'down', error: 'NOT_CONFIGURED' };
+  }
+  try {
+    const { latencyMs } = await withTimeout(
+      timed(async () => {
+        const url = `${host.replace(/\/$/, '')}/health`;
+        const headers: Record<string, string> = {};
+        if (apiKey) headers['Authorization'] = `Bearer ${apiKey}`;
+        const res = await fetch(url, { headers });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      }),
+      PROBE_TIMEOUT_MS,
+    );
+    return { status: 'up', latencyMs };
+  } catch (err) {
+    return { status: 'down', error: reportError(err) };
+  }
+}
+
 export async function collectHealthReport(): Promise<HealthReport> {
-  const [database, redis, objectStorage] = await Promise.all([
+  const [database, redis, objectStorage, search] = await Promise.all([
     probeDatabase(),
     probeRedis(),
     probeObjectStorage(),
+    probeSearch(),
   ]);
 
-  const allUp =
-    database.status === 'up' && redis.status === 'up' && objectStorage.status === 'up';
+  // Core dependencies required for readiness (search is optional enhancement)
+  const coreUp =
+    database.status === 'up' &&
+    redis.status === 'up' &&
+    objectStorage.status === 'up';
 
   return {
-    status: allUp ? 'ready' : 'degraded',
+    status: coreUp ? 'ready' : 'degraded',
     service: SERVICE_NAME,
     version: SERVICE_VERSION,
     timestamp: new Date().toISOString(),
     uptimeSeconds: Math.floor(process.uptime()),
-    dependencies: { database, redis, objectStorage },
+    dependencies: { database, redis, objectStorage, search },
   };
 }

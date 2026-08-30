@@ -236,3 +236,31 @@ body {
     animation: none;
   }
 }
+
+/* Features marquee — single horizontal continuously moving row */
+@keyframes features-marquee {
+  from { transform: translate3d(0, 0, 0); }
+  to { transform: translate3d(-50%, 0, 0); }
+}
+
+.features-marquee {
+  overflow: hidden;
+}
+
+.features-marquee__track {
+  animation: features-marquee 40s linear infinite;
+  will-change: transform;
+}
+
+.features-marquee:hover .features-marquee__track {
+  animation-play-state: paused;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .features-marquee__track {
+    animation: none;
+  }
+  .features-marquee {
+    overflow-x: auto;
+  }
+}

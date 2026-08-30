@@ -97,8 +97,13 @@ Routes live in `apps/api/src/routes`. Key groups: auth, users, organizations + o
 
 - Each app has a `Dockerfile`; the workspaces root `docker-compose.yml` orchestrates services for local development.
 - **Known issues to address before production:**
-  1. The compose `api` service currently injects `DATABASE_URL=${DATABASE_URL}` (host `localhost:5432`) into the container, so the containerized API cannot reach Postgres — use host-run processes for the E2E stack, or switch that env to the `db` service name.
-  2. Meilisearch is used by the API but not yet declared in `docker-compose.yml`; start it manually.
-  3. `GET /api/health` and `/api/ready` are not implemented (return 404) — readiness probes in any orchestrator need those endpoints or a different check.
-- **Notable fixes during E2E bring-up:** the BullMQ notification worker now opens its own connection with `maxRetriesPerRequest: null` (`apps/api/src/queues/notificationWorker.ts`) so the API boots when Redis is present. In some environments ports 3000/4000 are already served by another (e.g. WSL/container) process; give the E2E stack its own host ports.
-- Kubernetes manifests are not included; the app is designed to run as stateless containers with external Postgres/Redis/MinIO/Meilisearch.
+  1. In some environments ports 3000/4000 are already served by another (e.g. WSL/container) process; give the E2E stack its own host ports.
+  2. Kubernetes manifests are not included; the app is designed to run as stateless containers with external Postgres/Redis/MinIO/Meilisearch.
+- **Notable fixes during E2E bring-up:** the BullMQ notification worker now opens its own connection with `maxRetriesPerRequest: null` (`apps/api/src/queues/notificationWorker.ts`) so the API boots when Redis is present.
+- **Phase 2 infrastructure fixes (completed):**
+  - Docker Compose networking fixed: API container now connects to PostgreSQL via `db` service name, Redis via `redis`, Meilisearch via `meilisearch`.
+  - Meilisearch added to `docker-compose.yml` with persistent volume and health checks.
+  - In-memory API rate limiter replaced with Redis-backed implementation using atomic Lua scripts for multi-instance safety.
+  - Health/readiness endpoints (`/health`, `/api/health`, `/api/ready`) now properly implemented with dependency checks (PostgreSQL, Redis, MinIO, Meilisearch).
+  - Health/readiness endpoints exempt from general API rate limiting.
+  - `.env.example` updated with clear documentation for local vs Docker Compose networking.

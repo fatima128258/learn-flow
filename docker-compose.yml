@@ -54,6 +54,22 @@ services:
       timeout: 5s
       retries: 5
 
+  meilisearch:
+    image: getmeili/meilisearch:v1.11
+    restart: unless-stopped
+    environment:
+      MEILI_MASTER_KEY: ${MEILISEARCH_MASTER_KEY:-masterKey}
+      MEILI_NO_ANALYTICS: "true"
+    volumes:
+      - meilisearchdata:/meili_data
+    ports:
+      - "7700:7700"
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://127.0.0.1:7700/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
   api:
     build:
       context: ./apps/api
@@ -62,10 +78,10 @@ services:
       - "4000:4000"
     environment:
       PORT: 4000
-      DATABASE_URL: ${DATABASE_URL}
-      REDIS_URL: ${REDIS_URL}
-      MAIL_SMTP_HOST: ${MAIL_SMTP_HOST}
-      MAIL_SMTP_PORT: ${MAIL_SMTP_PORT}
+      DATABASE_URL: postgresql://learnflow:learnflow_pass@db:5432/learnflow_db?schema=public
+      REDIS_URL: redis://redis:6379
+      MAIL_SMTP_HOST: mailpit
+      MAIL_SMTP_PORT: 1025
       MAIL_FROM: ${MAIL_FROM}
       APP_URL: ${APP_URL}
       SESSION_COOKIE_NAME: ${SESSION_COOKIE_NAME}
@@ -81,12 +97,20 @@ services:
       STORAGE_SECRET_KEY: ${STORAGE_SECRET_KEY:-minioadmin}
       STORAGE_BUCKET: ${STORAGE_BUCKET:-learnflow}
       STORAGE_REGION: ${STORAGE_REGION:-us-east-1}
-      STORAGE_PUBLIC_URL: ${STORAGE_PUBLIC_URL:-http://localhost:9000}
+      STORAGE_PUBLIC_URL: ${STORAGE_PUBLIC_URL:-http://minio:9000}
+      MEILISEARCH_HOST: http://meilisearch:7700
+      MEILISEARCH_API_KEY: ${MEILISEARCH_MASTER_KEY:-masterKey}
     depends_on:
-      - db
-      - redis
-      - mailpit
-      - minio
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      mailpit:
+        condition: service_started
+      minio:
+        condition: service_healthy
+      meilisearch:
+        condition: service_healthy
 
   web:
     build:
@@ -96,7 +120,7 @@ services:
       - "3000:3000"
     environment:
       NODE_ENV: development
-      NEXT_PUBLIC_API_URL: http://localhost:4000
+      NEXT_PUBLIC_API_URL: http://api:4000
     depends_on:
       - api
       - db
@@ -122,3 +146,5 @@ volumes:
     name: learnflow_pgdata
   miniodata:
     name: learnflow_miniodata
+  meilisearchdata:
+    name: learnflow_meilisearchdata

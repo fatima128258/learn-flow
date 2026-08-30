@@ -132,20 +132,37 @@ export default function Home() {
         <Section id="features" background="muted">
           <Reveal>
             <SectionHeading
-              eyebrow="FEATURES"
-              title="Everything you need to learn"
-              description="Capabilities built around real coursework — not generic add-ons."
-              descriptionClassName="mx-auto mt-6 max-w-xl text-lg sm:text-lg leading-relaxed text-neutral-600 lg:mx-0 animate-slide-up"
-              descriptionStyle={{ animationDelay: '0.05s' }}
+              eyebrow="PLATFORM FEATURES"
+              title="One platform for the entire learning journey"
+              description="LearnFlow brings courses, progress, and proof of completion together — so learners, instructors, and organizations stay aligned without juggling separate tools."
             />
           </Reveal>
-          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
-            {capabilities.map((capability, i) => (
-              <Reveal key={capability.title} delay={i * 100} y={30} className="h-full">
-                <FeatureCard {...capability} />
-              </Reveal>
-            ))}
-          </div>
+          <Reveal className="features-marquee relative" y={20}>
+            <div className="features-marquee__track flex w-max py-6">
+              {capabilities.map((capability, i) => (
+                <FeatureCard
+                  key={capability.title}
+                  {...capability}
+                  featured={i === 0}
+                  iconClassName={i === 0 ? 'bg-primary-100 text-primary-700' : undefined}
+                  tags={i === 0 ? ['Courses', 'Modules', 'Lessons', 'Progress'] : undefined}
+                  className="w-[280px] shrink-0 mr-6 sm:w-[300px] lg:w-[320px]"
+                />
+              ))}
+              {/* Duplicated sequence for a seamless infinite loop (hidden from AT) */}
+              {capabilities.map((capability, i) => (
+                <FeatureCard
+                  key={`dup-${capability.title}`}
+                  {...capability}
+                  featured={i === 0}
+                  iconClassName={i === 0 ? 'bg-primary-100 text-primary-700' : undefined}
+                  tags={i === 0 ? ['Courses', 'Modules', 'Lessons', 'Progress'] : undefined}
+                  className="w-[280px] shrink-0 mr-6 sm:w-[300px] lg:w-[320px]"
+                  ariaHidden
+                />
+              ))}
+            </div>
+          </Reveal>
         </Section>
 
         {/* Why Choose Us */}

@@ -1,6 +1,17 @@
 import express from 'express';
 import request from 'supertest';
-import { describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+
+const redisMock = vi.hoisted(() => ({
+  evalsha: vi.fn(),
+  script: vi.fn(),
+  ping: vi.fn(async () => 'PONG'),
+}));
+
+vi.mock('../utils/redis', () => ({
+  getRedis: () => redisMock,
+}));
+
 import { createRateLimiter } from '../middleware/rateLimit';
 
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
@@ -15,7 +26,18 @@ function buildApp(options: Parameters<typeof createRateLimiter>[0] = {}) {
 }
 
 describe('createRateLimiter middleware', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    redisMock.script.mockResolvedValue('mock_sha');
+    redisMock.evalsha.mockResolvedValue([1, 1, Math.ceil((Date.now() + 60000) / 1000), 5]);
+  });
+
   it('allows requests up to the configured maximum and rejects the next with 429', async () => {
+    redisMock.evalsha
+      .mockResolvedValueOnce([1, 1, Math.ceil((Date.now() + 60000) / 1000), 2]) // first request
+      .mockResolvedValueOnce([1, 2, Math.ceil((Date.now() + 60000) / 1000), 2]) // second request
+      .mockResolvedValueOnce([0, 3, Math.ceil((Date.now() + 60000) / 1000), 2]); // third request (rejected)
+
     const app = buildApp({ windowMs: 60_000, max: 2 });
 
     const first = await request(app).get('/resource');
@@ -29,6 +51,8 @@ describe('createRateLimiter middleware', () => {
   });
 
   it('exposes standard rate limit headers on successful responses', async () => {
+    redisMock.evalsha.mockResolvedValue([1, 1, Math.ceil((Date.now() + 60000) / 1000), 5]);
+
     const app = buildApp({ windowMs: 60_000, max: 5 });
 
     const res = await request(app).get('/resource');
@@ -40,6 +64,10 @@ describe('createRateLimiter middleware', () => {
   });
 
   it('includes Retry-After when a request is rejected', async () => {
+    redisMock.evalsha
+      .mockResolvedValueOnce([1, 1, Math.ceil((Date.now() + 60000) / 1000), 1])
+      .mockResolvedValueOnce([0, 2, Math.ceil((Date.now() + 60000) / 1000), 1]);
+
     const app = buildApp({ windowMs: 60_000, max: 1 });
 
     await request(app).get('/resource');
@@ -60,6 +88,15 @@ describe('createRateLimiter middleware', () => {
   });
 
   it('tracks limits independently per route', async () => {
+    let callCount = 0;
+    redisMock.evalsha.mockImplementation(() => {
+      callCount++;
+      if (callCount === 1 || callCount === 2) {
+        return Promise.resolve([1, callCount, Math.ceil((Date.now() + 60000) / 1000), 1]);
+      }
+      return Promise.resolve([0, 2, Math.ceil((Date.now() + 60000) / 1000), 1]);
+    });
+
     const app = buildApp({ windowMs: 60_000, max: 1 });
 
     const resource = await request(app).get('/resource');
@@ -72,6 +109,11 @@ describe('createRateLimiter middleware', () => {
   });
 
   it('resets the quota after the window elapses', async () => {
+    redisMock.evalsha
+      .mockResolvedValueOnce([1, 1, Math.ceil((Date.now() + 50) / 1000), 1])
+      .mockResolvedValueOnce([0, 2, Math.ceil((Date.now() + 50) / 1000), 1])
+      .mockResolvedValueOnce([1, 1, Math.ceil((Date.now() + 50) / 1000), 1]);
+
     const app = buildApp({ windowMs: 50, max: 1 });
 
     await request(app).get('/resource');

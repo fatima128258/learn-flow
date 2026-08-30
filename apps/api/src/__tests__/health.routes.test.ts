@@ -1,6 +1,14 @@
 import request from 'supertest';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+// Set Meilisearch env for health checks
+process.env.MEILISEARCH_HOST = 'http://localhost:7700';
+process.env.MEILISEARCH_API_KEY = 'test-key';
+
+// Mock fetch for Meilisearch health checks
+const mockFetch = vi.fn();
+vi.stubGlobal('fetch', mockFetch);
+
 const mocks = vi.hoisted(() => ({
   redisPing: vi.fn(async () => 'PONG' as string),
   storagePing: vi.fn(async () => undefined),
@@ -26,6 +34,8 @@ describe('Observability endpoints (Section 22)', () => {
     vi.clearAllMocks();
     mocks.redisPing.mockResolvedValue('PONG');
     mocks.storagePing.mockResolvedValue(undefined);
+    // Mock Meilisearch health check to return success
+    mockFetch.mockResolvedValue({ ok: true, status: 200 });
   });
 
   it('exposes /api/health with all dependency statuses when everything is up', async () => {
@@ -40,6 +50,7 @@ describe('Observability endpoints (Section 22)', () => {
     expect(res.body.dependencies.database.status).toBe('up');
     expect(res.body.dependencies.redis.status).toBe('up');
     expect(res.body.dependencies.objectStorage.status).toBe('up');
+    expect(res.body.dependencies.search.status).toBe('up');
   });
 
   it('exposes /api/ready and returns 200 only when all dependencies are available', async () => {
@@ -51,6 +62,7 @@ describe('Observability endpoints (Section 22)', () => {
       database: expect.objectContaining({ status: 'up' }),
       redis: expect.objectContaining({ status: 'up' }),
       objectStorage: expect.objectContaining({ status: 'up' }),
+      search: expect.objectContaining({ status: 'up' }),
     });
   });
 

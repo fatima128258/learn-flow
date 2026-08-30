@@ -76,6 +76,7 @@ export const LoginForm: React.FC<LoginFormProps> = ({ onSubmit, error: externalE
         <Input
           label="Email address"
           type="email"
+          variant="line"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           error={emailError}
@@ -83,11 +84,11 @@ export const LoginForm: React.FC<LoginFormProps> = ({ onSubmit, error: externalE
           autoComplete="email"
           disabled={loading}
           required
-          style={{ color: '#000000', backgroundColor: '#ffffff' }}
         />
 
         <PasswordInput
           label="Password"
+          variant="line"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
           error={passwordError}
@@ -95,7 +96,6 @@ export const LoginForm: React.FC<LoginFormProps> = ({ onSubmit, error: externalE
           autoComplete="current-password"
           disabled={loading}
           required
-          style={{ color: '#000000', backgroundColor: '#ffffff' }}
         />
 
         <div className="flex items-center justify-end -mt-2">

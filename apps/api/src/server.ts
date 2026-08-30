@@ -47,8 +47,16 @@ app.use(cors({
 app.use(cookieParser());
 app.use(express.json({ limit: '1mb' }));
 
-// General API rate limiting (per IP + method + path)
-app.use('/api/v1', apiRateLimiter);
+// General API rate limiting (per IP + method + path) - exempt health/readiness
+app.use((req, res, next) => {
+  if (req.path === '/health' || req.path === '/api/health' || req.path === '/api/ready') {
+    return next();
+  }
+  if (req.path.startsWith('/api/v1')) {
+    return apiRateLimiter(req, res, next);
+  }
+  return next();
+});
 
 // Health check endpoint
 app.get('/health', (req, res) => {

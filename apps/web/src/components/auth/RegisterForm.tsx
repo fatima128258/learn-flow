@@ -81,6 +81,9 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (loading || success) {
+      return;
+    }
     setError(null);
 
     if (!validateForm()) {
@@ -114,6 +117,7 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
         <Input
           label="Full name"
           type="text"
+          variant="line"
           value={name}
           onChange={(e) => setName(e.target.value)}
           error={nameError}
@@ -126,6 +130,7 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
         <Input
           label="Email address"
           type="email"
+          variant="line"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           error={emailError}
@@ -137,6 +142,7 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
 
         <PasswordInput
           label="Password"
+          variant="line"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
           error={passwordError}
@@ -149,6 +155,7 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
 
         <PasswordInput
           label="Confirm password"
+          variant="line"
           value={confirmPassword}
           onChange={(e) => setConfirmPassword(e.target.value)}
           error={confirmPasswordError}
