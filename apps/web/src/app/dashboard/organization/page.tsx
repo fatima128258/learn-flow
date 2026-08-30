@@ -426,7 +426,7 @@ export default function OrganizationDashboardPage() {
               error={instructorPasswordError}
               placeholder="At least 8 characters"
               autoComplete="new-password"
-              helperText="Use at least 8 characters"
+              // helperText="Use at least 8 characters"
               disabled={creatingInstructor}
               required
             />

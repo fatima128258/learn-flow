@@ -48,6 +48,9 @@ vi.mock('../repositories/lessonRepository', () => lessonRepoMock);
 vi.mock('../repositories/certificateRepository', () => certificateRepoMock);
 vi.mock('../repositories/organizationRepository', () => organizationRepoMock);
 vi.mock('../services/authService', () => authServiceMock);
+vi.mock('../services/certificatePdfService', () => ({
+  uploadCertificatePdf: vi.fn(async () => 'https://cloudinary.example/cert.pdf'),
+}));
 vi.mock('../prisma', () => ({ default: () => prismaMock }));
 
 import * as enrollmentService from '../services/enrollmentService';

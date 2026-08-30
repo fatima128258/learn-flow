@@ -36,24 +36,6 @@ services:
       - "8025:8025"
       - "1025:1025"
 
-  minio:
-    image: minio/minio:latest
-    restart: unless-stopped
-    command: server /data --console-address ":9001"
-    environment:
-      MINIO_ROOT_USER: ${STORAGE_ACCESS_KEY:-minioadmin}
-      MINIO_ROOT_PASSWORD: ${STORAGE_SECRET_KEY:-minioadmin}
-    volumes:
-      - miniodata:/data
-    ports:
-      - "9000:9000"
-      - "9001:9001"
-    healthcheck:
-      test: ["CMD", "mc", "ready", "local"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-
   meilisearch:
     image: getmeili/meilisearch:v1.11
     restart: unless-stopped
@@ -72,8 +54,8 @@ services:
 
   api:
     build:
-      context: ./apps/api
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: apps/api/Dockerfile
     ports:
       - "4000:4000"
     environment:
@@ -89,15 +71,9 @@ services:
       SESSION_TTL_SECONDS: ${SESSION_TTL_SECONDS}
       ADMIN_EMAIL: ${ADMIN_EMAIL}
       ADMIN_PASSWORD: ${ADMIN_PASSWORD}
-      STORAGE_DRIVER: ${STORAGE_DRIVER}
-      STORAGE_ENDPOINT: minio
-      STORAGE_PORT: 9000
-      STORAGE_USE_SSL: ${STORAGE_USE_SSL}
-      STORAGE_ACCESS_KEY: ${STORAGE_ACCESS_KEY:-minioadmin}
-      STORAGE_SECRET_KEY: ${STORAGE_SECRET_KEY:-minioadmin}
-      STORAGE_BUCKET: ${STORAGE_BUCKET:-learnflow}
-      STORAGE_REGION: ${STORAGE_REGION:-us-east-1}
-      STORAGE_PUBLIC_URL: ${STORAGE_PUBLIC_URL:-http://minio:9000}
+      CLOUDINARY_CLOUD_NAME: ${CLOUDINARY_CLOUD_NAME}
+      CLOUDINARY_API_KEY: ${CLOUDINARY_API_KEY}
+      CLOUDINARY_API_SECRET: ${CLOUDINARY_API_SECRET}
       MEILISEARCH_HOST: http://meilisearch:7700
       MEILISEARCH_API_KEY: ${MEILISEARCH_MASTER_KEY:-masterKey}
     depends_on:
@@ -107,8 +83,6 @@ services:
         condition: service_healthy
       mailpit:
         condition: service_started
-      minio:
-        condition: service_healthy
       meilisearch:
         condition: service_healthy
 
@@ -144,7 +118,5 @@ services:
 volumes:
   pgdata:
     name: learnflow_pgdata
-  miniodata:
-    name: learnflow_miniodata
   meilisearchdata:
     name: learnflow_meilisearchdata

@@ -8,7 +8,8 @@ export interface AuthCardProps {
   footer?: {
     text: string;
     linkText: string;
-    linkHref: string;
+    linkHref?: string;
+    linkOnClick?: () => void;
   };
 }
 
@@ -18,6 +19,31 @@ export const AuthCard: React.FC<AuthCardProps> = ({
   children,
   footer,
 }) => {
+  const renderFooterLink = () => {
+    if (!footer) return null;
+
+    if (footer.linkOnClick) {
+      return (
+        <button
+          type="button"
+          onClick={footer.linkOnClick}
+          className="font-semibold text-primary-600 underline-offset-2 transition-colors hover:text-primary-700 hover:underline"
+        >
+          {footer.linkText}
+        </button>
+      );
+    }
+
+    return (
+      <Link
+        href={footer.linkHref ?? '#'}
+        className="font-semibold text-primary-600 underline-offset-2 transition-colors hover:text-primary-700 hover:underline"
+      >
+        {footer.linkText}
+      </Link>
+    );
+  };
+
   return (
     <div>
       {/* Header */}
@@ -45,12 +71,7 @@ export const AuthCard: React.FC<AuthCardProps> = ({
         >
           <p className="text-center text-sm text-neutral-600">
             {footer.text}{' '}
-            <Link
-              href={footer.linkHref}
-              className="font-semibold text-primary-600 underline-offset-2 transition-colors hover:text-primary-700 hover:underline"
-            >
-              {footer.linkText}
-            </Link>
+            {renderFooterLink()}
           </p>
         </div>
       )}

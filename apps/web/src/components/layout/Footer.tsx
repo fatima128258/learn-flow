@@ -57,10 +57,10 @@ export const Footer: React.FC = () => {
   );
 
   return (
-    <footer className="bg-[#3B1D6E]">
+    <footer className="bg-primary-800">
       <Container size="xl" className="py-14 sm:py-16">
         {/* Top CTA */}
-        <div className="flex flex-col gap-6 rounded-2xl bg-[#4f2d8f] px-6 py-8 sm:px-10 sm:py-10 md:flex-row md:items-center md:justify-between">
+        <div className="flex flex-col gap-6 rounded-2xl bg-primary-900 px-6 py-8 sm:px-10 sm:py-10 md:flex-row md:items-center md:justify-between">
           <div className="max-w-xl">
             <p className="text-xs font-semibold uppercase tracking-wider text-white/80">
               Need help?
@@ -95,7 +95,7 @@ export const Footer: React.FC = () => {
         <div className="mt-14 grid grid-cols-1 gap-10 sm:grid-cols-2 lg:grid-cols-[2fr_1.6fr_1fr_1fr]">
           {/* Brand */}
           <div className="lg:pr-6">
-            <Logo href="/" tone="dark" />
+            <Logo href="/" tone="light" />
             <p className="mt-4 text-base font-semibold text-white">
               The learning platform for focused study
             </p>
@@ -161,7 +161,7 @@ export const Footer: React.FC = () => {
                 <li key={link.href}>
                   <Link
                     href={link.href}
-                    className="text-sm font-medium text-neutral-600 transition-colors hover:text-primary-700"
+                    className="text-[15px] font-medium text-purple-100 transition-colors hover:text-white"
                   >
                     {link.label}
                   </Link>

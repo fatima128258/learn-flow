@@ -861,7 +861,7 @@ export default function OrganizationsPage() {
                 error={adminPasswordError}
                 placeholder="At least 8 characters"
                 autoComplete="new-password"
-                helperText="Use at least 8 characters"
+                // helperText="Use at least 8 characters"
                 disabled={assigning}
                 required
               />

@@ -169,19 +169,23 @@ test.describe('Signup page', () => {
 
   test('no horizontal overflow and a fully visible form across all requested breakpoints', async ({ page }) => {
     const widths = [1440, 1280, 1024, 768, 600, 390, 375, 320];
+    await page.setViewportSize({ width: widths[0], height: 900 });
+    await page.goto('/register', { waitUntil: 'domcontentloaded' });
+    await expect(page.getByLabel('Full name')).toBeVisible();
+
     for (const width of widths) {
       await page.setViewportSize({ width, height: 900 });
-      await page.goto('/register');
+      await page.waitForTimeout(150);
 
       const overflow = await page.evaluate(
         () => document.documentElement.scrollWidth - document.documentElement.clientWidth
       );
       expect(overflow, `horizontal overflow at ${width}px`).toBeLessThanOrEqual(0);
 
-      const name = page.getByLabel('Full name');
-      await expect(name).toBeVisible();
-      await expect(page.getByRole('button', { name: 'Create account' })).toBeVisible();
-      const btnBox = await page.getByRole('button', { name: 'Create account' }).boundingBox();
+      await expect(page.getByLabel('Full name')).toBeVisible();
+      const btn = page.getByRole('button', { name: 'Create account' });
+      await expect(btn).toBeVisible();
+      const btnBox = await btn.boundingBox();
       expect(btnBox, `button off-screen at ${width}px`).not.toBeNull();
       expect((btnBox?.x ?? 0) >= 0, `button left clip at ${width}px`).toBe(true);
       expect(

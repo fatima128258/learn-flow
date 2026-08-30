@@ -296,7 +296,7 @@ export default function OrgUsersPage() {
               error={passwordError}
               placeholder="At least 8 characters"
               autoComplete="new-password"
-              helperText="Use at least 8 characters"
+              // helperText="Use at least 8 characters"
               disabled={saving}
               required
             />

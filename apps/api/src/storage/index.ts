@@ -1,4 +1,4 @@
-import { MinioStorageProvider } from './minioProvider';
+import { CloudinaryStorageProvider } from './cloudinaryProvider';
 import { StorageProvider, PutObjectInput, PresignedUrlOptions, StoredObject } from './types';
 
 export * from './types';
@@ -9,16 +9,7 @@ let provider: StorageProvider | null = null;
 
 function getProvider(): StorageProvider {
   if (!provider) {
-    const driver = (process.env.STORAGE_DRIVER || 's3').toUpperCase();
-    switch (driver) {
-      case 'S3':
-      case 'MINIO':
-      case 'R2':
-        provider = new MinioStorageProvider();
-        break;
-      default:
-        throw new Error('UNSUPPORTED_STORAGE_DRIVER');
-    }
+    provider = new CloudinaryStorageProvider();
   }
   return provider;
 }
