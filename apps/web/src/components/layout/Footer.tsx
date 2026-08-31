@@ -1,9 +1,9 @@
 import React from 'react';
 import Link from 'next/link';
-import { Container } from '../ui/layout/Container';
-import { LinkButton } from '../ui/LinkButton';
-import { LearnFlowLogo } from '../public/LearnFlowLogo';
-import { Reveal } from '../public/Reveal';
+import { Container } from '@/components/ui/layout/Container';
+import { LinkButton } from '@/components/ui/LinkButton';
+import { LearnFlowLogo } from '@/components/public/LearnFlowLogo';
+import { Reveal } from '@/components/public/Reveal';
 
 const ColumnHeading: React.FC<{ children: React.ReactNode }> = ({ children }) => (
   <h4 className="text-xs font-semibold uppercase tracking-wider text-white/60">
