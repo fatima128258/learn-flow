@@ -88,6 +88,91 @@ export async function getDashboard(organizationId: string) {
   };
 }
 
+const ROLE_LABELS: Record<string, string> = {
+  ORG_ADMIN: 'Org Admin',
+  INSTRUCTOR: 'Instructor',
+  STUDENT: 'Student',
+  PLATFORM_ADMIN: 'Platform Admin',
+};
+
+const ROLE_ORDER = ['ORG_ADMIN', 'PLATFORM_ADMIN', 'INSTRUCTOR', 'STUDENT'];
+
+function monthKey(date: Date) {
+  return `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, '0')}`;
+}
+
+function monthLabel(key: string) {
+  const [year, month] = key.split('-').map(Number);
+  const date = new Date(Date.UTC(year, month - 1, 1));
+  return date.toLocaleString('en-US', { month: 'short', timeZone: 'UTC' });
+}
+
+function buildMemberGrowth(history: Array<{ createdAt: Date }>) {
+  if (history.length === 0) return [];
+
+  const now = new Date();
+  const buckets: string[] = [];
+  const cursor = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
+  for (let i = 0; i < 12; i++) {
+    buckets.unshift(monthKey(cursor));
+    cursor.setUTCMonth(cursor.getUTCMonth() - 1);
+  }
+  const firstBucket = buckets[0];
+  const earliest = monthKey(history[0].createdAt);
+  const start = earliest < firstBucket ? earliest : firstBucket;
+
+  const endKey = buckets[buckets.length - 1];
+  const months: string[] = [];
+  const walked = new Date(`${start}-01T00:00:00.000Z`);
+  const endDate = new Date(`${endKey}-01T00:00:00.000Z`);
+  while (walked <= endDate) {
+    months.push(monthKey(walked));
+    walked.setUTCMonth(walked.getUTCMonth() + 1);
+  }
+
+  const membershipsByMonth = history.reduce<Record<string, number>>((acc, m) => {
+    const key = monthKey(m.createdAt);
+    acc[key] = (acc[key] ?? 0) + 1;
+    return acc;
+  }, {});
+
+  let running = 0;
+  return months.map((key) => {
+    running += membershipsByMonth[key] ?? 0;
+    return { month: monthLabel(key), members: running };
+  });
+}
+
+function buildRoleDistribution(roleCounts: Array<{ role: string; count: number }>) {
+  const byRole = new Map(roleCounts.map((r) => [r.role, r.count]));
+  return ROLE_ORDER.filter((role) => (byRole.get(role) ?? 0) > 0).map((role) => ({
+    label: ROLE_LABELS[role] ?? role,
+    role,
+    value: byRole.get(role) ?? 0,
+  }));
+}
+
+export async function getAnalytics(organizationId: string) {
+  const organization = await orgRepo.findOrganizationById(organizationId);
+  if (!organization) {
+    throw new Error('ORGANIZATION_NOT_FOUND');
+  }
+
+  const [roleCounts, history] = await Promise.all([
+    orgAdminRepo.getOrganizationMemberCountByRole(organizationId),
+    orgAdminRepo.getOrganizationMembershipHistory(organizationId),
+  ]);
+
+  return {
+    organization: {
+      id: organizationId,
+      name: organization.name,
+    },
+    growth: buildMemberGrowth(history),
+    roles: buildRoleDistribution(roleCounts),
+  };
+}
+
 export async function getOrganization(organizationId: string) {
   const organization = await orgRepo.findOrganizationById(organizationId);
   if (!organization) {

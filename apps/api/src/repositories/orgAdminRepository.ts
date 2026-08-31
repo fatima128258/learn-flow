@@ -25,6 +25,24 @@ export async function getOrganizationMemberCounts(organizationId: string) {
   return { total, instructors, students, orgAdmins };
 }
 
+export async function getOrganizationMemberCountByRole(organizationId: string) {
+  const rows = await prisma().userOrganization.groupBy({
+    by: ['role'],
+    where: { organizationId },
+    _count: { _all: true },
+  });
+
+  return rows.map((row) => ({ role: row.role, count: row._count._all }));
+}
+
+export async function getOrganizationMembershipHistory(organizationId: string) {
+  return prisma().userOrganization.findMany({
+    where: { organizationId },
+    select: { createdAt: true, role: true },
+    orderBy: { createdAt: 'asc' },
+  });
+}
+
 export async function listOrganizationMembers(params: {
   organizationId: string;
   skip: number;

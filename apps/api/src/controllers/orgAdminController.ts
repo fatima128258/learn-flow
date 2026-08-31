@@ -55,6 +55,15 @@ export async function dashboard(req: AuthenticatedRequest, res: Response) {
   }
 }
 
+export async function analytics(req: AuthenticatedRequest, res: Response) {
+  try {
+    const data = await service.getAnalytics(tenantOrganizationId(req));
+    return res.json({ success: true, data });
+  } catch (err) {
+    return handleError(res, err);
+  }
+}
+
 export async function getOrganization(req: AuthenticatedRequest, res: Response) {
   try {
     const data = await service.getOrganization(tenantOrganizationId(req));

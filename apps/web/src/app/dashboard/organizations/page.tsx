@@ -924,7 +924,7 @@ export default function OrganizationsPage() {
               value={newName}
               onChange={(e) => setNewName(e.target.value)}
               error={nameError}
-              helperText="The URL slug will be generated automatically from the name."
+              // helperText="The URL slug will be generated automatically from the name."
               placeholder="e.g. Digitalsofts Academy"
               disabled={creating}
               autoFocus

@@ -9,6 +9,7 @@ const prismaMock = {
     create: vi.fn(),
     update: vi.fn(),
     count: vi.fn(),
+    groupBy: vi.fn(),
   },
   organization: {
     findUnique: vi.fn(),
@@ -135,6 +136,7 @@ describe('Organization Admin APIs', () => {
     prismaMock.userOrganization.create.mockReset();
     prismaMock.userOrganization.update.mockReset();
     prismaMock.userOrganization.count.mockReset();
+    prismaMock.userOrganization.groupBy.mockReset();
     prismaMock.organization.findUnique.mockReset();
     prismaMock.organization.count.mockReset();
     prismaMock.user.findUnique.mockReset();
@@ -469,6 +471,46 @@ describe('Organization Admin APIs', () => {
       expect(res.status).toBe(200);
       expect(res.body.data.name).toBe('Ira Updated');
       expect(prismaMock.user.update).toHaveBeenCalled();
+    });
+
+    it('returns organization growth analytics scoped to the authenticated organization', async () => {
+      await authenticateAs('ORG_ADMIN', { organizationId: 'org-a' });
+      prismaMock.organization.findUnique.mockResolvedValue(orgRecord());
+      prismaMock.userOrganization.groupBy.mockResolvedValue([
+        { role: 'ORG_ADMIN', _count: { _all: 1 } },
+        { role: 'INSTRUCTOR', _count: { _all: 2 } },
+        { role: 'STUDENT', _count: { _all: 5 } },
+      ]);
+      prismaMock.userOrganization.findMany.mockResolvedValue([
+        { createdAt: new Date('2026-01-15'), role: 'STUDENT' },
+        { createdAt: new Date('2026-02-10'), role: 'INSTRUCTOR' },
+        { createdAt: new Date('2026-03-20'), role: 'STUDENT' },
+        { createdAt: new Date('2026-04-05'), role: 'ORG_ADMIN' },
+        { createdAt: new Date('2026-05-12'), role: 'STUDENT' },
+        { createdAt: new Date('2026-06-18'), role: 'STUDENT' },
+      ]);
+
+      const res = await request(app)
+        .get('/api/v1/org/analytics')
+        .set('Cookie', cookie())
+        .set('X-Organization-Id', 'org-b');
+
+      expect(res.status).toBe(200);
+      expect(res.body.success).toBe(true);
+      expect(res.body.data.organization.id).toBe('org-a');
+      expect(res.body.data.growth).toBeDefined();
+      expect(Array.isArray(res.body.data.growth)).toBe(true);
+      expect(res.body.data.growth.length).toBeGreaterThan(0);
+      expect(res.body.data.growth[0]).toHaveProperty('month');
+      expect(res.body.data.growth[0]).toHaveProperty('members');
+      expect(prismaMock.organization.findUnique).toHaveBeenCalledWith(expect.objectContaining({
+        where: { id: 'org-a' },
+      }));
+      expect(prismaMock.userOrganization.findMany).toHaveBeenCalledWith(expect.objectContaining({
+        where: { organizationId: 'org-a' },
+        select: { createdAt: true, role: true },
+        orderBy: { createdAt: 'asc' },
+      }));
     });
   });
 

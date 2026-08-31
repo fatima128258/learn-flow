@@ -3,7 +3,6 @@
 import { useEffect, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import {
-  Badge,
   Button,
   EmptyState,
   EmptyStateIcons,
@@ -15,17 +14,13 @@ import {
 import { PasswordInput } from '../../../components/forms/PasswordInput';
 import { getOrgAdminErrorMessage } from '../../../features/orgAdmin/orgAdminErrors';
 import { getCreateInstructorErrorMessage } from '../../../features/orgAdmin/createInstructorError';
-import { LinkButton } from '../../../components/ui/LinkButton';
 import { useToast } from '../../../components/ui/ToastProvider';
 import {
   PageHeader,
   StatCard,
-  TableCard,
-  UserAvatar,
   Calendar,
-  tableHeadClass,
-  tableCellClass,
-  tableRowHoverClass,
+  ChartCard,
+  LineChart,
 } from '../../../components/dashboard';
 
 type OrganizationInfo = {
@@ -71,24 +66,18 @@ type MeResponse = {
   };
 };
 
+type GrowthPoint = { month: string; members: number };
+type OrgAnalytics = {
+  organization?: { id: string; name: string };
+  growth?: GrowthPoint[];
+};
+
 function roleBadgeVariant(role: MemberRole) {
   if (role === 'PLATFORM_ADMIN') return 'primary' as const;
   if (role === 'ORG_ADMIN') return 'info' as const;
   if (role === 'INSTRUCTOR') return 'warning' as const;
   return 'default' as const;
 }
-
-const MembersIcon = (
-  <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
-    <path strokeLinecap="round" strokeLinejoin="round" d="M17 20h5v-2a3 3 0 00-4.974-2.337M14 20H2v-2a4 4 0 018-2.87M11 4a4 4 0 000 8M15.5 12a3.5 3.5 0 000-7M15 20h7v-2a3 3 0 00-2.97-3" />
-  </svg>
-);
-
-const AdminsIcon = (
-  <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
-    <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197" />
-  </svg>
-);
 
 const InstructorsIcon = (
   <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
@@ -102,6 +91,12 @@ const StudentsIcon = (
   </svg>
 );
 
+const CoursesIcon = (
+  <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+    <path strokeLinecap="round" strokeLinejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+  </svg>
+);
+
 export default function OrganizationDashboardPage() {
   const toast = useToast();
   const searchParams = useSearchParams();
@@ -109,8 +104,11 @@ export default function OrganizationDashboardPage() {
 
   const [user, setUser] = useState<{ name?: string | null; email?: string } | null>(null);
   const [summary, setSummary] = useState<DashboardSummary | null>(null);
+  const [courseCount, setCourseCount] = useState<number | null>(null);
   const [members, setMembers] = useState<MemberItem[] | null>(null);
   const [membersTotal, setMembersTotal] = useState<number | null>(null);
+  const [analyticsData, setAnalyticsData] = useState<OrgAnalytics | null>(null);
+  const [analyticsError, setAnalyticsError] = useState<boolean>(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -130,10 +128,27 @@ export default function OrganizationDashboardPage() {
     try {
       const apiBase = process.env.NEXT_PUBLIC_API_URL || '';
 
-      const [dashRes, usersRes] = await Promise.all([
+      const [dashRes, usersRes, analyticsRes] = await Promise.all([
         fetch(`${apiBase}/api/v1/org/dashboard`, { credentials: 'include', headers: orgHeaders }),
         fetch(`${apiBase}/api/v1/org/users?page=1&limit=20`, { credentials: 'include', headers: orgHeaders }),
+        fetch(`${apiBase}/api/v1/org/analytics`, { credentials: 'include', headers: orgHeaders }),
       ]);
+
+      let courseCountValue: number | null = null;
+      if (orgId) {
+        try {
+          const coursesRes = await fetch(
+            `${apiBase}/api/v1/organizations/${orgId}/courses`,
+            { credentials: 'include' }
+          );
+          if (coursesRes.ok) {
+            const coursesBody: { success?: boolean; data?: unknown[] } = await coursesRes.json();
+            courseCountValue = Array.isArray(coursesBody.data) ? coursesBody.data.length : null;
+          }
+        } catch {
+          courseCountValue = null;
+        }
+      }
 
       if (!dashRes.ok) {
         let code: unknown = null;
@@ -161,8 +176,18 @@ export default function OrganizationDashboardPage() {
       const usersData: UsersResponse = await usersRes.json();
 
       setSummary(dashData.data ?? null);
+      setCourseCount(courseCountValue);
       setMembers(Array.isArray(usersData.data) ? usersData.data : []);
       setMembersTotal(usersData.meta?.total ?? null);
+
+      if (analyticsRes.ok) {
+        const analyticsBody: { success?: boolean; data?: OrgAnalytics } = await analyticsRes.json();
+        setAnalyticsData(analyticsBody.data ?? null);
+        setAnalyticsError(false);
+      } else {
+        setAnalyticsData(null);
+        setAnalyticsError(true);
+      }
     } catch {
       setError('Could not reach the API. Please try again.');
     } finally {
@@ -300,29 +325,7 @@ export default function OrganizationDashboardPage() {
     <>
       <div className="mx-auto max-w-6xl">
         <div className="mb-8">
-          <PageHeader
-            title={summary ? summary.organization.name : 'Organization'}
-            badges={
-              summary
-                ? [
-                    {
-                      label: summary.organization.status,
-                      variant: summary.organization.status === 'ACTIVE' ? 'success' : 'error',
-                    },
-                  ]
-                : undefined
-            }
-            actions={
-              <>
-                <LinkButton href="/dashboard/organization/courses" size="sm" variant="outline">
-                  My Courses
-                </LinkButton>
-                <LinkButton href="/dashboard/organization/courses/new" size="sm">
-                  Create Course
-                </LinkButton>
-              </>
-            }
-          />
+          <PageHeader title={summary ? summary.organization.name : 'Organization'} />
         </div>
 
         {error ? (
@@ -337,18 +340,11 @@ export default function OrganizationDashboardPage() {
           <>
             <div className="mb-8 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
               <StatCard
-                label="Total members"
-                value={summary.users.total}
-                icon={MembersIcon}
+                label="Courses"
+                value={courseCount ?? 0}
+                icon={CoursesIcon}
                 tone="primary"
-                hint="Everyone in your organization"
-              />
-              <StatCard
-                label="Organization admins"
-                value={summary.users.organizationAdmins}
-                icon={AdminsIcon}
-                tone="neutral"
-                hint="Tenant-level administrators"
+                hint="Courses in your organization"
               />
               <StatCard
                 label="Instructors"
@@ -366,83 +362,40 @@ export default function OrganizationDashboardPage() {
               />
             </div>
 
+            {/* Analytics */}
+            <div className="mb-8">
+              <ChartCard
+                title="Organization Growth"
+                description={
+                  analyticsData?.growth?.length
+                    ? 'Cumulative members per month'
+                    : undefined
+                }
+              >
+                {analyticsError ? (
+                  <div className="rounded-lg border border-neutral-200 bg-neutral-50 p-6 text-sm text-neutral-600">
+                    Could not load growth analytics.
+                  </div>
+                ) : analyticsData && analyticsData.growth && analyticsData.growth.length > 0 ? (
+                  <LineChart
+                    data={analyticsData.growth.map((g) => ({ label: g.month, value: g.members }))}
+                    color="#8b5cf6"
+                    height={240}
+                  />
+                ) : (
+                  <EmptyState
+                    icon={EmptyStateIcons.NoData}
+                    title="No membership history yet"
+                    description="Member growth will appear as people join your organization."
+                  />
+                )}
+              </ChartCard>
+            </div>
+
             {/* Calendar */}
             <div className="mb-8">
               <Calendar />
             </div>
-
-            <TableCard
-              title="Members"
-              description={
-                membersTotal !== null ? `${membersTotal} member${membersTotal === 1 ? '' : 's'}` : undefined
-              }
-              action={
-                <Button size="sm" onClick={() => setShowInstructorModal(true)}>
-                  Add Instructor
-                </Button>
-              }
-            >
-              {members && members.length === 0 ? (
-                <EmptyState
-                  icon={EmptyStateIcons.NoData}
-                  title="No members yet"
-                  description="Members of your organization will appear here."
-                />
-              ) : (
-                <>
-                  {/* Desktop table */}
-                  <div className="hidden md:block">
-                    <table className="min-w-full divide-y divide-neutral-200">
-                      <thead className="bg-neutral-50">
-                        <tr>
-                          <th className={tableHeadClass}>Name</th>
-                          <th className={tableHeadClass}>Email</th>
-                          <th className={tableHeadClass}>Role</th>
-                          <th className={tableHeadClass}>Created</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-neutral-100">
-                        {(members ?? []).map((member) => (
-                          <tr key={member.id} className={tableRowHoverClass}>
-                            <td className={tableCellClass}>
-                              <span className="flex items-center gap-3">
-                                <UserAvatar name={member.name} size="sm" />
-                                <span className="font-medium text-neutral-900">{member.name ?? '—'}</span>
-                              </span>
-                            </td>
-                            <td className={`${tableCellClass} text-neutral-700`}>{member.email}</td>
-                            <td className={tableCellClass}>
-                              <Badge variant={roleBadgeVariant(member.role)} size="sm">{member.role}</Badge>
-                            </td>
-                            <td className={`${tableCellClass} text-neutral-700`}>
-                              {new Date(member.createdAt).toLocaleDateString()}
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                  {/* Mobile cards */}
-                  <div className="space-y-3 p-3 md:hidden">
-                    {(members ?? []).map((member) => (
-                      <div key={member.id} className="rounded-2xl border border-neutral-200 bg-white p-4 shadow-sm">
-                        <div className="flex items-center justify-between gap-2">
-                          <div className="flex items-center gap-2 min-w-0">
-                            <UserAvatar name={member.name} size="sm" />
-                            <p className="font-semibold text-neutral-900 truncate">{member.name ?? '—'}</p>
-                          </div>
-                          <Badge variant={roleBadgeVariant(member.role)} size="sm">{member.role}</Badge>
-                        </div>
-                        <div className="mt-3 space-y-1 border-t border-neutral-100 pt-3">
-                          <p className="text-sm text-neutral-700 break-all">{member.email}</p>
-                          <p className="text-xs text-neutral-400">{new Date(member.createdAt).toLocaleDateString()}</p>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </>
-              )}
-            </TableCard>
           </>
         ) : null}
       </div>

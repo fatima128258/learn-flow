@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { requireAuth, requireOrgAdmin } from '../middleware/auth';
 import {
   dashboard,
+  analytics,
   getOrganization,
   listUsers,
   getUser,
@@ -13,6 +14,7 @@ import {
 const orgAdminRouter = Router();
 orgAdminRouter.use(requireAuth, requireOrgAdmin);
 orgAdminRouter.get('/dashboard', dashboard);
+orgAdminRouter.get('/analytics', analytics);
 orgAdminRouter.get('/organization', getOrganization);
 orgAdminRouter.get('/users', listUsers);
 orgAdminRouter.post('/instructors', createInstructor);
