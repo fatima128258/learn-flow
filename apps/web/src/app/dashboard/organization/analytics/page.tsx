@@ -10,6 +10,7 @@ import {
   StatCard,
   ChartCard,
   BarList,
+  LineChart,
   type BarDatum,
 } from '@/components/dashboard';
 
@@ -26,13 +27,26 @@ type DashboardSummary = {
   users: { total: number; instructors: number; students: number; organizationAdmins: number };
 };
 
-type CourseItem = { id: string; title: string; status: string; createdAt: string };
+type GrowthPoint = { month: string; members: number };
+type RoleBreakdown = { label: string; role: string; value: number };
+
+type OrgAnalytics = {
+  organization?: { id: string; name: string };
+  growth?: GrowthPoint[];
+  roles?: RoleBreakdown[];
+};
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || '';
 const statusBarTone = (status: string): BarDatum['tone'] => {
   if (status === 'PUBLISHED') return 'success';
   if (status === 'ARCHIVED') return 'neutral';
   return 'warning';
+};
+
+const roleBarTone = (role: string): BarDatum['tone'] => {
+  if (role === 'ORG_ADMIN' || role === 'PLATFORM_ADMIN') return 'primary';
+  if (role === 'INSTRUCTOR') return 'warning';
+  return 'success';
 };
 
 const MembersIcon = (
@@ -65,7 +79,7 @@ export default function OrgAnalyticsPage() {
   const orgIdParam = searchParams.get('organization');
 
   const [summary, setSummary] = useState<DashboardSummary | null>(null);
-  const [courses, setCourses] = useState<CourseItem[] | null>(null);
+  const [analyticsData, setAnalyticsData] = useState<OrgAnalytics | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -82,9 +96,9 @@ export default function OrgAnalyticsPage() {
       try {
         const orgId = orgIdParam ?? user?.organizationId ?? '';
         const orgHeaders: Record<string, string> = orgId ? { 'X-Organization-Id': orgId } : {};
-        const [dashRes, coursesRes] = await Promise.all([
+        const [dashRes, analyticsRes] = await Promise.all([
           fetch(`${API_BASE}/api/v1/org/dashboard`, { credentials: 'include', headers: orgHeaders }),
-          fetch(`${API_BASE}/api/v1/organizations/${orgId}/courses?page=1&limit=100`, { credentials: 'include' }),
+          fetch(`${API_BASE}/api/v1/org/analytics`, { credentials: 'include', headers: orgHeaders }),
         ]);
 
         if (!dashRes.ok) {
@@ -97,15 +111,15 @@ export default function OrgAnalyticsPage() {
           setError(getOrgAdminErrorMessage(code));
           return;
         }
-        if (!coursesRes.ok) {
-          setError('Could not load course analytics. Please try again.');
+        if (!analyticsRes.ok) {
+          setError('Could not load analytics. Please try again.');
           return;
         }
 
         const dashData: { success?: boolean; data?: DashboardSummary } = await dashRes.json();
-        const coursesData: { success?: boolean; data?: CourseItem[] } = await coursesRes.json();
+        const analyticsBody: { success?: boolean; data?: OrgAnalytics } = await analyticsRes.json();
         setSummary(dashData.data ?? null);
-        setCourses(Array.isArray(coursesData.data) ? coursesData.data : []);
+        setAnalyticsData(analyticsBody.data ?? null);
       } catch {
         setError('Could not reach the API. Please try again.');
       } finally {
@@ -116,107 +130,129 @@ export default function OrgAnalyticsPage() {
     void load();
   }, [user, userLoading, orgIdParam]);
 
-  const statusCounts = (courses ?? []).reduce<Record<string, number>>((acc, c) => {
-    acc[c.status] = (acc[c.status] ?? 0) + 1;
-    return acc;
-  }, {});
+  const statusDistribution: BarDatum[] = (analyticsData?.roles ?? []).map((r) => ({
+    label: r.label,
+    value: r.value,
+    tone: roleBarTone(r.role),
+  }));
 
-  const statusDistribution: BarDatum[] = Object.keys(statusCounts)
-    .sort()
-    .map((status) => ({
-      label: status,
-      value: statusCounts[status],
-      tone: statusBarTone(status),
-    }));
+  const growthData = (analyticsData?.growth ?? []).map((g) => ({
+    label: g.month,
+    value: g.members,
+  }));
 
   return (
     <div className="mx-auto max-w-5xl">
       <PageHeader
         subtitle="Organization Admin"
         title="Analytics"
-          description={
-            summary
-              ? `Usage and engagement metrics for ${summary.organization.name}.`
-              : 'Usage and engagement metrics for your organization.'
-          }
-          badges={
-            summary
-              ? [
-                  {
-                    label: summary.organization.status,
-                    variant: summary.organization.status === 'ACTIVE' ? 'success' : 'error',
-                  },
-                ]
-              : undefined
-          }
-        />
+        description={
+          summary
+            ? `Usage and engagement metrics for ${summary.organization.name}.`
+            : 'Usage and engagement metrics for your organization.'
+        }
+        badges={
+          summary
+            ? [
+                {
+                  label: summary.organization.status,
+                  variant: summary.organization.status === 'ACTIVE' ? 'success' : 'error',
+                },
+              ]
+            : undefined
+        }
+      />
 
-        {loading && summary === null ? (
-          <div className="flex items-center gap-3 text-neutral-700">
-            <Spinner size="lg" label="Loading analytics..." />
-            <span>Loading analytics...</span>
-          </div>
-        ) : error ? (
-          <div className="rounded-2xl border border-neutral-200 bg-white shadow-sm">
-            <ErrorState
-              title="Unable to load analytics"
-              message={error}
-              action={{ label: 'Retry', onClick: () => setLoading(true) }}
+      {loading && summary === null ? (
+        <div className="flex items-center gap-3 text-neutral-700">
+          <Spinner size="lg" label="Loading analytics..." />
+          <span>Loading analytics...</span>
+        </div>
+      ) : error ? (
+        <div className="rounded-2xl border border-neutral-200 bg-white shadow-sm">
+          <ErrorState
+            title="Unable to load analytics"
+            message={error}
+            action={{ label: 'Retry', onClick: () => setLoading(true) }}
+          />
+        </div>
+      ) : summary ? (
+        <>
+          <div className="mb-8 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            <StatCard
+              label="Total members"
+              value={summary.users.total}
+              icon={MembersIcon}
+              tone="primary"
+              hint="Everyone in your organization"
+            />
+            <StatCard
+              label="Organization admins"
+              value={summary.users.organizationAdmins}
+              icon={AdminsIcon}
+              tone="neutral"
+              hint="Tenant-level administrators"
+            />
+            <StatCard
+              label="Instructors"
+              value={summary.users.instructors}
+              icon={InstructorsIcon}
+              tone="warning"
+              hint="Course creators"
+            />
+            <StatCard
+              label="Students"
+              value={summary.users.students}
+              icon={StudentsIcon}
+              tone="success"
+              hint="Active learners"
             />
           </div>
-        ) : summary ? (
-          <>
-            <div className="mb-8 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-              <StatCard
-                label="Total members"
-                value={summary.users.total}
-                icon={MembersIcon}
-                tone="primary"
-                hint="Everyone in your organization"
-              />
-              <StatCard
-                label="Organization admins"
-                value={summary.users.organizationAdmins}
-                icon={AdminsIcon}
-                tone="neutral"
-                hint="Tenant-level administrators"
-              />
-              <StatCard
-                label="Instructors"
-                value={summary.users.instructors}
-                icon={InstructorsIcon}
-                tone="warning"
-                hint="Course creators"
-              />
-              <StatCard
-                label="Students"
-                value={summary.users.students}
-                icon={StudentsIcon}
-                tone="success"
-                hint="Active learners"
-              />
-            </div>
 
+          <div className="mb-8 grid grid-cols-1 gap-4 lg:grid-cols-2">
             <ChartCard
-              title="Courses by status"
-              description={
-                courses
-                  ? `${courses.length} total course${courses.length === 1 ? '' : 's'}`
-                  : undefined
-              }
+              title="Organization Growth"
+              description={analyticsData?.growth?.length ? 'Cumulative members per month' : undefined}
             >
-              {courses && courses.length === 0 ? (
-                <EmptyState
-                  icon={EmptyStateIcons.NoCourses}
-                  title="No courses yet"
-                  description="Create and publish courses to start tracking your catalog analytics."
-                />
+              {analyticsData && analyticsData.growth && analyticsData.growth.length > 0 ? (
+                <LineChart data={growthData} color="#8b5cf6" height={240} />
               ) : (
-                <BarList data={statusDistribution} />
+                <EmptyState
+                  icon={EmptyStateIcons.NoData}
+                  title="No membership history yet"
+                  description="Member growth will appear as people join your organization."
+                />
               )}
             </ChartCard>
-          </>
-        ) : null}
-      </div>
+
+            <ChartCard
+              title="Members by Role"
+              description={analyticsData?.roles?.length ? 'Current member distribution' : undefined}
+            >
+              {analyticsData && analyticsData.roles && analyticsData.roles.length > 0 ? (
+                <BarList data={statusDistribution} />
+              ) : (
+                <EmptyState
+                  icon={EmptyStateIcons.NoData}
+                  title="No members yet"
+                  description="Member role distribution will appear once members are added."
+                />
+              )}
+            </ChartCard>
+          </div>
+
+          <ChartCard
+            title="Courses by status"
+            description="Course catalog overview"
+          >
+            <EmptyState
+              icon={EmptyStateIcons.NoCourses}
+              title="Course analytics coming soon"
+              description="Course status distribution will be available in a future update."
+            />
+          </ChartCard>
+        </>
+      ) : null}
+    </div>
   );
 }

@@ -17,7 +17,6 @@ export type AuditLogItem = {
   action: string;
   organization: { id: string | null; name: string | null };
   actor: { userId: string; name: string | null; email: string | null; role: string | null };
-  resource: { type: string | null; id: string | null; name: string | null };
   metadata: Record<string, unknown> | null;
   ipAddress: string | null;
   createdAt: string;
@@ -153,27 +152,7 @@ function AuditLogDrawer({ item, onClose }: AuditLogDrawerProps) {
           )}
         </DetailRow>
 
-        {/* Resource */}
-        <DetailRow label="Resource">
-          {item.resource?.type ? (
-            <div className="space-y-0.5">
-              <p className="font-medium text-neutral-900">{item.resource.type}</p>
-              {item.resource.name && item.resource.type !== 'SESSION' && (
-                <p>{item.resource.name}</p>
-              )}
-              {item.resource.id && (
-                <p className="break-all text-xs text-neutral-400">
-                  {item.resource.type === 'SESSION' ? 'Session ID: ' : 'ID: '}
-                  {item.resource.id}
-                </p>
-              )}
-            </div>
-          ) : (
-            <p className="text-neutral-400">—</p>
-          )}
-        </DetailRow>
-
-        {/* Timestamp */}
+        
         <DetailRow label="Timestamp">
           {formatTimestamp(item.createdAt)}
         </DetailRow>
@@ -316,7 +295,6 @@ export const AuditLogTable: React.FC<AuditLogTableProps> = ({
                     {showOrganization && (
                       <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-neutral-500">Organization</th>
                     )}
-                    <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-neutral-500">Resource</th>
                     <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-neutral-500">Time</th>
                   </tr>
                 </thead>
@@ -349,11 +327,6 @@ export const AuditLogTable: React.FC<AuditLogTableProps> = ({
                           {log.organization?.name ?? (log.organization?.id ? log.organization.id.slice(0, 8) : '—')}
                         </td>
                       )}
-                      <td className="px-6 py-4 text-sm text-neutral-600">
-                        {log.resource.type ? (
-                          <>{log.resource.name ?? log.resource.type}{log.resource.id ? ` · ${log.resource.id}` : ''}</>
-                        ) : '—'}
-                      </td>
                       <td className="px-6 py-4 text-sm text-neutral-700">
                         {new Date(log.createdAt).toLocaleString()}
                       </td>
@@ -396,12 +369,6 @@ export const AuditLogTable: React.FC<AuditLogTableProps> = ({
                         <p className="text-sm text-neutral-500">{log.organization?.name ?? log.organization?.id?.slice(0, 8)}</p>
                       </div>
                     )}
-                    <div>
-                      <p className="text-xs font-medium uppercase tracking-wide text-neutral-400">Resource</p>
-                      <p className="text-sm text-neutral-600">
-                        {log.resource.type ? `${log.resource.name ?? log.resource.type}${log.resource.id ? ` · ${log.resource.id}` : ''}` : '—'}
-                      </p>
-                    </div>
                   </div>
                 </div>
               ))}

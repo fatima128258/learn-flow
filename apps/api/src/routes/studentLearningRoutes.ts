@@ -12,6 +12,7 @@ import {
   listCourseModules,
   listModuleLessons,
   getLessonContent,
+  getStudentStats,
 } from '../controllers/studentLearningController';
 import {
   getQuizForTaking,
@@ -41,6 +42,12 @@ studentLearningRouter.get(
   '/:organizationId/student/courses',
   ...studentMiddleware,
   listEnrolledCourses,
+);
+
+studentLearningRouter.get(
+  '/:organizationId/student/stats',
+  ...studentMiddleware,
+  getStudentStats,
 );
 
 studentLearningRouter.get(

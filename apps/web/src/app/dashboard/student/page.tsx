@@ -22,6 +22,17 @@ type MeResponse = {
   };
 };
 
+type StatsResponse = {
+  availableCourses: number;
+  enrolledCourses: number;
+  certificatesEarned: number;
+  completedCourses: number;
+  inProgressCourses: number;
+  categoriesExplored: number;
+  totalEstimatedMinutes: number;
+  totalEstimatedHours: number;
+};
+
 type EnrolledCourse = {
   enrollmentId: string;
   enrollmentStatus: string;
@@ -55,6 +66,24 @@ const ClockIcon = (
   </svg>
 );
 
+const CertificateIcon = (
+  <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+    <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z" />
+  </svg>
+);
+
+const AvailableCoursesIcon = (
+  <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+    <path strokeLinecap="round" strokeLinejoin="round" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+  </svg>
+);
+
+const ProgressIcon = (
+  <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+    <path strokeLinecap="round" strokeLinejoin="round" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+  </svg>
+);
+
 const categoryFallback = (title: string) => {
   const palettes = [
     'from-primary-500 to-primary-700',
@@ -69,6 +98,7 @@ const categoryFallback = (title: string) => {
 export default function StudentDashboardPage() {
   const [user, setUser] = useState<{ name?: string | null; email?: string } | null>(null);
   const [courses, setCourses] = useState<EnrolledCourse[] | null>(null);
+  const [stats, setStats] = useState<StatsResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [organizationId, setOrganizationId] = useState<string | null>(null);
@@ -118,15 +148,27 @@ export default function StudentDashboardPage() {
   async function loadCourses(orgId: string) {
     try {
       const apiBase = process.env.NEXT_PUBLIC_API_URL || '';
-      const res = await fetch(`${apiBase}/api/v1/organizations/${orgId}/student/courses`, {
-        credentials: 'include',
-      });
-      if (!res.ok) {
+      const [coursesRes, statsRes] = await Promise.all([
+        fetch(`${apiBase}/api/v1/organizations/${orgId}/student/courses`, {
+          credentials: 'include',
+        }),
+        fetch(`${apiBase}/api/v1/organizations/${orgId}/student/stats`, {
+          credentials: 'include',
+        }),
+      ]);
+
+      if (!coursesRes.ok) {
         setError('Could not load your courses. Please try again.');
         return;
       }
-      const body = await res.json();
-      setCourses(body.data ?? []);
+
+      const coursesBody = await coursesRes.json();
+      setCourses(coursesBody.data ?? []);
+
+      if (statsRes.ok) {
+        const statsBody = await statsRes.json();
+        setStats(statsBody.data ?? null);
+      }
     } catch {
       setError('Could not reach the server. Please try again.');
     }
@@ -192,26 +234,58 @@ export default function StudentDashboardPage() {
         </div>
       ) : courses !== null ? (
         <>
-          {/* Real, derived metrics */}
-          <div className="mb-8 grid grid-cols-1 gap-4 sm:grid-cols-3">
+          {/* Student stats from API */}
+          <div className="mb-8 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
             <StatCard
-              label="Enrolled courses"
-              value={enrolled.length}
-              hint="Courses on your path"
+              label="Available Courses"
+              value={stats?.availableCourses ?? 0}
+              hint="Published courses available"
+              icon={AvailableCoursesIcon}
+              tone="neutral"
+            />
+            <StatCard
+              label="Enrolled Courses"
+              value={stats?.enrolledCourses ?? 0}
+              hint="Courses you're taking"
               icon={BookIcon}
               tone="primary"
             />
             <StatCard
-              label="Topics exploring"
-              value={categoryCount}
-              hint="Distinct course categories"
+              label="In Progress"
+              value={stats?.inProgressCourses ?? 0}
+              hint="Courses you're learning"
+              icon={ProgressIcon}
+              tone="info"
+            />
+            <StatCard
+              label="Certificates Earned"
+              value={stats?.certificatesEarned ?? 0}
+              hint="Completed with certificate"
+              icon={CertificateIcon}
+              tone="success"
+            />
+          </div>
+
+          {/* Additional stats row */}
+          <div className="mb-8 grid grid-cols-1 gap-4 sm:grid-cols-3">
+            <StatCard
+              label="Completed"
+              value={stats?.completedCourses ?? 0}
+              hint="Courses finished"
+              icon={TagIcon}
+              tone="warning"
+            />
+            <StatCard
+              label="Topics Exploring"
+              value={stats?.categoriesExplored ?? 0}
+              hint="Distinct categories"
               icon={TagIcon}
               tone="info"
             />
             <StatCard
-              label="Est. learning time"
-              value={estHours}
-              hint="Across all enrolled content"
+              label="Learning Time"
+              value={`${stats?.totalEstimatedHours ?? 0}h`}
+              hint="Estimated total hours"
               icon={ClockIcon}
               tone="success"
             />

@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import {
   Badge,
@@ -10,6 +10,7 @@ import {
   LinkButton,
   Spinner,
 } from '@/components/ui';
+import { useToast } from '@/components/ui/ToastProvider';
 import { useCurrentUser } from '@/features/auth/useCurrentUser';
 import { getJson } from '@/lib/api';
 import {
@@ -31,6 +32,14 @@ const statusBadgeVariant = (status: string) => {
   return 'warning' as const;
 };
 
+// Available status options
+const STATUS_OPTIONS = [
+  { value: 'PUBLISHED', label: 'Publish', description: 'Visible to students' },
+  { value: 'REVIEW', label: 'Send for Review', description: 'Needs approval' },
+  { value: 'DRAFT', label: 'Save as Draft', description: 'Only visible to you' },
+  { value: 'ARCHIVED', label: 'Archive', description: 'Hidden from students' },
+];
+
 const CourseIcon = (
   <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
     <path strokeLinecap="round" strokeLinejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.9-4.5-.4" />
@@ -51,6 +60,8 @@ const DraftIcon = (
 
 export default function InstructorDashboardPage() {
   const { data: user, isLoading: userLoading } = useCurrentUser();
+  const toast = useToast();
+  const [updatingStatus, setUpdatingStatus] = useState<string | null>(null);
 
   const {
     data: courses,
@@ -82,15 +93,121 @@ export default function InstructorDashboardPage() {
     }
   }, [user, userLoading]);
 
+  async function handleStatusChange(courseId: string, newStatus: string) {
+    if (!user?.organizationId) {
+      toast.error('Organization ID is missing');
+      return;
+    }
+    
+    setUpdatingStatus(courseId);
+    try {
+      const apiBase = process.env.NEXT_PUBLIC_API_URL || '';
+      const res = await fetch(
+        `${apiBase}/api/v1/organizations/${user.organizationId}/courses/${courseId}/status`,
+        {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({ status: newStatus }),
+        }
+      );
+
+      if (!res.ok) {
+        toast.error('Failed to update course status');
+        return;
+      }
+
+      const body = await res.json();
+      if (body.data) {
+        // Refetch courses to update the UI
+        await refetch();
+        toast.success(`Course status updated to ${newStatus}`);
+      }
+    } catch {
+      toast.error('Failed to update course status');
+    } finally {
+      setUpdatingStatus(null);
+    }
+  }
+
   const publishedCount = (courses ?? []).filter((c) => c.status === 'PUBLISHED').length;
   const draftCount = (courses?.length ?? 0) - publishedCount;
+
+  // Dropdown component for status changes
+  const StatusDropdown = ({ courseId, currentStatus }: { courseId: string; currentStatus: string }) => {
+    const [isOpen, setIsOpen] = useState(false);
+    const [localUpdating, setLocalUpdating] = useState(false);
+
+    const handleStatusSelect = async (status: string) => {
+      if (status === currentStatus) {
+        setIsOpen(false);
+        return;
+      }
+      
+      setLocalUpdating(true);
+      await handleStatusChange(courseId, status);
+      setLocalUpdating(false);
+      setIsOpen(false);
+    };
+
+    return (
+      <div className="relative inline-block text-left">
+        <button
+          type="button"
+          onClick={() => setIsOpen(!isOpen)}
+          disabled={localUpdating || updatingStatus === courseId}
+          className="inline-flex items-center justify-center rounded-lg p-1.5 text-neutral-500 hover:bg-neutral-100 hover:text-neutral-700 disabled:opacity-50 disabled:cursor-not-allowed"
+          aria-label="Change status"
+        >
+          {localUpdating || updatingStatus === courseId ? (
+            <Spinner size="sm" />
+          ) : (
+            <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" />
+            </svg>
+          )}
+        </button>
+
+        {isOpen && (
+          <div className="absolute right-0 z-10 mt-1 w-56 origin-top-right rounded-lg border border-neutral-200 bg-white py-1 shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none">
+            <div className="px-2 py-1.5 text-xs font-medium text-neutral-500 uppercase tracking-wider">
+              Change Status
+            </div>
+            {STATUS_OPTIONS.map((option) => (
+              <button
+                key={option.value}
+                onClick={() => handleStatusSelect(option.value)}
+                disabled={localUpdating || updatingStatus === courseId}
+                className={`block w-full px-3 py-2 text-left text-sm ${
+                  currentStatus === option.value
+                    ? 'bg-primary-50 text-primary-700 font-medium'
+                    : 'text-neutral-700 hover:bg-neutral-50'
+                } disabled:opacity-50 disabled:cursor-not-allowed`}
+              >
+                <div className="font-medium">{option.label}</div>
+                <div className="text-xs text-neutral-500">{option.description}</div>
+              </button>
+            ))}
+            <div className="border-t border-neutral-200 pt-1">
+              <button
+                onClick={() => setIsOpen(false)}
+                className="block w-full px-3 py-2 text-left text-sm text-neutral-500 hover:bg-neutral-50"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  };
 
   return (
     <div className="mx-auto max-w-6xl">
       <PageHeader
           title={`Welcome, ${user?.name ?? 'Instructor'}`}
           actions={
-            <LinkButton href="/dashboard/organization/courses/new">Create Course</LinkButton>
+            <LinkButton href={`/dashboard/organization/courses/new${user?.organizationId ? `?organization=${user.organizationId}` : ''}`}>Create Course</LinkButton>
           }
         />
 
@@ -120,7 +237,7 @@ export default function InstructorDashboardPage() {
               icon={EmptyStateIcons.NoCourses}
               title="No courses yet"
               description="Create your first course to start teaching. You can build modules, lessons, and quizzes for each course."
-              action={{ label: 'Create your first course', onClick: () => { window.location.href = '/dashboard/organization/courses/new'; } }}
+              action={{ label: 'Create your first course', onClick: () => { window.location.href = `/dashboard/organization/courses/new${user?.organizationId ? `?organization=${user.organizationId}` : ''}`; } }}
             />
           </div>
         ) : (
@@ -158,7 +275,7 @@ export default function InstructorDashboardPage() {
               title="My Courses"
               description={`${courses?.length ?? 0} course${(courses?.length ?? 0) !== 1 ? 's' : ''}`}
               action={
-                <LinkButton href="/dashboard/organization/courses/new" size="sm">
+                <LinkButton href={`/dashboard/organization/courses/new${user?.organizationId ? `?organization=${user.organizationId}` : ''}`} size="sm">
                   New Course
                 </LinkButton>
               }
@@ -187,9 +304,12 @@ export default function InstructorDashboardPage() {
                           {new Date(course.createdAt).toLocaleDateString()}
                         </td>
                         <td className={`${tableCellClass} text-right`}>
-                          <LinkButton href={`/dashboard/organization/courses/${course.id}`} size="sm" variant="outline">
-                            Manage
-                          </LinkButton>
+                          <div className="flex items-center justify-end gap-2">
+                            <StatusDropdown courseId={course.id} currentStatus={course.status} />
+                            <LinkButton href={`/dashboard/organization/courses/${course.id}${user?.organizationId ? `?organization=${user.organizationId}` : ''}`} size="sm" variant="outline">
+                              Manage
+                            </LinkButton>
+                          </div>
                         </td>
                       </tr>
                     ))}
@@ -208,8 +328,11 @@ export default function InstructorDashboardPage() {
                       <span>{course.difficulty ?? '—'}</span>
                       <span>{new Date(course.createdAt).toLocaleDateString()}</span>
                     </div>
-                    <div className="mt-3">
-                      <LinkButton href={`/dashboard/organization/courses/${course.id}`} size="sm" variant="outline">
+                    <div className="mt-3 flex items-center justify-between">
+                      <div className="flex-1">
+                        <StatusDropdown courseId={course.id} currentStatus={course.status} />
+                      </div>
+                      <LinkButton href={`/dashboard/organization/courses/${course.id}${user?.organizationId ? `?organization=${user.organizationId}` : ''}`} size="sm" variant="outline">
                         Manage
                       </LinkButton>
                     </div>

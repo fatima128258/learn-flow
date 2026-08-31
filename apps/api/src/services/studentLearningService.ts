@@ -3,6 +3,8 @@ import * as courseRepo from '../repositories/courseRepository';
 import * as moduleRepo from '../repositories/moduleRepository';
 import * as lessonRepo from '../repositories/lessonRepository';
 import * as searchRepo from '../repositories/searchRepository';
+import * as certificateRepo from '../repositories/certificateRepository';
+import * as progressRepo from '../repositories/progressRepository';
 import { categoryLabel } from '../utils/categoryLabel';
 import getPrisma from '../prisma';
 
@@ -303,5 +305,69 @@ export async function getLessonContent(
       id: course.id,
       title: course.title,
     },
+  };
+}
+
+export async function getStudentStats(organizationId: string, userId: string) {
+  const prisma = getPrisma();
+
+  // Total available courses (published)
+  const availableCourses = await courseRepo.countByOrganization(organizationId, 'PUBLISHED');
+
+  // Enrolled courses count
+  const enrollments = await enrollmentRepo.listByUser(userId);
+  const orgEnrollments = enrollments.filter(
+    (e: { organizationId: string }) => e.organizationId === organizationId,
+  );
+  const enrolledCount = orgEnrollments.length;
+
+  // Certificates earned
+  const certificates = await certificateRepo.listByUserAndOrganization(userId, organizationId);
+  const certificatesEarned = certificates.length;
+
+  // Learning time from enrolled courses
+  const enrolledCourseIds = orgEnrollments.map((e: EnrolledEnrollment) => e.courseId);
+  let totalEstimatedMinutes = 0;
+  if (enrolledCourseIds.length > 0) {
+    const courses = await prisma.course.findMany({
+      where: {
+        id: { in: enrolledCourseIds },
+        organizationId,
+      },
+      select: { estimatedMinutes: true },
+    });
+    totalEstimatedMinutes = courses.reduce<number>(
+      (sum, c) => sum + (c.estimatedMinutes ?? 0),
+      0,
+    );
+  }
+
+  // Categories explored (unique categories from enrolled courses)
+  const categoryCount = new Set(
+    orgEnrollments
+      .map((e: EnrolledEnrollment) => {
+        const course = courses.find((c: { id: string }) => c.id === e.courseId);
+        return course?.category;
+      })
+      .filter(Boolean),
+  ).size;
+
+  // Completed courses count
+  const completedCourses = orgEnrollments.filter(
+    (e: EnrolledEnrollment) => e.status === 'COMPLETED',
+  ).length;
+
+  // In progress courses count
+  const inProgressCourses = enrolledCount - completedCourses - certificatesEarned;
+
+  return {
+    availableCourses,
+    enrolledCourses: enrolledCount,
+    certificatesEarned,
+    completedCourses,
+    inProgressCourses,
+    categoriesExplored: categoryCount,
+    totalEstimatedMinutes,
+    totalEstimatedHours: totalEstimatedMinutes > 0 ? Math.round(totalEstimatedMinutes / 60) : 0,
   };
 }
