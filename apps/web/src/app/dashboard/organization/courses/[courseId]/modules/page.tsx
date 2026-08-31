@@ -152,7 +152,7 @@ export default function CourseModulesPage() {
     return () => {
       active = false;
     };
-  }, [organizationId, courseId]);
+  }, [organizationId, courseId, toast]);
 
   function closeCreateModal() {
     if (creating) return;

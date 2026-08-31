@@ -129,7 +129,7 @@ export default function MyCoursesPage() {
     return () => {
       active = false;
     };
-  }, [organizationId]);
+  }, [organizationId, toast]);
 
   if (checkingAuth) {
     return (

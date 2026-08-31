@@ -160,7 +160,7 @@ export default function ModuleQuizzesPage() {
     return () => {
       active = false;
     };
-  }, [organizationId, courseId, moduleId]);
+  }, [organizationId, courseId, moduleId, toast]);
 
   function clearForm() {
     setTitle('');

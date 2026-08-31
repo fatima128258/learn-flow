@@ -1,6 +1,6 @@
 'use client';
 
-import React, { createContext, useCallback, useContext, useRef, useState } from 'react';
+import React, { createContext, useCallback, useContext, useMemo, useRef, useState } from 'react';
 import { Toast, ToastVariant } from './Toast';
 
 export interface ToastInput {
@@ -77,8 +77,13 @@ export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     [toast],
   );
 
+  const value = useMemo(
+    () => ({ toast, success, error, warning, info }),
+    [toast, success, error, warning, info],
+  );
+
   return (
-    <ToastContext.Provider value={{ toast, success, error, warning, info }}>
+    <ToastContext.Provider value={value}>
       {children}
       <div
         aria-live="polite"

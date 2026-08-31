@@ -141,7 +141,7 @@ export default function CourseDetailPage() {
     return () => {
       active = false;
     };
-  }, [organizationId, courseId]);
+  }, [organizationId, courseId, toast]);
 
   if (checkingAuth) {
     return (

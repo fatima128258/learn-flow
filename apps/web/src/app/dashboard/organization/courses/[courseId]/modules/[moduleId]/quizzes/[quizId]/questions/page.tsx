@@ -187,7 +187,7 @@ export default function QuizQuestionsPage() {
     return () => {
       active = false;
     };
-  }, [organizationId, courseId, moduleId, quizId]);
+  }, [organizationId, courseId, moduleId, quizId, toast]);
 
   function clearForm() {
     setQuestionText('');
