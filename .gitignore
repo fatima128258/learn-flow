@@ -129,7 +129,7 @@ dist
 
 # Gatsby files
 .cache/
-public
+# public (allow apps/web/src/components/public)
 
 # Storybook build outputs
 .out

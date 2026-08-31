@@ -6,6 +6,8 @@ import { Badge, Card, ErrorState, Skeleton } from '@/components/ui';
 import { useCurrentUser } from '@/features/auth/useCurrentUser';
 import { PageHeader, SectionHeader } from '@/components/dashboard';
 
+export const dynamic = 'force-dynamic';
+
 type OrganizationInfo = {
   id: string;
   name: string;
@@ -70,7 +72,7 @@ export default function OrgSettingsPage() {
                 ]
               : undefined
           }
-        />
+      />
 
         {loading ? (
           <Card>
@@ -137,6 +139,6 @@ export default function OrgSettingsPage() {
             </div>
           </>
         ) : null}
-      </div>
+    </div>
   );
 }

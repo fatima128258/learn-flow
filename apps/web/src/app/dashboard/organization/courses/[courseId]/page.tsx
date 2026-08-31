@@ -47,6 +47,13 @@ function statusBadgeVariant(status: string) {
   return 'default' as const;
 }
 
+const STATUS_OPTIONS = [
+  { value: 'DRAFT', label: 'Draft' },
+  { value: 'REVIEW', label: 'In Review' },
+  { value: 'PUBLISHED', label: 'Published' },
+  { value: 'ARCHIVED', label: 'Archived' },
+] as const;
+
 function formatMoney(value: number | string | null): string {
   if (value === null || value === undefined) return '—';
   return String(value);
@@ -61,6 +68,7 @@ export default function CourseDetailPage() {
   const [organizationId, setOrganizationId] = useState<string | null>(null);
   const [course, setCourse] = useState<CourseDetail | null>(null);
   const [loading, setLoading] = useState(true);
+  const [updatingStatus, setUpdatingStatus] = useState(false);
 
   useEffect(() => {
     let active = true;
@@ -143,6 +151,44 @@ export default function CourseDetailPage() {
     };
   }, [organizationId, courseId, toast]);
 
+  async function handleStatusChange(newStatus: string) {
+    if (!organizationId || !courseId || !course) return;
+    setUpdatingStatus(true);
+    try {
+      const apiBase = process.env.NEXT_PUBLIC_API_URL || '';
+      const res = await fetch(
+        `${apiBase}/api/v1/organizations/${organizationId}/courses/${courseId}/status`,
+        {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({ status: newStatus }),
+        }
+      );
+
+      if (!res.ok) {
+        let code: unknown = null;
+        try {
+          code = (await res.json())?.error;
+        } catch {
+          code = null;
+        }
+        toast.error(getCreateCourseErrorMessage(code));
+        return;
+      }
+
+      const body = await res.json();
+      if (body.data) {
+        setCourse(body.data);
+        toast.success(`Course status updated to ${newStatus}`);
+      }
+    } catch {
+      toast.error(getCreateCourseErrorMessage(null));
+    } finally {
+      setUpdatingStatus(false);
+    }
+  }
+
   if (checkingAuth) {
     return (
       <div>
@@ -178,9 +224,18 @@ export default function CourseDetailPage() {
                   <p className="mt-1 text-sm text-neutral-500">{course.slug}</p>
                 </div>
                 <div className="flex items-center gap-2">
-                  <Badge variant={statusBadgeVariant(course.status)} size="sm">
-                    {course.status}
-                  </Badge>
+                  <select
+                    value={course.status}
+                    onChange={(e) => handleStatusChange(e.target.value)}
+                    disabled={updatingStatus}
+                    className="rounded-md border border-neutral-300 bg-white px-3 py-1.5 text-sm font-medium text-neutral-900 focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {STATUS_OPTIONS.map((opt) => (
+                      <option key={opt.value} value={opt.value}>
+                        {opt.label}
+                      </option>
+                    ))}
+                  </select>
                   <LinkButton href={`/dashboard/organization/courses/${courseId}/modules`} size="sm" variant="primary">
                     Manage Modules
                   </LinkButton>

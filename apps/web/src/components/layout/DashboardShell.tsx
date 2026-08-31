@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useMemo } from 'react';
-import { usePathname } from 'next/navigation';
+import { usePathname, useSearchParams } from 'next/navigation';
 import { DashboardLayout, type NavItem } from './DashboardLayout';
 import { platformAdminNav } from '@/features/platformAdmin/nav';
 import { orgAdminNav } from '@/features/organizationAdmin/nav';
@@ -13,6 +13,17 @@ export interface DashboardShellProps {
   children: React.ReactNode;
 }
 
+function withOrgContext(items: NavItem[], orgId: string | null): NavItem[] {
+  if (!orgId) return items;
+  return items.map((item) => {
+    if (item.href.startsWith('/dashboard/organization/') || item.href === '/dashboard/organization') {
+      const separator = item.href.includes('?') ? '&' : '?';
+      return { ...item, href: `${item.href}${separator}organization=${orgId}` };
+    }
+    return item;
+  });
+}
+
 /**
  * Picks the sidebar navigation (label + items) for the current dashboard route.
  * Selection is driven primarily by the pathname so the shell renders immediately
@@ -21,6 +32,7 @@ export interface DashboardShellProps {
 function resolveNav(
   pathname: string,
   role: string | null | undefined,
+  orgId: string | null,
 ): { navLabel: string; items: NavItem[] } {
   if (pathname.startsWith('/dashboard/instructor')) {
     return { navLabel: 'Instructor', items: instructorNav };
@@ -33,9 +45,9 @@ function resolveNav(
   if (pathname === '/dashboard/organization' || pathname.startsWith('/dashboard/organization/')) {
     const isCourseAuthoring = pathname.startsWith('/dashboard/organization/courses');
     if (isCourseAuthoring && role === 'INSTRUCTOR') {
-      return { navLabel: 'Instructor', items: instructorNav };
+      return { navLabel: 'Instructor', items: withOrgContext(instructorNav, orgId) };
     }
-    return { navLabel: 'Organization Admin', items: orgAdminNav };
+    return { navLabel: 'Organization Admin', items: withOrgContext(orgAdminNav, orgId) };
   }
 
   if (pathname === '/dashboard/profile' || pathname === '/dashboard/settings') {
@@ -50,11 +62,13 @@ function resolveNav(
 
 export const DashboardShell: React.FC<DashboardShellProps> = ({ children }) => {
   const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const orgId = searchParams.get('organization');
   const { data: currentUser } = useCurrentUser();
 
   const { navLabel, items } = useMemo(
-    () => resolveNav(pathname ?? '/dashboard', currentUser?.role),
-    [pathname, currentUser?.role],
+    () => resolveNav(pathname ?? '/dashboard', currentUser?.role, orgId),
+    [pathname, currentUser?.role, orgId],
   );
 
   return (

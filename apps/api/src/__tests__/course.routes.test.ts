@@ -796,4 +796,26 @@ describe('GET /api/v1/organizations/:organizationId/courses', () => {
       expect.objectContaining({ orderBy: { createdAt: 'asc' } }),
     );
   });
+
+  it('allows platform admin to access courses for any organization', async () => {
+    await authenticateAs('PLATFORM_ADMIN', { organizationId: 'platform-org' });
+    prismaMock.organization.findUnique.mockResolvedValue({ id: 'org-b', name: 'Org B' });
+    prismaMock.course.findMany.mockResolvedValue([
+      courseRecord({ id: 'course-1', organizationId: 'org-b', title: 'Org B Course', slug: 'org-b-course' }),
+    ]);
+    prismaMock.course.count.mockResolvedValue(1);
+
+    const res = await request(app)
+      .get('/api/v1/organizations/org-b/courses')
+      .set('Cookie', cookie());
+
+    expect(res.status).toBe(200);
+    expect(res.body.success).toBe(true);
+    expect(res.body.data).toHaveLength(1);
+    expect(res.body.data[0].title).toBe('Org B Course');
+    expect(prismaMock.organization.findUnique).toHaveBeenCalledWith({ where: { id: 'org-b' } });
+    expect(prismaMock.course.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({ where: { organizationId: 'org-b' } }),
+    );
+  });
 });

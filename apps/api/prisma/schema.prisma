@@ -448,8 +448,6 @@ model AuditLog {
   actorEmail     String?
   actorRole      String?
   action         String
-  resourceType   String?
-  resourceId     String?
   metadata       Json?
   ipAddress      String?
   createdAt      DateTime @default(now())
@@ -460,7 +458,6 @@ model AuditLog {
   @@index([actorUserId, createdAt])
   @@index([actorName, createdAt])
   @@index([action, createdAt])
-  @@index([resourceType, resourceId])
   @@index([createdAt])
 }
 
