@@ -58,7 +58,7 @@ export async function create(req: AuthenticatedRequest, res: Response) {
       name,
       slug,
       actor: req.user
-        ? { userId: req.user.id, email: req.user.email, role: req.user.role }
+        ? { userId: req.user.id, name: req.user.name ?? null, email: req.user.email, role: req.user.role }
         : null,
     });
     return res.status(201).json({ success: true, data });

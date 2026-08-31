@@ -99,6 +99,7 @@ export async function updateCourseStatus(req: AuthenticatedRequest, res: Respons
       req.body,
       req.user && {
         userId: req.user.id,
+        name: req.user.name ?? null,
         email: req.user.email,
         role: req.user.role,
       },

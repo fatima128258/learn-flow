@@ -1,6 +1,8 @@
 import request from 'supertest';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { LOGIN_RATE_LIMIT } from '../services/authService';
+
 const loginAttempts = vi.hoisted(() => ({ count: 0 }));
 
 const prismaMock = {
@@ -29,6 +31,11 @@ const prismaMock = {
     create: vi.fn(),
   },
 };
+
+// Real Redis counters are keyed per IP and persist for the 15-minute window, so
+// use a randomized IP per run to keep the login lockout test hermetic.
+const attackerIp = `203.0.113.${Math.floor(Math.random() * 240) + 1}`;
+const freshClientIp = `198.51.100.${Math.floor(Math.random() * 240) + 1}`;
 
 vi.mock('../services/authService', async (importOriginal) => {
   const actual = await importOriginal<typeof import('../services/authService')>();
@@ -406,10 +413,10 @@ describe('security challenge: brute-force login throttling', () => {
   });
 
   it('returns 429 after repeated failed login attempts', async () => {
-    for (let attempt = 1; attempt <= 5; attempt += 1) {
+    for (let attempt = 1; attempt <= LOGIN_RATE_LIMIT; attempt += 1) {
       const res = await request(app)
         .post('/api/v1/auth/login')
-        .set('X-Forwarded-For', '203.0.113.9')
+        .set('X-Forwarded-For', attackerIp)
         .send({ email: 'attacker@example.com', password: 'wrong-password' });
       expect(res.status).toBe(401);
       expect(res.body.error).toBe('INVALID_CREDENTIALS');
@@ -417,7 +424,7 @@ describe('security challenge: brute-force login throttling', () => {
 
     const throttled = await request(app)
       .post('/api/v1/auth/login')
-      .set('X-Forwarded-For', '203.0.113.9')
+      .set('X-Forwarded-For', attackerIp)
       .send({ email: 'attacker@example.com', password: 'wrong-password' });
 
     expect(throttled.status).toBe(429);
@@ -428,7 +435,7 @@ describe('security challenge: brute-force login throttling', () => {
     for (let attempt = 1; attempt <= 3; attempt += 1) {
       const res = await request(app)
         .post('/api/v1/auth/login')
-        .set('X-Forwarded-For', '198.51.100.7')
+        .set('X-Forwarded-For', freshClientIp)
         .send({ email: 'other@example.com', password: 'wrong-password' });
       expect(res.status).toBe(401);
       expect(res.body.error).toBe('INVALID_CREDENTIALS');

@@ -7,8 +7,13 @@ import { record as recordAudit } from './auditLogService';
 import argon2 from 'argon2';
 
 const SESSION_TTL_SECONDS = 60 * 60 * 24 * 7; // 7 days
-const LOGIN_RATE_LIMIT = 5;
+// The assignment requires throttling "repeated login requests" but specifies no
+// exact numbers, so keep generous defaults (per IP) that block plainly abusive
+// bursts while not locking out real users during demos/tests. Overridable via env.
+export const LOGIN_RATE_LIMIT = Number(process.env.AUTH_LOGIN_RATE_LIMIT ?? 10);
 const LOGIN_RATE_WINDOW = 60 * 15; // 15 minutes
+export const REGISTER_RATE_LIMIT = Number(process.env.AUTH_REGISTER_RATE_LIMIT ?? 10);
+const REGISTER_RATE_WINDOW = 60 * 15; // 15 minutes
 const EMAIL_VERIFICATION_TTL = 60 * 60 * 24; // 24 hours
 const PASSWORD_RESET_TTL = 60 * 60; // 1 hour
 
@@ -36,7 +41,7 @@ async function getPrimaryOrganizationId(userId: string) {
 export async function registerUser({ name, email, password, sendEmail = true, ip = '127.0.0.1', role }: { name?: string; email: string; password: string; sendEmail?: boolean; ip?: string; role?: string }) {
   const normalizedEmail = email.trim().toLowerCase();
   if (role && String(role).toUpperCase() === 'PLATFORM_ADMIN') throw new Error('ROLE_NOT_ALLOWED');
-  await enforceRateLimit({ ip, keyPrefix: 'register', maxAttempts: 5, windowSeconds: 60 * 15 });
+  await enforceRateLimit({ ip, keyPrefix: 'register', maxAttempts: REGISTER_RATE_LIMIT, windowSeconds: REGISTER_RATE_WINDOW });
 
   const existing = await repo.findUserByEmail(normalizedEmail);
   if (existing) throw new Error('EMAIL_TAKEN');
@@ -85,6 +90,7 @@ export async function loginUser({ email, password, ip = '127.0.0.1' }: { email: 
     action: 'LOGIN',
     organizationId: primaryMembership?.organizationId ?? null,
     actorUserId: user.id,
+    actorName: user.name ?? null,
     actorEmail: user.email,
     actorRole: primaryMembership?.role ?? null,
     resourceType: 'SESSION',
@@ -120,7 +126,7 @@ export async function getSessionFromToken(token: string) {
 export async function requestPasswordReset(input: string | { email: string; ip?: string }, ipOverride?: string) {
   const normalizedInput = typeof input === 'string' ? { email: input, ip: ipOverride ?? '127.0.0.1' } : input;
   const normalizedEmail = normalizedInput.email.trim().toLowerCase();
-  await enforceRateLimit({ ip: normalizedInput.ip ?? '127.0.0.1', keyPrefix: 'forgot-password', maxAttempts: 3, windowSeconds: 60 * 60 });
+  await enforceRateLimit({ ip: normalizedInput.ip ?? '127.0.0.1', keyPrefix: 'forgot-password', maxAttempts: 5, windowSeconds: 60 * 60 });
 
   const user = await repo.findUserByEmail(normalizedEmail);
   if (!user) {
@@ -139,7 +145,7 @@ export async function requestPasswordReset(input: string | { email: string; ip?:
 }
 
 export async function resetPassword(token: string, newPassword: string, ip = '127.0.0.1') {
-  await enforceRateLimit({ ip, keyPrefix: 'reset-password', maxAttempts: 5, windowSeconds: 60 * 15 });
+  await enforceRateLimit({ ip, keyPrefix: 'reset-password', maxAttempts: 10, windowSeconds: 60 * 15 });
 
   const tokenHash = hashToken(token);
   const resetToken = await repo.findPasswordResetTokenByTokenHash(tokenHash);
@@ -173,7 +179,7 @@ export async function resetPassword(token: string, newPassword: string, ip = '12
 }
 
 export async function verifyEmail(token: string, ip = '127.0.0.1') {
-  await enforceRateLimit({ ip, keyPrefix: 'verify-email', maxAttempts: 5, windowSeconds: 60 * 15 });
+  await enforceRateLimit({ ip, keyPrefix: 'verify-email', maxAttempts: 10, windowSeconds: 60 * 15 });
 
   const tokenHash = hashToken(token);
   const verificationToken = await repo.findEmailVerificationTokenByTokenHash(tokenHash);
@@ -190,7 +196,7 @@ export async function verifyEmail(token: string, ip = '127.0.0.1') {
 export async function resendVerificationEmail(input: string | { email: string; ip?: string }, ipOverride?: string) {
   const normalizedInput = typeof input === 'string' ? { email: input, ip: ipOverride ?? '127.0.0.1' } : input;
   const normalizedEmail = normalizedInput.email.trim().toLowerCase();
-  await enforceRateLimit({ ip: normalizedInput.ip ?? '127.0.0.1', keyPrefix: 'resend-verification', maxAttempts: 3, windowSeconds: 60 * 60 });
+  await enforceRateLimit({ ip: normalizedInput.ip ?? '127.0.0.1', keyPrefix: 'resend-verification', maxAttempts: 5, windowSeconds: 60 * 60 });
 
   const user = await repo.findUserByEmail(normalizedEmail);
   if (!user) {
@@ -237,6 +243,7 @@ export async function updateUserEmail({ userId, email, ip = '127.0.0.1' }: { use
     action: 'EMAIL_UPDATED',
     organizationId: primaryOrganizationId,
     actorUserId: userId,
+    actorName: user.name ?? null,
     actorEmail: normalizedEmail,
     actorRole: null,
     resourceType: 'USER',
@@ -279,6 +286,7 @@ export async function changePassword({ userId, currentPassword, newPassword, ses
     action: 'PASSWORD_CHANGED',
     organizationId: primaryOrganizationId,
     actorUserId: userId,
+    actorName: user.name ?? null,
     actorEmail: user.email,
     actorRole: null,
     resourceType: 'USER',

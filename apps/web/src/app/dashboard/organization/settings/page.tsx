@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { Badge, Card, ErrorState, Skeleton } from '@/components/ui';
 import { useCurrentUser } from '@/features/auth/useCurrentUser';
 import { PageHeader, SectionHeader } from '@/components/dashboard';
@@ -18,13 +19,15 @@ const API_BASE = process.env.NEXT_PUBLIC_API_URL || '';
 
 export default function OrgSettingsPage() {
   const { data: user, isLoading: userLoading } = useCurrentUser();
+  const searchParams = useSearchParams();
+  const orgId = searchParams.get('organization');
   const [organization, setOrganization] = useState<OrganizationInfo | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (userLoading) return;
-    if (!user || user.role !== 'ORG_ADMIN') {
+    if (!user || (user.role !== 'ORG_ADMIN' && user.role !== 'PLATFORM_ADMIN')) {
       window.location.href = '/login';
       return;
     }
@@ -33,7 +36,8 @@ export default function OrgSettingsPage() {
       setLoading(true);
       setError(null);
       try {
-        const res = await fetch(`${API_BASE}/api/v1/org/organization`, { credentials: 'include' });
+        const headers: Record<string, string> = orgId ? { 'X-Organization-Id': orgId } : {};
+        const res = await fetch(`${API_BASE}/api/v1/org/organization`, { credentials: 'include', headers });
         if (!res.ok) {
           setError('Could not load organization settings. Please try again.');
           return;
@@ -48,7 +52,7 @@ export default function OrgSettingsPage() {
     }
 
     void load();
-  }, [user, userLoading]);
+  }, [user, userLoading, orgId]);
 
   return (
     <div className="mx-auto max-w-4xl">

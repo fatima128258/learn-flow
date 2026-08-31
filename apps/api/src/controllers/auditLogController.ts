@@ -37,6 +37,7 @@ export async function listPlatformAuditLogs(req: AuthenticatedRequest, res: Resp
       actorEmail: req.query.actorEmail,
       resourceType: req.query.resourceType,
       resourceId: req.query.resourceId,
+      search: req.query.search,
       from: req.query.from,
       to: req.query.to,
     });
@@ -63,6 +64,7 @@ export async function listOrgAuditLogs(req: AuthenticatedRequest, res: Response)
       actorEmail: req.query.actorEmail,
       resourceType: req.query.resourceType,
       resourceId: req.query.resourceId,
+      search: req.query.search,
       from: req.query.from,
       to: req.query.to,
     });

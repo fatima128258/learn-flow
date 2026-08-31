@@ -199,6 +199,33 @@ describe('Organization Admin APIs', () => {
       expect(platformRes.status).toBe(200);
     });
 
+    it('lets a platform admin enter a specific organization via X-Organization-Id', async () => {
+      await authenticateAs('PLATFORM_ADMIN', { organizationId: 'platform-org' });
+      prismaMock.organization.findUnique.mockResolvedValue(orgRecord({ id: 'org-b' }));
+      prismaMock.userOrganization.count
+        .mockResolvedValueOnce(6)
+        .mockResolvedValueOnce(2)
+        .mockResolvedValueOnce(3)
+        .mockResolvedValueOnce(1);
+
+      const res = await request(app)
+        .get('/api/v1/org/dashboard')
+        .set('Cookie', cookie())
+        .set('X-Organization-Id', 'org-b');
+
+      expect(res.status).toBe(200);
+      expect(res.body.data.organization.id).toBe('org-b');
+      expect(res.body.data.users).toEqual({
+        total: 6,
+        instructors: 2,
+        students: 3,
+        organizationAdmins: 1,
+      });
+      expect(prismaMock.organization.findUnique).toHaveBeenCalledWith(expect.objectContaining({
+        where: { id: 'org-b' },
+      }));
+    });
+
     it.each(['INSTRUCTOR', 'STUDENT'] as const)('rejects %s access to organization admin APIs', async (role) => {
       await authenticateAs(role, { organizationId: 'org-a' });
 

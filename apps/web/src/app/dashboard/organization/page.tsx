@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useSearchParams } from 'next/navigation';
 import {
   Badge,
   Button,
@@ -103,6 +104,8 @@ const StudentsIcon = (
 
 export default function OrganizationDashboardPage() {
   const toast = useToast();
+  const searchParams = useSearchParams();
+  const orgId = searchParams.get('organization');
 
   const [user, setUser] = useState<{ name?: string | null; email?: string } | null>(null);
   const [summary, setSummary] = useState<DashboardSummary | null>(null);
@@ -119,6 +122,8 @@ export default function OrganizationDashboardPage() {
   const [instructorPasswordError, setInstructorPasswordError] = useState<string>('');
   const [creatingInstructor, setCreatingInstructor] = useState(false);
 
+  const orgHeaders: Record<string, string> = orgId ? { 'X-Organization-Id': orgId } : {};
+
   async function load() {
     setError(null);
     setLoading(true);
@@ -126,8 +131,8 @@ export default function OrganizationDashboardPage() {
       const apiBase = process.env.NEXT_PUBLIC_API_URL || '';
 
       const [dashRes, usersRes] = await Promise.all([
-        fetch(`${apiBase}/api/v1/org/dashboard`, { credentials: 'include' }),
-        fetch(`${apiBase}/api/v1/org/users?page=1&limit=20`, { credentials: 'include' }),
+        fetch(`${apiBase}/api/v1/org/dashboard`, { credentials: 'include', headers: orgHeaders }),
+        fetch(`${apiBase}/api/v1/org/users?page=1&limit=20`, { credentials: 'include', headers: orgHeaders }),
       ]);
 
       if (!dashRes.ok) {
@@ -213,7 +218,7 @@ export default function OrganizationDashboardPage() {
       const apiBase = process.env.NEXT_PUBLIC_API_URL || '';
       const res = await fetch(`${apiBase}/api/v1/org/instructors`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...orgHeaders },
         body: JSON.stringify({
           name: instructorName.trim() || undefined,
           email: trimmedEmail,
@@ -262,7 +267,7 @@ export default function OrganizationDashboardPage() {
         }
         const meData: MeResponse = await meRes.json();
         if (!active) return;
-        if (meData.user?.role !== 'ORG_ADMIN') {
+        if (meData.user?.role !== 'ORG_ADMIN' && meData.user?.role !== 'PLATFORM_ADMIN') {
           window.location.href = '/login';
           return;
         }

@@ -224,7 +224,7 @@ export async function updateCourseStatus(
   organizationId: string,
   courseId: string,
   rawInput: unknown,
-  actor?: { userId?: string; email?: string | null; role?: string | null } | null,
+  actor?: { userId?: string; name?: string | null; email?: string | null; role?: string | null } | null,
 ) {
   const input = (rawInput ?? {}) as Record<string, unknown>;
   if (!input.status || typeof input.status !== 'string') {
@@ -255,6 +255,7 @@ export async function updateCourseStatus(
         action: 'COURSE_PUBLISHED',
         organizationId,
         actorUserId: actor.userId,
+        actorName: actor.name ?? null,
         actorEmail: actor.email ?? null,
         actorRole: actor.role ?? null,
         resourceType: 'COURSE',

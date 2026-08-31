@@ -8,6 +8,7 @@ function prisma() {
 export interface CreateAuditLogData {
   organizationId?: string | null;
   actorUserId: string;
+  actorName?: string | null;
   actorEmail?: string | null;
   actorRole?: string | null;
   action: string;
@@ -21,9 +22,11 @@ export interface ListAuditLogsOptions {
   organizationId?: string | null;
   action?: string;
   actorUserId?: string;
+  actorName?: string;
   actorEmail?: string;
   resourceType?: string;
   resourceId?: string;
+  search?: string;
   from?: Date;
   to?: Date;
   skip?: number;
@@ -41,14 +44,28 @@ function listWhere(options: ListAuditLogsOptions): Prisma.AuditLogWhereInput {
   if (options.actorUserId) {
     where.actorUserId = options.actorUserId;
   }
+  if (options.actorName) {
+    where.actorName = { contains: options.actorName, mode: 'insensitive' };
+  }
   if (options.actorEmail) {
-    where.actorEmail = options.actorEmail;
+    where.actorEmail = { contains: options.actorEmail, mode: 'insensitive' };
   }
   if (options.resourceType) {
     where.resourceType = options.resourceType;
   }
   if (options.resourceId) {
     where.resourceId = options.resourceId;
+  }
+  if (options.search) {
+    where.OR = [
+      { action: { contains: options.search, mode: 'insensitive' } },
+      { actorName: { contains: options.search, mode: 'insensitive' } },
+      { actorEmail: { contains: options.search, mode: 'insensitive' } },
+      { actorRole: { contains: options.search, mode: 'insensitive' } },
+      { actorUserId: { contains: options.search, mode: 'insensitive' } },
+      { resourceType: { contains: options.search, mode: 'insensitive' } },
+      { resourceId: { contains: options.search, mode: 'insensitive' } },
+    ];
   }
   if (options.from || options.to) {
     where.createdAt = {};
@@ -67,6 +84,7 @@ export async function create(data: CreateAuditLogData) {
     data: {
       organizationId: data.organizationId ?? null,
       actorUserId: data.actorUserId,
+      actorName: data.actorName ?? null,
       actorEmail: data.actorEmail ?? null,
       actorRole: data.actorRole ?? null,
       action: data.action,

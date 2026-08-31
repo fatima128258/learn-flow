@@ -126,6 +126,7 @@ export async function createOrganization(
     slug?: string;
     actor?: {
       userId: string;
+      name?: string | null;
       email?: string | null;
       role?: string | null;
     } | null;
@@ -146,6 +147,7 @@ export async function createOrganization(
         action: 'ORGANIZATION_CREATED',
         organizationId: organization.id,
         actorUserId: input.actor.userId,
+        actorName: input.actor.name ?? null,
         actorEmail: input.actor.email ?? null,
         actorRole: input.actor.role ?? 'PLATFORM_ADMIN',
         resourceType: 'ORGANIZATION',

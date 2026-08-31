@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { Badge, EmptyState, EmptyStateIcons, Spinner } from '../../../../components/ui';
 import { LinkButton } from '../../../../components/ui/LinkButton';
 import { getListCoursesErrorMessage } from '../../../../features/course/listCoursesErrors';
@@ -48,6 +49,8 @@ function statusBadgeVariant(status: string) {
 
 export default function MyCoursesPage() {
   const toast = useToast();
+  const searchParams = useSearchParams();
+  const orgIdParam = searchParams.get('organization');
 
   const [checkingAuth, setCheckingAuth] = useState(true);
   const [organizationId, setOrganizationId] = useState<string | null>(null);
@@ -69,11 +72,11 @@ export default function MyCoursesPage() {
         const meData: MeResponse = await meRes.json();
         if (!active) return;
         const role = meData.user?.role;
-        if (role !== 'ORG_ADMIN' && role !== 'INSTRUCTOR') {
+        if (role !== 'ORG_ADMIN' && role !== 'INSTRUCTOR' && role !== 'PLATFORM_ADMIN') {
           window.location.href = '/login';
           return;
         }
-        const orgId = meData.user?.organizationId ?? null;
+        const orgId = orgIdParam ?? meData.user?.organizationId ?? null;
         if (!orgId) {
           window.location.href = '/login';
           return;
@@ -90,7 +93,7 @@ export default function MyCoursesPage() {
     return () => {
       active = false;
     };
-  }, []);
+  }, [orgIdParam]);
 
   useEffect(() => {
     if (!organizationId) return;

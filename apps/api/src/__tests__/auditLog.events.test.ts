@@ -183,6 +183,7 @@ describe('audit log recording', () => {
     expect(recordMock.create).toHaveBeenCalledWith({
       organizationId: null,
       actorUserId: 'user-1',
+      actorName: null,
       actorEmail: 'user@example.com',
       actorRole: null,
       action: 'LOGIN',

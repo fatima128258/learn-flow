@@ -10,7 +10,7 @@ export default function OrgAuditLogsPage() {
 
   useEffect(() => {
     if (userLoading) return;
-    if (!user || user.role !== 'ORG_ADMIN') {
+    if (!user || (user.role !== 'ORG_ADMIN' && user.role !== 'PLATFORM_ADMIN')) {
       window.location.href = '/login';
     }
   }, [user, userLoading]);

@@ -121,6 +121,7 @@ export async function generateCertificate(organizationId: string, userId: string
     action: 'CERTIFICATE_GENERATED',
     organizationId,
     actorUserId: userId,
+    actorName: student?.name ?? null,
     actorRole: 'STUDENT',
     resourceType: 'CERTIFICATE',
     resourceId: certificate.id,

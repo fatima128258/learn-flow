@@ -197,6 +197,34 @@ export async function requireOrgAdmin(req: AuthenticatedRequest, res: Response, 
 
   try {
     const prisma = getPrisma();
+
+    const platformAdminMembership = await prisma.userOrganization.findFirst({
+      where: {
+        userId: req.user.id,
+        role: 'PLATFORM_ADMIN',
+      },
+    });
+
+    if (platformAdminMembership) {
+      const rawOrgId = req.headers['x-organization-id'] || req.query.organizationId || req.params.organizationId;
+      const orgId = Array.isArray(rawOrgId) ? rawOrgId[0] : rawOrgId;
+
+      if (orgId && typeof orgId === 'string') {
+        const organization = await prisma.organization.findUnique({
+          where: { id: orgId },
+        });
+
+        if (!organization) {
+          return res.status(404).json({ success: false, error: 'ORGANIZATION_NOT_FOUND' });
+        }
+
+        req.user.role = 'PLATFORM_ADMIN';
+        req.user.organizationId = orgId;
+        req.organizationId = orgId;
+        return next();
+      }
+    }
+
     const membership = await prisma.userOrganization.findFirst({
       where: {
         userId: req.user.id,

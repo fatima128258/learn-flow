@@ -64,6 +64,7 @@ const ctx = {
   studentB: { email: '', password: '', cookie: '', name: MARKER_B },
   course: { id: '' },
   moduleId: '',
+  mediaId: '',
   lessons: [] as string[],
   quiz: { id: '', questionId: '', correctOptionId: '' },
   certA: { certificateId: '', verificationToken: '', httpTimedOut: false },
@@ -683,8 +684,9 @@ describe('PHASE 3 — platform E2E + security + data isolation (API)', () => {
       console.log(`P3-G // media upload outcome: HTTP ${uploaded.status}${uploaded.body?.error ? ' ' + String(uploaded.body.error) : ''}`);
       expect(uploaded.status === 201 || uploaded.status === 400 || uploaded.status >= 500).toBe(true);
       if (uploaded.status === 201) {
-        ctx.mediaId = uploaded.body.data.id as string;
-        const urlRes = await req('get', `/api/v1/organizations/${ctx.org1Id}/media/${uploaded.body.data.id}/url`, ctx.studentA.cookie);
+        const media = uploaded.body as { data: { id: string } };
+        ctx.mediaId = media.data.id;
+        const urlRes = await req('get', `/api/v1/organizations/${ctx.org1Id}/media/${media.data.id}/url`, ctx.studentA.cookie);
         expect([200, 403]).toContain(urlRes.status);
       } else {
         // Clean up any partially-created Media row so the DB is left consistent.

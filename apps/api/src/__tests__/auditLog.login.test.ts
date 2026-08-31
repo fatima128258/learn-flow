@@ -86,6 +86,7 @@ describe('login audit recording', () => {
       action: 'LOGIN',
       organizationId: 'org-a',
       actorUserId: 'user-1',
+      actorName: 'Test User',
       actorEmail: 'user@example.com',
       actorRole: 'ORG_ADMIN',
       metadata: null,

@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { EmptyState, EmptyStateIcons, ErrorState, Spinner } from '@/components/ui';
 import { useCurrentUser } from '@/features/auth/useCurrentUser';
 import { getOrgAdminErrorMessage } from '@/features/orgAdmin/orgAdminErrors';
@@ -60,6 +61,8 @@ const StudentsIcon = (
 
 export default function OrgAnalyticsPage() {
   const { data: user, isLoading: userLoading } = useCurrentUser();
+  const searchParams = useSearchParams();
+  const orgIdParam = searchParams.get('organization');
 
   const [summary, setSummary] = useState<DashboardSummary | null>(null);
   const [courses, setCourses] = useState<CourseItem[] | null>(null);
@@ -68,7 +71,7 @@ export default function OrgAnalyticsPage() {
 
   useEffect(() => {
     if (userLoading) return;
-    if (!user || user.role !== 'ORG_ADMIN') {
+    if (!user || (user.role !== 'ORG_ADMIN' && user.role !== 'PLATFORM_ADMIN')) {
       window.location.href = '/login';
       return;
     }
@@ -77,9 +80,10 @@ export default function OrgAnalyticsPage() {
       setLoading(true);
       setError(null);
       try {
-        const orgId = user?.organizationId ?? '';
+        const orgId = orgIdParam ?? user?.organizationId ?? '';
+        const orgHeaders: Record<string, string> = orgId ? { 'X-Organization-Id': orgId } : {};
         const [dashRes, coursesRes] = await Promise.all([
-          fetch(`${API_BASE}/api/v1/org/dashboard`, { credentials: 'include' }),
+          fetch(`${API_BASE}/api/v1/org/dashboard`, { credentials: 'include', headers: orgHeaders }),
           fetch(`${API_BASE}/api/v1/organizations/${orgId}/courses?page=1&limit=100`, { credentials: 'include' }),
         ]);
 
@@ -110,7 +114,7 @@ export default function OrgAnalyticsPage() {
     }
 
     void load();
-  }, [user, userLoading]);
+  }, [user, userLoading, orgIdParam]);
 
   const statusCounts = (courses ?? []).reduce<Record<string, number>>((acc, c) => {
     acc[c.status] = (acc[c.status] ?? 0) + 1;

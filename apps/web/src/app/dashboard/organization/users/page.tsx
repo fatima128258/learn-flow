@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useSearchParams } from 'next/navigation';
 import {
   Badge,
   Button,
@@ -82,6 +83,8 @@ const API_BASE = process.env.NEXT_PUBLIC_API_URL || '';
 export default function OrgUsersPage() {
   const { data: user, isLoading: userLoading } = useCurrentUser();
   const toast = useToast();
+  const searchParams = useSearchParams();
+  const orgId = searchParams.get('organization');
 
   const [members, setMembers] = useState<MemberItem[] | null>(null);
   const [total, setTotal] = useState<number | null>(null);
@@ -97,9 +100,11 @@ export default function OrgUsersPage() {
   const [passwordError, setPasswordError] = useState('');
   const [saving, setSaving] = useState(false);
 
+  const orgHeaders: Record<string, string> = orgId ? { 'X-Organization-Id': orgId } : {};
+
   async function load() {
     try {
-      const res = await fetch(`${API_BASE}/api/v1/org/users?page=1&limit=100`, { credentials: 'include' });
+      const res = await fetch(`${API_BASE}/api/v1/org/users?page=1&limit=100`, { credentials: 'include', headers: orgHeaders });
       if (!res.ok) {
         let code: unknown = null;
         try {
@@ -122,7 +127,7 @@ export default function OrgUsersPage() {
 
   useEffect(() => {
     if (userLoading) return;
-    if (!user || user.role !== 'ORG_ADMIN') {
+    if (!user || (user.role !== 'ORG_ADMIN' && user.role !== 'PLATFORM_ADMIN')) {
       window.location.href = '/login';
       return;
     }
@@ -171,7 +176,7 @@ export default function OrgUsersPage() {
       const endpoint = addRole === 'INSTRUCTOR' ? '/api/v1/org/instructors' : '/api/v1/org/students';
       const res = await fetch(`${API_BASE}${endpoint}`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...orgHeaders },
         body: JSON.stringify({ name: name.trim() || undefined, email: trimmedEmail, password }),
         credentials: 'include',
       });

@@ -1,4 +1,5 @@
 import * as repo from '../repositories/auditLogRepository';
+import getPrisma from '../prisma';
 import { Prisma } from '@prisma/client';
 import { parsePagination, buildMeta } from '../utils/pagination';
 
@@ -16,6 +17,7 @@ export interface AuditEventInput {
   action: string;
   organizationId?: string | null;
   actorUserId: string;
+  actorName?: string | null;
   actorEmail?: string | null;
   actorRole?: string | null;
   resourceType?: string | null;
@@ -24,11 +26,12 @@ export interface AuditEventInput {
   ipAddress?: string | null;
 }
 
-function toAuditLogDto(log: {
+interface AuditLogRecord {
   id: string;
   action: string;
   organizationId?: string | null;
   actorUserId: string;
+  actorName?: string | null;
   actorEmail?: string | null;
   actorRole?: string | null;
   resourceType?: string | null;
@@ -36,19 +39,39 @@ function toAuditLogDto(log: {
   metadata?: unknown;
   ipAddress?: string | null;
   createdAt: Date;
-}) {
+}
+
+function resourceDisplayName(metadata: unknown): string | null {
+  if (!metadata || typeof metadata !== 'object') return null;
+  const m = metadata as Record<string, unknown>;
+  if (typeof m.courseTitle === 'string' && m.courseTitle) return m.courseTitle;
+  const course = m.course;
+  if (course && typeof course === 'object') {
+    const courseRecord = course as Record<string, unknown>;
+    if (typeof courseRecord.title === 'string' && courseRecord.title) return courseRecord.title;
+  }
+  if (typeof m.name === 'string' && m.name) return m.name;
+  return null;
+}
+
+function toAuditLogDto(log: AuditLogRecord, organizationName?: string | null) {
   return {
     id: log.id,
     action: log.action,
-    organizationId: log.organizationId ?? null,
+    organization: {
+      id: log.organizationId ?? null,
+      name: organizationName ?? null,
+    },
     actor: {
       userId: log.actorUserId,
+      name: log.actorName ?? null,
       email: log.actorEmail ?? null,
       role: log.actorRole ?? null,
     },
     resource: {
       type: log.resourceType ?? null,
       id: log.resourceId ?? null,
+      name: resourceDisplayName(log.metadata),
     },
     metadata: log.metadata ?? null,
     ipAddress: log.ipAddress ?? null,
@@ -65,6 +88,7 @@ export async function record(input: AuditEventInput) {
     await repo.create({
       organizationId: input.organizationId ?? null,
       actorUserId: input.actorUserId,
+      actorName: input.actorName ?? null,
       actorEmail: input.actorEmail ?? null,
       actorRole: input.actorRole ?? null,
       action: input.action,
@@ -88,6 +112,7 @@ export interface ListAuditLogsInput {
   actorEmail?: unknown;
   resourceType?: unknown;
   resourceId?: unknown;
+  search?: unknown;
   from?: unknown;
   to?: unknown;
 }
@@ -109,6 +134,16 @@ function parseDateFilter(value: unknown) {
   return date;
 }
 
+async function orgNameByIds(ids: string[]): Promise<Map<string, string>> {
+  const unique = Array.from(new Set(ids)).filter(Boolean);
+  if (unique.length === 0) return new Map();
+  const orgs = await getPrisma().organization.findMany({
+    where: { id: { in: unique } },
+    select: { id: true, name: true },
+  });
+  return new Map(orgs.map((o) => [o.id, o.name]));
+}
+
 export async function listAuditLogs(input: ListAuditLogsInput = {}) {
   const { page, limit, skip, take } = parsePagination(input);
 
@@ -119,6 +154,7 @@ export async function listAuditLogs(input: ListAuditLogsInput = {}) {
     actorEmail: optionalString(input.actorEmail),
     resourceType: optionalString(input.resourceType),
     resourceId: optionalString(input.resourceId),
+    search: optionalString(input.search),
     from: parseDateFilter(input.from),
     to: parseDateFilter(input.to),
     skip,
@@ -130,8 +166,10 @@ export async function listAuditLogs(input: ListAuditLogsInput = {}) {
     repo.count(options),
   ]);
 
+  const orgNames = await orgNameByIds(items.map((i) => i.organizationId ?? ''));
+
   return {
-    items: items.map(toAuditLogDto),
+    items: items.map((log) => toAuditLogDto(log, orgNames.get(log.organizationId ?? '') ?? null)),
     meta: buildMeta(page, limit, total),
   };
 }

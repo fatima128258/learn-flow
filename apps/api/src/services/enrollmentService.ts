@@ -1,5 +1,6 @@
 import * as enrollmentRepo from '../repositories/enrollmentRepository';
 import * as courseRepo from '../repositories/courseRepository';
+import * as authService from './authService';
 import { dispatchNotification } from './notificationDispatcher';
 import { record as recordAudit } from './auditLogService';
 
@@ -80,6 +81,7 @@ export async function enroll(organizationId: string, userId: string, courseId: s
     action: 'ENROLLMENT_CREATED',
     organizationId,
     actorUserId: userId,
+    actorName: (await authService.getUserById(userId))?.name ?? null,
     actorRole: 'STUDENT',
     resourceType: 'ENROLLMENT',
     resourceId: enrollment.id,

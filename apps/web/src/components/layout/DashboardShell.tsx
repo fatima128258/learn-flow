@@ -30,7 +30,7 @@ function resolveNav(
     return { navLabel: 'Student', items: studentNav };
   }
 
-  if (pathname.startsWith('/dashboard/organization')) {
+  if (pathname === '/dashboard/organization' || pathname.startsWith('/dashboard/organization/')) {
     const isCourseAuthoring = pathname.startsWith('/dashboard/organization/courses');
     if (isCourseAuthoring && role === 'INSTRUCTOR') {
       return { navLabel: 'Instructor', items: instructorNav };

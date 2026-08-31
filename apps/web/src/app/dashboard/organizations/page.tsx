@@ -1,6 +1,8 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
+import { useRouter } from 'next/navigation';
 import {
   Badge,
   Button,
@@ -125,20 +127,29 @@ function OrgActionsMenu({
   onAssignAdmin,
   onEdit,
   onStatusChange,
+  onOpen,
 }: {
   org: OrganizationItem;
   onMembers: () => void;
   onAssignAdmin: () => void;
   onEdit: () => void;
   onStatusChange: () => void;
+  onOpen: () => void;
 }) {
   const [open, setOpen] = useState(false);
+  const wrapRef = useRef<HTMLDivElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
+  const [pos, setPos] = useState<{ top: number; left: number; openUp: boolean } | null>(null);
 
   useEffect(() => {
     if (!open) return;
     function handleClick(e: MouseEvent) {
-      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+      if (
+        wrapRef.current &&
+        !wrapRef.current.contains(e.target as Node) &&
+        menuRef.current &&
+        !menuRef.current.contains(e.target as Node)
+      ) {
         setOpen(false);
       }
     }
@@ -153,16 +164,141 @@ function OrgActionsMenu({
     };
   }, [open]);
 
+  // Re-measure while open so the fixed menu always tracks the button, flipping
+  // upward when there isn't room below. Position is computed in the click
+  // handler and on scroll/resize (event callbacks), never in an effect body.
+  function computePosition() {
+    const button = wrapRef.current?.querySelector('button');
+    if (!button) return;
+    const rect = button.getBoundingClientRect();
+    const MENU_W = 176;
+    const MENU_EST_H = 230;
+    const margin = 8;
+    let left = rect.right - MENU_W;
+    if (left < margin) left = margin;
+    if (left + MENU_W > window.innerWidth - margin) {
+      left = Math.max(margin, window.innerWidth - MENU_W - margin);
+    }
+    const spaceBelow = window.innerHeight - rect.bottom;
+    const openUp = spaceBelow < MENU_EST_H && rect.top > spaceBelow;
+    const top = openUp ? rect.top - MENU_EST_H : rect.bottom + 4;
+    setPos({ top: Math.max(margin, top), left, openUp });
+  }
+
+  useEffect(() => {
+    if (!open) return;
+    function track() {
+      computePosition();
+    }
+    window.addEventListener('scroll', track, true);
+    window.addEventListener('resize', track);
+    return () => {
+      window.removeEventListener('scroll', track, true);
+      window.removeEventListener('resize', track);
+    };
+  }, [open]);
+
+  function toggle() {
+    const next = !open;
+    setOpen(next);
+    if (next) computePosition();
+  }
+
   function action(fn: () => void) {
     setOpen(false);
     fn();
   }
 
-  return (
-    <div ref={menuRef} className="relative inline-block text-left">
+  const menu = (
+    <div
+      ref={menuRef}
+      className={`fixed z-50 w-44 rounded-xl border border-neutral-200 bg-white py-1 shadow-lg ring-1 ring-black/5 focus:outline-none ${
+        pos?.openUp ? 'origin-bottom-right' : 'origin-top-right'
+      }`}
+      style={pos ? { top: pos.top, left: pos.left } : { top: 0, left: 0 }}
+      role="menu"
+      aria-label="Organization actions menu"
+    >
       <button
         type="button"
-        onClick={() => setOpen((v) => !v)}
+        role="menuitem"
+        className="flex w-full items-center gap-2.5 px-4 py-2.5 text-sm text-neutral-700 hover:bg-neutral-50 hover:text-neutral-900"
+        onClick={() => action(onOpen)}
+      >
+        <svg className="h-4 w-4 text-neutral-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M5 12h14m-7-7l7 7-7 7" />
+        </svg>
+        Open
+      </button>
+      <div className="my-1 border-t border-neutral-100" />
+      <button
+        type="button"
+        role="menuitem"
+        className="flex w-full items-center gap-2.5 px-4 py-2.5 text-sm text-neutral-700 hover:bg-neutral-50 hover:text-neutral-900"
+        onClick={() => action(onMembers)}
+      >
+        <svg className="h-4 w-4 text-neutral-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M17 20h5v-2a4 4 0 00-5.356-3.712M9 20H4v-2a4 4 0 015.356-3.712M15 7a4 4 0 11-8 0 4 4 0 018 0zm6 3a3 3 0 11-6 0 3 3 0 016 0z" />
+        </svg>
+        Members
+      </button>
+      <button
+        type="button"
+        role="menuitem"
+        className="flex w-full items-center gap-2.5 px-4 py-2.5 text-sm text-neutral-700 hover:bg-neutral-50 hover:text-neutral-900"
+        onClick={() => action(onAssignAdmin)}
+      >
+        <svg className="h-4 w-4 text-neutral-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+        </svg>
+        Assign Admin
+      </button>
+      <button
+        type="button"
+        role="menuitem"
+        className="flex w-full items-center gap-2.5 px-4 py-2.5 text-sm text-neutral-700 hover:bg-neutral-50 hover:text-neutral-900"
+        onClick={() => action(onEdit)}
+      >
+        <svg className="h-4 w-4 text-neutral-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+        </svg>
+        Edit
+      </button>
+      <div className="my-1 border-t border-neutral-100" />
+      <button
+        type="button"
+        role="menuitem"
+        className={`flex w-full items-center gap-2.5 px-4 py-2.5 text-sm hover:bg-neutral-50 ${
+          org.status === 'ACTIVE'
+            ? 'text-red-600 hover:text-red-700'
+            : 'text-emerald-600 hover:text-emerald-700'
+        }`}
+        onClick={() => action(onStatusChange)}
+      >
+        {org.status === 'ACTIVE' ? (
+          <>
+            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
+            </svg>
+            Suspend
+          </>
+        ) : (
+          <>
+            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            Activate
+          </>
+        )}
+      </button>
+    </div>
+  );
+
+  return (
+    <div ref={wrapRef} className="relative inline-block text-left">
+      <button
+        type="button"
+        onClick={toggle}
         aria-label="Organization actions"
         aria-haspopup="true"
         aria-expanded={open}
@@ -176,72 +312,14 @@ function OrgActionsMenu({
         </svg>
       </button>
 
-      {open && (
-        <div className="absolute right-0 z-50 mt-1 w-44 origin-top-right rounded-xl border border-neutral-200 bg-white py-1 shadow-lg ring-1 ring-black/5 focus:outline-none">
-          <button
-            type="button"
-            className="flex w-full items-center gap-2.5 px-4 py-2.5 text-sm text-neutral-700 hover:bg-neutral-50 hover:text-neutral-900"
-            onClick={() => action(onMembers)}
-          >
-            <svg className="h-4 w-4 text-neutral-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M17 20h5v-2a4 4 0 00-5.356-3.712M9 20H4v-2a4 4 0 015.356-3.712M15 7a4 4 0 11-8 0 4 4 0 018 0zm6 3a3 3 0 11-6 0 3 3 0 016 0z" />
-            </svg>
-            Members
-          </button>
-          <button
-            type="button"
-            className="flex w-full items-center gap-2.5 px-4 py-2.5 text-sm text-neutral-700 hover:bg-neutral-50 hover:text-neutral-900"
-            onClick={() => action(onAssignAdmin)}
-          >
-            <svg className="h-4 w-4 text-neutral-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-            </svg>
-            Assign Admin
-          </button>
-          <button
-            type="button"
-            className="flex w-full items-center gap-2.5 px-4 py-2.5 text-sm text-neutral-700 hover:bg-neutral-50 hover:text-neutral-900"
-            onClick={() => action(onEdit)}
-          >
-            <svg className="h-4 w-4 text-neutral-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-            </svg>
-            Edit
-          </button>
-          <div className="my-1 border-t border-neutral-100" />
-          <button
-            type="button"
-            className={`flex w-full items-center gap-2.5 px-4 py-2.5 text-sm hover:bg-neutral-50 ${
-              org.status === 'ACTIVE'
-                ? 'text-red-600 hover:text-red-700'
-                : 'text-emerald-600 hover:text-emerald-700'
-            }`}
-            onClick={() => action(onStatusChange)}
-          >
-            {org.status === 'ACTIVE' ? (
-              <>
-                <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
-                </svg>
-                Suspend
-              </>
-            ) : (
-              <>
-                <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-                Activate
-              </>
-            )}
-          </button>
-        </div>
-      )}
+      {open && pos ? createPortal(menu, document.body) : null}
     </div>
   );
 }
 
 export default function OrganizationsPage() {
   const toast = useToast();
+  const router = useRouter();
 
   const [organizations, setOrganizations] = useState<OrganizationItem[] | null>(null);
   const [meta, setMeta] = useState<OrganizationsResponse['meta'] | null>(null);
@@ -330,6 +408,10 @@ export default function OrganizationsPage() {
     setShowCreateModal(false);
     setNewName('');
     setNameError('');
+  }
+
+  function openOrganization(org: OrganizationItem) {
+    router.push(`/dashboard/organization?organization=${encodeURIComponent(org.id)}`);
   }
 
   function openEditModal(org: OrganizationItem) {
@@ -655,6 +737,17 @@ export default function OrganizationsPage() {
   return (
     <>
     <div className="mx-auto max-w-5xl">
+        <PageHeader
+          subtitle="Platform Admin"
+          title="Organizations"
+          description="Create and manage the organizations on your platform."
+          actions={
+            <Button size="sm" onClick={() => setShowCreateModal(true)}>
+              Create Organization
+            </Button>
+          }
+        />
+
         <div className="mb-4 max-w-sm">
           <Input
             variant="line"
@@ -741,6 +834,7 @@ export default function OrganizationsPage() {
                         <td className={`${tableCellClass} text-right`}>
                           <OrgActionsMenu
                             org={org}
+                            onOpen={() => openOrganization(org)}
                             onMembers={() => openMembersModal(org)}
                             onAssignAdmin={() => openAssignModal(org)}
                             onEdit={() => openEditModal(org)}
@@ -770,6 +864,7 @@ export default function OrganizationsPage() {
                     <div className="shrink-0">
                       <OrgActionsMenu
                         org={org}
+                        onOpen={() => openOrganization(org)}
                         onMembers={() => openMembersModal(org)}
                         onAssignAdmin={() => openAssignModal(org)}
                         onEdit={() => openEditModal(org)}

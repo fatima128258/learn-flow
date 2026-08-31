@@ -13,5 +13,6 @@ export * from './ErrorState';
 export * from './Toast';
 export * from './ToastProvider';
 export * from './Modal';
+export * from './Drawer';
 export * from './layout/Container';
 export * from './layout/Stack';

@@ -12,6 +12,9 @@ const prismaMock = {
     count: vi.fn(),
     create: vi.fn(),
   },
+  organization: {
+    findMany: vi.fn(),
+  },
 };
 
 vi.mock('../services/authService', () => ({
@@ -108,6 +111,8 @@ function resetMocks() {
   prismaMock.auditLog.findMany.mockReset();
   prismaMock.auditLog.count.mockReset();
   prismaMock.auditLog.create.mockReset();
+  prismaMock.organization.findMany.mockReset();
+  prismaMock.organization.findMany.mockResolvedValue([]);
 }
 
 describe('Audit log read endpoints', () => {
@@ -141,6 +146,7 @@ describe('Audit log read endpoints', () => {
       await authenticateAs('PLATFORM_ADMIN', { organizationId: 'platform-org' });
       prismaMock.auditLog.findMany.mockResolvedValue([auditLogRecord()]);
       prismaMock.auditLog.count.mockResolvedValue(1);
+      prismaMock.organization.findMany.mockResolvedValue([{ id: 'org-a', name: 'Acme Org' }]);
 
       const res = await request(app)
         .get('/api/v1/admin/audit-logs')
@@ -161,15 +167,20 @@ describe('Audit log read endpoints', () => {
       expect(res.body.data[0]).toEqual({
         id: 'log-1',
         action: 'LOGIN',
-        organizationId: 'org-a',
+        organization: {
+          id: 'org-a',
+          name: 'Acme Org',
+        },
         actor: {
           userId: 'user-1',
+          name: null,
           email: 'admin@example.com',
           role: 'ORG_ADMIN',
         },
         resource: {
           type: 'SESSION',
           id: 'session-1',
+          name: null,
         },
         metadata: { source: 'web' },
         ipAddress: '127.0.0.1',

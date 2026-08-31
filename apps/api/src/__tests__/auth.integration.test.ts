@@ -17,13 +17,12 @@ import argon2 from 'argon2';
 import app from '../server';
 import getPrisma from '../prisma';
 import { generateToken, hashToken } from '../utils/tokens';
+import { LOGIN_RATE_LIMIT } from '../services/authService';
 
 const prisma = getPrisma();
 
 const COOKIE_NAME = process.env.SESSION_COOKIE_NAME || 'learnflow_session';
-const APP_URL = process.env.APP_URL || 'http://localhost:3000';
 const MAILPIT_API = process.env.MAILPIT_API || 'http://localhost:8025/api/v1';
-const MAIL_SMTP_PORT = Number(process.env.MAIL_SMTP_PORT || '1025');
 
 let counter = 0;
 function uniqueEmail(prefix: string): string {
@@ -511,7 +510,7 @@ describe('Login (real implementation)', () => {
     const ip = uniqueIp();
     const email = uniqueEmail('lockout');
 
-    for (let i = 0; i < 5; i++) {
+    for (let i = 0; i < LOGIN_RATE_LIMIT; i++) {
       const res = await request(app)
         .post('/api/v1/auth/login')
         .set('X-Forwarded-For', ip)
@@ -926,8 +925,8 @@ describe('Forgot / reset password (real implementation)', () => {
 });
 
 describe('Protected routes and middleware (real implementation)', () => {
-  const ADMIN_EMAIL = process.env.ADMIN_EMAIL || 'fatimaramzan739@gmail.com';
-  const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'fatima123';
+  const ADMIN_EMAIL = process.env.ADMIN_EMAIL || 'admin@gmail.com';
+  const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'admin123';
 
   it('rejects an unauthenticated request to a protected route with 401 NOT_AUTHENTICATED', async () => {
     const res = await request(app).get('/api/v1/admin/dashboard');

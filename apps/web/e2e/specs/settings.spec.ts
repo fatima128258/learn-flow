@@ -4,6 +4,27 @@ import { findVerificationToken, expectToast } from '../support/mailpit';
 
 const PASSWORD = 'E2Epass123!';
 
+function uniqueProbeIp(): string {
+  return `10.${Math.floor(Math.random() * 200) + 1}.${Math.floor(Math.random() * 200) + 1}.${Math.floor(Math.random() * 200) + 1}`;
+}
+
+test.beforeEach(async ({ page }) => {
+  // The API rate-limits register/login/verify-email per IP (5 per 15 min). Every
+  // browser request shares 127.0.0.1, so parallel or repeated runs can trip the
+  // limit. Inject a unique X-Forwarded-For per test (same mechanism the backend
+  // integration tests use) to give each test its own rate-limit bucket.
+  const probeIp = uniqueProbeIp();
+  await page.route('**://localhost:4000/**', async (route) => {
+    try {
+      await route.continue({
+        headers: { ...route.request().headers(), 'x-forwarded-for': probeIp },
+      });
+    } catch {
+      // request may have been aborted by navigation; ignore
+    }
+  });
+});
+
 test.describe('Account settings journey', () => {
   test('changes the email address: old email stops working, new email signs in after verification', async ({ page }) => {
     const oldEmail = randomEmail('e2e-settings-email');

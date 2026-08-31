@@ -3,7 +3,7 @@ import { test } from '@playwright/test';
 test('probe register long-wait', async ({ page }) => {
   const log: string[] = [];
   page.on('request', (r) => { if (r.url().includes('/api/')) log.push(`REQ ${r.method()} ${r.url()}`); });
-  page.on('requestfinished', (r) => { if (r.url().includes('/api/')) log.push(`DONE ${r.method()} ${r.url()} ${r.status()}`); });
+  page.on('requestfinished', async (r) => { if (r.url().includes('/api/')) log.push(`DONE ${r.method()} ${r.url()} ${(await r.response())?.status()}`); });
   page.on('requestfailed', (r) => log.push(`FAIL ${r.method()} ${r.url()} :: ${r.failure()?.errorText}`));
   page.on('response', (r) => { if (r.url().includes('/api/')) log.push(`RESP ${r.status()} ${r.url()}`); });
   page.on('console', (m) => { const t = m.text(); if (t.includes('api') || t.includes('Failed')) log.push(`console: ${t}`); });

@@ -491,6 +491,7 @@ model AuditLog {
   id             String    @id @default(cuid())
   organizationId String?
   actorUserId    String
+  actorName      String?
   actorEmail     String?
   actorRole      String?
   action         String
@@ -503,6 +504,7 @@ model AuditLog {
 
   @@index([organizationId, createdAt])
   @@index([actorUserId, createdAt])
+  @@index([actorName, createdAt])
   @@index([action, createdAt])
   @@index([resourceType, resourceId])
   @@index([createdAt])
