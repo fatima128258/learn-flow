@@ -7,6 +7,7 @@ import { logout } from '../../lib/api';
 import { SkipLink } from './SkipLink';
 import { LearnFlowLogo } from '../public/LearnFlowLogo';
 import { ButtonSpinner } from '../ui/Spinner';
+import { useCurrentUser } from '../../features/auth/useCurrentUser';
 
 export interface NavItem {
   href: string;
@@ -94,6 +95,41 @@ const LogoutIcon: React.FC = () => (
   </svg>
 );
 
+/**
+ * Panel/sidebar collapse icon that matches the screenshot style: [«] when expanded, [»] when collapsed.
+ * Outer bracket rectangle + inner double-chevron arrows.
+ */
+const PanelCollapseIcon: React.FC<{ collapsed: boolean }> = ({ collapsed }) => (
+  <svg
+    width="20"
+    height="20"
+    viewBox="0 0 20 20"
+    fill="none"
+    xmlns="http://www.w3.org/2000/svg"
+    aria-hidden="true"
+    className="flex-shrink-0"
+  >
+    {/* Outer rounded rectangle — the "panel" border */}
+    <rect x="1.5" y="1.5" width="17" height="17" rx="3" stroke="currentColor" strokeWidth="1.5" />
+    {/* Left panel divider — the sidebar split line */}
+    <line x1="6.5" y1="1.5" x2="6.5" y2="18.5" stroke="currentColor" strokeWidth="1.5" />
+    {/* Double-chevron arrow — points left (collapse) or right (expand) */}
+    {collapsed ? (
+      /* [»] — two chevrons pointing right */
+      <>
+        <path d="M10 7l3 3-3 3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+        <path d="M13 7l3 3-3 3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+      </>
+    ) : (
+      /* [«] — two chevrons pointing left */
+      <>
+        <path d="M13 7l-3 3 3 3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+        <path d="M16 7l-3 3 3 3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+      </>
+    )}
+  </svg>
+);
+
 export const NavIcons = {
   dashboard: <DashboardIcon />,
   organizations: <OrganizationsIcon />,
@@ -119,10 +155,12 @@ function getActiveItem(pathname: string, items: NavItem[]): string | null {
 function NavLink({
   item,
   isActive,
+  collapsed,
   onClick,
 }: {
   item: NavItem;
   isActive: boolean;
+  collapsed: boolean;
   onClick?: () => void;
 }) {
   return (
@@ -130,20 +168,38 @@ function NavLink({
       href={item.href}
       aria-current={isActive ? 'page' : undefined}
       onClick={onClick}
-      className={`group relative flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm transition-colors duration-150 ${
+      title={collapsed ? item.label : undefined}
+      className={`group relative flex w-full items-center rounded-xl px-3 py-2.5 text-sm transition-all duration-200 ${
+        collapsed ? 'justify-center gap-0' : 'gap-3'
+      } ${
         isActive
           ? 'bg-primary-50 font-semibold text-primary-700'
           : 'font-medium text-neutral-600 hover:bg-neutral-100 hover:text-neutral-900'
       }`}
     >
       {isActive && (
-        <span className="absolute left-0 top-1/2 h-5 w-1 -translate-y-1/2 rounded-full bg-primary-600" aria-hidden="true" />
+        <span
+          className="absolute left-0 top-1/2 h-5 w-1 -translate-y-1/2 rounded-full bg-primary-600"
+          aria-hidden="true"
+        />
       )}
       {item.icon}
-      <span>{item.label}</span>
+      {!collapsed && <span className="truncate">{item.label}</span>}
+
+      {/* Tooltip — only visible when collapsed */}
+      {collapsed && (
+        <span
+          className="pointer-events-none absolute left-full ml-3 z-50 whitespace-nowrap rounded-lg bg-neutral-900 px-2.5 py-1.5 text-xs font-medium text-white opacity-0 shadow-lg transition-opacity group-hover:opacity-100"
+          role="tooltip"
+        >
+          {item.label}
+        </span>
+      )}
     </Link>
   );
 }
+
+const STORAGE_KEY = 'dashboard-sidebar-collapsed';
 
 export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
   navLabel,
@@ -154,9 +210,32 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
   const pathname = usePathname();
   const activeHref = getActiveItem(pathname ?? '', items);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [collapsed, setCollapsed] = useState(false);
   const closeButtonRef = useRef<HTMLButtonElement>(null);
   const [loggingOut, setLoggingOut] = useState(false);
   const logoutInFlight = useRef(false);
+
+  // Restore collapsed state from localStorage on mount
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem(STORAGE_KEY);
+      if (stored === 'true') setCollapsed(true);
+    } catch {
+      // localStorage not available — ignore
+    }
+  }, []);
+
+  const toggleCollapsed = useCallback(() => {
+    setCollapsed((prev) => {
+      const next = !prev;
+      try {
+        localStorage.setItem(STORAGE_KEY, String(next));
+      } catch {
+        // ignore
+      }
+      return next;
+    });
+  }, []);
 
   useEffect(() => {
     if (mobileOpen) {
@@ -186,62 +265,107 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
   }, [mobileOpen]);
 
   const pageLabel = items.find((item) => item.href === activeHref)?.label ?? 'Dashboard';
+  const { data: currentUser } = useCurrentUser();
 
-  const nav = (onNavigate?: () => void) => (
-    <nav className="flex-1 space-y-1 overflow-y-auto px-3 py-6" aria-label={navLabel}>
-      <p className="px-3 pb-3 text-xs font-semibold uppercase tracking-wider text-neutral-400">
-        {navLabel}
-      </p>
+  // ── Desktop nav ────────────────────────────────────────────────────────────
+  const desktopNav = (
+    <nav
+      className="flex-1 overflow-y-auto overflow-x-hidden"
+      style={{ padding: collapsed ? '12px 8px' : '12px 12px' }}
+      aria-label={navLabel}
+    >
+      <div className={`w-full space-y-1 ${collapsed ? 'flex flex-col items-center' : ''}`}>
+        {items.map((item) => (
+          <NavLink
+            key={item.href}
+            item={item}
+            isActive={activeHref === item.href}
+            collapsed={collapsed}
+          />
+        ))}
+      </div>
+    </nav>
+  );
+
+  // ── Mobile nav (always expanded) ───────────────────────────────────────────
+  const mobileNav = (onNavigate?: () => void) => (
+    <nav className="flex-1 space-y-1 overflow-y-auto px-3 pt-2" aria-label={navLabel}>
       {items.map((item) => (
         <NavLink
           key={item.href}
           item={item}
           isActive={activeHref === item.href}
+          collapsed={false}
           onClick={onNavigate}
         />
       ))}
     </nav>
   );
 
-  const sidebarFooter = (
-    <div className="border-t border-neutral-200 px-3 py-4">
-      <Link
-        href="/dashboard/profile"
-        className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-neutral-600 transition-colors hover:bg-neutral-100 hover:text-neutral-900"
-      >
-        {NavIcons.profile}
-        <span>My Profile</span>
-      </Link>
+  // ── Sidebar footer ─────────────────────────────────────────────────────────
+  const sidebarFooter = (isCollapsed: boolean) => (
+    <div className={`border-t border-neutral-200 py-3 ${isCollapsed ? 'px-2' : 'px-3'}`}>
+      {/* Logout button */}
       <button
         onClick={handleLogout}
         disabled={loggingOut}
         aria-busy={loggingOut}
-        className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-neutral-600 transition-colors hover:bg-neutral-100 hover:text-neutral-900 disabled:cursor-not-allowed disabled:opacity-60"
+        title={isCollapsed ? (loggingOut ? 'Logging out…' : 'Log out') : undefined}
+        className={`group relative flex w-full items-center rounded-xl px-3 py-2.5 text-sm font-medium text-neutral-600 transition-colors hover:bg-neutral-100 hover:text-neutral-900 disabled:cursor-not-allowed disabled:opacity-60 ${
+          isCollapsed ? 'justify-center' : 'gap-3'
+        }`}
       >
         {loggingOut ? <ButtonSpinner /> : <LogoutIcon />}
-        <span>{loggingOut ? 'Logging out...' : 'Log out'}</span>
+        {!isCollapsed && <span>{loggingOut ? 'Logging out...' : 'Log out'}</span>}
+        {isCollapsed && (
+          <span
+            className="pointer-events-none absolute left-full ml-3 z-50 whitespace-nowrap rounded-lg bg-neutral-900 px-2.5 py-1.5 text-xs font-medium text-white opacity-0 shadow-lg transition-opacity group-hover:opacity-100"
+            role="tooltip"
+          >
+            {loggingOut ? 'Logging out…' : 'Log out'}
+          </span>
+        )}
       </button>
+
+
     </div>
   );
 
-  const brand = (
-    <LearnFlowLogo href={undefined} size={30} />
-  );
+  const brand = <LearnFlowLogo href={undefined} size={30} />;
+
+  // Sidebar width values
+  const sidebarW = collapsed ? 'w-16' : 'w-52';
+  const contentPl = collapsed ? 'lg:pl-16' : 'lg:pl-52';
 
   return (
     <div className="min-h-screen bg-background-alt">
       <SkipLink />
 
       {/* Desktop sidebar */}
-      <aside className="fixed inset-y-0 left-0 z-40 hidden w-64 flex-col border-r border-neutral-200 bg-white lg:flex">
-        <div className="flex h-16 items-center border-b border-neutral-200 px-6">{brand}</div>
-        {nav()}
-        {sidebarFooter}
+      <aside
+        className={`fixed inset-y-0 left-0 z-40 hidden flex-col border-r border-neutral-200 bg-white transition-all duration-200 overflow-hidden lg:flex ${sidebarW}`}
+      >
+        {/* Header */}
+        <div
+          className={`flex h-16 items-center border-b border-neutral-200 ${
+            collapsed ? 'justify-center px-2' : 'px-6'
+          }`}
+        >
+          {collapsed ? <LearnFlowLogo href={undefined} size={28} withText={false} /> : brand}
+        </div>
+
+        {desktopNav}
+        {sidebarFooter(collapsed)}
       </aside>
 
       {/* Mobile drawer */}
       {mobileOpen && (
-        <div className="fixed inset-0 z-50 lg:hidden" role="dialog" aria-modal="true" aria-label={navLabel}>
+        <div
+          className="fixed inset-0 z-50 lg:hidden"
+          role="dialog"
+          aria-modal="true"
+          aria-label={navLabel}
+        >
           <button
             type="button"
             className="absolute inset-0 bg-neutral-900/50 focus:outline-none"
@@ -259,13 +383,33 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
                 className="rounded-md p-2 text-neutral-500 hover:bg-neutral-100 hover:text-neutral-700 focus:outline-none focus:ring-2 focus:ring-primary-500"
                 aria-label="Close navigation"
               >
-                <svg className="h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
-                  <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+                <svg
+                  className="h-5 w-5"
+                  xmlns="http://www.w3.org/2000/svg"
+                  viewBox="0 0 20 20"
+                  fill="currentColor"
+                >
+                  <path
+                    fillRule="evenodd"
+                    d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
+                    clipRule="evenodd"
+                  />
                 </svg>
               </button>
             </div>
-            {nav(() => setMobileOpen(false))}
-            {sidebarFooter}
+            {mobileNav(() => setMobileOpen(false))}
+            {/* Mobile footer — never collapsed */}
+            <div className="border-t border-neutral-200 px-3 py-4">
+              <button
+                onClick={handleLogout}
+                disabled={loggingOut}
+                aria-busy={loggingOut}
+                className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-neutral-600 transition-colors hover:bg-neutral-100 hover:text-neutral-900 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {loggingOut ? <ButtonSpinner /> : <LogoutIcon />}
+                <span>{loggingOut ? 'Logging out...' : 'Log out'}</span>
+              </button>
+            </div>
           </div>
         </div>
       )}
@@ -280,20 +424,45 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
           aria-label="Open navigation menu"
           aria-expanded={mobileOpen}
         >
-          <svg className="h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+          <svg
+            className="h-6 w-6"
+            xmlns="http://www.w3.org/2000/svg"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M4 6h16M4 12h16M4 18h16"
+            />
           </svg>
         </button>
       </header>
 
-      {/* Content column */}
-      <div className="lg:pl-64">
+      {/* Content column — shifts with sidebar */}
+      <div className={`transition-all duration-200 ${contentPl}`}>
         {/* Desktop page header strip */}
-        <header className="sticky top-0 z-30 hidden h-16 items-center border-b border-neutral-200 bg-white/80 px-8 backdrop-blur lg:flex">
-          <p className="text-sm font-medium text-neutral-500">
-            LearnFlow <span className="mx-1.5 text-neutral-300">/</span>
-            <span className="text-neutral-900">{pageLabel}</span>
-          </p>
+        <header className="sticky top-0 z-30 hidden h-16 items-center justify-between border-b border-neutral-200 bg-white/80 px-6 backdrop-blur lg:flex">
+          <div className="flex items-center gap-3">
+            {/* Panel collapse toggle — [«] / [»] icon, matches screenshot */}
+            <button
+              type="button"
+              onClick={toggleCollapsed}
+              title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+              aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+              className="rounded-lg p-1 text-neutral-400 transition-colors hover:bg-neutral-100 hover:text-neutral-700 focus:outline-none"
+            >
+              <PanelCollapseIcon collapsed={collapsed} />
+            </button>
+            <span className="text-base font-semibold text-neutral-900">{pageLabel}</span>
+          </div>
+          {currentUser?.name && (
+            <p className="text-sm font-medium text-neutral-500">
+              Welcome, <span className="text-neutral-900">{currentUser.name}</span>
+            </p>
+          )}
         </header>
 
         <main id="main-content" tabIndex={-1} className={`${contentClassName}`}>

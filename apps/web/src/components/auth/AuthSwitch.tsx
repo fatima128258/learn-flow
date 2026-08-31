@@ -4,6 +4,8 @@ import { AuthCard } from './AuthCard';
 import { LoginForm, LoginFormData } from './LoginForm';
 import { RegisterForm, RegisterFormData } from './RegisterForm';
 import { getPostLoginRedirect } from '../../features/auth/postLoginRedirect';
+import { getLoginErrorMessage, getRegisterErrorMessage } from '../../features/auth/authErrors';
+import { useToast } from '../ui/ToastProvider';
 
 export type AuthMode = 'login' | 'register';
 
@@ -15,19 +17,16 @@ const apiBase = process.env.NEXT_PUBLIC_API_URL || '';
 
 export const AuthSwitch: React.FC<AuthSwitchProps> = ({ initialMode = 'login' }) => {
   const [mode, setMode] = useState<AuthMode>(initialMode);
-  const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
+  const toast = useToast();
 
   const switchMode = (next: AuthMode) => {
     if (next === mode) return;
-    setError(null);
     setSuccess(false);
     setMode(next);
   };
 
   const handleLogin = async (data: LoginFormData) => {
-    setError(null);
-
     try {
       const res = await fetch(`${apiBase}/api/v1/auth/login`, {
         method: 'POST',
@@ -39,20 +38,18 @@ export const AuthSwitch: React.FC<AuthSwitchProps> = ({ initialMode = 'login' })
       const responseData = await res.json();
 
       if (!res.ok) {
-        throw new Error(responseData?.error || 'Invalid email or password');
+        toast.error(getLoginErrorMessage(responseData?.error));
+        return;
       }
 
+      toast.success('Signed in successfully. Redirecting...');
       window.location.href = getPostLoginRedirect(responseData?.user);
-    } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : 'An unexpected error occurred';
-      setError(message);
-      throw err;
+    } catch {
+      toast.error('Unable to sign in. Please try again.');
     }
   };
 
   const handleRegister = async (data: RegisterFormData) => {
-    setError(null);
-
     try {
       const res = await fetch(`${apiBase}/api/v1/auth/register`, {
         method: 'POST',
@@ -64,14 +61,14 @@ export const AuthSwitch: React.FC<AuthSwitchProps> = ({ initialMode = 'login' })
       const responseData = await res.json();
 
       if (!res.ok) {
-        throw new Error(responseData?.error || 'Failed to create account');
+        toast.error(getRegisterErrorMessage(responseData?.error));
+        return;
       }
 
       setSuccess(true);
-    } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : 'An unexpected error occurred';
-      setError(message);
-      throw err;
+      toast.success('Account created successfully! You can sign in now.');
+    } catch {
+      toast.error('Unable to create your account. Please try again.');
     }
   };
 
@@ -93,9 +90,9 @@ export const AuthSwitch: React.FC<AuthSwitchProps> = ({ initialMode = 'login' })
     >
       <div key={mode} className="animate-form-switch">
         {isLogin ? (
-          <LoginForm onSubmit={handleLogin} error={error} />
+          <LoginForm onSubmit={handleLogin} />
         ) : (
-          <RegisterForm onSubmit={handleRegister} error={error} success={success} />
+          <RegisterForm onSubmit={handleRegister} success={success} />
         )}
       </div>
     </AuthCard>

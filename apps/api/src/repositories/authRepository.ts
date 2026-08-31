@@ -22,6 +22,10 @@ export async function updateUserPassword(userId: string, passwordHash: string) {
   return prisma().user.update({ where: { id: userId }, data: { passwordHash } });
 }
 
+export async function updateUserEmail(userId: string, email: string) {
+  return prisma().user.update({ where: { id: userId }, data: { email, emailVerified: false } });
+}
+
 export async function markUserEmailAsVerified(userId: string) {
   return prisma().user.update({ where: { id: userId }, data: { emailVerified: true } });
 }
@@ -53,6 +57,13 @@ export async function deleteSessionById(id: string) {
 
 export async function revokeAllSessionsByUserId(userId: string) {
   return prisma().session.updateMany({ where: { userId }, data: { revoked: true } });
+}
+
+export async function revokeOtherSessionsByUserId(userId: string, keepTokenHash: string) {
+  return prisma().session.updateMany({
+    where: { userId, tokenHash: { not: keepTokenHash } },
+    data: { revoked: true },
+  });
 }
 
 // Email Verification Token functions

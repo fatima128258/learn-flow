@@ -1,8 +1,6 @@
 'use client';
 
 import { useEffect } from 'react';
-import { DashboardLayout } from '@/components/layout/DashboardLayout';
-import { orgAdminNav } from '@/features/organizationAdmin/nav';
 import { useCurrentUser } from '@/features/auth/useCurrentUser';
 import { AuditLogTable } from '@/components/audit/AuditLogTable';
 import { PageHeader } from '@/components/dashboard';
@@ -18,15 +16,13 @@ export default function OrgAuditLogsPage() {
   }, [user, userLoading]);
 
   return (
-    <DashboardLayout navLabel="Organization Admin" items={orgAdminNav}>
-      <div className="mx-auto max-w-5xl">
-        <PageHeader
-          subtitle="Organization Admin"
-          title="Audit Logs"
-          description="A record of security-relevant events inside your organization, including logins, publishing, enrollments, and certificates."
-        />
-        <AuditLogTable apiPath="/api/v1/org/audit-logs" />
-      </div>
-    </DashboardLayout>
+    <div className="mx-auto max-w-5xl">
+      <PageHeader
+        subtitle="Organization Admin"
+        title="Audit Logs"
+        description="A record of security-relevant events inside your organization, including logins, publishing, enrollments, and certificates."
+      />
+      <AuditLogTable apiPath="/api/v1/org/audit-logs" />
+    </div>
   );
 }

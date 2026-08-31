@@ -3,13 +3,13 @@
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { Badge, Button, EmptyState, EmptyStateIcons, Spinner } from '../../../../../../../../../../components/ui';
-import { FormError } from '../../../../../../../../../../components/forms/FormError';
 import { Input } from '../../../../../../../../../../components/ui/Input';
 import { Textarea } from '../../../../../../../../../../components/forms/Textarea';
 import { LinkButton } from '../../../../../../../../../../components/ui/LinkButton';
 import { Modal } from '../../../../../../../../../../components/ui/Modal';
 import Link from 'next/link';
 import { getQuizErrorMessage } from '../../../../../../../../../../features/course/quizErrors';
+import { useToast } from '../../../../../../../../../../components/ui/ToastProvider';
 
 type MeResponse = {
   user?: {
@@ -75,12 +75,12 @@ export default function QuizQuestionsPage() {
   const moduleId = typeof params.moduleId === 'string' ? params.moduleId : null;
   const quizId = typeof params.quizId === 'string' ? params.quizId : null;
   const router = useRouter();
+  const toast = useToast();
 
   const [checkingAuth, setCheckingAuth] = useState(true);
   const [organizationId, setOrganizationId] = useState<string | null>(null);
   const [questions, setQuestions] = useState<QuestionListItem[] | null>(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
 
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
@@ -94,8 +94,6 @@ export default function QuizQuestionsPage() {
   const [questionTextError, setQuestionTextError] = useState('');
   const [marksError, setMarksError] = useState('');
   const [orderError, setOrderError] = useState('');
-
-  const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
   const [expandedQuestion, setExpandedQuestion] = useState<string | null>(null);
   const [questionOptions, setQuestionOptions] = useState<Record<string, OptionItem[]>>({});
@@ -158,7 +156,6 @@ export default function QuizQuestionsPage() {
 
     async function load() {
       setLoading(true);
-      setError(null);
       try {
         const apiBase = process.env.NEXT_PUBLIC_API_URL || '';
         const res = await fetch(
@@ -173,14 +170,14 @@ export default function QuizQuestionsPage() {
           } catch {
             code = null;
           }
-          setError(getQuizErrorMessage(code));
+          toast.error(getQuizErrorMessage(code));
           return;
         }
         const body: ListQuestionsResponse = await res.json();
         if (!active) return;
         setQuestions(body.data ?? []);
       } catch {
-        if (active) setError(getQuizErrorMessage(null));
+        if (active) toast.error(getQuizErrorMessage(null));
       } finally {
         if (active) setLoading(false);
       }
@@ -237,55 +234,57 @@ export default function QuizQuestionsPage() {
     clearOptionForm();
   }
 
-  function validateQuestionForm(): boolean {
+  function validateQuestionForm(): string | null {
     setQuestionTextError('');
     setMarksError('');
     setOrderError('');
-    let isValid = true;
 
     if (!questionText.trim()) {
       setQuestionTextError('Question text is required');
-      isValid = false;
+      return 'Question text is required';
     }
 
     const parsedOrder = parseInt(order, 10);
     if (order.trim() === '' || isNaN(parsedOrder) || parsedOrder < 0 || !Number.isInteger(parsedOrder)) {
       setOrderError('Order must be a non-negative integer');
-      isValid = false;
+      return 'Order must be a non-negative integer';
     }
 
     if (marks.trim() !== '') {
       const parsedMarks = parseInt(marks, 10);
       if (isNaN(parsedMarks) || parsedMarks < 1 || !Number.isInteger(parsedMarks)) {
         setMarksError('Marks must be a positive integer');
-        isValid = false;
+        return 'Marks must be a positive integer';
       }
     }
 
-    return isValid;
+    return null;
   }
 
-  function validateOptionForm(): boolean {
+  function validateOptionForm(): string | null {
     setOptionTextError('');
     setOptionOrderError('');
-    let isValid = true;
 
     if (!optionText.trim()) {
       setOptionTextError('Option text is required');
-      isValid = false;
+      return 'Option text is required';
     }
 
     const parsedOrder = parseInt(optionOrder, 10);
     if (optionOrder.trim() === '' || isNaN(parsedOrder) || parsedOrder < 0 || !Number.isInteger(parsedOrder)) {
       setOptionOrderError('Order must be a non-negative integer');
-      isValid = false;
+      return 'Order must be a non-negative integer';
     }
 
-    return isValid;
+    return null;
   }
 
   async function handleCreate() {
-    if (!validateQuestionForm()) return;
+    const validationError = validateQuestionForm();
+    if (validationError) {
+      toast.error(validationError);
+      return;
+    }
     if (!organizationId || !courseId || !moduleId || !quizId) return;
 
     setCreating(true);
@@ -317,17 +316,16 @@ export default function QuizQuestionsPage() {
         if (code === 'QUESTION_ORDER_TAKEN') {
           setOrderError(getQuizErrorMessage(code));
         } else {
-          setError(getQuizErrorMessage(code));
+          toast.error(getQuizErrorMessage(code));
         }
         return;
       }
 
       closeCreateModal();
-      setSuccessMessage('Question created successfully.');
-      setTimeout(() => setSuccessMessage(null), 3000);
+      toast.success('Question created successfully.');
       router.refresh();
     } catch {
-      setError(getQuizErrorMessage(null));
+      toast.error(getQuizErrorMessage(null));
     } finally {
       setCreating(false);
     }
@@ -349,7 +347,7 @@ export default function QuizQuestionsPage() {
         } catch {
           code = null;
         }
-        setError(getQuizErrorMessage(code));
+        toast.error(getQuizErrorMessage(code));
         return;
       }
       const body: QuestionApiResponse = await res.json();
@@ -362,12 +360,16 @@ export default function QuizQuestionsPage() {
       setOrder(String(detail.order));
       setShowEditModal(true);
     } catch {
-      setError(getQuizErrorMessage(null));
+      toast.error(getQuizErrorMessage(null));
     }
   }
 
   async function handleUpdate() {
-    if (!validateQuestionForm()) return;
+    const validationError = validateQuestionForm();
+    if (validationError) {
+      toast.error(validationError);
+      return;
+    }
     if (!organizationId || !courseId || !moduleId || !quizId || !editingQuestion) return;
 
     setUpdating(true);
@@ -399,17 +401,16 @@ export default function QuizQuestionsPage() {
         if (code === 'QUESTION_ORDER_TAKEN') {
           setOrderError(getQuizErrorMessage(code));
         } else {
-          setError(getQuizErrorMessage(code));
+          toast.error(getQuizErrorMessage(code));
         }
         return;
       }
 
       closeEditModal();
-      setSuccessMessage('Question updated successfully.');
-      setTimeout(() => setSuccessMessage(null), 3000);
+      toast.success('Question updated successfully.');
       router.refresh();
     } catch {
-      setError(getQuizErrorMessage(null));
+      toast.error(getQuizErrorMessage(null));
     } finally {
       setUpdating(false);
     }
@@ -433,16 +434,15 @@ export default function QuizQuestionsPage() {
         } catch {
           code = null;
         }
-        setError(getQuizErrorMessage(code));
+        toast.error(getQuizErrorMessage(code));
         return;
       }
 
-      setSuccessMessage('Question deleted successfully.');
-      setTimeout(() => setSuccessMessage(null), 3000);
+      toast.success('Question deleted successfully.');
       if (expandedQuestion === questionId) setExpandedQuestion(null);
       router.refresh();
     } catch {
-      setError(getQuizErrorMessage(null));
+      toast.error(getQuizErrorMessage(null));
     }
   }
 
@@ -472,13 +472,13 @@ export default function QuizQuestionsPage() {
         } catch {
           code = null;
         }
-        setError(getQuizErrorMessage(code));
+        toast.error(getQuizErrorMessage(code));
         return;
       }
       const body: ListOptionsResponse = await res.json();
       setQuestionOptions((prev) => ({ ...prev, [questionId]: body.data ?? [] }));
     } catch {
-      setError(getQuizErrorMessage(null));
+      toast.error(getQuizErrorMessage(null));
     } finally {
       setLoadingOptions(null);
     }
@@ -491,7 +491,11 @@ export default function QuizQuestionsPage() {
   }
 
   async function handleCreateOption() {
-    if (!validateOptionForm()) return;
+    const validationError = validateOptionForm();
+    if (validationError) {
+      toast.error(validationError);
+      return;
+    }
     if (!organizationId || !courseId || !moduleId || !quizId || !optionTargetQuestion) return;
 
     setCreatingOption(true);
@@ -523,18 +527,17 @@ export default function QuizQuestionsPage() {
         if (code === 'OPTION_ORDER_TAKEN') {
           setOptionOrderError(getQuizErrorMessage(code));
         } else {
-          setError(getQuizErrorMessage(code));
+          toast.error(getQuizErrorMessage(code));
         }
         return;
       }
 
       closeCreateOptionModal();
-      setSuccessMessage('Option created successfully.');
-      setTimeout(() => setSuccessMessage(null), 3000);
+      toast.success('Option created successfully.');
       setQuestionOptions((prev) => ({ ...prev, [optionTargetQuestion]: [] }));
       router.refresh();
     } catch {
-      setError(getQuizErrorMessage(null));
+      toast.error(getQuizErrorMessage(null));
     } finally {
       setCreatingOption(false);
     }
@@ -550,7 +553,11 @@ export default function QuizQuestionsPage() {
   }
 
   async function handleUpdateOption() {
-    if (!validateOptionForm()) return;
+    const validationError = validateOptionForm();
+    if (validationError) {
+      toast.error(validationError);
+      return;
+    }
     if (!organizationId || !courseId || !moduleId || !quizId || !optionTargetQuestion || !editingOption) return;
 
     setUpdatingOption(true);
@@ -582,18 +589,17 @@ export default function QuizQuestionsPage() {
         if (code === 'OPTION_ORDER_TAKEN') {
           setOptionOrderError(getQuizErrorMessage(code));
         } else {
-          setError(getQuizErrorMessage(code));
+          toast.error(getQuizErrorMessage(code));
         }
         return;
       }
 
       closeEditOptionModal();
-      setSuccessMessage('Option updated successfully.');
-      setTimeout(() => setSuccessMessage(null), 3000);
+      toast.success('Option updated successfully.');
       setQuestionOptions((prev) => ({ ...prev, [optionTargetQuestion]: [] }));
       router.refresh();
     } catch {
-      setError(getQuizErrorMessage(null));
+      toast.error(getQuizErrorMessage(null));
     } finally {
       setUpdatingOption(false);
     }
@@ -617,32 +623,31 @@ export default function QuizQuestionsPage() {
         } catch {
           code = null;
         }
-        setError(getQuizErrorMessage(code));
+        toast.error(getQuizErrorMessage(code));
         return;
       }
 
-      setSuccessMessage('Option deleted successfully.');
-      setTimeout(() => setSuccessMessage(null), 3000);
+      toast.success('Option deleted successfully.');
       setQuestionOptions((prev) => ({ ...prev, [questionId]: [] }));
       router.refresh();
     } catch {
-      setError(getQuizErrorMessage(null));
+      toast.error(getQuizErrorMessage(null));
     }
   }
 
   if (checkingAuth) {
     return (
-      <main className="min-h-screen bg-neutral-50 p-8">
+      <div>
         <div className="mx-auto flex max-w-3xl items-center gap-3 text-neutral-700">
           <Spinner size="lg" label="Loading..." />
           <span>Loading...</span>
         </div>
-      </main>
+      </div>
     );
   }
 
   return (
-    <main className="min-h-screen bg-neutral-50 p-8">
+    <div>
       <div className="mx-auto max-w-5xl">
         <div className="mb-4 flex items-center justify-between">
           <p className="text-sm font-medium uppercase tracking-wide text-primary-600">Quiz Questions</p>
@@ -667,18 +672,6 @@ export default function QuizQuestionsPage() {
               Create Question
             </Button>
           </div>
-
-          {successMessage ? (
-            <div className="mt-4 rounded-md bg-success-50 p-3 text-sm text-success-700">
-              {successMessage}
-            </div>
-          ) : null}
-
-          {error ? (
-            <div className="mt-6">
-              <FormError message={error} />
-            </div>
-          ) : null}
 
           {loading ? (
             <div className="mt-8 flex items-center gap-3 text-neutral-700">
@@ -1037,6 +1030,6 @@ export default function QuizQuestionsPage() {
           </div>
         </div>
       </Modal>
-    </main>
+    </div>
   );
 }

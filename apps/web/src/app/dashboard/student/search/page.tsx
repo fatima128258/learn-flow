@@ -11,8 +11,6 @@ import {
   Input,
   LinkButton,
 } from '@/components/ui';
-import { DashboardLayout } from '@/components/layout/DashboardLayout';
-import { studentNav } from '@/features/student/nav';
 import { PageHeader } from '@/components/dashboard';
 
 type MeResponse = {
@@ -123,11 +121,10 @@ export default function StudentSearchPage() {
   }
 
   return (
-    <DashboardLayout navLabel="Student" items={studentNav}>
-      <div className="mx-auto max-w-6xl">
-        <PageHeader
-          subtitle="Course Catalog"
-          title="Search Courses"
+    <div className="mx-auto max-w-6xl">
+      <PageHeader
+        subtitle="Course Catalog"
+        title="Search Courses"
           breadcrumbs={
             <div className="flex items-center gap-2 text-sm">
               <Link href="/dashboard/student" className="text-primary-600 hover:text-primary-700">My Courses</Link>
@@ -209,6 +206,5 @@ export default function StudentSearchPage() {
           </>
         )}
       </div>
-    </DashboardLayout>
   );
 }

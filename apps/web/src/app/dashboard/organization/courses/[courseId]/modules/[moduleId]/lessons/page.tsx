@@ -3,12 +3,12 @@
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { Badge, Button, EmptyState, EmptyStateIcons, Spinner } from '../../../../../../../../components/ui';
-import { FormError } from '../../../../../../../../components/forms/FormError';
 import { Input } from '../../../../../../../../components/ui/Input';
 import { Textarea } from '../../../../../../../../components/forms/Textarea';
 import { LinkButton } from '../../../../../../../../components/ui/LinkButton';
 import { Modal } from '../../../../../../../../components/ui/Modal';
 import { getLessonErrorMessage } from '../../../../../../../../features/course/lessonErrors';
+import { useToast } from '../../../../../../../../components/ui/ToastProvider';
 
 type MeResponse = {
   user?: {
@@ -60,12 +60,12 @@ export default function ModuleLessonsPage() {
   const courseId = typeof params.courseId === 'string' ? params.courseId : null;
   const moduleId = typeof params.moduleId === 'string' ? params.moduleId : null;
   const router = useRouter();
+  const toast = useToast();
 
   const [checkingAuth, setCheckingAuth] = useState(true);
   const [organizationId, setOrganizationId] = useState<string | null>(null);
   const [lessons, setLessons] = useState<LessonListItem[] | null>(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
 
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
@@ -83,8 +83,6 @@ export default function ModuleLessonsPage() {
   const [titleError, setTitleError] = useState('');
   const [orderError, setOrderError] = useState('');
   const [durationError, setDurationError] = useState('');
-
-  const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
   useEffect(() => {
     let active = true;
@@ -130,7 +128,6 @@ export default function ModuleLessonsPage() {
 
     async function load() {
       setLoading(true);
-      setError(null);
       try {
         const apiBase = process.env.NEXT_PUBLIC_API_URL || '';
         const res = await fetch(
@@ -145,14 +142,14 @@ export default function ModuleLessonsPage() {
           } catch {
             code = null;
           }
-          setError(getLessonErrorMessage(code));
+          toast.error(getLessonErrorMessage(code));
           return;
         }
         const body: ListLessonsResponse = await res.json();
         if (!active) return;
         setLessons(body.data ?? []);
       } catch {
-        if (active) setError(getLessonErrorMessage(null));
+        if (active) toast.error(getLessonErrorMessage(null));
       } finally {
         if (active) setLoading(false);
       }
@@ -190,36 +187,39 @@ export default function ModuleLessonsPage() {
     clearForm();
   }
 
-  function validateForm(): boolean {
+  function validateForm(): string | null {
     setTitleError('');
     setOrderError('');
     setDurationError('');
-    let isValid = true;
 
     if (!title.trim()) {
       setTitleError('Title is required');
-      isValid = false;
+      return 'Title is required';
     }
 
     const parsedOrder = parseInt(order, 10);
     if (order.trim() === '' || isNaN(parsedOrder) || parsedOrder < 0 || !Number.isInteger(parsedOrder)) {
       setOrderError('Order must be a non-negative integer');
-      isValid = false;
+      return 'Order must be a non-negative integer';
     }
 
     if (duration.trim() !== '') {
       const parsedDuration = parseInt(duration, 10);
       if (isNaN(parsedDuration) || parsedDuration < 0 || !Number.isInteger(parsedDuration)) {
         setDurationError('Duration must be a non-negative integer');
-        isValid = false;
+        return 'Duration must be a non-negative integer';
       }
     }
 
-    return isValid;
+    return null;
   }
 
   async function handleCreate() {
-    if (!validateForm()) return;
+    const validationError = validateForm();
+    if (validationError) {
+      toast.error(validationError);
+      return;
+    }
     if (!organizationId || !courseId || !moduleId) return;
 
     setCreating(true);
@@ -255,17 +255,16 @@ export default function ModuleLessonsPage() {
         if (code === 'LESSON_ORDER_TAKEN') {
           setOrderError(getLessonErrorMessage(code));
         } else {
-          setError(getLessonErrorMessage(code));
+          toast.error(getLessonErrorMessage(code));
         }
         return;
       }
 
+      toast.success('Lesson created successfully.');
       closeCreateModal();
-      setSuccessMessage('Lesson created successfully.');
-      setTimeout(() => setSuccessMessage(null), 3000);
       router.refresh();
     } catch {
-      setError(getLessonErrorMessage(null));
+      toast.error(getLessonErrorMessage(null));
     } finally {
       setCreating(false);
     }
@@ -287,7 +286,7 @@ export default function ModuleLessonsPage() {
         } catch {
           code = null;
         }
-        setError(getLessonErrorMessage(code));
+        toast.error(getLessonErrorMessage(code));
         return;
       }
       const body: LessonApiResponse = await res.json();
@@ -304,12 +303,16 @@ export default function ModuleLessonsPage() {
       setIsPreview(detail.isPreview);
       setShowEditModal(true);
     } catch {
-      setError(getLessonErrorMessage(null));
+      toast.error(getLessonErrorMessage(null));
     }
   }
 
   async function handleUpdate() {
-    if (!validateForm()) return;
+    const validationError = validateForm();
+    if (validationError) {
+      toast.error(validationError);
+      return;
+    }
     if (!organizationId || !courseId || !moduleId || !editingLesson) return;
 
     setUpdating(true);
@@ -349,17 +352,16 @@ export default function ModuleLessonsPage() {
         if (code === 'LESSON_ORDER_TAKEN') {
           setOrderError(getLessonErrorMessage(code));
         } else {
-          setError(getLessonErrorMessage(code));
+          toast.error(getLessonErrorMessage(code));
         }
         return;
       }
 
+      toast.success('Lesson updated successfully.');
       closeEditModal();
-      setSuccessMessage('Lesson updated successfully.');
-      setTimeout(() => setSuccessMessage(null), 3000);
       router.refresh();
     } catch {
-      setError(getLessonErrorMessage(null));
+      toast.error(getLessonErrorMessage(null));
     } finally {
       setUpdating(false);
     }
@@ -386,31 +388,30 @@ export default function ModuleLessonsPage() {
         } catch {
           code = null;
         }
-        setError(getLessonErrorMessage(code));
+        toast.error(getLessonErrorMessage(code));
         return;
       }
 
-      setSuccessMessage('Lesson deleted successfully.');
-      setTimeout(() => setSuccessMessage(null), 3000);
+      toast.success('Lesson deleted successfully.');
       router.refresh();
     } catch {
-      setError(getLessonErrorMessage(null));
+      toast.error(getLessonErrorMessage(null));
     }
   }
 
   if (checkingAuth) {
     return (
-      <main className="min-h-screen bg-neutral-50 p-8">
+      <div>
         <div className="mx-auto flex max-w-3xl items-center gap-3 text-neutral-700">
           <Spinner size="lg" label="Loading..." />
           <span>Loading...</span>
         </div>
-      </main>
+      </div>
     );
   }
 
   return (
-    <main className="min-h-screen bg-neutral-50 p-8">
+    <div>
       <div className="mx-auto max-w-5xl">
         <div className="mb-4 flex items-center justify-between">
           <p className="text-sm font-medium uppercase tracking-wide text-primary-600">Module Lessons</p>
@@ -431,18 +432,6 @@ export default function ModuleLessonsPage() {
               Create Lesson
             </Button>
           </div>
-
-          {successMessage ? (
-            <div className="mt-4 rounded-md bg-success-50 p-3 text-sm text-success-700">
-              {successMessage}
-            </div>
-          ) : null}
-
-          {error ? (
-            <div className="mt-6">
-              <FormError message={error} />
-            </div>
-          ) : null}
 
           {loading ? (
             <div className="mt-8 flex items-center gap-3 text-neutral-700">
@@ -716,6 +705,6 @@ export default function ModuleLessonsPage() {
           </div>
         </div>
       </Modal>
-    </main>
+    </div>
   );
 }

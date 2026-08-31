@@ -137,3 +137,46 @@ export async function upsertOrganizationAdmin(userId: string, organizationId: st
     },
   });
 }
+
+export async function getOrganizationsCreatedThisMonth() {
+  const now = new Date();
+  const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+  const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+
+  const orgs = await prisma().organization.findMany({
+    where: {
+      createdAt: {
+        gte: startOfMonth,
+        lte: endOfMonth,
+      },
+      slug: { not: SYSTEM_ORGANIZATION_SLUG },
+    },
+    select: {
+      createdAt: true,
+    },
+  });
+
+  // Group by day
+  const daysInMonth = endOfMonth.getDate();
+  const countsPerDay: Record<number, number> = {};
+
+  // Initialize all days with 0
+  for (let day = 1; day <= daysInMonth; day++) {
+    countsPerDay[day] = 0;
+  }
+
+  // Count organizations per day
+  orgs.forEach((org) => {
+    const day = org.createdAt.getDate();
+    countsPerDay[day] = (countsPerDay[day] || 0) + 1;
+  });
+
+  // Convert to array format
+  return Array.from({ length: daysInMonth }, (_, i) => {
+    const day = i + 1;
+    return {
+      day,
+      count: countsPerDay[day] || 0,
+    };
+  });
+}

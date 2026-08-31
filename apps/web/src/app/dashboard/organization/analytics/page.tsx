@@ -2,8 +2,6 @@
 
 import { useEffect, useState } from 'react';
 import { EmptyState, EmptyStateIcons, ErrorState, Spinner } from '@/components/ui';
-import { DashboardLayout } from '@/components/layout/DashboardLayout';
-import { orgAdminNav } from '@/features/organizationAdmin/nav';
 import { useCurrentUser } from '@/features/auth/useCurrentUser';
 import { getOrgAdminErrorMessage } from '@/features/orgAdmin/orgAdminErrors';
 import {
@@ -128,11 +126,10 @@ export default function OrgAnalyticsPage() {
     }));
 
   return (
-    <DashboardLayout navLabel="Organization Admin" items={orgAdminNav}>
-      <div className="mx-auto max-w-5xl">
-        <PageHeader
-          subtitle="Organization Admin"
-          title="Analytics"
+    <div className="mx-auto max-w-5xl">
+      <PageHeader
+        subtitle="Organization Admin"
+        title="Analytics"
           description={
             summary
               ? `Usage and engagement metrics for ${summary.organization.name}.`
@@ -217,6 +214,5 @@ export default function OrgAnalyticsPage() {
           </>
         ) : null}
       </div>
-    </DashboardLayout>
   );
 }

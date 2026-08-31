@@ -3,8 +3,6 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { Badge, EmptyState, EmptyStateIcons, ErrorState, Spinner } from '@/components/ui';
-import { DashboardLayout } from '@/components/layout/DashboardLayout';
-import { studentNav } from '@/features/student/nav';
 import { PageHeader } from '@/components/dashboard';
 
 type MeResponse = {
@@ -145,23 +143,20 @@ export default function StudentNotificationsPage() {
 
   if (loading) {
     return (
-      <DashboardLayout navLabel="Student" items={studentNav}>
-        <div className="mx-auto flex max-w-3xl items-center gap-3 text-neutral-700">
-          <Spinner size="lg" label="Loading notifications..." />
-          <span>Loading notifications...</span>
-        </div>
-      </DashboardLayout>
+      <div className="mx-auto flex max-w-3xl items-center gap-3 text-neutral-700">
+        <Spinner size="lg" label="Loading notifications..." />
+        <span>Loading notifications...</span>
+      </div>
     );
   }
 
   const hasUnread = notifications?.some((n) => !n.read) ?? false;
 
   return (
-    <DashboardLayout navLabel="Student" items={studentNav}>
-      <div className="mx-auto max-w-6xl">
-        <PageHeader
-          subtitle="Inbox"
-          title="Notifications"
+    <div className="mx-auto max-w-6xl">
+      <PageHeader
+        subtitle="Inbox"
+        title="Notifications"
           description={unreadCount > 0 ? `${unreadCount} unread` : undefined}
           breadcrumbs={
             <div className="flex items-center gap-2 text-sm">
@@ -231,6 +226,5 @@ export default function StudentNotificationsPage() {
           </div>
         ) : null}
       </div>
-    </DashboardLayout>
   );
 }

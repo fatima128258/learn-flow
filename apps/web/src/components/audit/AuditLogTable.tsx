@@ -73,7 +73,8 @@ export const AuditLogTable: React.FC<AuditLogTableProps> = ({
     <div>
       <div className="mb-4 max-w-xs">
         <Input
-          label="Filter by action"
+          variant="line"
+          label="Search by action"
           placeholder="e.g. LOGIN, COURSE_PUBLISHED"
           value={actionFilter}
           onChange={(e) => {
@@ -108,47 +109,76 @@ export const AuditLogTable: React.FC<AuditLogTableProps> = ({
             }
           />
         ) : (
-          <table className="min-w-full divide-y divide-neutral-200">
-            <thead className="bg-neutral-50">
-              <tr>
-                <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-neutral-500">Action</th>
-                <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-neutral-500">Actor</th>
-                {showOrganization && (
-                  <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-neutral-500">Organization</th>
-                )}
-                <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-neutral-500">Resource</th>
-                <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-neutral-500">Time</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-neutral-200">
-              {(logs ?? []).map((log) => (
-                <tr key={log.id} className="hover:bg-neutral-50">
-                  <td className="px-6 py-4">
-                    <Badge variant="info" size="sm">{log.action}</Badge>
-                  </td>
-                  <td className="px-6 py-4 text-sm text-neutral-700">{actorLabel(log)}</td>
-                  {showOrganization && (
-                    <td className="px-6 py-4 text-sm text-neutral-500">
-                      {log.organizationId ? log.organizationId.slice(0, 8) : '—'}
-                    </td>
-                  )}
-                  <td className="px-6 py-4 text-sm text-neutral-600">
-                    {log.resource.type ? (
-                      <>
-                        {log.resource.type}
-                        {log.resource.id ? ` · ${log.resource.id}` : ''}
-                      </>
-                    ) : (
-                      '—'
+          <>
+            {/* Desktop table */}
+            <div className="hidden md:block">
+              <table className="min-w-full divide-y divide-neutral-200">
+                <thead className="bg-neutral-50">
+                  <tr>
+                    <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-neutral-500">Action</th>
+                    <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-neutral-500">Actor</th>
+                    {showOrganization && (
+                      <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-neutral-500">Organization</th>
                     )}
-                  </td>
-                  <td className="px-6 py-4 text-sm text-neutral-700">
-                    {new Date(log.createdAt).toLocaleString()}
-                  </td>
-                </tr>
+                    <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-neutral-500">Resource</th>
+                    <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-neutral-500">Time</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-neutral-200">
+                  {(logs ?? []).map((log) => (
+                    <tr key={log.id} className="hover:bg-neutral-50">
+                      <td className="px-6 py-4">
+                        <Badge variant="info" size="sm">{log.action}</Badge>
+                      </td>
+                      <td className="px-6 py-4 text-sm text-neutral-700">{actorLabel(log)}</td>
+                      {showOrganization && (
+                        <td className="px-6 py-4 text-sm text-neutral-500">
+                          {log.organizationId ? log.organizationId.slice(0, 8) : '—'}
+                        </td>
+                      )}
+                      <td className="px-6 py-4 text-sm text-neutral-600">
+                        {log.resource.type ? (
+                          <>{log.resource.type}{log.resource.id ? ` · ${log.resource.id}` : ''}</>
+                        ) : '—'}
+                      </td>
+                      <td className="px-6 py-4 text-sm text-neutral-700">
+                        {new Date(log.createdAt).toLocaleString()}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            {/* Mobile cards */}
+            <div className="space-y-3 p-3 md:hidden">
+              {(logs ?? []).map((log) => (
+                <div key={log.id} className="rounded-2xl border border-neutral-200 bg-white p-4 shadow-sm">
+                  <div className="flex items-start justify-between gap-2">
+                    <Badge variant="info" size="sm">{log.action}</Badge>
+                    <span className="text-xs text-neutral-400">{new Date(log.createdAt).toLocaleString()}</span>
+                  </div>
+                  <div className="mt-3 space-y-2 border-t border-neutral-100 pt-3">
+                    <div>
+                      <p className="text-xs font-medium uppercase tracking-wide text-neutral-400">Actor</p>
+                      <p className="text-sm text-neutral-700 break-all">{actorLabel(log)}</p>
+                    </div>
+                    {showOrganization && log.organizationId && (
+                      <div>
+                        <p className="text-xs font-medium uppercase tracking-wide text-neutral-400">Organization</p>
+                        <p className="text-sm text-neutral-500">{log.organizationId.slice(0, 8)}</p>
+                      </div>
+                    )}
+                    <div>
+                      <p className="text-xs font-medium uppercase tracking-wide text-neutral-400">Resource</p>
+                      <p className="text-sm text-neutral-600">
+                        {log.resource.type ? `${log.resource.type}${log.resource.id ? ` · ${log.resource.id}` : ''}` : '—'}
+                      </p>
+                    </div>
+                  </div>
+                </div>
               ))}
-            </tbody>
-          </table>
+            </div>
+          </>
         )}
 
         {meta && meta.total > meta.limit ? (

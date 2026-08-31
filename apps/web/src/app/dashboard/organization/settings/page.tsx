@@ -2,8 +2,6 @@
 
 import { useEffect, useState } from 'react';
 import { Badge, Card, ErrorState, Skeleton } from '@/components/ui';
-import { DashboardLayout } from '@/components/layout/DashboardLayout';
-import { orgAdminNav } from '@/features/organizationAdmin/nav';
 import { useCurrentUser } from '@/features/auth/useCurrentUser';
 import { PageHeader, SectionHeader } from '@/components/dashboard';
 
@@ -53,10 +51,9 @@ export default function OrgSettingsPage() {
   }, [user, userLoading]);
 
   return (
-    <DashboardLayout navLabel="Organization Admin" items={orgAdminNav}>
-      <div className="mx-auto max-w-4xl">
-        <PageHeader
-          subtitle="Organization Admin"
+    <div className="mx-auto max-w-4xl">
+      <PageHeader
+        subtitle="Organization Admin"
           title="Settings"
           description="Organization administration and preferences."
           badges={
@@ -137,6 +134,5 @@ export default function OrgSettingsPage() {
           </>
         ) : null}
       </div>
-    </DashboardLayout>
   );
 }

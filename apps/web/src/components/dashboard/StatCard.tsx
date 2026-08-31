@@ -22,11 +22,11 @@ const chipTones: Record<StatTone, string> = {
 };
 
 const valueTones: Record<StatTone, string> = {
-  primary: 'text-primary-700',
-  success: 'text-success-600',
-  warning: 'text-warning-600',
-  danger: 'text-error-600',
-  info: 'text-blue-600',
+  primary: 'text-neutral-900',
+  success: 'text-neutral-900',
+  warning: 'text-neutral-900',
+  danger: 'text-neutral-900',
+  info: 'text-neutral-900',
   neutral: 'text-neutral-900',
 };
 
@@ -49,12 +49,12 @@ export const StatCard: React.FC<StatCardProps> = ({
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <p className="truncate text-sm font-medium text-neutral-500">{label}</p>
-          <p className={`mt-2 text-3xl font-bold tracking-tight ${valueTones[tone]}`}>{value}</p>
+          <p className={`mt-2 text-3xl font-semibold tracking-tight ${valueTones[tone]}`}>{value}</p>
           {hint && <p className="mt-2 text-xs text-neutral-500">{hint}</p>}
         </div>
         {icon && (
           <span
-            className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl ${chipTones[tone]}`}
+            className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl ${chipTones[tone]}`}
             aria-hidden="true"
           >
             {icon}

@@ -4,16 +4,14 @@ import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import {
-  Alert,
   Badge,
   Button,
   ErrorState,
   Spinner,
 } from '@/components/ui';
-import { DashboardLayout } from '@/components/layout/DashboardLayout';
-import { studentNav } from '@/features/student/nav';
 import { PageHeader } from '@/components/dashboard';
 import { getQuizErrorMessage } from '@/features/course/quizErrors';
+import { useToast } from '@/components/ui/ToastProvider';
 
 type MeResponse = {
   user?: {
@@ -73,6 +71,7 @@ export default function StudentQuizTakingPage() {
   const courseId = typeof params.courseId === 'string' ? params.courseId : null;
   const moduleId = typeof params.moduleId === 'string' ? params.moduleId : null;
   const quizId = typeof params.quizId === 'string' ? params.quizId : null;
+  const toast = useToast();
 
   const [quiz, setQuiz] = useState<QuizForTaking | null>(null);
   const [result, setResult] = useState<AttemptResult | null>(null);
@@ -154,11 +153,10 @@ export default function StudentQuizTakingPage() {
   async function submitAttempt() {
     if (!quiz || !organizationId || !courseId || !moduleId || !quizId) return;
     if (quiz.questions.some((q) => !answers[q.id])) {
-      setError(getQuizErrorMessage('ALL_QUESTIONS_REQUIRED'));
+      toast.error(getQuizErrorMessage('ALL_QUESTIONS_REQUIRED'));
       return;
     }
     setSubmitting(true);
-    setError(null);
     try {
       const apiBase = process.env.NEXT_PUBLIC_API_URL || '';
       const res = await fetch(
@@ -177,12 +175,12 @@ export default function StudentQuizTakingPage() {
       );
       const body = await res.json();
       if (!res.ok) {
-        setError(getQuizErrorMessage(body?.error));
+        toast.error(getQuizErrorMessage(body?.error));
         return;
       }
       setResult(body.data ?? null);
     } catch {
-      setError('Could not reach the server. Please try again.');
+      toast.error('Could not reach the server. Please try again.');
     } finally {
       setSubmitting(false);
     }
@@ -190,12 +188,10 @@ export default function StudentQuizTakingPage() {
 
   if (loading) {
     return (
-      <DashboardLayout navLabel="Student" items={studentNav}>
-        <div className="mx-auto flex max-w-5xl items-center gap-3 text-neutral-700">
-          <Spinner size="lg" label="Loading quiz..." />
-          <span>Loading quiz...</span>
-        </div>
-      </DashboardLayout>
+      <div className="mx-auto flex max-w-5xl items-center gap-3 text-neutral-700">
+        <Spinner size="lg" label="Loading quiz..." />
+        <span>Loading quiz...</span>
+      </div>
     );
   }
 
@@ -204,11 +200,10 @@ export default function StudentQuizTakingPage() {
   const totalQuestions = quiz?.questions.length ?? 0;
 
   return (
-    <DashboardLayout navLabel="Student" items={studentNav}>
-      <div className="mx-auto max-w-6xl">
-        <PageHeader
-          subtitle="Student"
-          title="Quiz"
+    <div className="mx-auto max-w-6xl">
+      <PageHeader
+        subtitle="Student"
+        title="Quiz"
           breadcrumbs={
             <div className="flex items-center gap-2 text-sm">
               <Link href="/dashboard/student" className="text-primary-600 hover:text-primary-700">My Courses</Link>
@@ -229,12 +224,6 @@ export default function StudentQuizTakingPage() {
             </div>
           }
         />
-
-        {error && !result ? (
-          <div className="mb-4">
-            <Alert variant="error" onDismiss={() => setError(null)}>{error}</Alert>
-          </div>
-        ) : null}
 
         {error && !quiz && (
           <div className="rounded-2xl border border-neutral-200 bg-white shadow-sm">
@@ -400,6 +389,5 @@ export default function StudentQuizTakingPage() {
           </>
         ) : null}
       </div>
-    </DashboardLayout>
   );
 }

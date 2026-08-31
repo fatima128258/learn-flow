@@ -99,7 +99,11 @@ function resolveSlug(rawSlug: unknown, name: string) {
 }
 
 export async function getDashboardSummary() {
-  const counts = await orgRepo.getDashboardCounts();
+  const [counts, orgsByDay] = await Promise.all([
+    orgRepo.getDashboardCounts(),
+    orgRepo.getOrganizationsCreatedThisMonth(),
+  ]);
+
   return {
     organizations: {
       total: counts.organizations,
@@ -112,6 +116,7 @@ export async function getDashboardSummary() {
     organizationAdmins: {
       total: counts.organizationAdmins,
     },
+    organizationsThisMonth: orgsByDay,
   };
 }
 

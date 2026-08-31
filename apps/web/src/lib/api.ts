@@ -61,11 +61,18 @@ export async function postJson<T>(path: string, body: unknown): Promise<T> {
   });
 }
 
+export async function patchJson<T>(path: string, body: unknown): Promise<T> {
+  return apiRequest<T>(path, {
+    method: 'PATCH',
+    body: body !== undefined ? JSON.stringify(body) : undefined,
+  });
+}
+
 export async function logout(): Promise<void> {
   try {
     await apiRequest('/api/v1/auth/logout', { method: 'POST' });
   } catch {
     // ignore network errors; redirect anyway
   }
-  window.location.href = '/login';
+  window.location.href = '/';
 }

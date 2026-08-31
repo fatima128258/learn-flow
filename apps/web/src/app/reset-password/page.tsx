@@ -1,15 +1,15 @@
 'use client';
-import React, { useState, Suspense } from 'react';
+import React, { useState, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { AuthLayout } from '../../components/layout/AuthLayout';
 import { AuthCard } from '../../components/auth/AuthCard';
 import { PasswordInput } from '../../components/forms/PasswordInput';
 import { SubmitButton } from '../../components/forms/SubmitButton';
-import { FormError } from '../../components/forms/FormError';
-import { Alert } from '../../components/ui/Alert';
 import { PageLoader } from '../../components/ui/Spinner';
 import { Stack } from '../../components/ui/layout/Stack';
 import { useSubmitState } from '../../lib/useSubmitState';
+import { useToast } from '../../components/ui/ToastProvider';
+import { getResetPasswordErrorMessage } from '../../features/auth/authErrors';
 
 function ResetPasswordForm() {
   const searchParams = useSearchParams();
@@ -19,32 +19,38 @@ function ResetPasswordForm() {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [success, setSuccess] = useState(false);
   const { isSubmitting, error, setError, submit } = useSubmitState();
+  const toast = useToast();
 
   const [passwordError, setPasswordError] = useState<string>('');
   const [confirmPasswordError, setConfirmPasswordError] = useState<string>('');
 
-  const validateForm = () => {
-    let isValid = true;
+  useEffect(() => {
+    if (error) toast.error(error);
+  }, [error, toast]);
+
+  const validateForm = (): string | null => {
     setPasswordError('');
     setConfirmPasswordError('');
 
     if (!password) {
       setPasswordError('Password is required');
-      isValid = false;
-    } else if (password.length < 8) {
+      return 'Password is required';
+    }
+    if (password.length < 8) {
       setPasswordError('Password must be at least 8 characters');
-      isValid = false;
+      return 'Password must be at least 8 characters';
     }
 
     if (!confirmPassword) {
       setConfirmPasswordError('Please confirm your password');
-      isValid = false;
-    } else if (password !== confirmPassword) {
+      return 'Please confirm your password';
+    }
+    if (password !== confirmPassword) {
       setConfirmPasswordError('Passwords do not match');
-      isValid = false;
+      return 'Passwords do not match';
     }
 
-    return isValid;
+    return null;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -56,7 +62,9 @@ function ResetPasswordForm() {
       return;
     }
 
-    if (!validateForm()) {
+    const validationError = validateForm();
+    if (validationError) {
+      toast.error(validationError);
       return;
     }
 
@@ -71,19 +79,11 @@ function ResetPasswordForm() {
       const data = await res.json();
 
       if (!res.ok) {
-        if (data.error === 'TOKEN_EXPIRED') {
-          throw new Error('This reset link has expired. Please request a new one.');
-        }
-        if (data.error === 'TOKEN_ALREADY_USED') {
-          throw new Error('This reset link has already been used.');
-        }
-        if (data.error === 'INVALID_TOKEN') {
-          throw new Error('Invalid reset link.');
-        }
-        throw new Error(data?.error || 'Failed to reset password');
+        throw new Error(getResetPasswordErrorMessage(data?.error));
       }
 
       setSuccess(true);
+      toast.success('Password reset successfully! Redirecting to login...');
       // Redirect to login after 2 seconds
       setTimeout(() => {
         window.location.href = '/login';
@@ -92,7 +92,7 @@ function ResetPasswordForm() {
   };
 
   return (
-    <AuthLayout>
+    <AuthLayout hideChrome>
       <AuthCard
         title="Set new password"
         description="Enter your new password below."
@@ -104,16 +104,9 @@ function ResetPasswordForm() {
       >
         <form onSubmit={handleSubmit} noValidate>
           <Stack spacing="md">
-            {success && (
-              <Alert variant="success" title="Password reset successfully!">
-                Redirecting to login...
-              </Alert>
-            )}
-
-            {error && <FormError message={error} />}
-
             <PasswordInput
               label="New password"
+              variant="line"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               error={passwordError}
@@ -126,6 +119,7 @@ function ResetPasswordForm() {
 
             <PasswordInput
               label="Confirm new password"
+              variant="line"
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
               error={confirmPasswordError}
@@ -151,7 +145,7 @@ function ResetPasswordForm() {
 
 export default function ResetPasswordPage() {
   return (
-    <Suspense fallback={<AuthLayout><AuthCard title="Set new password" description="Loading..."><PageLoader label="Loading reset form..." compact /></AuthCard></AuthLayout>}>
+    <Suspense fallback={<AuthLayout hideChrome><AuthCard title="Set new password" description="Loading..."><PageLoader label="Loading reset form..." compact /></AuthCard></AuthLayout>}>
       <ResetPasswordForm />
     </Suspense>
   );

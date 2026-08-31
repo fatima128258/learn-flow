@@ -1,13 +1,13 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Alert, Spinner } from '../../../../../components/ui';
-import { FormError } from '../../../../../components/forms/FormError';
+import { Spinner } from '../../../../../components/ui';
 import { Input } from '../../../../../components/ui/Input';
 import { SubmitButton } from '../../../../../components/forms/SubmitButton';
 import { Textarea } from '../../../../../components/forms/Textarea';
 import { LinkButton } from '../../../../../components/ui/LinkButton';
 import { getCreateCourseErrorMessage } from '../../../../../features/course/createCourseErrors';
+import { useToast } from '../../../../../components/ui/ToastProvider';
 
 type MeResponse = {
   user?: {
@@ -37,6 +37,8 @@ function parseOptionalNumber(value: string): number | undefined {
 }
 
 export default function CreateCoursePage() {
+  const toast = useToast();
+
   const [checkingAuth, setCheckingAuth] = useState(true);
   const [organizationId, setOrganizationId] = useState<string | null>(null);
 
@@ -58,8 +60,6 @@ export default function CreateCoursePage() {
   const [discountPriceError, setDiscountPriceError] = useState('');
   const [estimatedMinutesError, setEstimatedMinutesError] = useState('');
 
-  const [formError, setFormError] = useState<string | null>(null);
-  const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
@@ -122,13 +122,12 @@ export default function CreateCoursePage() {
     setEstimatedMinutesError('');
   }
 
-  function validateForm(): boolean {
+  function validateForm(): string | null {
     clearFieldErrors();
-    let isValid = true;
 
     if (!title.trim()) {
       setTitleError('Title is required');
-      isValid = false;
+      return 'Title is required';
     }
 
     const trimmedSlug = slug.trim();
@@ -141,7 +140,7 @@ export default function CreateCoursePage() {
         setSlugError(
           'Use lowercase letters, numbers and hyphens only (2-50 characters), e.g. intro-to-programming'
         );
-        isValid = false;
+        return 'Slug is invalid. Use lowercase letters, numbers and hyphens only (2-50 characters).';
       }
     }
 
@@ -154,14 +153,14 @@ export default function CreateCoursePage() {
         }
       } catch {
         setThumbnailUrlError('Enter a valid URL starting with http:// or https://');
-        isValid = false;
+        return 'Enter a valid URL starting with http:// or https://';
       }
     }
 
     const parsedPrice = parseOptionalNumber(price);
     if (parsedPrice !== undefined && (!Number.isFinite(parsedPrice) || parsedPrice < 0)) {
       setPriceError('Price must be a number greater than or equal to 0');
-      isValid = false;
+      return 'Price must be a number greater than or equal to 0';
     }
 
     const parsedDiscountPrice = parseOptionalNumber(discountPrice);
@@ -170,7 +169,7 @@ export default function CreateCoursePage() {
       (!Number.isFinite(parsedDiscountPrice) || parsedDiscountPrice < 0)
     ) {
       setDiscountPriceError('Discount price must be a number greater than or equal to 0');
-      isValid = false;
+      return 'Discount price must be a number greater than or equal to 0';
     }
 
     const parsedEstimatedMinutes = parseOptionalNumber(estimatedMinutes);
@@ -179,23 +178,23 @@ export default function CreateCoursePage() {
       (!Number.isInteger(parsedEstimatedMinutes) || parsedEstimatedMinutes <= 0)
     ) {
       setEstimatedMinutesError('Estimated minutes must be a whole number greater than 0');
-      isValid = false;
+      return 'Estimated minutes must be a whole number greater than 0';
     }
 
-    return isValid;
+    return null;
   }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    setFormError(null);
-    setSuccessMessage(null);
 
-    if (!validateForm()) {
+    const validationError = validateForm();
+    if (validationError) {
+      toast.error(validationError);
       return;
     }
 
     if (!organizationId) {
-      setFormError(getCreateCourseErrorMessage('ORGANIZATION_REQUIRED'));
+      toast.error(getCreateCourseErrorMessage('ORGANIZATION_REQUIRED'));
       return;
     }
 
@@ -235,7 +234,7 @@ export default function CreateCoursePage() {
       );
 
       if (res.status === 201) {
-        setSuccessMessage('Course created as a draft.');
+        toast.success('Course created as a draft.');
         resetForm();
         return;
       }
@@ -246,9 +245,9 @@ export default function CreateCoursePage() {
       } catch {
         code = null;
       }
-      setFormError(getCreateCourseErrorMessage(code));
+      toast.error(getCreateCourseErrorMessage(code));
     } catch {
-      setFormError(getCreateCourseErrorMessage(null));
+      toast.error(getCreateCourseErrorMessage(null));
     } finally {
       setSubmitting(false);
     }
@@ -256,17 +255,17 @@ export default function CreateCoursePage() {
 
   if (checkingAuth) {
     return (
-      <main className="min-h-screen bg-neutral-50 p-8">
+      <div>
         <div className="mx-auto flex max-w-3xl items-center gap-3 text-neutral-700">
           <Spinner size="lg" label="Loading..." />
           <span>Loading...</span>
         </div>
-      </main>
+      </div>
     );
   }
 
   return (
-    <main className="min-h-screen bg-neutral-50 p-8">
+    <div>
       <div className="mx-auto max-w-3xl">
         <div className="mb-4 flex items-center justify-between">
           <p className="text-sm font-medium uppercase tracking-wide text-primary-600">Create Course</p>
@@ -280,20 +279,6 @@ export default function CreateCoursePage() {
           <p className="mt-1 text-sm text-neutral-500">
             New courses are created as drafts. Publishing is handled separately.
           </p>
-
-          {successMessage ? (
-            <div className="mt-6">
-              <Alert variant="success" onDismiss={() => setSuccessMessage(null)}>
-                {successMessage}
-              </Alert>
-            </div>
-          ) : null}
-
-          {formError ? (
-            <div className="mt-6">
-              <FormError message={formError} />
-            </div>
-          ) : null}
 
           <form onSubmit={handleSubmit} noValidate className="mt-6">
             <div className="space-y-5">
@@ -416,6 +401,6 @@ export default function CreateCoursePage() {
           </form>
         </div>
       </div>
-    </main>
+    </div>
   );
 }

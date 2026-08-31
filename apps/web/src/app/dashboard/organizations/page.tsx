@@ -1,8 +1,7 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
-  Alert,
   Badge,
   Button,
   ConfirmModal,
@@ -18,10 +17,8 @@ import { getEditOrganizationErrorMessage } from '../../../features/admin/editOrg
 import { getOrganizationStatusErrorMessage } from '../../../features/admin/organizationStatusError';
 import { getOrganizationMembersErrorMessage } from '../../../features/admin/organizationMembersError';
 import { getAssignAdminErrorMessage } from '../../../features/admin/assignAdminError';
-import { FormError } from '../../../components/forms/FormError';
 import { PasswordInput } from '../../../components/forms/PasswordInput';
-import { DashboardLayout } from '../../../components/layout/DashboardLayout';
-import { platformAdminNav } from '../../../features/platformAdmin/nav';
+import { useToast } from '../../../components/ui/ToastProvider';
 import {
   PageHeader,
   StatCard,
@@ -121,33 +118,153 @@ const OrgIcon = (
   </svg>
 );
 
+// ── 3-dot actions dropdown ─────────────────────────────────────────────────
+function OrgActionsMenu({
+  org,
+  onMembers,
+  onAssignAdmin,
+  onEdit,
+  onStatusChange,
+}: {
+  org: OrganizationItem;
+  onMembers: () => void;
+  onAssignAdmin: () => void;
+  onEdit: () => void;
+  onStatusChange: () => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    function handleClick(e: MouseEvent) {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        setOpen(false);
+      }
+    }
+    function handleKey(e: KeyboardEvent) {
+      if (e.key === 'Escape') setOpen(false);
+    }
+    document.addEventListener('mousedown', handleClick);
+    document.addEventListener('keydown', handleKey);
+    return () => {
+      document.removeEventListener('mousedown', handleClick);
+      document.removeEventListener('keydown', handleKey);
+    };
+  }, [open]);
+
+  function action(fn: () => void) {
+    setOpen(false);
+    fn();
+  }
+
+  return (
+    <div ref={menuRef} className="relative inline-block text-left">
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        aria-label="Organization actions"
+        aria-haspopup="true"
+        aria-expanded={open}
+        className="flex h-8 w-8 items-center justify-center rounded-lg text-neutral-500 transition-colors hover:bg-neutral-100 hover:text-neutral-800 focus:outline-none focus:ring-2 focus:ring-primary-500"
+      >
+        {/* 3 vertical dots */}
+        <svg className="h-5 w-5" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
+          <circle cx="10" cy="4" r="1.5" />
+          <circle cx="10" cy="10" r="1.5" />
+          <circle cx="10" cy="16" r="1.5" />
+        </svg>
+      </button>
+
+      {open && (
+        <div className="absolute right-0 z-50 mt-1 w-44 origin-top-right rounded-xl border border-neutral-200 bg-white py-1 shadow-lg ring-1 ring-black/5 focus:outline-none">
+          <button
+            type="button"
+            className="flex w-full items-center gap-2.5 px-4 py-2.5 text-sm text-neutral-700 hover:bg-neutral-50 hover:text-neutral-900"
+            onClick={() => action(onMembers)}
+          >
+            <svg className="h-4 w-4 text-neutral-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M17 20h5v-2a4 4 0 00-5.356-3.712M9 20H4v-2a4 4 0 015.356-3.712M15 7a4 4 0 11-8 0 4 4 0 018 0zm6 3a3 3 0 11-6 0 3 3 0 016 0z" />
+            </svg>
+            Members
+          </button>
+          <button
+            type="button"
+            className="flex w-full items-center gap-2.5 px-4 py-2.5 text-sm text-neutral-700 hover:bg-neutral-50 hover:text-neutral-900"
+            onClick={() => action(onAssignAdmin)}
+          >
+            <svg className="h-4 w-4 text-neutral-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+            </svg>
+            Assign Admin
+          </button>
+          <button
+            type="button"
+            className="flex w-full items-center gap-2.5 px-4 py-2.5 text-sm text-neutral-700 hover:bg-neutral-50 hover:text-neutral-900"
+            onClick={() => action(onEdit)}
+          >
+            <svg className="h-4 w-4 text-neutral-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+            </svg>
+            Edit
+          </button>
+          <div className="my-1 border-t border-neutral-100" />
+          <button
+            type="button"
+            className={`flex w-full items-center gap-2.5 px-4 py-2.5 text-sm hover:bg-neutral-50 ${
+              org.status === 'ACTIVE'
+                ? 'text-red-600 hover:text-red-700'
+                : 'text-emerald-600 hover:text-emerald-700'
+            }`}
+            onClick={() => action(onStatusChange)}
+          >
+            {org.status === 'ACTIVE' ? (
+              <>
+                <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
+                </svg>
+                Suspend
+              </>
+            ) : (
+              <>
+                <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                Activate
+              </>
+            )}
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function OrganizationsPage() {
+  const toast = useToast();
+
   const [organizations, setOrganizations] = useState<OrganizationItem[] | null>(null);
   const [meta, setMeta] = useState<OrganizationsResponse['meta'] | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [searchTerm, setSearchTerm] = useState('');
 
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [newName, setNewName] = useState('');
   const [nameError, setNameError] = useState<string>('');
-  const [createError, setCreateError] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
-  const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
   const [editingOrg, setEditingOrg] = useState<OrganizationItem | null>(null);
   const [editName, setEditName] = useState('');
   const [editNameError, setEditNameError] = useState<string>('');
-  const [editError, setEditError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
 
   const [statusAction, setStatusAction] = useState<StatusAction | null>(null);
   const [statusUpdating, setStatusUpdating] = useState(false);
-  const [statusError, setStatusError] = useState<string | null>(null);
 
   const [membersOrg, setMembersOrg] = useState<OrganizationItem | null>(null);
   const [membersData, setMembersData] = useState<MembersData | null>(null);
   const [membersLoading, setMembersLoading] = useState(false);
-  const [membersError, setMembersError] = useState<string | null>(null);
 
   const [assignOrg, setAssignOrg] = useState<OrganizationItem | null>(null);
   const [assignMode, setAssignMode] = useState<AssignAdminMode>('existing');
@@ -156,7 +273,6 @@ export default function OrganizationsPage() {
   const [adminPassword, setAdminPassword] = useState('');
   const [adminEmailError, setAdminEmailError] = useState<string>('');
   const [adminPasswordError, setAdminPasswordError] = useState<string>('');
-  const [assignError, setAssignError] = useState<string | null>(null);
   const [assigning, setAssigning] = useState(false);
 
   async function load() {
@@ -214,15 +330,12 @@ export default function OrganizationsPage() {
     setShowCreateModal(false);
     setNewName('');
     setNameError('');
-    setCreateError(null);
   }
 
   function openEditModal(org: OrganizationItem) {
-    setSuccessMessage(null);
     setEditingOrg(org);
     setEditName(org.name);
     setEditNameError('');
-    setEditError(null);
   }
 
   function closeEditModal() {
@@ -230,20 +343,16 @@ export default function OrganizationsPage() {
     setEditingOrg(null);
     setEditName('');
     setEditNameError('');
-    setEditError(null);
   }
 
   function requestStatusChange(org: OrganizationItem) {
     if (statusUpdating) return;
-    setSuccessMessage(null);
-    setStatusError(null);
     setStatusAction({ org, next: org.status === 'ACTIVE' ? 'SUSPENDED' : 'ACTIVE' });
   }
 
   function openMembersModal(org: OrganizationItem) {
     setMembersOrg(org);
     setMembersData(null);
-    setMembersError(null);
     setMembersLoading(true);
 
     (async () => {
@@ -261,12 +370,12 @@ export default function OrganizationsPage() {
         }
 
         if (!res.ok || !body?.data) {
-          setMembersError(getOrganizationMembersErrorMessage(body?.error));
+          toast.error(getOrganizationMembersErrorMessage(body?.error));
           return;
         }
         setMembersData(body.data);
       } catch {
-        setMembersError('Could not reach the API. Please try again.');
+        toast.error('Could not reach the API. Please try again.');
       } finally {
         setMembersLoading(false);
       }
@@ -276,12 +385,10 @@ export default function OrganizationsPage() {
   function closeMembersModal() {
     setMembersOrg(null);
     setMembersData(null);
-    setMembersError(null);
     setMembersLoading(false);
   }
 
   function openAssignModal(org: OrganizationItem) {
-    setSuccessMessage(null);
     setAssignOrg(org);
     setAssignMode('existing');
     setAdminEmail('');
@@ -289,7 +396,6 @@ export default function OrganizationsPage() {
     setAdminPassword('');
     setAdminEmailError('');
     setAdminPasswordError('');
-    setAssignError(null);
   }
 
   function closeAssignModal() {
@@ -301,7 +407,6 @@ export default function OrganizationsPage() {
     setAdminPassword('');
     setAdminEmailError('');
     setAdminPasswordError('');
-    setAssignError(null);
   }
 
   function clearAdminCredentials() {
@@ -313,13 +418,13 @@ export default function OrganizationsPage() {
   async function handleAssignAdmin(e: React.FormEvent) {
     e.preventDefault();
     if (assigning || !assignOrg) return;
-    setAssignError(null);
 
     const trimmedEmail = adminEmail.trim();
     let valid = true;
 
     if (!trimmedEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmedEmail)) {
       setAdminEmailError('Please enter a valid email address');
+      toast.error('Please enter a valid email address');
       valid = false;
     } else {
       setAdminEmailError('');
@@ -328,6 +433,7 @@ export default function OrganizationsPage() {
     if (assignMode === 'new') {
       if (!adminPassword || adminPassword.length < 8) {
         setAdminPasswordError('Password must be at least 8 characters');
+        toast.error('Password must be at least 8 characters');
         valid = false;
       } else {
         setAdminPasswordError('');
@@ -363,19 +469,17 @@ export default function OrganizationsPage() {
       clearAdminCredentials();
 
       if (!res.ok || !resBody?.data?.user) {
-        setAssignError(getAssignAdminErrorMessage(resBody?.error));
+        toast.error(getAssignAdminErrorMessage(resBody?.error));
         return;
       }
 
       const adminEmailAssigned = resBody.data.user.email;
       setAssignOrg(null);
-      setSuccessMessage(
-        `Organization admin ${adminEmailAssigned} assigned to "${assignOrg.name}".`
-      );
+      toast.success(`Organization admin ${adminEmailAssigned} assigned to "${assignOrg.name}".`);
       await load();
     } catch {
       clearAdminCredentials();
-      setAssignError('Could not reach the API. Please try again.');
+      toast.error('Could not reach the API. Please try again.');
     } finally {
       setAssigning(false);
     }
@@ -408,20 +512,20 @@ export default function OrganizationsPage() {
       }
 
       if (!res.ok || !body?.data) {
-        setStatusError(getOrganizationStatusErrorMessage(body?.error));
+        toast.error(getOrganizationStatusErrorMessage(body?.error));
         setStatusAction(null);
         return;
       }
 
       setStatusAction(null);
-      setSuccessMessage(
+      toast.success(
         next === 'SUSPENDED'
           ? `Organization "${body.data.name}" was suspended.`
           : `Organization "${body.data.name}" was activated.`
       );
       await load();
     } catch {
-      setStatusError('Could not reach the API. Please try again.');
+      toast.error('Could not reach the API. Please try again.');
       setStatusAction(null);
     } finally {
       setStatusUpdating(false);
@@ -431,11 +535,11 @@ export default function OrganizationsPage() {
   async function handleCreate(e: React.FormEvent) {
     e.preventDefault();
     if (creating) return;
-    setCreateError(null);
 
     const trimmedName = newName.trim();
     if (!trimmedName) {
       setNameError('Organization name is required');
+      toast.error('Organization name is required');
       return;
     }
     setNameError('');
@@ -458,17 +562,17 @@ export default function OrganizationsPage() {
       }
 
       if (!res.ok || !body?.data) {
-        setCreateError(getCreateOrganizationErrorMessage(body?.error));
+        toast.error(getCreateOrganizationErrorMessage(body?.error));
         return;
       }
 
       setShowCreateModal(false);
       setNewName('');
       setNameError('');
-      setSuccessMessage(`Organization "${body.data.name}" was created.`);
+      toast.success(`Organization "${body.data.name}" was created.`);
       await load();
     } catch {
-      setCreateError('Could not reach the API. Please try again.');
+      toast.error('Could not reach the API. Please try again.');
     } finally {
       setCreating(false);
     }
@@ -477,11 +581,11 @@ export default function OrganizationsPage() {
   async function handleEdit(e: React.FormEvent) {
     e.preventDefault();
     if (saving || !editingOrg) return;
-    setEditError(null);
 
     const trimmedName = editName.trim();
     if (!trimmedName) {
       setEditNameError('Organization name is required');
+      toast.error('Organization name is required');
       return;
     }
     setEditNameError('');
@@ -504,7 +608,7 @@ export default function OrganizationsPage() {
       }
 
       if (!res.ok || !body?.data) {
-        setEditError(getEditOrganizationErrorMessage(body?.error));
+        toast.error(getEditOrganizationErrorMessage(body?.error));
         return;
       }
 
@@ -512,10 +616,10 @@ export default function OrganizationsPage() {
       setEditingOrg(null);
       setEditName('');
       setEditNameError('');
-      setSuccessMessage(`Organization "${updatedName}" was updated.`);
+      toast.success(`Organization "${updatedName}" was updated.`);
       await load();
     } catch {
-      setEditError('Could not reach the API. Please try again.');
+      toast.error('Could not reach the API. Please try again.');
     } finally {
       setSaving(false);
     }
@@ -525,54 +629,40 @@ export default function OrganizationsPage() {
   const suspendedCount = organizations?.filter((org) => org.status === 'SUSPENDED').length ?? 0;
   const totalOrganizations = meta?.total ?? organizations?.length ?? 0;
 
+  const normalizedSearch = searchTerm.trim().toLowerCase();
+  const filteredOrganizations = organizations
+    ? organizations.filter((org) => {
+        if (!normalizedSearch) return true;
+        const adminMatch = org.admins?.some((admin) => admin.email.toLowerCase().includes(normalizedSearch)) ?? false;
+        return (
+          org.name.toLowerCase().includes(normalizedSearch) ||
+          org.slug.toLowerCase().includes(normalizedSearch) ||
+          org.status.toLowerCase().includes(normalizedSearch) ||
+          adminMatch
+        );
+      })
+    : [];
+
   if (loading && organizations === null && !error) {
     return (
-      <DashboardLayout navLabel="Platform Admin" items={platformAdminNav}>
-        <div className="mx-auto flex max-w-5xl items-center gap-3 text-neutral-700">
-          <Spinner size="lg" label="Loading organizations..." />
-          <span>Loading organizations...</span>
-        </div>
-      </DashboardLayout>
+      <div className="mx-auto flex max-w-5xl items-center gap-3 text-neutral-700">
+        <Spinner size="lg" label="Loading organizations..." />
+        <span>Loading organizations...</span>
+      </div>
     );
   }
 
   return (
-    <DashboardLayout navLabel="Platform Admin" items={platformAdminNav}>
-      <div className="mx-auto max-w-5xl">
-        <PageHeader
-          subtitle="Platform Admin"
-          title="Organizations"
-          description={meta ? `${meta.total} organization${meta.total === 1 ? '' : 's'}` : undefined}
-          actions={
-            <>
-              <a
-                href="/dashboard"
-                className="text-sm font-medium text-primary-600 hover:text-primary-700"
-              >
-                Back to dashboard
-              </a>
-              <Button size="sm" onClick={() => setShowCreateModal(true)}>
-                Create Organization
-              </Button>
-            </>
-          }
-        />
-
-        {successMessage ? (
-          <div className="mb-6">
-            <Alert variant="success" onDismiss={() => setSuccessMessage(null)}>
-              {successMessage}
-            </Alert>
-          </div>
-        ) : null}
-
-        {statusError ? (
-          <div className="mb-6">
-            <Alert variant="error" onDismiss={() => setStatusError(null)}>
-              {statusError}
-            </Alert>
-          </div>
-        ) : null}
+    <>
+    <div className="mx-auto max-w-5xl">
+        <div className="mb-4 max-w-sm">
+          <Input
+            variant="line"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            placeholder="Search by name, slug, or admin email"
+          />
+        </div>
 
         {error ? (
           <div className="rounded-2xl border border-neutral-200 bg-white shadow-sm">
@@ -592,79 +682,141 @@ export default function OrganizationsPage() {
           </div>
         ) : organizations ? (
           <>
+            {filteredOrganizations.length === 0 ? (
+              <div className="rounded-2xl border border-neutral-200 bg-white shadow-sm">
+                <EmptyState
+                  icon={EmptyStateIcons.NoData}
+                  title="No matching organizations"
+                  description={`Nothing matched "${searchTerm}". Try a different search.`}
+                />
+              </div>
+            ) : (
+              <>
             <TableCard>
-              <table className="min-w-full divide-y divide-neutral-200">
-                <thead className="bg-neutral-50">
-                  <tr>
-                    <th className={tableHeadClass}>Name</th>
-                    <th className={tableHeadClass}>Status</th>
-                    <th className={tableHeadClass}>Admins</th>
-                    <th className={tableHeadClass}>Members</th>
-                    <th className={tableHeadClass}>Created</th>
-                    <th className={tableHeadClass}>
-                      <span className="sr-only">Actions</span>
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-neutral-200">
-                  {organizations.map((org) => (
-                    <tr key={org.id} className={tableRowHoverClass}>
-                      <td className={tableCellClass}>
-                        <p className="font-medium text-neutral-900">{org.name}</p>
-                        <p className="text-sm text-neutral-500">{org.slug}</p>
-                      </td>
-                      <td className={tableCellClass}>
-                        <Badge variant={org.status === 'ACTIVE' ? 'success' : 'error'} size="sm">
-                          {org.status}
-                        </Badge>
-                      </td>
-                      <td className={tableCellClass}>
-                        {org.admins && org.admins.length > 0 ? (
-                          <div className="space-y-2">
-                            {org.admins.map((admin) => (
-                              <div key={admin.id}>
-                                <p className="text-sm font-medium text-neutral-900">{admin.name ?? '—'}</p>
-                                <p className="text-xs text-neutral-500">{admin.email}</p>
-                              </div>
-                            ))}
-                          </div>
-                        ) : (
-                          <span className="text-sm text-neutral-400">No admin assigned</span>
-                        )}
-                      </td>
-                      <td className={`${tableCellClass} text-neutral-700`}>
-                        {typeof org.memberCount === 'number' ? org.memberCount : '—'}
-                      </td>
-                      <td className={`${tableCellClass} text-neutral-700`}>
-                        {new Date(org.createdAt).toLocaleDateString()}
-                      </td>
-                      <td className={`${tableCellClass} text-right`}>
-                        <div className="flex items-center justify-end gap-2">
-                          <Button variant="secondary" size="sm" onClick={() => openMembersModal(org)}>
-                            Members
-                          </Button>
-                          <Button variant="ghost" size="sm" onClick={() => openAssignModal(org)}>
-                            Assign Admin
-                          </Button>
-                          <Button variant="outline" size="sm" onClick={() => openEditModal(org)}>
-                            Edit
-                          </Button>
-                          {org.status === 'ACTIVE' ? (
-                            <Button variant="danger" size="sm" onClick={() => requestStatusChange(org)}>
-                              Suspend
-                            </Button>
-                          ) : (
-                            <Button variant="secondary" size="sm" onClick={() => requestStatusChange(org)}>
-                              Activate
-                            </Button>
-                          )}
-                        </div>
-                      </td>
+              {/* ── Desktop table (md+) ───────────────────────────────── */}
+              <div className="hidden md:block">
+                <table className="min-w-full divide-y divide-neutral-200">
+                  <thead className="bg-neutral-50">
+                    <tr>
+                      <th className={tableHeadClass}>Name</th>
+                      <th className={tableHeadClass}>Status</th>
+                      <th className={tableHeadClass}>Email</th>
+                      <th className={tableHeadClass}>Members</th>
+                      <th className={tableHeadClass}>Created</th>
+                      <th className={tableHeadClass}>
+                        <span className="sr-only">Actions</span>
+                      </th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody className="divide-y divide-neutral-200">
+                    {filteredOrganizations.map((org) => (
+                      <tr key={org.id} className={tableRowHoverClass}>
+                        <td className={tableCellClass}>
+                          <p className="font-medium text-neutral-900">{org.name}</p>
+                        </td>
+                        <td className={tableCellClass}>
+                          <Badge variant={org.status === 'ACTIVE' ? 'success' : 'error'} size="sm">
+                            {org.status}
+                          </Badge>
+                        </td>
+                        <td className={tableCellClass}>
+                          {org.admins && org.admins.length > 0 ? (
+                            <div className="space-y-2">
+                              {org.admins.map((admin) => (
+                                <div key={admin.id}>
+                                  <p className="text-sm text-neutral-600">{admin.email}</p>
+                                </div>
+                              ))}
+                            </div>
+                          ) : (
+                            <span className="text-sm text-neutral-400">No admin assigned</span>
+                          )}
+                        </td>
+                        <td className={`${tableCellClass} text-neutral-700`}>
+                          {typeof org.memberCount === 'number' ? org.memberCount : '—'}
+                        </td>
+                        <td className={`${tableCellClass} text-neutral-700`}>
+                          {new Date(org.createdAt).toLocaleDateString()}
+                        </td>
+                        <td className={`${tableCellClass} text-right`}>
+                          <OrgActionsMenu
+                            org={org}
+                            onMembers={() => openMembersModal(org)}
+                            onAssignAdmin={() => openAssignModal(org)}
+                            onEdit={() => openEditModal(org)}
+                            onStatusChange={() => requestStatusChange(org)}
+                          />
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
             </TableCard>
+
+            {/* ── Mobile cards (< md) ───────────────────────────────── */}
+            <div className="mt-3 space-y-3 md:hidden">
+              {filteredOrganizations.map((org) => (
+                <div
+                  key={org.id}
+                  className="rounded-2xl border border-neutral-200 bg-white p-4 shadow-sm"
+                >
+                  {/* Top row: name + actions */}
+                  <div className="flex items-start justify-between gap-2">
+                    <p className="text-base font-semibold text-neutral-900 leading-snug">
+                      {org.name}
+                    </p>
+                    <div className="shrink-0">
+                      <OrgActionsMenu
+                        org={org}
+                        onMembers={() => openMembersModal(org)}
+                        onAssignAdmin={() => openAssignModal(org)}
+                        onEdit={() => openEditModal(org)}
+                        onStatusChange={() => requestStatusChange(org)}
+                      />
+                    </div>
+                  </div>
+
+                  {/* Status badge */}
+                  <div className="mt-2">
+                    <Badge variant={org.status === 'ACTIVE' ? 'success' : 'error'} size="sm">
+                      {org.status}
+                    </Badge>
+                  </div>
+
+                  {/* Admin email — full, no truncation */}
+                  <div className="mt-3 border-t border-neutral-100 pt-3">
+                    <p className="text-xs font-medium uppercase tracking-wide text-neutral-400 mb-1">
+                      Admin email
+                    </p>
+                    {org.admins && org.admins.length > 0 ? (
+                      org.admins.map((admin) => (
+                        <p key={admin.id} className="text-sm text-neutral-700 break-all">
+                          {admin.email}
+                        </p>
+                      ))
+                    ) : (
+                      <p className="text-sm italic text-neutral-400">No admin assigned</p>
+                    )}
+                  </div>
+
+                  {/* Footer: members + date */}
+                  <div className="mt-3 flex items-center justify-between border-t border-neutral-100 pt-3 text-xs text-neutral-500">
+                    <span>
+                      <span className="font-semibold text-neutral-700">
+                        {typeof org.memberCount === 'number' ? org.memberCount : '—'}
+                      </span>{' '}members
+                    </span>
+                    <span>
+                      {new Date(org.createdAt).toLocaleDateString()}
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
+              </>
+            )}
           </>
         ) : null}
       </div>
@@ -672,8 +824,6 @@ export default function OrganizationsPage() {
       <Modal isOpen={showCreateModal} onClose={closeCreateModal} title="Create Organization" closeOnOverlayClick={!creating}>
         <form onSubmit={handleCreate} noValidate>
           <div className="space-y-4">
-            {createError ? <FormError message={createError} /> : null}
-
             <Input
               label="Organization name"
               value={newName}
@@ -706,8 +856,6 @@ export default function OrganizationsPage() {
       >
         <form onSubmit={handleEdit} noValidate>
           <div className="space-y-4">
-            {editError ? <FormError message={editError} /> : null}
-
             <Input
               label="Organization name"
               value={editName}
@@ -751,9 +899,7 @@ export default function OrganizationsPage() {
         title={membersOrg ? `Members — ${membersOrg.name}` : 'Members'}
         size="lg"
       >
-        {membersError ? (
-          <FormError message={membersError} />
-        ) : membersLoading ? (
+        {membersLoading ? (
           <div className="flex items-center justify-center gap-3 py-10 text-neutral-700">
             <Spinner size="lg" label="Loading members..." />
             <span>Loading members...</span>
@@ -822,8 +968,6 @@ export default function OrganizationsPage() {
       >
         <form onSubmit={handleAssignAdmin} noValidate>
           <div className="space-y-4">
-            {assignError ? <FormError message={assignError} /> : null}
-
             <div className="grid grid-cols-2 gap-2">
               <Button
                 type="button"
@@ -899,6 +1043,6 @@ export default function OrganizationsPage() {
           </div>
         </form>
       </Modal>
-    </DashboardLayout>
+    </>
   );
 }

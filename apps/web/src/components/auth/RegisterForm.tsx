@@ -3,13 +3,11 @@ import React, { useState } from 'react';
 import { Input } from '../ui/Input';
 import { PasswordInput } from '../forms/PasswordInput';
 import { SubmitButton } from '../forms/SubmitButton';
-import { FormError } from '../forms/FormError';
-import { Alert } from '../ui/Alert';
 import { Stack } from '../ui/layout/Stack';
+import { useToast } from '../ui/ToastProvider';
 
 export interface RegisterFormProps {
   onSubmit: (data: RegisterFormData) => Promise<void>;
-  error?: string | null;
   success?: boolean;
 }
 
@@ -20,9 +18,10 @@ export interface RegisterFormData {
   confirmPassword: string;
 }
 
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
 export const RegisterForm: React.FC<RegisterFormProps> = ({
   onSubmit,
-  error: externalError,
   success,
 }) => {
   const [name, setName] = useState('');
@@ -30,15 +29,14 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const toast = useToast();
 
   const [nameError, setNameError] = useState<string>('');
   const [emailError, setEmailError] = useState<string>('');
   const [passwordError, setPasswordError] = useState<string>('');
   const [confirmPasswordError, setConfirmPasswordError] = useState<string>('');
 
-  const validateForm = (): boolean => {
-    let isValid = true;
+  const validateForm = (): string | null => {
     setNameError('');
     setEmailError('');
     setPasswordError('');
@@ -46,37 +44,41 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
 
     if (!name.trim()) {
       setNameError('Name is required');
-      isValid = false;
-    } else if (name.trim().length < 2) {
+      return 'Name is required';
+    }
+    if (name.trim().length < 2) {
       setNameError('Name must be at least 2 characters');
-      isValid = false;
+      return 'Name must be at least 2 characters';
     }
 
     if (!email) {
       setEmailError('Email is required');
-      isValid = false;
-    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      return 'Email is required';
+    }
+    if (!EMAIL_RE.test(email)) {
       setEmailError('Please enter a valid email address');
-      isValid = false;
+      return 'Please enter a valid email address';
     }
 
     if (!password) {
       setPasswordError('Password is required');
-      isValid = false;
-    } else if (password.length < 8) {
+      return 'Password is required';
+    }
+    if (password.length < 8) {
       setPasswordError('Password must be at least 8 characters');
-      isValid = false;
+      return 'Password must be at least 8 characters';
     }
 
     if (!confirmPassword) {
       setConfirmPasswordError('Please confirm your password');
-      isValid = false;
-    } else if (password !== confirmPassword) {
+      return 'Please confirm your password';
+    }
+    if (password !== confirmPassword) {
       setConfirmPasswordError('Passwords do not match');
-      isValid = false;
+      return 'Passwords do not match';
     }
 
-    return isValid;
+    return null;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -84,36 +86,26 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
     if (loading || success) {
       return;
     }
-    setError(null);
 
-    if (!validateForm()) {
+    const validationError = validateForm();
+    if (validationError) {
+      toast.error(validationError);
       return;
     }
 
     setLoading(true);
     try {
       await onSubmit({ name, email, password, confirmPassword });
-    } catch (err) {
-      const message = err instanceof Error ? err.message : 'An error occurred';
-      setError(message);
+    } catch {
+      // API errors are surfaced by AuthSwitch via toast
     } finally {
       setLoading(false);
     }
   };
 
-  const displayError = error || externalError;
-
   return (
     <form onSubmit={handleSubmit} noValidate>
       <Stack spacing="md">
-        {success && (
-          <Alert variant="success" title="Account created successfully!">
-            You can now sign in with your credentials.
-          </Alert>
-        )}
-
-        {displayError && <FormError message={displayError} />}
-
         <Input
           label="Full name"
           type="text"

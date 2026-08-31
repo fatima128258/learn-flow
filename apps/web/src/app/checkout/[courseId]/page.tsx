@@ -7,7 +7,7 @@ import { useCurrentUser } from '@/features/auth/useCurrentUser';
 import { useCourseOverview, usePurchaseCourse } from '@/features/student/useCourseStore';
 import { getPurchaseErrorMessage } from '@/features/student/courseErrors';
 import { currency } from '@/lib/types';
-import { Badge, Button, Card, CardSkeleton, EmptyState, ErrorState, LinkButton, Skeleton } from '@/components/ui';
+import { Badge, Button, Card, CardSkeleton, EmptyState, LinkButton, Skeleton } from '@/components/ui';
 import { Footer } from '@/components/layout/Footer';
 import { useToast } from '@/components/ui/ToastProvider';
 import { ApiError } from '@/lib/api';
@@ -23,7 +23,6 @@ export default function CheckoutPage() {
   const { data: course, isLoading: courseLoading } = useCourseOverview(organizationId, courseId);
 
   const purchase = usePurchaseCourse(organizationId, courseId);
-  const [purchaseError, setPurchaseError] = useState<string | null>(null);
   const [order, setOrder] = useState<{ id: string; status: string; totalAmount: number } | null>(null);
 
   function handlePurchase() {
@@ -36,9 +35,7 @@ export default function CheckoutPage() {
       },
       onError: (err) => {
         const code = err instanceof ApiError ? err.code : null;
-        const message = getPurchaseErrorMessage(code);
-        setPurchaseError(message);
-        toast.error(message);
+        toast.error(getPurchaseErrorMessage(code));
       },
     });
   }
@@ -183,12 +180,6 @@ export default function CheckoutPage() {
                   <dd className="text-right text-2xl font-bold text-neutral-900">{currency(finalAmount)}</dd>
                 </div>
               </dl>
-
-              {purchaseError ? (
-                <div className="mt-4">
-                  <ErrorState title="Unable to complete purchase" message={purchaseError} />
-                </div>
-              ) : null}
 
               <div className="mt-6 flex flex-col gap-3 sm:flex-row-reverse">
                 <Button

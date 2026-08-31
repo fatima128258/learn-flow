@@ -2,9 +2,9 @@
 
 import { useEffect, useState } from 'react';
 import { Badge, EmptyState, EmptyStateIcons, Spinner } from '../../../../components/ui';
-import { FormError } from '../../../../components/forms/FormError';
 import { LinkButton } from '../../../../components/ui/LinkButton';
 import { getListCoursesErrorMessage } from '../../../../features/course/listCoursesErrors';
+import { useToast } from '../../../../components/ui/ToastProvider';
 import {
   PageHeader,
   TableCard,
@@ -47,11 +47,12 @@ function statusBadgeVariant(status: string) {
 }
 
 export default function MyCoursesPage() {
+  const toast = useToast();
+
   const [checkingAuth, setCheckingAuth] = useState(true);
   const [organizationId, setOrganizationId] = useState<string | null>(null);
   const [courses, setCourses] = useState<CourseListItem[] | null>(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     let active = true;
@@ -97,7 +98,6 @@ export default function MyCoursesPage() {
 
     async function load() {
       setLoading(true);
-      setError(null);
       try {
         const apiBase = process.env.NEXT_PUBLIC_API_URL || '';
         const res = await fetch(
@@ -112,14 +112,14 @@ export default function MyCoursesPage() {
           } catch {
             code = null;
           }
-          setError(getListCoursesErrorMessage(code));
+          toast.error(getListCoursesErrorMessage(code));
           return;
         }
         const body: ListCoursesResponse = await res.json();
         if (!active) return;
         setCourses(body.data ?? []);
       } catch {
-        if (active) setError(getListCoursesErrorMessage(null));
+        if (active) toast.error(getListCoursesErrorMessage(null));
       } finally {
         if (active) setLoading(false);
       }
@@ -133,17 +133,17 @@ export default function MyCoursesPage() {
 
   if (checkingAuth) {
     return (
-      <main className="min-h-screen bg-neutral-50 p-8">
+      <div>
         <div className="mx-auto flex max-w-3xl items-center gap-3 text-neutral-700">
           <Spinner size="lg" label="Loading..." />
           <span>Loading...</span>
         </div>
-      </main>
+      </div>
     );
   }
 
   return (
-    <main className="min-h-screen bg-neutral-50 p-8">
+    <div>
       <div className="mx-auto max-w-5xl">
         <PageHeader
           subtitle="My Courses"
@@ -160,12 +160,6 @@ export default function MyCoursesPage() {
             </LinkButton>
           }
         />
-
-        {error ? (
-          <div className="mb-6">
-            <FormError message={error} />
-          </div>
-        ) : null}
 
         {loading ? (
           <div className="flex items-center gap-3 text-neutral-700">
@@ -193,39 +187,56 @@ export default function MyCoursesPage() {
             title="Courses"
             description={`${courses.length} course${courses.length === 1 ? '' : 's'}`}
           >
-            <table className="min-w-full divide-y divide-neutral-200">
-              <thead className="bg-neutral-50">
-                <tr>
-                  <th className={tableHeadClass}>Title</th>
-                  <th className={tableHeadClass}>Slug</th>
-                  <th className={tableHeadClass}>Status</th>
-                  <th className={tableHeadClass}>Difficulty</th>
-                  <th className={tableHeadClass}>Created</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-neutral-200">
-                {courses.map((course) => (
-                  <tr key={course.id} className={tableRowHoverClass}>
-                    <td className={`${tableCellClass} font-medium text-primary-600 hover:text-primary-700`}>
-                      <a href={`/dashboard/organization/courses/${course.id}`}>{course.title}</a>
-                    </td>
-                    <td className={`${tableCellClass} text-neutral-700`}>{course.slug}</td>
-                    <td className={tableCellClass}>
-                      <Badge variant={statusBadgeVariant(course.status)} size="sm">
-                        {course.status}
-                      </Badge>
-                    </td>
-                    <td className={`${tableCellClass} text-neutral-700`}>{course.difficulty ?? '—'}</td>
-                    <td className={`${tableCellClass} text-neutral-700`}>
-                      {new Date(course.createdAt).toLocaleDateString()}
-                    </td>
+            {/* Desktop table */}
+            <div className="hidden md:block">
+              <table className="min-w-full divide-y divide-neutral-200">
+                <thead className="bg-neutral-50">
+                  <tr>
+                    <th className={tableHeadClass}>Title</th>
+                    <th className={tableHeadClass}>Slug</th>
+                    <th className={tableHeadClass}>Status</th>
+                    <th className={tableHeadClass}>Difficulty</th>
+                    <th className={tableHeadClass}>Created</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody className="divide-y divide-neutral-200">
+                  {courses.map((course) => (
+                    <tr key={course.id} className={tableRowHoverClass}>
+                      <td className={`${tableCellClass} font-medium text-primary-600 hover:text-primary-700`}>
+                        <a href={`/dashboard/organization/courses/${course.id}`}>{course.title}</a>
+                      </td>
+                      <td className={`${tableCellClass} text-neutral-700`}>{course.slug}</td>
+                      <td className={tableCellClass}>
+                        <Badge variant={statusBadgeVariant(course.status)} size="sm">{course.status}</Badge>
+                      </td>
+                      <td className={`${tableCellClass} text-neutral-700`}>{course.difficulty ?? '—'}</td>
+                      <td className={`${tableCellClass} text-neutral-700`}>
+                        {new Date(course.createdAt).toLocaleDateString()}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            {/* Mobile cards */}
+            <div className="space-y-3 p-3 md:hidden">
+              {courses.map((course) => (
+                <a key={course.id} href={`/dashboard/organization/courses/${course.id}`} className="block rounded-2xl border border-neutral-200 bg-white p-4 shadow-sm hover:border-primary-200 hover:shadow-md transition-all">
+                  <div className="flex items-start justify-between gap-2">
+                    <p className="font-semibold text-primary-600 leading-snug">{course.title}</p>
+                    <Badge variant={statusBadgeVariant(course.status)} size="sm">{course.status}</Badge>
+                  </div>
+                  <p className="mt-1 text-xs text-neutral-400">{course.slug}</p>
+                  <div className="mt-3 flex items-center justify-between border-t border-neutral-100 pt-3 text-xs text-neutral-500">
+                    <span>{course.difficulty ?? '—'}</span>
+                    <span>{new Date(course.createdAt).toLocaleDateString()}</span>
+                  </div>
+                </a>
+              ))}
+            </div>
           </TableCard>
         ) : null}
       </div>
-    </main>
+    </div>
   );
 }

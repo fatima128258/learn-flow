@@ -5,4 +5,5 @@ export const studentNav: NavItem[] = [
   { href: '/dashboard/student/search', label: 'Search Courses', icon: NavIcons.search },
   { href: '/dashboard/student/notifications', label: 'Notifications', icon: NavIcons.notifications },
   { href: '/dashboard/student/certificates', label: 'Certificates', icon: NavIcons.certificates },
+  { href: '/dashboard/settings', label: 'Settings', icon: NavIcons.settings },
 ];

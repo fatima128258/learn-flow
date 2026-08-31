@@ -2,9 +2,7 @@
 
 import { useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { DashboardLayout } from '../../components/layout/DashboardLayout';
 import { LinkButton } from '../../components/ui/LinkButton';
-import { platformAdminNav } from '../../features/platformAdmin/nav';
 import { useCurrentUser } from '../../features/auth/useCurrentUser';
 import { getJson } from '../../lib/api';
 import { ErrorState } from '../../components/ui';
@@ -12,31 +10,33 @@ import {
   PageHeader,
   StatCard,
   StatCardSkeleton,
+  Calendar,
   ChartCard,
-  BarList,
-  type BarDatum,
+  LineChart,
+  type LineChartDatum,
 } from '../../components/dashboard';
 
 type DashboardSummary = {
   organizations: { total: number; active: number; suspended: number };
   users: { total: number };
   organizationAdmins: { total: number };
+  organizationsThisMonth?: Array<{ day: number; count: number }>;
 };
 
 const OrgIcon = (
-  <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+  <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
     <path strokeLinecap="round" strokeLinejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0H3m4-12h4m-4 4h4m-4 4h4m4-8h2m-2 4h2m-2 4h2" />
   </svg>
 );
 
 const UsersIcon = (
-  <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+  <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
     <path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
   </svg>
 );
 
 const AdminsIcon = (
-  <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+  <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
     <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197" />
   </svg>
 );
@@ -75,27 +75,22 @@ export default function DashboardPage() {
 
   const busy = userLoading || summaryLoading;
 
-  const orgDistribution: BarDatum[] = summary
-    ? [
-        { label: 'Active organizations', value: summary.organizations.active, tone: 'success' },
-        { label: 'Suspended organizations', value: summary.organizations.suspended, tone: 'danger' },
-      ]
+  // Prepare chart data
+  const chartData: LineChartDatum[] = summary?.organizationsThisMonth
+    ? summary.organizationsThisMonth.map((item) => {
+        const now = new Date();
+        const monthName = now.toLocaleString('en-US', { month: 'short' });
+        return {
+          label: `${item.day} ${monthName}`,
+          value: item.count,
+        };
+      })
     : [];
 
   return (
-    <DashboardLayout navLabel="Platform Admin" items={platformAdminNav}>
-      <div className="mx-auto max-w-6xl">
+    <div className="mx-auto max-w-6xl">
         <PageHeader
-          subtitle="Platform Admin"
           title="Platform Overview"
-          description={
-            user ? `${user.name ?? 'Platform Admin'} · ${user.email}` : undefined
-          }
-          actions={
-            <LinkButton href="/dashboard/organizations" variant="outline">
-              Manage Organizations
-            </LinkButton>
-          }
         />
 
         {busy ? (
@@ -124,35 +119,20 @@ export default function DashboardPage() {
               <StatCard label="Organization admins" value={summary.organizationAdmins.total} icon={AdminsIcon} tone="neutral" hint="Org-level admins" />
             </div>
 
-            <div className="grid gap-5 lg:grid-cols-2">
+            <div className="mb-8">
               <ChartCard
-                title="Organization status"
-                description="Distribution of organizations by current status"
+                title="Organizations created this month"
+                description="Daily breakdown of new organization registrations"
               >
-                <BarList data={orgDistribution} />
+                <LineChart data={chartData} color="#10b981" showArea={true} />
               </ChartCard>
+            </div>
 
-              <ChartCard
-                title="Quick actions"
-                description="Manage the platform from here"
-              >
-                <ul className="space-y-3">
-                  <li>
-                    <LinkButton href="/dashboard/organizations" variant="outline" fullWidth size="sm">
-                      Organizations
-                    </LinkButton>
-                  </li>
-                  <li>
-                    <LinkButton href="/dashboard/audit-logs" variant="outline" fullWidth size="sm">
-                      Audit Logs
-                    </LinkButton>
-                  </li>
-                </ul>
-              </ChartCard>
+            <div className="w-full">
+              <Calendar />
             </div>
           </>
         )}
       </div>
-    </DashboardLayout>
   );
 }

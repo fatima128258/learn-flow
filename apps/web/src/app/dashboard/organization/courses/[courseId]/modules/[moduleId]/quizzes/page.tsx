@@ -3,13 +3,13 @@
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { Badge, Button, EmptyState, EmptyStateIcons, Spinner } from '../../../../../../../../components/ui';
-import { FormError } from '../../../../../../../../components/forms/FormError';
 import { Input } from '../../../../../../../../components/ui/Input';
 import { Textarea } from '../../../../../../../../components/forms/Textarea';
 import { LinkButton } from '../../../../../../../../components/ui/LinkButton';
 import { Modal } from '../../../../../../../../components/ui/Modal';
 import Link from 'next/link';
 import { getQuizErrorMessage } from '../../../../../../../../features/course/quizErrors';
+import { useToast } from '../../../../../../../../components/ui/ToastProvider';
 
 type MeResponse = {
   user?: {
@@ -60,12 +60,12 @@ export default function ModuleQuizzesPage() {
   const courseId = typeof params.courseId === 'string' ? params.courseId : null;
   const moduleId = typeof params.moduleId === 'string' ? params.moduleId : null;
   const router = useRouter();
+  const toast = useToast();
 
   const [checkingAuth, setCheckingAuth] = useState(true);
   const [organizationId, setOrganizationId] = useState<string | null>(null);
   const [quizzes, setQuizzes] = useState<QuizListItem[] | null>(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
 
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
@@ -84,8 +84,6 @@ export default function ModuleQuizzesPage() {
   const [timeLimitError, setTimeLimitError] = useState('');
   const [passingPercentageError, setPassingPercentageError] = useState('');
   const [maxAttemptsError, setMaxAttemptsError] = useState('');
-
-  const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
   useEffect(() => {
     let active = true;
@@ -131,7 +129,6 @@ export default function ModuleQuizzesPage() {
 
     async function load() {
       setLoading(true);
-      setError(null);
       try {
         const apiBase = process.env.NEXT_PUBLIC_API_URL || '';
         const res = await fetch(
@@ -146,14 +143,14 @@ export default function ModuleQuizzesPage() {
           } catch {
             code = null;
           }
-          setError(getQuizErrorMessage(code));
+          toast.error(getQuizErrorMessage(code));
           return;
         }
         const body: ListQuizzesResponse = await res.json();
         if (!active) return;
         setQuizzes(body.data ?? []);
       } catch {
-        if (active) setError(getQuizErrorMessage(null));
+        if (active) toast.error(getQuizErrorMessage(null));
       } finally {
         if (active) setLoading(false);
       }
@@ -192,30 +189,29 @@ export default function ModuleQuizzesPage() {
     clearForm();
   }
 
-  function validateForm(): boolean {
+  function validateForm(): string | null {
     setTitleError('');
     setOrderError('');
     setTimeLimitError('');
     setPassingPercentageError('');
     setMaxAttemptsError('');
-    let isValid = true;
 
     if (!title.trim()) {
       setTitleError('Title is required');
-      isValid = false;
+      return 'Title is required';
     }
 
     const parsedOrder = parseInt(order, 10);
     if (order.trim() === '' || isNaN(parsedOrder) || parsedOrder < 0 || !Number.isInteger(parsedOrder)) {
       setOrderError('Order must be a non-negative integer');
-      isValid = false;
+      return 'Order must be a non-negative integer';
     }
 
     if (timeLimitMinutes.trim() !== '') {
       const parsed = parseInt(timeLimitMinutes, 10);
       if (isNaN(parsed) || parsed < 1 || !Number.isInteger(parsed)) {
         setTimeLimitError('Time limit must be a positive integer');
-        isValid = false;
+        return 'Time limit must be a positive integer';
       }
     }
 
@@ -223,7 +219,7 @@ export default function ModuleQuizzesPage() {
       const parsed = parseFloat(passingPercentage);
       if (isNaN(parsed) || parsed < 0 || parsed > 100) {
         setPassingPercentageError('Passing percentage must be between 0 and 100');
-        isValid = false;
+        return 'Passing percentage must be between 0 and 100';
       }
     }
 
@@ -231,15 +227,19 @@ export default function ModuleQuizzesPage() {
       const parsed = parseInt(maxAttempts, 10);
       if (isNaN(parsed) || parsed < 1 || !Number.isInteger(parsed)) {
         setMaxAttemptsError('Max attempts must be a positive integer');
-        isValid = false;
+        return 'Max attempts must be a positive integer';
       }
     }
 
-    return isValid;
+    return null;
   }
 
   async function handleCreate() {
-    if (!validateForm()) return;
+    const validationError = validateForm();
+    if (validationError) {
+      toast.error(validationError);
+      return;
+    }
     if (!organizationId || !courseId || !moduleId) return;
 
     setCreating(true);
@@ -274,17 +274,16 @@ export default function ModuleQuizzesPage() {
         if (code === 'QUIZ_ORDER_TAKEN') {
           setOrderError(getQuizErrorMessage(code));
         } else {
-          setError(getQuizErrorMessage(code));
+          toast.error(getQuizErrorMessage(code));
         }
         return;
       }
 
+      toast.success('Quiz created successfully.');
       closeCreateModal();
-      setSuccessMessage('Quiz created successfully.');
-      setTimeout(() => setSuccessMessage(null), 3000);
       router.refresh();
     } catch {
-      setError(getQuizErrorMessage(null));
+      toast.error(getQuizErrorMessage(null));
     } finally {
       setCreating(false);
     }
@@ -306,7 +305,7 @@ export default function ModuleQuizzesPage() {
         } catch {
           code = null;
         }
-        setError(getQuizErrorMessage(code));
+        toast.error(getQuizErrorMessage(code));
         return;
       }
       const body: QuizApiResponse = await res.json();
@@ -322,12 +321,16 @@ export default function ModuleQuizzesPage() {
       setMaxAttempts(detail.maxAttempts != null ? String(detail.maxAttempts) : '');
       setShowEditModal(true);
     } catch {
-      setError(getQuizErrorMessage(null));
+      toast.error(getQuizErrorMessage(null));
     }
   }
 
   async function handleUpdate() {
-    if (!validateForm()) return;
+    const validationError = validateForm();
+    if (validationError) {
+      toast.error(validationError);
+      return;
+    }
     if (!organizationId || !courseId || !moduleId || !editingQuiz) return;
 
     setUpdating(true);
@@ -366,17 +369,16 @@ export default function ModuleQuizzesPage() {
         if (code === 'QUIZ_ORDER_TAKEN') {
           setOrderError(getQuizErrorMessage(code));
         } else {
-          setError(getQuizErrorMessage(code));
+          toast.error(getQuizErrorMessage(code));
         }
         return;
       }
 
+      toast.success('Quiz updated successfully.');
       closeEditModal();
-      setSuccessMessage('Quiz updated successfully.');
-      setTimeout(() => setSuccessMessage(null), 3000);
       router.refresh();
     } catch {
-      setError(getQuizErrorMessage(null));
+      toast.error(getQuizErrorMessage(null));
     } finally {
       setUpdating(false);
     }
@@ -403,31 +405,30 @@ export default function ModuleQuizzesPage() {
         } catch {
           code = null;
         }
-        setError(getQuizErrorMessage(code));
+        toast.error(getQuizErrorMessage(code));
         return;
       }
 
-      setSuccessMessage('Quiz deleted successfully.');
-      setTimeout(() => setSuccessMessage(null), 3000);
+      toast.success('Quiz deleted successfully.');
       router.refresh();
     } catch {
-      setError(getQuizErrorMessage(null));
+      toast.error(getQuizErrorMessage(null));
     }
   }
 
   if (checkingAuth) {
     return (
-      <main className="min-h-screen bg-neutral-50 p-8">
+      <div>
         <div className="mx-auto flex max-w-3xl items-center gap-3 text-neutral-700">
           <Spinner size="lg" label="Loading..." />
           <span>Loading...</span>
         </div>
-      </main>
+      </div>
     );
   }
 
   return (
-    <main className="min-h-screen bg-neutral-50 p-8">
+    <div>
       <div className="mx-auto max-w-5xl">
         <div className="mb-4 flex items-center justify-between">
           <p className="text-sm font-medium uppercase tracking-wide text-primary-600">Module Quizzes</p>
@@ -448,18 +449,6 @@ export default function ModuleQuizzesPage() {
               Create Quiz
             </Button>
           </div>
-
-          {successMessage ? (
-            <div className="mt-4 rounded-md bg-success-50 p-3 text-sm text-success-700">
-              {successMessage}
-            </div>
-          ) : null}
-
-          {error ? (
-            <div className="mt-6">
-              <FormError message={error} />
-            </div>
-          ) : null}
 
           {loading ? (
             <div className="mt-8 flex items-center gap-3 text-neutral-700">
@@ -737,6 +726,6 @@ export default function ModuleQuizzesPage() {
           </div>
         </div>
       </Modal>
-    </main>
+    </div>
   );
 }

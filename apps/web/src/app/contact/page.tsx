@@ -7,7 +7,7 @@ import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
 import { Textarea } from '../../components/forms/Textarea';
 import { FormField } from '../../components/forms/FormField';
-import { Alert } from '../../components/ui/Alert';
+import { useToast } from '../../components/ui/ToastProvider';
 
 interface ContactFormState {
   name: string;
@@ -57,10 +57,10 @@ const contactDetails = [
 ];
 
 export default function ContactPage() {
+  const toast = useToast();
   const [form, setForm] = useState<ContactFormState>(initialState);
   const [errors, setErrors] = useState<Partial<Record<keyof ContactFormState, string>>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [submitted, setSubmitted] = useState(false);
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
@@ -72,7 +72,7 @@ export default function ContactPage() {
     }
   };
 
-  const validate = (): boolean => {
+  const validate = (): string | null => {
     const next: Partial<Record<keyof ContactFormState, string>> = {};
     if (!form.name.trim()) next.name = 'Please enter your name';
     if (!form.email.trim()) next.email = 'Please enter your email';
@@ -83,19 +83,23 @@ export default function ContactPage() {
     else if (form.message.trim().length < 10)
       next.message = 'Message should be at least 10 characters';
     setErrors(next);
-    return Object.keys(next).length === 0;
+    const firstErrorKey = (Object.keys(next) as (keyof ContactFormState)[])[0];
+    return firstErrorKey ? next[firstErrorKey] ?? null : null;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setSubmitted(false);
-    if (!validate()) return;
+    const validationError = validate();
+    if (validationError) {
+      toast.error(validationError);
+      return;
+    }
 
     setIsSubmitting(true);
     // No backend contact endpoint is wired up yet; simulate submission.
     await new Promise((resolve) => setTimeout(resolve, 1200));
     setIsSubmitting(false);
-    setSubmitted(true);
+    toast.success('Message sent!');
     setForm(initialState);
   };
 
@@ -144,13 +148,7 @@ export default function ContactPage() {
               </div>
 
               {/* Form */}
-              <Card padding="lg" className="lg:col-span-2">
-                {submitted && (
-                  <Alert variant="success" title="Message sent!" className="mb-6">
-                    Thanks for reaching out — we’ll get back to you within 24 hours.
-                  </Alert>
-                )}
-
+<Card padding="lg" className="lg:col-span-2">
                 <h2 className="mb-6 text-2xl font-bold text-neutral-900">Send us a message</h2>
 
                 <form onSubmit={handleSubmit} noValidate aria-busy={isSubmitting} className="space-y-5">

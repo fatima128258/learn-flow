@@ -2,8 +2,6 @@
 
 import { useQuery } from '@tanstack/react-query';
 import { Alert, ErrorState } from '@/components/ui';
-import { DashboardLayout } from '@/components/layout/DashboardLayout';
-import { platformAdminNav } from '@/features/platformAdmin/nav';
 import { useCurrentUser } from '@/features/auth/useCurrentUser';
 import { getJson } from '@/lib/api';
 import {
@@ -64,11 +62,10 @@ export default function PlatformMetricsPage() {
     : [];
 
   return (
-    <DashboardLayout navLabel="Platform Admin" items={platformAdminNav}>
-      <div className="mx-auto max-w-6xl">
-        <PageHeader
-          subtitle="Platform Admin"
-          title="Platform Metrics"
+    <div className="mx-auto max-w-6xl">
+      <PageHeader
+        subtitle="Platform Admin"
+        title="Platform Metrics"
           description="High-level usage metrics for the entire LearnFlow platform."
         />
 
@@ -114,6 +111,5 @@ export default function PlatformMetricsPage() {
           </>
         )}
       </div>
-    </DashboardLayout>
   );
 }

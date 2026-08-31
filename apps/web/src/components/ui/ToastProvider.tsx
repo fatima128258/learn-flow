@@ -18,6 +18,7 @@ interface ToastContextValue {
   toast: (input: ToastInput) => void;
   success: (message: string, title?: string) => void;
   error: (message: string, title?: string) => void;
+  warning: (message: string, title?: string) => void;
   info: (message: string, title?: string) => void;
 }
 
@@ -71,14 +72,18 @@ export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     (message: string, title?: string) => toast({ variant: 'info', message, title }),
     [toast],
   );
+  const warning = useCallback(
+    (message: string, title?: string) => toast({ variant: 'warning', message, title }),
+    [toast],
+  );
 
   return (
-    <ToastContext.Provider value={{ toast, success, error, info }}>
+    <ToastContext.Provider value={{ toast, success, error, warning, info }}>
       {children}
       <div
         aria-live="polite"
         aria-atomic="false"
-        className="pointer-events-none fixed right-4 top-4 z-[60] flex w-full max-w-sm flex-col gap-3"
+        className="pointer-events-none fixed inset-x-4 top-4 z-[60] flex flex-col gap-3 sm:left-auto sm:right-4 sm:w-full sm:max-w-sm"
       >
         {toasts.map((t) => (
           <Toast

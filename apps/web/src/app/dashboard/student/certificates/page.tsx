@@ -9,8 +9,6 @@ import {
   ErrorState,
   Spinner,
 } from '@/components/ui';
-import { DashboardLayout } from '@/components/layout/DashboardLayout';
-import { studentNav } from '@/features/student/nav';
 import { PageHeader } from '@/components/dashboard';
 
 type MeResponse = {
@@ -112,19 +110,16 @@ export default function StudentCertificatesPage() {
 
   if (loading) {
     return (
-      <DashboardLayout navLabel="Student" items={studentNav}>
-        <div className="mx-auto flex max-w-5xl items-center gap-3 text-neutral-700">
-          <Spinner size="lg" label="Loading certificates..." />
-          <span>Loading certificates...</span>
-        </div>
-      </DashboardLayout>
+      <div className="mx-auto flex max-w-5xl items-center gap-3 text-neutral-700">
+        <Spinner size="lg" label="Loading certificates..." />
+        <span>Loading certificates...</span>
+      </div>
     );
   }
 
   return (
-    <DashboardLayout navLabel="Student" items={studentNav}>
-      <div className="mx-auto max-w-6xl">
-        <PageHeader
+    <div className="mx-auto max-w-6xl">
+      <PageHeader
           subtitle="Credentials"
           title="My Certificates"
           breadcrumbs={
@@ -179,6 +174,5 @@ export default function StudentCertificatesPage() {
           </div>
         ) : null}
       </div>
-    </DashboardLayout>
   );
 }

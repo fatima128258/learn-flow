@@ -1,38 +1,48 @@
 'use client';
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { AuthLayout } from '../../components/layout/AuthLayout';
 import { AuthCard } from '../../components/auth/AuthCard';
 import { Input } from '../../components/ui/Input';
 import { SubmitButton } from '../../components/forms/SubmitButton';
-import { FormError } from '../../components/forms/FormError';
 import { Alert } from '../../components/ui/Alert';
 import { Stack } from '../../components/ui/layout/Stack';
 import { useSubmitState } from '../../lib/useSubmitState';
+import { useToast } from '../../components/ui/ToastProvider';
+import { getForgotPasswordErrorMessage } from '../../features/auth/authErrors';
+
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState('');
   const [success, setSuccess] = useState(false);
   const [emailError, setEmailError] = useState<string>('');
   const { isSubmitting, error, submit } = useSubmitState();
+  const toast = useToast();
 
-  const validateEmail = () => {
+  useEffect(() => {
+    if (error) toast.error(error);
+  }, [error, toast]);
+
+  const validateEmail = (): string | null => {
     if (!email) {
       setEmailError('Email is required');
-      return false;
+      return 'Email is required';
     }
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    if (!EMAIL_RE.test(email)) {
       setEmailError('Please enter a valid email address');
-      return false;
+      return 'Please enter a valid email address';
     }
     setEmailError('');
-    return true;
+    return null;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (isSubmitting || success) return;
 
-    if (!validateEmail()) {
+    const validationError = validateEmail();
+    if (validationError) {
+      toast.error(validationError);
       return;
     }
 
@@ -47,7 +57,7 @@ export default function ForgotPasswordPage() {
       const data = await res.json();
 
       if (!res.ok) {
-        throw new Error(data?.error || 'Failed to send reset email');
+        throw new Error(getForgotPasswordErrorMessage(data?.error));
       }
 
       setSuccess(true);
@@ -55,7 +65,7 @@ export default function ForgotPasswordPage() {
   };
 
   return (
-    <AuthLayout>
+    <AuthLayout hideChrome>
       <AuthCard
         title="Reset your password"
         description="Enter your email address and we'll send you a link to reset your password."
@@ -73,11 +83,10 @@ export default function ForgotPasswordPage() {
               </Alert>
             )}
 
-            {error && <FormError message={error} />}
-
             <Input
               label="Email address"
               type="email"
+              variant="line"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               error={emailError}

@@ -2,6 +2,8 @@ export { PageHeader } from './PageHeader';
 export { StatCard, StatCardSkeleton, type StatCardProps, type StatTone } from './StatCard';
 export { SectionHeader } from './SectionHeader';
 export { ChartCard, BarList, type BarDatum } from './ChartCard';
+export { LineChart, type LineChartDatum } from './LineChart';
 export { TableCard, tableHeadClass, tableCellClass, tableRowHoverClass } from './TableCard';
 export { ProgressBar, type ProgressTone } from './ProgressBar';
 export { UserAvatar } from './UserAvatar';
+export { Calendar } from './Calendar';

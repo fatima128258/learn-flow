@@ -88,10 +88,7 @@ export const AdminSidebar: React.FC = () => {
         <LearnFlowLogo href="/" />
       </div>
 
-      <nav className="flex-1 space-y-1 overflow-y-auto px-4 py-6" aria-label="Platform Admin">
-        <p className="px-3 pb-2 text-xs font-semibold uppercase tracking-wide text-neutral-400">
-          Platform Admin
-        </p>
+      <nav className="flex-1 space-y-1 overflow-y-auto px-4 pt-2" aria-label="Platform Admin">
         {navItems.map((item) => {
           const isActive = activeItem?.href === item.href;
           return (

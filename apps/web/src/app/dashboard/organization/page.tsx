@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from 'react';
 import {
-  Alert,
   Badge,
   Button,
   EmptyState,
@@ -12,18 +11,17 @@ import {
   Modal,
   Spinner,
 } from '../../../components/ui';
-import { FormError } from '../../../components/forms/FormError';
 import { PasswordInput } from '../../../components/forms/PasswordInput';
 import { getOrgAdminErrorMessage } from '../../../features/orgAdmin/orgAdminErrors';
 import { getCreateInstructorErrorMessage } from '../../../features/orgAdmin/createInstructorError';
 import { LinkButton } from '../../../components/ui/LinkButton';
-import { DashboardLayout } from '../../../components/layout/DashboardLayout';
-import { orgAdminNav } from '../../../features/organizationAdmin/nav';
+import { useToast } from '../../../components/ui/ToastProvider';
 import {
   PageHeader,
   StatCard,
   TableCard,
   UserAvatar,
+  Calendar,
   tableHeadClass,
   tableCellClass,
   tableRowHoverClass,
@@ -80,30 +78,32 @@ function roleBadgeVariant(role: MemberRole) {
 }
 
 const MembersIcon = (
-  <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+  <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
     <path strokeLinecap="round" strokeLinejoin="round" d="M17 20h5v-2a3 3 0 00-4.974-2.337M14 20H2v-2a4 4 0 018-2.87M11 4a4 4 0 000 8M15.5 12a3.5 3.5 0 000-7M15 20h7v-2a3 3 0 00-2.97-3" />
   </svg>
 );
 
 const AdminsIcon = (
-  <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+  <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
     <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197" />
   </svg>
 );
 
 const InstructorsIcon = (
-  <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+  <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
     <path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
   </svg>
 );
 
 const StudentsIcon = (
-  <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+  <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
     <path strokeLinecap="round" strokeLinejoin="round" d="M12 14l9-5-9-5-9 5 9 5zm0 0l9-5v6m-9 5l-6-3.333V10m12 0v6" />
   </svg>
 );
 
 export default function OrganizationDashboardPage() {
+  const toast = useToast();
+
   const [user, setUser] = useState<{ name?: string | null; email?: string } | null>(null);
   const [summary, setSummary] = useState<DashboardSummary | null>(null);
   const [members, setMembers] = useState<MemberItem[] | null>(null);
@@ -117,9 +117,7 @@ export default function OrganizationDashboardPage() {
   const [instructorPassword, setInstructorPassword] = useState('');
   const [instructorEmailError, setInstructorEmailError] = useState<string>('');
   const [instructorPasswordError, setInstructorPasswordError] = useState<string>('');
-  const [createInstructorError, setCreateInstructorError] = useState<string | null>(null);
   const [creatingInstructor, setCreatingInstructor] = useState(false);
-  const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
   async function load() {
     setError(null);
@@ -175,7 +173,6 @@ export default function OrganizationDashboardPage() {
     setInstructorPassword('');
     setInstructorEmailError('');
     setInstructorPasswordError('');
-    setCreateInstructorError(null);
   }
 
   function clearInstructorCredentials() {
@@ -189,13 +186,13 @@ export default function OrganizationDashboardPage() {
   async function handleCreateInstructor(e: React.FormEvent) {
     e.preventDefault();
     if (creatingInstructor) return;
-    setCreateInstructorError(null);
 
     const trimmedEmail = instructorEmail.trim();
     let valid = true;
 
     if (!trimmedEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmedEmail)) {
       setInstructorEmailError('Please enter a valid email address');
+      toast.error('Please enter a valid email address');
       valid = false;
     } else {
       setInstructorEmailError('');
@@ -203,6 +200,7 @@ export default function OrganizationDashboardPage() {
 
     if (!instructorPassword || instructorPassword.length < 8) {
       setInstructorPasswordError('Password must be at least 8 characters');
+      toast.error('Password must be at least 8 characters');
       valid = false;
     } else {
       setInstructorPasswordError('');
@@ -234,17 +232,17 @@ export default function OrganizationDashboardPage() {
       clearInstructorCredentials();
 
       if (!res.ok || !body?.data) {
-        setCreateInstructorError(getCreateInstructorErrorMessage(body?.error));
+        toast.error(getCreateInstructorErrorMessage(body?.error));
         return;
       }
 
       const createdEmail = body.data.email;
       setShowInstructorModal(false);
-      setSuccessMessage(`Instructor ${createdEmail} was added to your organization.`);
+      toast.success(`${createdEmail} was added as an instructor.`);
       await load();
     } catch {
       clearInstructorCredentials();
-      setCreateInstructorError('Could not reach the API. Please try again.');
+      toast.error('Could not reach the API. Please try again.');
     } finally {
       setCreatingInstructor(false);
     }
@@ -286,29 +284,19 @@ export default function OrganizationDashboardPage() {
 
   if (loading && summary === null && !error) {
     return (
-      <DashboardLayout navLabel="Organization Admin" items={orgAdminNav}>
-        <div className="mx-auto flex max-w-5xl items-center gap-3 text-neutral-700">
-          <Spinner size="lg" label="Loading organization dashboard..." />
-          <span>Loading organization dashboard...</span>
-        </div>
-      </DashboardLayout>
+      <div className="mx-auto flex max-w-5xl items-center gap-3 text-neutral-700">
+        <Spinner size="lg" label="Loading organization dashboard..." />
+        <span>Loading organization dashboard...</span>
+      </div>
     );
   }
 
   return (
-    <DashboardLayout navLabel="Organization Admin" items={orgAdminNav}>
+    <>
       <div className="mx-auto max-w-6xl">
         <div className="mb-8">
           <PageHeader
-            subtitle="Organization Admin"
             title={summary ? summary.organization.name : 'Organization'}
-            description={
-              summary
-                ? `${summary.organization.slug} · Created ${new Date(summary.organization.createdAt).toLocaleDateString()}`
-                : user
-                  ? `Signed in as ${user.name} · ${user.email}`
-                  : 'Organization overview and membership'
-            }
             badges={
               summary
                 ? [
@@ -331,14 +319,6 @@ export default function OrganizationDashboardPage() {
             }
           />
         </div>
-
-        {successMessage ? (
-          <div className="mb-6">
-            <Alert variant="success" onDismiss={() => setSuccessMessage(null)}>
-              {successMessage}
-            </Alert>
-          </div>
-        ) : null}
 
         {error ? (
           <div className="rounded-2xl border border-neutral-200 bg-white shadow-sm">
@@ -381,6 +361,11 @@ export default function OrganizationDashboardPage() {
               />
             </div>
 
+            {/* Calendar */}
+            <div className="mb-8">
+              <Calendar />
+            </div>
+
             <TableCard
               title="Members"
               description={
@@ -399,37 +384,58 @@ export default function OrganizationDashboardPage() {
                   description="Members of your organization will appear here."
                 />
               ) : (
-                <table className="min-w-full divide-y divide-neutral-200">
-                  <thead className="bg-neutral-50">
-                    <tr>
-                      <th className={tableHeadClass}>Name</th>
-                      <th className={tableHeadClass}>Email</th>
-                      <th className={tableHeadClass}>Role</th>
-                      <th className={tableHeadClass}>Created</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-neutral-100">
+                <>
+                  {/* Desktop table */}
+                  <div className="hidden md:block">
+                    <table className="min-w-full divide-y divide-neutral-200">
+                      <thead className="bg-neutral-50">
+                        <tr>
+                          <th className={tableHeadClass}>Name</th>
+                          <th className={tableHeadClass}>Email</th>
+                          <th className={tableHeadClass}>Role</th>
+                          <th className={tableHeadClass}>Created</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-neutral-100">
+                        {(members ?? []).map((member) => (
+                          <tr key={member.id} className={tableRowHoverClass}>
+                            <td className={tableCellClass}>
+                              <span className="flex items-center gap-3">
+                                <UserAvatar name={member.name} size="sm" />
+                                <span className="font-medium text-neutral-900">{member.name ?? '—'}</span>
+                              </span>
+                            </td>
+                            <td className={`${tableCellClass} text-neutral-700`}>{member.email}</td>
+                            <td className={tableCellClass}>
+                              <Badge variant={roleBadgeVariant(member.role)} size="sm">{member.role}</Badge>
+                            </td>
+                            <td className={`${tableCellClass} text-neutral-700`}>
+                              {new Date(member.createdAt).toLocaleDateString()}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                  {/* Mobile cards */}
+                  <div className="space-y-3 p-3 md:hidden">
                     {(members ?? []).map((member) => (
-                      <tr key={member.id} className={tableRowHoverClass}>
-                        <td className={tableCellClass}>
-                          <span className="flex items-center gap-3">
+                      <div key={member.id} className="rounded-2xl border border-neutral-200 bg-white p-4 shadow-sm">
+                        <div className="flex items-center justify-between gap-2">
+                          <div className="flex items-center gap-2 min-w-0">
                             <UserAvatar name={member.name} size="sm" />
-                            <span className="font-medium text-neutral-900">{member.name ?? '—'}</span>
-                          </span>
-                        </td>
-                        <td className={`${tableCellClass} text-neutral-700`}>{member.email}</td>
-                        <td className={tableCellClass}>
-                          <Badge variant={roleBadgeVariant(member.role)} size="sm">
-                            {member.role}
-                          </Badge>
-                        </td>
-                        <td className={`${tableCellClass} text-neutral-700`}>
-                          {new Date(member.createdAt).toLocaleDateString()}
-                        </td>
-                      </tr>
+                            <p className="font-semibold text-neutral-900 truncate">{member.name ?? '—'}</p>
+                          </div>
+                          <Badge variant={roleBadgeVariant(member.role)} size="sm">{member.role}</Badge>
+                        </div>
+                        <div className="mt-3 space-y-1 border-t border-neutral-100 pt-3">
+                          <p className="text-sm text-neutral-700 break-all">{member.email}</p>
+                          <p className="text-xs text-neutral-400">{new Date(member.createdAt).toLocaleDateString()}</p>
+                        </div>
+                      </div>
                     ))}
-                  </tbody>
-                </table>
+                  </div>
+                </>
               )}
             </TableCard>
           </>
@@ -444,8 +450,6 @@ export default function OrganizationDashboardPage() {
       >
         <form onSubmit={handleCreateInstructor} noValidate>
           <div className="space-y-4">
-            {createInstructorError ? <FormError message={createInstructorError} /> : null}
-
             <Input
               label="Full name"
               value={instructorName}
@@ -490,6 +494,6 @@ export default function OrganizationDashboardPage() {
           </div>
         </form>
       </Modal>
-    </DashboardLayout>
+    </>
   );
 }

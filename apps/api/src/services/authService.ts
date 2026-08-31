@@ -210,3 +210,81 @@ export async function resendVerificationEmail(input: string | { email: string; i
   await sendVerificationEmail(normalizedEmail, verificationToken);
   return { success: true };
 }
+
+export async function updateUserEmail({ userId, email, ip = '127.0.0.1' }: { userId: string; email: string; ip?: string }) {
+  const normalizedEmail = email.trim().toLowerCase();
+  const user = await repo.findUserById(userId);
+  if (!user) throw new Error('USER_NOT_FOUND');
+
+  if (user.email === normalizedEmail) {
+    return { success: true, user };
+  }
+
+  const existing = await repo.findUserByEmail(normalizedEmail);
+  if (existing && existing.id !== userId) throw new Error('EMAIL_TAKEN');
+
+  await repo.updateUserEmail(userId, normalizedEmail);
+
+  await repo.deleteEmailVerificationTokensByUserId(userId);
+  const verificationToken = generateToken();
+  const verificationTokenHash = hashToken(verificationToken);
+  const verificationExpiresAt = new Date(Date.now() + EMAIL_VERIFICATION_TTL * 1000);
+  await repo.createEmailVerificationToken({ userId, tokenHash: verificationTokenHash, expiresAt: verificationExpiresAt });
+  await sendVerificationEmail(normalizedEmail, verificationToken);
+
+  const primaryOrganizationId = await getPrimaryOrganizationId(userId);
+  await recordAudit({
+    action: 'EMAIL_UPDATED',
+    organizationId: primaryOrganizationId,
+    actorUserId: userId,
+    actorEmail: normalizedEmail,
+    actorRole: null,
+    resourceType: 'USER',
+    resourceId: userId,
+    ipAddress: ip,
+  });
+
+  const updated = await repo.findUserById(userId);
+  return { success: true, user: updated ?? user };
+}
+
+export async function changePassword({ userId, currentPassword, newPassword, sessionToken, ip = '127.0.0.1' }: { userId: string; currentPassword: string; newPassword: string; sessionToken?: string | null; ip?: string }) {
+  const user = await repo.findUserById(userId);
+  if (!user) throw new Error('USER_NOT_FOUND');
+
+  const currentOk = await argon2.verify(user.passwordHash, currentPassword);
+  if (!currentOk) throw new Error('INVALID_CURRENT_PASSWORD');
+
+  const passwordHash = await argon2.hash(newPassword, { type: argon2.argon2id });
+  await repo.updateUserPassword(userId, passwordHash);
+
+  if (sessionToken) {
+    await repo.revokeOtherSessionsByUserId(userId, hashToken(sessionToken));
+  }
+
+  const primaryOrganizationId = await getPrimaryOrganizationId(userId);
+  if (primaryOrganizationId) {
+    await dispatchNotification({
+      type: 'PASSWORD_RESET',
+      title: 'Password changed',
+      body: 'Your LearnFlow password was changed successfully.',
+      data: { organizationName: primaryOrganizationId },
+      userId,
+      organizationId: primaryOrganizationId,
+      email: { name: user.name },
+    });
+  }
+
+  await recordAudit({
+    action: 'PASSWORD_CHANGED',
+    organizationId: primaryOrganizationId,
+    actorUserId: userId,
+    actorEmail: user.email,
+    actorRole: null,
+    resourceType: 'USER',
+    resourceId: userId,
+    ipAddress: ip,
+  });
+
+  return { success: true };
+}

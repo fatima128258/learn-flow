@@ -10,8 +10,6 @@ import {
   ErrorState,
   Spinner,
 } from '@/components/ui';
-import { DashboardLayout } from '@/components/layout/DashboardLayout';
-import { studentNav } from '@/features/student/nav';
 import { PageHeader } from '@/components/dashboard';
 
 type MeResponse = {
@@ -134,21 +132,18 @@ export default function StudentCertificateViewPage() {
 
   if (loading) {
     return (
-      <DashboardLayout navLabel="Student" items={studentNav}>
-        <div className="mx-auto flex max-w-3xl items-center gap-3 text-neutral-700">
-          <Spinner size="lg" label="Loading certificate..." />
-          <span>Loading certificate...</span>
-        </div>
-      </DashboardLayout>
+      <div className="mx-auto flex max-w-3xl items-center gap-3 text-neutral-700">
+        <Spinner size="lg" label="Loading certificate..." />
+        <span>Loading certificate...</span>
+      </div>
     );
   }
 
   return (
-    <DashboardLayout navLabel="Student" items={studentNav}>
-      <div className="mx-auto max-w-6xl">
-        <PageHeader
-          subtitle="Student"
-          title="View Certificate"
+    <div className="mx-auto max-w-6xl">
+      <PageHeader
+        subtitle="Student"
+        title="View Certificate"
           breadcrumbs={
             <div className="flex items-center gap-2 text-sm">
               <Link href="/dashboard/student" className="text-primary-600 hover:text-primary-700">My Courses</Link>
@@ -248,6 +243,5 @@ export default function StudentCertificateViewPage() {
           </div>
         )}
       </div>
-    </DashboardLayout>
   );
 }

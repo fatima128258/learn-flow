@@ -18,17 +18,17 @@ export default function ProfilePage() {
 
   if (isLoading) {
     return (
-      <main className="min-h-screen bg-neutral-50 p-8">
+      <div>
         <div className="mx-auto max-w-2xl">
           <CardSkeleton />
         </div>
-      </main>
+      </div>
     );
   }
 
   if (error && !user) {
     return (
-      <main className="min-h-screen bg-neutral-50 p-8">
+      <div>
         <div className="mx-auto max-w-2xl">
           <Card>
             <ErrorState
@@ -38,13 +38,13 @@ export default function ProfilePage() {
             />
           </Card>
         </div>
-      </main>
+      </div>
     );
   }
 
   if (!user) {
     return (
-      <main className="min-h-screen bg-neutral-50 p-8">
+      <div>
         <div className="mx-auto max-w-2xl">
           <Card>
             <ErrorState
@@ -54,14 +54,14 @@ export default function ProfilePage() {
             />
           </Card>
         </div>
-      </main>
+      </div>
     );
   }
 
   const dashboardHref = getPostLoginRedirect(user);
 
   return (
-    <main className="min-h-screen bg-neutral-50 p-8">
+    <div>
       <div className="mx-auto max-w-2xl">
         <PageHeader
           subtitle="Profile"
@@ -107,6 +107,6 @@ export default function ProfilePage() {
           </div>
         </div>
       </div>
-    </main>
+    </div>
   );
 }

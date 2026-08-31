@@ -3,12 +3,12 @@
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { Badge, Button, EmptyState, EmptyStateIcons, Spinner } from '../../../../../../components/ui';
-import { FormError } from '../../../../../../components/forms/FormError';
 import { Input } from '../../../../../../components/ui/Input';
 import { LinkButton } from '../../../../../../components/ui/LinkButton';
 import { Modal } from '../../../../../../components/ui/Modal';
 import Link from 'next/link';
 import { getModuleErrorMessage } from '../../../../../../features/course/moduleErrors';
+import { useToast } from '../../../../../../components/ui/ToastProvider';
 
 type MeResponse = {
   user?: {
@@ -57,12 +57,12 @@ export default function CourseModulesPage() {
   const params = useParams();
   const courseId = typeof params.courseId === 'string' ? params.courseId : null;
   const router = useRouter();
+  const toast = useToast();
 
   const [checkingAuth, setCheckingAuth] = useState(true);
   const [organizationId, setOrganizationId] = useState<string | null>(null);
   const [modules, setModules] = useState<ModuleListItem[] | null>(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
 
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
@@ -121,7 +121,6 @@ export default function CourseModulesPage() {
 
     async function load() {
       setLoading(true);
-      setError(null);
       try {
         const apiBase = process.env.NEXT_PUBLIC_API_URL || '';
         const res = await fetch(
@@ -136,14 +135,14 @@ export default function CourseModulesPage() {
           } catch {
             code = null;
           }
-          setError(getModuleErrorMessage(code));
+          toast.error(getModuleErrorMessage(code));
           return;
         }
         const body: ListModulesResponse = await res.json();
         if (!active) return;
         setModules(body.data ?? []);
       } catch {
-        if (active) setError(getModuleErrorMessage(null));
+        if (active) toast.error(getModuleErrorMessage(null));
       } finally {
         if (active) setLoading(false);
       }
@@ -176,27 +175,30 @@ export default function CourseModulesPage() {
     setOrderError('');
   }
 
-  function validateForm(): boolean {
+  function validateForm(): string | null {
     setTitleError('');
     setOrderError('');
-    let isValid = true;
 
     if (!title.trim()) {
       setTitleError('Title is required');
-      isValid = false;
+      return 'Title is required';
     }
 
     const parsedOrder = parseInt(order, 10);
     if (order.trim() === '' || isNaN(parsedOrder) || parsedOrder < 0 || !Number.isInteger(parsedOrder)) {
       setOrderError('Order must be a non-negative integer');
-      isValid = false;
+      return 'Order must be a non-negative integer';
     }
 
-    return isValid;
+    return null;
   }
 
   async function handleCreate() {
-    if (!validateForm()) return;
+    const validationError = validateForm();
+    if (validationError) {
+      toast.error(validationError);
+      return;
+    }
     if (!organizationId || !courseId) return;
 
     setCreating(true);
@@ -226,15 +228,16 @@ export default function CourseModulesPage() {
         if (code === 'MODULE_ORDER_TAKEN') {
           setOrderError(getModuleErrorMessage(code));
         } else {
-          setError(getModuleErrorMessage(code));
+          toast.error(getModuleErrorMessage(code));
         }
         return;
       }
 
+      toast.success('Module created.');
       closeCreateModal();
       router.refresh();
     } catch {
-      setError(getModuleErrorMessage(null));
+      toast.error(getModuleErrorMessage(null));
     } finally {
       setCreating(false);
     }
@@ -249,7 +252,11 @@ export default function CourseModulesPage() {
   }
 
   async function handleUpdate() {
-    if (!validateForm()) return;
+    const validationError = validateForm();
+    if (validationError) {
+      toast.error(validationError);
+      return;
+    }
     if (!organizationId || !courseId || !editingModule) return;
 
     setUpdating(true);
@@ -279,15 +286,16 @@ export default function CourseModulesPage() {
         if (code === 'MODULE_ORDER_TAKEN') {
           setOrderError(getModuleErrorMessage(code));
         } else {
-          setError(getModuleErrorMessage(code));
+          toast.error(getModuleErrorMessage(code));
         }
         return;
       }
 
+      toast.success('Module updated.');
       closeEditModal();
       router.refresh();
     } catch {
-      setError(getModuleErrorMessage(null));
+      toast.error(getModuleErrorMessage(null));
     } finally {
       setUpdating(false);
     }
@@ -315,13 +323,14 @@ export default function CourseModulesPage() {
         } catch {
           code = null;
         }
-        setError(getModuleErrorMessage(code));
+        toast.error(getModuleErrorMessage(code));
         return;
       }
 
+      toast.success('Module deleted.');
       router.refresh();
     } catch {
-      setError(getModuleErrorMessage(null));
+      toast.error(getModuleErrorMessage(null));
     } finally {
       setDeleting(false);
     }
@@ -329,17 +338,17 @@ export default function CourseModulesPage() {
 
   if (checkingAuth) {
     return (
-      <main className="min-h-screen bg-neutral-50 p-8">
+      <div>
         <div className="mx-auto flex max-w-3xl items-center gap-3 text-neutral-700">
           <Spinner size="lg" label="Loading..." />
           <span>Loading...</span>
         </div>
-      </main>
+      </div>
     );
   }
 
   return (
-    <main className="min-h-screen bg-neutral-50 p-8">
+    <div>
       <div className="mx-auto max-w-5xl">
         <div className="mb-4 flex items-center justify-between">
           <p className="text-sm font-medium uppercase tracking-wide text-primary-600">Course Modules</p>
@@ -361,12 +370,6 @@ export default function CourseModulesPage() {
             </Button>
           </div>
 
-          {error ? (
-            <div className="mt-6">
-              <FormError message={error} />
-            </div>
-          ) : null}
-
           {loading ? (
             <div className="mt-8 flex items-center gap-3 text-neutral-700">
               <Spinner size="md" label="Loading modules..." />
@@ -387,54 +390,59 @@ export default function CourseModulesPage() {
               />
             </div>
           ) : modules !== null && modules.length > 0 ? (
-            <div className="mt-6 overflow-hidden rounded-2xl border border-neutral-200">
-              <table className="min-w-full divide-y divide-neutral-200">
-                <thead className="bg-neutral-50">
-                  <tr>
-                    <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-neutral-500 w-16">Order</th>
-                    <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-neutral-500">Title</th>
-                    <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-neutral-500">Description</th>
-                    <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-neutral-500 w-40">Actions</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-neutral-200 bg-white">
-                  {modules.map((module) => (
-                    <tr key={module.id} className="hover:bg-neutral-50">
-                      <td className="px-6 py-4 text-sm font-medium text-neutral-900">
-                        <Badge variant="default" size="sm">{module.order}</Badge>
-                      </td>
-                      <td className="px-6 py-4 text-sm font-medium text-primary-600 hover:text-primary-700">
-                        {module.title}
-                      </td>
-                      <td className="px-6 py-4 text-sm text-neutral-700 max-w-md truncate">
-                        {module.description ?? '—'}
-                      </td>
-                      <td className="px-6 py-4">
-                        <div className="flex items-center gap-2">
-                          <Link
-                            href={`/dashboard/organization/courses/${courseId}/modules/${module.id}/lessons`}
-                            className="inline-flex items-center rounded-md px-3 py-1.5 text-sm font-medium text-primary-600 hover:text-primary-700 hover:bg-primary-50 transition-colors"
-                          >
-                            Lessons
-                          </Link>
-                          <Link
-                            href={`/dashboard/organization/courses/${courseId}/modules/${module.id}/quizzes`}
-                            className="inline-flex items-center rounded-md px-3 py-1.5 text-sm font-medium text-primary-600 hover:text-primary-700 hover:bg-primary-50 transition-colors"
-                          >
-                            Quizzes
-                          </Link>
-                          <Button variant="ghost" size="sm" onClick={() => openEditModal(module)}>
-                            Edit
-                          </Button>
-                          <Button variant="danger" size="sm" onClick={() => handleDelete(module.id)}>
-                            Delete
-                          </Button>
-                        </div>
-                      </td>
+            <div className="mt-6">
+              {/* Desktop table */}
+              <div className="hidden overflow-hidden rounded-2xl border border-neutral-200 md:block">
+                <table className="min-w-full divide-y divide-neutral-200">
+                  <thead className="bg-neutral-50">
+                    <tr>
+                      <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-neutral-500 w-16">Order</th>
+                      <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-neutral-500">Title</th>
+                      <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-neutral-500">Description</th>
+                      <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-neutral-500 w-40">Actions</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody className="divide-y divide-neutral-200 bg-white">
+                    {modules.map((module) => (
+                      <tr key={module.id} className="hover:bg-neutral-50">
+                        <td className="px-6 py-4 text-sm font-medium text-neutral-900">
+                          <Badge variant="default" size="sm">{module.order}</Badge>
+                        </td>
+                        <td className="px-6 py-4 text-sm font-medium text-primary-600 hover:text-primary-700">{module.title}</td>
+                        <td className="px-6 py-4 text-sm text-neutral-700 max-w-md truncate">{module.description ?? '—'}</td>
+                        <td className="px-6 py-4">
+                          <div className="flex items-center gap-2">
+                            <Link href={`/dashboard/organization/courses/${courseId}/modules/${module.id}/lessons`} className="inline-flex items-center rounded-md px-3 py-1.5 text-sm font-medium text-primary-600 hover:text-primary-700 hover:bg-primary-50 transition-colors">Lessons</Link>
+                            <Link href={`/dashboard/organization/courses/${courseId}/modules/${module.id}/quizzes`} className="inline-flex items-center rounded-md px-3 py-1.5 text-sm font-medium text-primary-600 hover:text-primary-700 hover:bg-primary-50 transition-colors">Quizzes</Link>
+                            <Button variant="ghost" size="sm" onClick={() => openEditModal(module)}>Edit</Button>
+                            <Button variant="danger" size="sm" onClick={() => handleDelete(module.id)}>Delete</Button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              {/* Mobile cards */}
+              <div className="space-y-3 md:hidden">
+                {modules.map((module) => (
+                  <div key={module.id} className="rounded-2xl border border-neutral-200 bg-white p-4 shadow-sm">
+                    <div className="flex items-start justify-between gap-2">
+                      <p className="font-semibold text-neutral-900 leading-snug">{module.title}</p>
+                      <Badge variant="default" size="sm">#{module.order}</Badge>
+                    </div>
+                    {module.description && (
+                      <p className="mt-1 text-sm text-neutral-500">{module.description}</p>
+                    )}
+                    <div className="mt-3 flex flex-wrap items-center gap-2 border-t border-neutral-100 pt-3">
+                      <Link href={`/dashboard/organization/courses/${courseId}/modules/${module.id}/lessons`} className="inline-flex items-center rounded-lg px-3 py-1.5 text-sm font-medium text-primary-600 hover:bg-primary-50 transition-colors">Lessons</Link>
+                      <Link href={`/dashboard/organization/courses/${courseId}/modules/${module.id}/quizzes`} className="inline-flex items-center rounded-lg px-3 py-1.5 text-sm font-medium text-primary-600 hover:bg-primary-50 transition-colors">Quizzes</Link>
+                      <Button variant="ghost" size="sm" onClick={() => openEditModal(module)}>Edit</Button>
+                      <Button variant="danger" size="sm" onClick={() => handleDelete(module.id)}>Delete</Button>
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
           ) : null}
         </div>
@@ -545,6 +553,6 @@ export default function CourseModulesPage() {
           </div>
         </div>
       </Modal>
-    </main>
+    </div>
   );
 }

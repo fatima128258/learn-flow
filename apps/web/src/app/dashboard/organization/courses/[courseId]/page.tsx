@@ -3,9 +3,9 @@
 import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import { Alert, Badge, Spinner } from '../../../../../components/ui';
-import { FormError } from '../../../../../components/forms/FormError';
 import { LinkButton } from '../../../../../components/ui/LinkButton';
 import { getCreateCourseErrorMessage } from '../../../../../features/course/createCourseErrors';
+import { useToast } from '../../../../../components/ui/ToastProvider';
 
 type MeResponse = {
   user?: {
@@ -55,12 +55,12 @@ function formatMoney(value: number | string | null): string {
 export default function CourseDetailPage() {
   const params = useParams();
   const courseId = typeof params.courseId === 'string' ? params.courseId : null;
+  const toast = useToast();
 
   const [checkingAuth, setCheckingAuth] = useState(true);
   const [organizationId, setOrganizationId] = useState<string | null>(null);
   const [course, setCourse] = useState<CourseDetail | null>(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     let active = true;
@@ -106,7 +106,6 @@ export default function CourseDetailPage() {
 
     async function load() {
       setLoading(true);
-      setError(null);
       try {
         const apiBase = process.env.NEXT_PUBLIC_API_URL || '';
         const res = await fetch(
@@ -121,18 +120,18 @@ export default function CourseDetailPage() {
           } catch {
             code = null;
           }
-          setError(getCreateCourseErrorMessage(code));
+          toast.error(getCreateCourseErrorMessage(code));
           return;
         }
         const body: GetCourseResponse = await res.json();
         if (!active) return;
         if (!body.data) {
-          setError(getCreateCourseErrorMessage('COURSE_NOT_FOUND'));
+          toast.error(getCreateCourseErrorMessage('COURSE_NOT_FOUND'));
           return;
         }
         setCourse(body.data);
       } catch {
-        if (active) setError(getCreateCourseErrorMessage(null));
+        if (active) toast.error(getCreateCourseErrorMessage(null));
       } finally {
         if (active) setLoading(false);
       }
@@ -146,17 +145,17 @@ export default function CourseDetailPage() {
 
   if (checkingAuth) {
     return (
-      <main className="min-h-screen bg-neutral-50 p-8">
+      <div>
         <div className="mx-auto flex max-w-3xl items-center gap-3 text-neutral-700">
           <Spinner size="lg" label="Loading..." />
           <span>Loading...</span>
         </div>
-      </main>
+      </div>
     );
   }
 
   return (
-    <main className="min-h-screen bg-neutral-50 p-8">
+    <div>
       <div className="mx-auto max-w-3xl">
         <div className="mb-4 flex items-center justify-between">
           <p className="text-sm font-medium uppercase tracking-wide text-primary-600">Course Details</p>
@@ -166,9 +165,7 @@ export default function CourseDetailPage() {
         </div>
 
         <div className="rounded-2xl border border-neutral-200 bg-white p-6 shadow-sm">
-          {error ? (
-            <FormError message={error} />
-          ) : loading ? (
+          {loading ? (
             <div className="flex items-center gap-3 text-neutral-700">
               <Spinner size="md" label="Loading course..." />
               <span>Loading course...</span>
@@ -250,6 +247,6 @@ export default function CourseDetailPage() {
           )}
         </div>
       </div>
-    </main>
+    </div>
   );
 }

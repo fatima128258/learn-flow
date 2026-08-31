@@ -8,6 +8,8 @@ export interface PageHeaderBadge {
 
 export interface PageHeaderProps {
   title: string;
+  /** Small inline count/suffix shown next to title in gray */
+  titleSuffix?: string;
   /** Small uppercase eyebrow label above the title */
   subtitle?: string;
   description?: string;
@@ -25,6 +27,7 @@ export interface PageHeaderProps {
  */
 export const PageHeader: React.FC<PageHeaderProps> = ({
   title,
+  titleSuffix,
   subtitle,
   description,
   badges,
@@ -37,13 +40,11 @@ export const PageHeader: React.FC<PageHeaderProps> = ({
       {breadcrumbs && <div className="mb-4">{breadcrumbs}</div>}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div className="min-w-0">
-          {subtitle && (
-            <p className="text-xs font-semibold uppercase tracking-wider text-primary-600">
-              {subtitle}
-            </p>
-          )}
-          <h1 className="mt-1 text-2xl font-bold tracking-tight text-neutral-900 sm:text-3xl">
+          <h1 className="flex items-baseline gap-2.5 text-2xl font-semibold tracking-tight text-neutral-900 sm:text-3xl">
             {title}
+            {titleSuffix && (
+              <span className="text-base font-normal text-neutral-400">{titleSuffix}</span>
+            )}
           </h1>
           {description && (
             <p className="mt-2 max-w-2xl text-sm leading-relaxed text-neutral-600 sm:text-base">

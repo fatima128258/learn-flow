@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from 'react';
 import {
-  Alert,
   Badge,
   Button,
   EmptyState,
@@ -12,12 +11,9 @@ import {
   Modal,
   Spinner,
 } from '@/components/ui';
-import { DashboardLayout } from '@/components/layout/DashboardLayout';
-import { orgAdminNav } from '@/features/organizationAdmin/nav';
 import { useCurrentUser } from '@/features/auth/useCurrentUser';
 import { getOrgAdminErrorMessage } from '@/features/orgAdmin/orgAdminErrors';
 import { getCreateInstructorErrorMessage } from '@/features/orgAdmin/createInstructorError';
-import { FormError } from '@/components/forms/FormError';
 import { PasswordInput } from '@/components/forms/PasswordInput';
 import { useToast } from '@/components/ui/ToastProvider';
 import {
@@ -99,9 +95,7 @@ export default function OrgUsersPage() {
   const [password, setPassword] = useState('');
   const [emailError, setEmailError] = useState('');
   const [passwordError, setPasswordError] = useState('');
-  const [formError, setFormError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
-  const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
   async function load() {
     try {
@@ -142,7 +136,6 @@ export default function OrgUsersPage() {
     setPassword('');
     setEmailError('');
     setPasswordError('');
-    setFormError(null);
     setShowAddModal(true);
   }
 
@@ -154,18 +147,19 @@ export default function OrgUsersPage() {
   async function handleAdd(e: React.FormEvent) {
     e.preventDefault();
     if (saving) return;
-    setFormError(null);
 
     const trimmedEmail = email.trim();
     let valid = true;
     if (!trimmedEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmedEmail)) {
       setEmailError('Please enter a valid email address');
+      toast.error('Please enter a valid email address');
       valid = false;
     } else {
       setEmailError('');
     }
     if (!password || password.length < 8) {
       setPasswordError('Password must be at least 8 characters');
+      toast.error('Password must be at least 8 characters');
       valid = false;
     } else {
       setPasswordError('');
@@ -190,21 +184,18 @@ export default function OrgUsersPage() {
       }
 
       if (!res.ok || !body?.data) {
-        setFormError(getCreateInstructorErrorMessage(body?.error));
         toast.error(getCreateInstructorErrorMessage(body?.error));
         setPassword('');
         return;
       }
 
       setShowAddModal(false);
-      const roleLabel = addRole === 'INSTRUCTOR' ? 'Instructor' : 'Student';
-      setSuccessMessage(`${roleLabel} ${body.data.email} was added to your organization.`);
       toast.success(`${body.data.email} was added as ${addRole === 'INSTRUCTOR' ? 'an instructor' : 'a student'}.`);
       setError(null);
       setLoading(true);
       await load();
     } catch {
-      setFormError('Could not reach the API. Please try again.');
+      toast.error('Could not reach the API. Please try again.');
       setPassword('');
     } finally {
       setSaving(false);
@@ -217,7 +208,7 @@ export default function OrgUsersPage() {
   const studentCount = (members ?? []).filter((m) => m.role === 'STUDENT').length;
 
   return (
-    <DashboardLayout navLabel="Organization Admin" items={orgAdminNav}>
+    <>
       <div className="mx-auto max-w-5xl">
         <PageHeader
           subtitle="Organization Admin"
@@ -234,14 +225,6 @@ export default function OrgUsersPage() {
             </>
           }
         />
-
-        {successMessage ? (
-          <div className="mb-6">
-            <Alert variant="success" onDismiss={() => setSuccessMessage(null)}>
-              {successMessage}
-            </Alert>
-          </div>
-        ) : null}
 
         {loading && members === null ? (
           <div className="mx-auto flex max-w-5xl items-center gap-3 text-neutral-700">
@@ -300,37 +283,58 @@ export default function OrgUsersPage() {
                   description="Members of your organization will appear here. Add your first instructor or student to get started."
                 />
               ) : (
-                <table className="min-w-full divide-y divide-neutral-200">
-                  <thead className="bg-neutral-50">
-                    <tr>
-                      <th className={tableHeadClass}>Name</th>
-                      <th className={tableHeadClass}>Email</th>
-                      <th className={tableHeadClass}>Role</th>
-                      <th className={tableHeadClass}>Created</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-neutral-100">
+                <>
+                  {/* Desktop table */}
+                  <div className="hidden md:block">
+                    <table className="min-w-full divide-y divide-neutral-200">
+                      <thead className="bg-neutral-50">
+                        <tr>
+                          <th className={tableHeadClass}>Name</th>
+                          <th className={tableHeadClass}>Email</th>
+                          <th className={tableHeadClass}>Role</th>
+                          <th className={tableHeadClass}>Created</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-neutral-100">
+                        {(members ?? []).map((member) => (
+                          <tr key={member.id} className={tableRowHoverClass}>
+                            <td className={tableCellClass}>
+                              <span className="flex items-center gap-3">
+                                <UserAvatar name={member.name} size="sm" />
+                                <span className="font-medium text-neutral-900">{member.name ?? '—'}</span>
+                              </span>
+                            </td>
+                            <td className={`${tableCellClass} text-neutral-700`}>{member.email}</td>
+                            <td className={tableCellClass}>
+                              <Badge variant={roleBadgeVariant(member.role)} size="sm">{member.role}</Badge>
+                            </td>
+                            <td className={`${tableCellClass} text-neutral-700`}>
+                              {new Date(member.createdAt).toLocaleDateString()}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                  {/* Mobile cards */}
+                  <div className="space-y-3 p-3 md:hidden">
                     {(members ?? []).map((member) => (
-                      <tr key={member.id} className={tableRowHoverClass}>
-                        <td className={tableCellClass}>
-                          <span className="flex items-center gap-3">
+                      <div key={member.id} className="rounded-2xl border border-neutral-200 bg-white p-4 shadow-sm">
+                        <div className="flex items-center justify-between gap-2">
+                          <div className="flex items-center gap-2 min-w-0">
                             <UserAvatar name={member.name} size="sm" />
-                            <span className="font-medium text-neutral-900">{member.name ?? '—'}</span>
-                          </span>
-                        </td>
-                        <td className={`${tableCellClass} text-neutral-700`}>{member.email}</td>
-                        <td className={tableCellClass}>
-                          <Badge variant={roleBadgeVariant(member.role)} size="sm">
-                            {member.role}
-                          </Badge>
-                        </td>
-                        <td className={`${tableCellClass} text-neutral-700`}>
-                          {new Date(member.createdAt).toLocaleDateString()}
-                        </td>
-                      </tr>
+                            <p className="font-semibold text-neutral-900 truncate">{member.name ?? '—'}</p>
+                          </div>
+                          <Badge variant={roleBadgeVariant(member.role)} size="sm">{member.role}</Badge>
+                        </div>
+                        <div className="mt-3 space-y-1 border-t border-neutral-100 pt-3">
+                          <p className="text-sm text-neutral-700 break-all">{member.email}</p>
+                          <p className="text-xs text-neutral-400">{new Date(member.createdAt).toLocaleDateString()}</p>
+                        </div>
+                      </div>
                     ))}
-                  </tbody>
-                </table>
+                  </div>
+                </>
               )}
             </TableCard>
           </>
@@ -340,7 +344,6 @@ export default function OrgUsersPage() {
       <Modal isOpen={showAddModal} onClose={closeAdd} title={`Add ${addRole === 'INSTRUCTOR' ? 'Instructor' : 'Student'}`} closeOnOverlayClick={!saving}>
         <form onSubmit={handleAdd} noValidate>
           <div className="space-y-4">
-            {formError ? <FormError message={formError} /> : null}
             <Input
               label="Full name"
               value={name}
@@ -382,6 +385,6 @@ export default function OrgUsersPage() {
           </div>
         </form>
       </Modal>
-    </DashboardLayout>
+    </>
   );
 }

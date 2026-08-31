@@ -10,7 +10,7 @@ import {
   ErrorState,
   Spinner,
 } from '@/components/ui';
-import { PageHeader, StatCard } from '@/components/dashboard';
+import { PageHeader, StatCard, Calendar } from '@/components/dashboard';
 
 type MeResponse = {
   user?: {
@@ -38,19 +38,19 @@ type EnrolledCourse = {
 };
 
 const BookIcon = (
-  <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+  <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
     <path strokeLinecap="round" strokeLinejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5.4" />
   </svg>
 );
 
 const TagIcon = (
-  <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+  <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
     <path strokeLinecap="round" strokeLinejoin="round" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
   </svg>
 );
 
 const ClockIcon = (
-  <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+  <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
     <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l2 2m6 0a8 8 0 11-16 0 8 8 0 0116 0z" />
   </svg>
 );
@@ -154,9 +154,7 @@ export default function StudentDashboardPage() {
   return (
     <div className="mx-auto max-w-6xl">
       <PageHeader
-        subtitle="Student Dashboard"
         title={`Welcome back${user?.name ? `, ${user.name}` : ''}`}
-        description={user?.email}
         actions={
           <>
             <Link href="/courses">
@@ -217,6 +215,11 @@ export default function StudentDashboardPage() {
               icon={ClockIcon}
               tone="success"
             />
+          </div>
+
+          {/* Calendar */}
+          <div className="mb-8">
+            <Calendar />
           </div>
 
           <div className="mb-4 flex items-center justify-between">

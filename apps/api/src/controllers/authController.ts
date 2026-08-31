@@ -194,3 +194,75 @@ export async function getMe(req: AuthenticatedRequest, res: Response) {
     return res.status(500).json({ success: false, error: 'SERVER_ERROR' });
   }
 }
+
+export async function updateEmail(req: AuthenticatedRequest, res: Response) {
+  try {
+    if (!req.user) {
+      return res.status(401).json({ success: false, error: 'NOT_AUTHENTICATED' });
+    }
+
+    const { email } = req.body ?? {};
+    if (typeof email !== 'string' || !email.trim()) {
+      return res.status(400).json({ error: 'MISSING_EMAIL' });
+    }
+    if (!isValidEmail(email)) {
+      return res.status(400).json({ error: 'INVALID_EMAIL' });
+    }
+
+    const { user } = await service.updateUserEmail({ userId: req.user.id, email, ip: getClientIp(req) });
+
+    return res.json({
+      user: userDto({
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        emailVerified: user.emailVerified,
+        createdAt: user.createdAt,
+        role: req.user.role,
+        organizationId: req.user.organizationId,
+      }),
+    });
+  } catch (err) {
+    const message = err instanceof Error ? err.message : undefined;
+    if (message === 'EMAIL_TAKEN') return res.status(409).json({ error: 'EMAIL_TAKEN' });
+    if (message === 'USER_NOT_FOUND') return res.status(401).json({ success: false, error: 'USER_NOT_FOUND' });
+    if (message === 'TOO_MANY_ATTEMPTS') return res.status(429).json({ error: 'TOO_MANY_ATTEMPTS' });
+    return res.status(500).json({ success: false, error: 'SERVER_ERROR' });
+  }
+}
+
+export async function changePassword(req: AuthenticatedRequest, res: Response) {
+  try {
+    if (!req.user) {
+      return res.status(401).json({ success: false, error: 'NOT_AUTHENTICATED' });
+    }
+
+    const { currentPassword, newPassword, confirmNewPassword } = req.body ?? {};
+    if (typeof currentPassword !== 'string' || typeof newPassword !== 'string' || typeof confirmNewPassword !== 'string') {
+      return res.status(400).json({ error: 'MISSING_FIELDS' });
+    }
+    if (newPassword !== confirmNewPassword) {
+      return res.status(400).json({ error: 'PASSWORD_MISMATCH' });
+    }
+    if (!isValidPassword(newPassword)) {
+      return res.status(400).json({ error: 'PASSWORD_TOO_SHORT' });
+    }
+
+    const token = req.cookies?.[COOKIE_NAME] || null;
+    await service.changePassword({
+      userId: req.user.id,
+      currentPassword,
+      newPassword,
+      sessionToken: token,
+      ip: getClientIp(req),
+    });
+
+    return res.json({ success: true, message: 'Password updated successfully' });
+  } catch (err) {
+    const message = err instanceof Error ? err.message : undefined;
+    if (message === 'INVALID_CURRENT_PASSWORD') return res.status(400).json({ error: 'INVALID_CURRENT_PASSWORD' });
+    if (message === 'USER_NOT_FOUND') return res.status(401).json({ success: false, error: 'USER_NOT_FOUND' });
+    if (message === 'TOO_MANY_ATTEMPTS') return res.status(429).json({ error: 'TOO_MANY_ATTEMPTS' });
+    return res.status(500).json({ success: false, error: 'SERVER_ERROR' });
+  }
+}

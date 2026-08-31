@@ -4,13 +4,12 @@ import Link from 'next/link';
 import { Input } from '../ui/Input';
 import { PasswordInput } from '../forms/PasswordInput';
 import { SubmitButton } from '../forms/SubmitButton';
-import { FormError } from '../forms/FormError';
 import { Stack } from '../ui/layout/Stack';
 import { useSubmitState } from '../../lib/useSubmitState';
+import { useToast } from '../ui/ToastProvider';
 
 export interface LoginFormProps {
   onSubmit: (data: LoginFormData) => Promise<void>;
-  error?: string | null;
 }
 
 export interface LoginFormData {
@@ -18,52 +17,55 @@ export interface LoginFormData {
   password: string;
 }
 
-export const LoginForm: React.FC<LoginFormProps> = ({ onSubmit, error: externalError }) => {
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+export const LoginForm: React.FC<LoginFormProps> = ({ onSubmit }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const { isSubmitting, error, submit } = useSubmitState();
+  const { isSubmitting, submit } = useSubmitState();
+  const toast = useToast();
 
   const [emailError, setEmailError] = useState<string>('');
   const [passwordError, setPasswordError] = useState<string>('');
 
-  const validateForm = (): boolean => {
-    let isValid = true;
+  const validateForm = (): string | null => {
     setEmailError('');
     setPasswordError('');
 
     if (!email) {
       setEmailError('Email is required');
-      isValid = false;
-    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      setEmailError('Please enter a valid email address');
-      isValid = false;
+      return 'Email is required';
     }
-
+    if (!EMAIL_RE.test(email)) {
+      setEmailError('Please enter a valid email address');
+      return 'Please enter a valid email address';
+    }
     if (!password) {
       setPasswordError('Password is required');
-      isValid = false;
+      return 'Password is required';
     }
 
-    return isValid;
+    return null;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (isSubmitting) return;
-    if (!validateForm()) return;
+
+    const validationError = validateForm();
+    if (validationError) {
+      toast.error(validationError);
+      return;
+    }
 
     await submit(async () => {
       await onSubmit({ email, password });
     });
   };
 
-  const displayError = error || externalError;
-
   return (
     <form onSubmit={handleSubmit} noValidate>
       <Stack spacing="md">
-        {displayError && <FormError message={displayError} />}
-
         <Input
           label="Email address"
           type="email"
