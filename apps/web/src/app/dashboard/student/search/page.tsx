@@ -131,12 +131,12 @@ export default function StudentSearchPage() {
     <div className="mx-auto max-w-6xl">
       <PageHeader
         subtitle="Course Catalog"
-        title="Search Courses"
+        title="Available Courses"
           breadcrumbs={
             <div className="flex items-center gap-2 text-sm">
               <Link href="/dashboard/student" className="text-primary-600 hover:text-primary-700">My Courses</Link>
               <span className="text-neutral-400">/</span>
-              <span className="text-neutral-600">Search Courses</span>
+              <span className="text-neutral-600">Available Courses</span>
             </div>
           }
         />
@@ -144,7 +144,7 @@ export default function StudentSearchPage() {
         <form onSubmit={runSearch} className="mb-8 flex flex-col gap-3 sm:flex-row sm:items-end">
           <div className="flex-1">
             <Input
-              label="Search by title or description"
+              label="Search by title or description (optional)"
               placeholder="e.g. React, JavaScript, data science..."
               value={query}
               onChange={(e) => setQuery(e.target.value)}
@@ -157,28 +157,28 @@ export default function StudentSearchPage() {
 
         {searchError ? (
           <div className="rounded-2xl border border-neutral-200 bg-white shadow-sm">
-            <ErrorState title="Unable to search" message={searchError} />
+            <ErrorState title="Unable to load courses" message={searchError} />
           </div>
         ) : results === null ? (
-          <div className="rounded-2xl border border-neutral-200 bg-white shadow-sm">
-            <EmptyState
-              icon={EmptyStateIcons.NoData}
-              title="Search the catalog"
-              description="Enter a keyword to find published courses. Only courses available in your organization are shown."
-            />
+          <div className="rounded-2xl border border-neutral-200 bg-white p-12 shadow-sm">
+            <div className="flex items-center justify-center gap-3 text-neutral-700">
+              <div className="h-6 w-6 animate-spin rounded-full border-2 border-neutral-200 border-t-primary-600"></div>
+              <span>Loading available courses...</span>
+            </div>
           </div>
         ) : results.length === 0 ? (
           <div className="rounded-2xl border border-neutral-200 bg-white shadow-sm">
             <EmptyState
               icon={EmptyStateIcons.NoData}
-              title="No courses found"
-              description={submittedQuery ? `Nothing matched "${submittedQuery}". Try a different keyword.` : 'No published courses matched your search.'}
+              title="No courses available"
+              description={submittedQuery ? `No courses matched "${submittedQuery}". Try a different keyword or clear the search.` : 'No published courses are currently available in your organization.'}
             />
           </div>
         ) : (
           <>
             <p className="mb-4 text-sm text-neutral-600">
-              {results.length} course{results.length !== 1 ? 's' : ''} found
+              {results.length} course{results.length !== 1 ? 's' : ''} available
+              {submittedQuery && ` matching "${submittedQuery}"`}
             </p>
             <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
               {results.map((course) => (

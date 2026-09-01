@@ -143,9 +143,6 @@ export default function Home() {
                 <FeatureCard
                   key={capability.title}
                   {...capability}
-                  featured={i === 0}
-                  iconClassName={i === 0 ? 'bg-primary-100 text-primary-700' : undefined}
-                  tags={i === 0 ? ['Courses', 'Modules', 'Lessons', 'Progress'] : undefined}
                   className="w-[280px] shrink-0 mr-6 sm:w-[300px] lg:w-[320px]"
                 />
               ))}
@@ -154,9 +151,6 @@ export default function Home() {
                 <FeatureCard
                   key={`dup-${capability.title}`}
                   {...capability}
-                  featured={i === 0}
-                  iconClassName={i === 0 ? 'bg-primary-100 text-primary-700' : undefined}
-                  tags={i === 0 ? ['Courses', 'Modules', 'Lessons', 'Progress'] : undefined}
                   className="w-[280px] shrink-0 mr-6 sm:w-[300px] lg:w-[320px]"
                   ariaHidden
                 />

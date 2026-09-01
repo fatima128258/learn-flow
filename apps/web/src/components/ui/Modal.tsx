@@ -110,11 +110,11 @@ export const Modal: React.FC<ModalProps> = ({
       {/* Modal */}
       <div
         ref={modalRef}
-        className={`relative bg-white rounded-lg shadow-xl ${sizeStyles[size]} w-full animate-slide-up`.trim()}
+        className={`relative bg-white rounded-lg shadow-xl ${sizeStyles[size]} w-full max-h-[90vh] flex flex-col animate-slide-up`.trim()}
       >
         {/* Header */}
         {title && (
-          <div className="flex items-center justify-between p-6 border-b border-neutral-200">
+          <div className="flex items-center justify-between p-6 border-b border-neutral-200 flex-shrink-0">
             <h2 id={titleId} className="text-xl font-semibold text-neutral-900">
               {title}
             </h2>
@@ -132,13 +132,13 @@ export const Modal: React.FC<ModalProps> = ({
         )}
 
         {/* Content */}
-        <div className="p-6">
+        <div className="p-6 overflow-y-auto flex-1">
           {children}
         </div>
 
         {/* Footer */}
         {footer && (
-          <div className="flex items-center justify-end gap-3 p-6 border-t border-neutral-200">
+          <div className="flex items-center justify-end gap-3 p-6 border-t border-neutral-200 flex-shrink-0">
             {footer}
           </div>
         )}

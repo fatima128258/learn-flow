@@ -161,6 +161,24 @@ export default function ModuleLessonsPage() {
     };
   }, [organizationId, courseId, moduleId, toast]);
 
+  async function reloadLessons() {
+    if (!organizationId || !courseId || !moduleId) return;
+    setLoading(true);
+    try {
+      const apiBase = process.env.NEXT_PUBLIC_API_URL || '';
+      const res = await fetch(
+        `${apiBase}/api/v1/organizations/${organizationId}/courses/${courseId}/modules/${moduleId}/lessons`,
+        { credentials: 'include' }
+      );
+      if (res.ok) {
+        const body: ListLessonsResponse = await res.json();
+        setLessons(body.data ?? []);
+      }
+    } finally {
+      setLoading(false);
+    }
+  }
+
   function clearForm() {
     setTitle('');
     setDescription('');
@@ -262,7 +280,7 @@ export default function ModuleLessonsPage() {
 
       toast.success('Lesson created successfully.');
       closeCreateModal();
-      router.refresh();
+      await reloadLessons();
     } catch {
       toast.error(getLessonErrorMessage(null));
     } finally {
@@ -359,7 +377,7 @@ export default function ModuleLessonsPage() {
 
       toast.success('Lesson updated successfully.');
       closeEditModal();
-      router.refresh();
+      await reloadLessons();
     } catch {
       toast.error(getLessonErrorMessage(null));
     } finally {
@@ -393,7 +411,7 @@ export default function ModuleLessonsPage() {
       }
 
       toast.success('Lesson deleted successfully.');
-      router.refresh();
+      await reloadLessons();
     } catch {
       toast.error(getLessonErrorMessage(null));
     }

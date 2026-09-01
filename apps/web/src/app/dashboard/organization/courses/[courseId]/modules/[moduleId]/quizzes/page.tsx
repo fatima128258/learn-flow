@@ -162,6 +162,28 @@ export default function ModuleQuizzesPage() {
     };
   }, [organizationId, courseId, moduleId, toast]);
 
+  // Reload quiz list function
+  async function reloadQuizzes() {
+    if (!organizationId || !courseId || !moduleId) return;
+    
+    setLoading(true);
+    try {
+      const apiBase = process.env.NEXT_PUBLIC_API_URL || '';
+      const res = await fetch(
+        `${apiBase}/api/v1/organizations/${organizationId}/courses/${courseId}/modules/${moduleId}/quizzes`,
+        { credentials: 'include' }
+      );
+      if (res.ok) {
+        const body: ListQuizzesResponse = await res.json();
+        setQuizzes(body.data ?? []);
+      }
+    } catch {
+      // Silently fail, user can manually refresh
+    } finally {
+      setLoading(false);
+    }
+  }
+
   function clearForm() {
     setTitle('');
     setDescription('');
@@ -281,7 +303,7 @@ export default function ModuleQuizzesPage() {
 
       toast.success('Quiz created successfully.');
       closeCreateModal();
-      router.refresh();
+      await reloadQuizzes();
     } catch {
       toast.error(getQuizErrorMessage(null));
     } finally {
@@ -376,7 +398,7 @@ export default function ModuleQuizzesPage() {
 
       toast.success('Quiz updated successfully.');
       closeEditModal();
-      router.refresh();
+      await reloadQuizzes();
     } catch {
       toast.error(getQuizErrorMessage(null));
     } finally {
@@ -410,7 +432,7 @@ export default function ModuleQuizzesPage() {
       }
 
       toast.success('Quiz deleted successfully.');
-      router.refresh();
+      await reloadQuizzes();
     } catch {
       toast.error(getQuizErrorMessage(null));
     }

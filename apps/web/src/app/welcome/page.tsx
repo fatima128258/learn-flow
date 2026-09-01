@@ -87,7 +87,7 @@ function WelcomeContent() {
   }
 
   return (
-    <AuthLayout hideChrome>
+    <AuthLayout>
       <AuthCard
         title="🎉 Account Created Successfully!"
         description="Welcome to LearnFlow – your learning journey starts here."
@@ -133,48 +133,7 @@ function WelcomeContent() {
             </div>
           </div>
 
-          {/* Email verification status */}
-          {!isVerified ? (
-            <div className="space-y-3">
-              <Alert variant="info" title="Verify your email address">
-                <div className="space-y-2">
-                  <p>
-                    We've sent a verification email to <strong>{registeredEmail}</strong>.
-                  </p>
-                  <p className="text-sm">
-                    Please check your inbox and click the verification link to activate full access to your account.
-                  </p>
-                </div>
-              </Alert>
 
-              {resendSuccess && (
-                <Alert variant="success" title="Email sent!">
-                  A new verification email has been sent to your inbox.
-                </Alert>
-              )}
-
-              {resendError && (
-                <Alert variant="error" title="Failed to resend">
-                  {resendError}
-                </Alert>
-              )}
-
-              <div className="flex flex-col gap-2 sm:flex-row">
-                <Button
-                  variant="outline"
-                  onClick={handleResendVerification}
-                  disabled={resending || resendSuccess}
-                  className="flex-1"
-                >
-                  {resending ? 'Sending...' : resendSuccess ? 'Email sent' : 'Resend verification email'}
-                </Button>
-              </div>
-            </div>
-          ) : (
-            <Alert variant="success" title="Email verified">
-              Your email address has been verified. You have full access to your account.
-            </Alert>
-          )}
 
           {/* What happens next */}
           <div className="rounded-lg border border-neutral-200 bg-white p-4">

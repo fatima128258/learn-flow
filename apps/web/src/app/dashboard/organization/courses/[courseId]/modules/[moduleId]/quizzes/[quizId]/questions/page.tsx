@@ -189,6 +189,41 @@ export default function QuizQuestionsPage() {
     };
   }, [organizationId, courseId, moduleId, quizId, toast]);
 
+  async function reloadQuestions() {
+    if (!organizationId || !courseId || !moduleId || !quizId) return;
+    setLoading(true);
+    try {
+      const apiBase = process.env.NEXT_PUBLIC_API_URL || '';
+      const res = await fetch(
+        `${apiBase}/api/v1/organizations/${organizationId}/courses/${courseId}/modules/${moduleId}/quizzes/${quizId}/questions`,
+        { credentials: 'include' }
+      );
+      if (res.ok) {
+        const body: ListQuestionsResponse = await res.json();
+        setQuestions(body.data ?? []);
+      }
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function reloadOptions(questionId: string) {
+    if (!organizationId || !courseId || !moduleId || !quizId) return;
+    try {
+      const apiBase = process.env.NEXT_PUBLIC_API_URL || '';
+      const res = await fetch(
+        `${apiBase}/api/v1/organizations/${organizationId}/courses/${courseId}/modules/${moduleId}/quizzes/${quizId}/questions/${questionId}/options`,
+        { credentials: 'include' }
+      );
+      if (res.ok) {
+        const body: ListOptionsResponse = await res.json();
+        setQuestionOptions((prev) => ({ ...prev, [questionId]: body.data ?? [] }));
+      }
+    } catch {
+      // silent fail
+    }
+  }
+
   function clearForm() {
     setQuestionText('');
     setMarks('');
@@ -323,7 +358,7 @@ export default function QuizQuestionsPage() {
 
       closeCreateModal();
       toast.success('Question created successfully.');
-      router.refresh();
+      await reloadQuestions();
     } catch {
       toast.error(getQuizErrorMessage(null));
     } finally {
@@ -408,7 +443,7 @@ export default function QuizQuestionsPage() {
 
       closeEditModal();
       toast.success('Question updated successfully.');
-      router.refresh();
+      await reloadQuestions();
     } catch {
       toast.error(getQuizErrorMessage(null));
     } finally {
@@ -440,7 +475,7 @@ export default function QuizQuestionsPage() {
 
       toast.success('Question deleted successfully.');
       if (expandedQuestion === questionId) setExpandedQuestion(null);
-      router.refresh();
+      await reloadQuestions();
     } catch {
       toast.error(getQuizErrorMessage(null));
     }
@@ -534,8 +569,7 @@ export default function QuizQuestionsPage() {
 
       closeCreateOptionModal();
       toast.success('Option created successfully.');
-      setQuestionOptions((prev) => ({ ...prev, [optionTargetQuestion]: [] }));
-      router.refresh();
+      await reloadOptions(optionTargetQuestion);
     } catch {
       toast.error(getQuizErrorMessage(null));
     } finally {
@@ -596,8 +630,7 @@ export default function QuizQuestionsPage() {
 
       closeEditOptionModal();
       toast.success('Option updated successfully.');
-      setQuestionOptions((prev) => ({ ...prev, [optionTargetQuestion]: [] }));
-      router.refresh();
+      await reloadOptions(optionTargetQuestion);
     } catch {
       toast.error(getQuizErrorMessage(null));
     } finally {
@@ -628,8 +661,7 @@ export default function QuizQuestionsPage() {
       }
 
       toast.success('Option deleted successfully.');
-      setQuestionOptions((prev) => ({ ...prev, [questionId]: [] }));
-      router.refresh();
+      await reloadOptions(questionId);
     } catch {
       toast.error(getQuizErrorMessage(null));
     }
