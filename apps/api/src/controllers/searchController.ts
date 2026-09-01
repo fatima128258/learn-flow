@@ -32,6 +32,7 @@ export async function searchCourses(req: AuthenticatedRequest, res: Response) {
     }
     const result = await service.searchCourses(
       tenantOrganizationId(req),
+      req.user.id,
       req.query,
     );
     return res.status(200).json({ success: true, data: result.items, meta: result.meta });
