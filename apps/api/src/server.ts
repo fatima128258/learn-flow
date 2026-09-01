@@ -22,7 +22,7 @@ import { startNotificationWorker } from './queues/notificationWorker';
 import { apiRateLimiter } from './middleware/rateLimit';
 import { securityHeaders } from './middleware/security';
 import { csrfOriginCheck } from './middleware/csrf';
-import { isAllowedOrigin } from './config/origins';
+import { isAllowedOrigin, getAllowedOrigins } from './config/origins';
 import { collectHealthReport } from './services/healthService';
 
 export const app = express();
@@ -156,6 +156,10 @@ export const start = (port: number | string = process.env.PORT ?? 4000) => {
   startNotificationWorker();
   return app.listen(p, () => {
     console.log(`API server listening on http://localhost:${p}`);
+    console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
+    const cookieSecure = process.env.NODE_ENV === 'production' || String(process.env.SESSION_COOKIE_SECURE || '').toLowerCase() === 'true';
+    console.log(`Session cookie mode: ${cookieSecure ? 'Secure (SameSite=None)' : 'Insecure (SameSite=Lax, localhost only)'}`);
+    console.log(`CORS allowed origins: ${getAllowedOrigins().join(', ')}`);
   });
 };
 

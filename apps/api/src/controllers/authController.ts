@@ -15,6 +15,9 @@ function isValidPassword(password: string) {
 }
 
 const COOKIE_NAME = process.env.SESSION_COOKIE_NAME || 'learnflow_session';
+// For cross-origin production deployments (e.g., frontend on Vercel, backend on Render),
+// we need SameSite=None; Secure to allow cookies to be sent cross-origin.
+// Auto-enable secure cookies in production OR when explicitly configured.
 const COOKIE_SECURE = process.env.NODE_ENV === 'production' || String(process.env.SESSION_COOKIE_SECURE || '').toLowerCase() === 'true';
 
 function userDto(user: {
@@ -42,6 +45,8 @@ function setSessionCookie(res: Response, token: string, expiresAt: Date) {
     httpOnly: true,
     path: '/',
     maxAge,
+    // SameSite=None is required for cross-origin requests (frontend/backend on different domains).
+    // SameSite=None MUST be paired with Secure=true for browsers to accept the cookie.
     sameSite: COOKIE_SECURE ? 'none' : 'lax',
     secure: COOKIE_SECURE,
     expires: new Date(expiresAt),
