@@ -66,7 +66,14 @@ export const AuthSwitch: React.FC<AuthSwitchProps> = ({ initialMode = 'login' })
       }
 
       setSuccess(true);
-      toast.success('Account created successfully! You can sign in now.');
+      toast.success('Account created successfully!');
+      
+      // Redirect to welcome page with user details
+      const params = new URLSearchParams({
+        email: data.email,
+        name: data.name,
+      });
+      window.location.href = `/welcome?${params.toString()}`;
     } catch {
       toast.error('Unable to create your account. Please try again.');
     }

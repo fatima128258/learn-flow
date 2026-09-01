@@ -59,21 +59,51 @@ export default function DashboardPage() {
   });
 
   useEffect(() => {
+    // Only redirect after auth state is fully resolved (not loading AND we have a definitive answer)
     if (userLoading) return;
-    if (!user || user.role !== 'PLATFORM_ADMIN') {
+    
+    // If user is authenticated but NOT a PLATFORM_ADMIN, redirect to their appropriate dashboard
+    if (user && user.role !== 'PLATFORM_ADMIN') {
       const target =
-        user?.role === 'ORG_ADMIN'
+        user.role === 'ORG_ADMIN'
           ? '/dashboard/organization'
-          : user?.role === 'INSTRUCTOR'
+          : user.role === 'INSTRUCTOR'
             ? '/dashboard/instructor'
-            : user?.role === 'STUDENT'
+            : user.role === 'STUDENT'
               ? '/dashboard/student'
               : '/';
       window.location.href = target;
+      return;
+    }
+    
+    // If auth check completed but no user found, redirect to login
+    if (!userLoading && !user) {
+      window.location.href = '/login';
     }
   }, [user, userLoading]);
 
   const busy = userLoading || summaryLoading;
+
+  // Don't render dashboard content until we confirm user is PLATFORM_ADMIN
+  if (userLoading) {
+    return (
+      <div className="mx-auto max-w-6xl">
+        <PageHeader title="Platform Overview" />
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
+          <StatCardSkeleton />
+          <StatCardSkeleton />
+          <StatCardSkeleton />
+          <StatCardSkeleton />
+          <StatCardSkeleton />
+        </div>
+      </div>
+    );
+  }
+
+  // If auth resolved but user is not PLATFORM_ADMIN, show nothing (redirect will happen in useEffect)
+  if (!user || user.role !== 'PLATFORM_ADMIN') {
+    return null;
+  }
 
   // Prepare chart data
   const chartData: LineChartDatum[] = summary?.organizationsThisMonth
