@@ -20,9 +20,15 @@ const PASSWORD_RESET_TTL = 60 * 60; // 1 hour
 async function enforceRateLimit({ ip, keyPrefix, maxAttempts, windowSeconds }: { ip: string; keyPrefix: string; maxAttempts: number; windowSeconds: number }) {
   const redis = getRedis();
   const key = `rl:${keyPrefix}:ip:${ip}`;
-  const attempts = await redis.incr(key);
-  if (attempts === 1) await redis.expire(key, windowSeconds);
-  if (attempts > maxAttempts) throw new Error('TOO_MANY_ATTEMPTS');
+  try {
+    const attempts = await redis.incr(key);
+    if (attempts === 1) await redis.expire(key, windowSeconds);
+    if (attempts > maxAttempts) throw new Error('TOO_MANY_ATTEMPTS');
+  } catch (err) {
+    if (err instanceof Error && err.message === 'TOO_MANY_ATTEMPTS') throw err;
+    // Fail open: if Redis is unreachable, allow the request through
+    console.warn(`[enforceRateLimit] Redis error, failing open: ${err instanceof Error ? err.message : err}`);
+  }
 }
 
 export async function getUserById(userId: string) {
