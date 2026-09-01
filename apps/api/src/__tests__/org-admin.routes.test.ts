@@ -155,6 +155,11 @@ describe('Organization Admin APIs', () => {
     it('allows an organization admin to view the dashboard for their tenant', async () => {
       await authenticateAs('ORG_ADMIN', { userId: 'org-a-admin', organizationId: 'org-a' });
       prismaMock.organization.findUnique.mockResolvedValue(orgRecord());
+      prismaMock.userOrganization.findUnique.mockResolvedValue({
+        userId: 'org-a-admin',
+        organizationId: 'org-a', 
+        role: 'ORG_ADMIN'
+      });
       prismaMock.userOrganization.count
         .mockResolvedValueOnce(6)
         .mockResolvedValueOnce(2)
@@ -177,6 +182,47 @@ describe('Organization Admin APIs', () => {
       expect(prismaMock.organization.findUnique).toHaveBeenCalledWith(expect.objectContaining({
         where: { id: 'org-a' },
       }));
+    });
+
+    it('allows organization admin to access dashboard without explicit organization ID (regression test)', async () => {
+      await authenticateAs('ORG_ADMIN', { userId: 'org-admin', organizationId: 'org-a' });
+      prismaMock.organization.findUnique.mockResolvedValue(orgRecord({ id: 'org-a' }));
+      prismaMock.userOrganization.findUnique.mockResolvedValue({
+        userId: 'org-admin',
+        organizationId: 'org-a',
+        role: 'ORG_ADMIN'
+      });
+      prismaMock.userOrganization.count
+        .mockResolvedValueOnce(5)
+        .mockResolvedValueOnce(2)  
+        .mockResolvedValueOnce(2)
+        .mockResolvedValueOnce(1);
+
+      // Test the bug scenario: organization admin accesses dashboard without X-Organization-Id header
+      // This should use the session organization context (org-a) not fail with ORGANIZATION_ACCESS_DENIED
+      const res = await request(app)
+        .get('/api/v1/org/dashboard')
+        .set('Cookie', cookie());
+        // NOTE: No X-Organization-Id header - should default to session organizationId
+
+      expect(res.status).toBe(200);
+      expect(res.body.data.organization.id).toBe('org-a');
+      expect(res.body.data.users.total).toBe(5);
+      
+      // Verify the middleware used session organizationId (org-a) for validation
+      expect(prismaMock.organization.findUnique).toHaveBeenCalledWith(
+        expect.objectContaining({ where: { id: 'org-a' } })
+      );
+      expect(prismaMock.userOrganization.findUnique).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: {
+            userId_organizationId: {
+              userId: 'org-admin',
+              organizationId: 'org-a'
+            }
+          }
+        })
+      );
     });
 
     it('keeps platform admin APIs separate from organization admin APIs', async () => {

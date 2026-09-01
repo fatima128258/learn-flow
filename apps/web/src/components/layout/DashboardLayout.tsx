@@ -219,7 +219,10 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
   useEffect(() => {
     try {
       const stored = localStorage.getItem(STORAGE_KEY);
-      if (stored === 'true') setCollapsed(true);
+      if (stored === 'true') {
+        // Use a timeout to avoid synchronous setState in effect
+        setTimeout(() => setCollapsed(true), 0);
+      }
     } catch {
       // localStorage not available — ignore
     }

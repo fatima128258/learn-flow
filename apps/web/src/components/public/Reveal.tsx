@@ -19,6 +19,8 @@ export const Reveal: React.FC<RevealProps> = ({
   const ref = useRef<HTMLDivElement>(null);
   const [visible, setVisible] = useState(false);
 
+  const safetyRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+
   useEffect(() => {
     const el = ref.current;
     if (!el) return;
@@ -40,13 +42,13 @@ export const Reveal: React.FC<RevealProps> = ({
       return;
     }
 
-    let safety: ReturnType<typeof setTimeout> | undefined;
+    const safetyRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
     const observer = new IntersectionObserver(
       ([entry]) => {
         if (entry.isIntersecting) {
           reveal();
           observer.disconnect();
-          if (safety) clearTimeout(safety);
+          if (safetyRef.current) clearTimeout(safetyRef.current);
         }
       },
       { threshold: 0.12, rootMargin: '0px 0px -40px 0px' }
@@ -56,11 +58,11 @@ export const Reveal: React.FC<RevealProps> = ({
 
     // If the element is already on screen at mount, the observer fires on the
     // next frame; this timeout is only a last-resort guarantee.
-    safety = setTimeout(reveal, 2500);
+    safetyRef.current = setTimeout(reveal, 2500);
 
     return () => {
       observer.disconnect();
-      if (safety) clearTimeout(safety);
+      if (safetyRef.current) clearTimeout(safetyRef.current);
     };
   }, []);
 

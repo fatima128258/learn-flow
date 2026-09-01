@@ -53,13 +53,30 @@ export async function requireAuth(req: AuthenticatedRequest, res: Response, next
     }
 
     req.userId = user.id;
-    const userOrganizations: Array<{ role?: string; organizationId?: string }> = await getPrisma().userOrganization.findMany({
+    
+    // Get user's organization memberships with organization details
+    const prisma = getPrisma();
+    const userOrganizations = await prisma.userOrganization.findMany({
       where: { userId: user.id },
+      include: {
+        organization: true,
+      },
     });
-    const primaryMembership = userOrganizations.find((membership: { role?: string; organizationId?: string }) => membership.role === 'PLATFORM_ADMIN')
-      ?? userOrganizations.find((membership: { role?: string; organizationId?: string }) => membership.role === 'ORG_ADMIN')
-      ?? userOrganizations.find((membership: { role?: string; organizationId?: string }) => membership.role === 'INSTRUCTOR')
-      ?? userOrganizations[0];
+    
+    // Filter out platform organizations for non-platform-admin users
+    const validMemberships = userOrganizations.filter((membership) => {
+      // Platform admins can have platform organization as their context
+      if (membership.role === 'PLATFORM_ADMIN') {
+        return true;
+      }
+      // Non-platform-admin users should not have platform organization as their context
+      return membership.organization.slug !== 'platform';
+    });
+    
+    const primaryMembership = validMemberships.find((membership) => membership.role === 'PLATFORM_ADMIN')
+      ?? validMemberships.find((membership) => membership.role === 'ORG_ADMIN')
+      ?? validMemberships.find((membership) => membership.role === 'INSTRUCTOR')
+      ?? validMemberships[0];
 
     req.user = {
       id: user.id,
@@ -98,7 +115,10 @@ export async function requireOrganizationContext(req: AuthenticatedRequest, res:
     const rawOrgId = req.params.organizationId || req.headers['x-organization-id'] || req.query.organizationId || req.body?.organizationId;
     const orgId = Array.isArray(rawOrgId) ? rawOrgId[0] : rawOrgId;
 
-    if (!orgId || typeof orgId !== 'string') {
+    // If no organization ID provided in request, use the user's organization ID from session
+    const finalOrgId = orgId && typeof orgId === 'string' ? orgId : req.user.organizationId;
+    
+    if (!finalOrgId || typeof finalOrgId !== 'string') {
       return res.status(400).json({ success: false, error: 'ORGANIZATION_REQUIRED' });
     }
 
@@ -112,15 +132,15 @@ export async function requireOrganizationContext(req: AuthenticatedRequest, res:
 
     if (platformAdminMembership) {
       const organization = await prisma.organization.findUnique({
-        where: { id: orgId },
+        where: { id: finalOrgId },
       });
 
       if (!organization) {
         return res.status(404).json({ success: false, error: 'ORGANIZATION_NOT_FOUND' });
       }
 
-      req.organizationId = orgId;
-      req.user.organizationId = orgId;
+      req.organizationId = finalOrgId;
+      req.user.organizationId = finalOrgId;
       req.user.role = 'PLATFORM_ADMIN';
       return next();
     }
@@ -129,7 +149,7 @@ export async function requireOrganizationContext(req: AuthenticatedRequest, res:
       where: {
         userId_organizationId: {
           userId: req.user.id,
-          organizationId: orgId,
+          organizationId: finalOrgId,
         },
       },
     });
@@ -138,8 +158,8 @@ export async function requireOrganizationContext(req: AuthenticatedRequest, res:
       return res.status(403).json({ success: false, error: 'ORGANIZATION_ACCESS_DENIED' });
     }
 
-    req.organizationId = orgId;
-    req.user.organizationId = orgId;
+    req.organizationId = finalOrgId;
+    req.user.organizationId = finalOrgId;
     req.user.role = userOrg.role;
 
     next();
@@ -202,7 +222,10 @@ export async function requireOrgAdmin(req: AuthenticatedRequest, res: Response, 
     const rawOrgId = req.headers['x-organization-id'] || req.query.organizationId || req.params.organizationId || req.body?.organizationId;
     const orgId = Array.isArray(rawOrgId) ? rawOrgId[0] : rawOrgId;
 
-    if (!orgId || typeof orgId !== 'string') {
+    // If no organization ID provided in request, use the user's organization ID from session
+    const finalOrgId = orgId && typeof orgId === 'string' ? orgId : req.user.organizationId;
+    
+    if (!finalOrgId || typeof finalOrgId !== 'string') {
       return res.status(400).json({ success: false, error: 'ORGANIZATION_REQUIRED' });
     }
 
@@ -216,7 +239,7 @@ export async function requireOrgAdmin(req: AuthenticatedRequest, res: Response, 
 
     if (platformAdminMembership) {
       const organization = await prisma.organization.findUnique({
-        where: { id: orgId },
+        where: { id: finalOrgId },
       });
 
       if (!organization) {
@@ -224,8 +247,8 @@ export async function requireOrgAdmin(req: AuthenticatedRequest, res: Response, 
       }
 
       req.user.role = 'PLATFORM_ADMIN';
-      req.user.organizationId = orgId;
-      req.organizationId = orgId;
+      req.user.organizationId = finalOrgId;
+      req.organizationId = finalOrgId;
       return next();
     }
 
@@ -234,7 +257,7 @@ export async function requireOrgAdmin(req: AuthenticatedRequest, res: Response, 
       where: {
         userId_organizationId: {
           userId: req.user.id,
-          organizationId: orgId,
+          organizationId: finalOrgId,
         },
       },
     });
@@ -244,8 +267,8 @@ export async function requireOrgAdmin(req: AuthenticatedRequest, res: Response, 
     }
 
     req.user.role = 'ORG_ADMIN';
-    req.user.organizationId = orgId;
-    req.organizationId = orgId;
+    req.user.organizationId = finalOrgId;
+    req.organizationId = finalOrgId;
 
     next();
   } catch {

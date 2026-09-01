@@ -63,6 +63,7 @@ type MeResponse = {
     name?: string | null;
     email?: string;
     role?: string | null;
+    organizationId?: string | null;
   };
 };
 
@@ -102,7 +103,7 @@ export default function OrganizationDashboardPage() {
   const searchParams = useSearchParams();
   const orgId = searchParams.get('organization');
 
-  const [user, setUser] = useState<{ name?: string | null; email?: string } | null>(null);
+  const [user, setUser] = useState<{ name?: string | null; email?: string; organizationId?: string | null } | null>(null);
   const [summary, setSummary] = useState<DashboardSummary | null>(null);
   const [courseCount, setCourseCount] = useState<number | null>(null);
   const [members, setMembers] = useState<MemberItem[] | null>(null);
@@ -120,7 +121,9 @@ export default function OrganizationDashboardPage() {
   const [instructorPasswordError, setInstructorPasswordError] = useState<string>('');
   const [creatingInstructor, setCreatingInstructor] = useState(false);
 
-  const orgHeaders: Record<string, string> = orgId ? { 'X-Organization-Id': orgId } : {};
+  // Use organization ID from URL parameter (platform admin) or from user context (org admin)
+  const effectiveOrgId = orgId || user?.organizationId;
+  const orgHeaders: Record<string, string> = effectiveOrgId ? { 'X-Organization-Id': effectiveOrgId } : {};
 
   async function load() {
     setError(null);
@@ -135,10 +138,10 @@ export default function OrganizationDashboardPage() {
       ]);
 
       let courseCountValue: number | null = null;
-      if (orgId) {
+      if (effectiveOrgId) {
         try {
           const coursesRes = await fetch(
-            `${apiBase}/api/v1/organizations/${orgId}/courses`,
+            `${apiBase}/api/v1/organizations/${effectiveOrgId}/courses`,
             { credentials: 'include' }
           );
           if (coursesRes.ok) {
@@ -299,6 +302,7 @@ export default function OrganizationDashboardPage() {
         setUser({
           name: meData.user?.name ?? 'Organization Admin',
           email: meData.user?.email ?? '',
+          organizationId: meData.user?.organizationId ?? null,
         });
         await load();
       } catch {
