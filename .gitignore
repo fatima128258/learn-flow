@@ -149,3 +149,28 @@ temp/
 *.njsproj
 *.sln
 *.sw?
+
+# Temporary documentation and test files
+*.md
+!README.md
+!.github/**/*.md
+!docs/**/*.md
+.env.example
+
+# Temporary scripts and utilities
+*.bat
+*.sh
+*.sql
+*.py
+temp*.js
+temp*.ps1
+check_*.js
+start*.js
+start*.bat
+run.bat
+rebuild*.bat
+test-*.js
+runtime-*.js
+runtime-*.py
+cookies.txt
+0

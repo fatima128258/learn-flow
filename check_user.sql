@@ -1,1 +1,0 @@
-SELECT email, "emailVerified", name FROM "User" WHERE email = 'admin@gmail.com';
