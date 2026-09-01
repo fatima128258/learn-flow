@@ -64,5 +64,16 @@ export interface Order {
   createdAt: string;
 }
 
+export interface Enrollment {
+  id: string;
+  userId: string;
+  courseId: string;
+  organizationId: string;
+  status: string;
+  enrolledAt: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export const currency = (amount: number): string =>
   new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(amount);

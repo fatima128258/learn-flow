@@ -352,7 +352,7 @@ export default function CourseModulesPage() {
       <div className="mx-auto max-w-5xl">
         <div className="mb-4 flex items-center justify-between">
           <p className="text-sm font-medium uppercase tracking-wide text-primary-600">Course Modules</p>
-          <LinkButton href={`/dashboard/organization/courses/${courseId}`} variant="ghost" size="sm">
+          <LinkButton href={`/dashboard/organization/courses/${courseId}${organizationId ? `?organization=${organizationId}` : ''}`} variant="ghost" size="sm">
             Back to Course
           </LinkButton>
         </div>
@@ -412,8 +412,8 @@ export default function CourseModulesPage() {
                         <td className="px-6 py-4 text-sm text-neutral-700 max-w-md truncate">{module.description ?? '—'}</td>
                         <td className="px-6 py-4">
                           <div className="flex items-center gap-2">
-                            <Link href={`/dashboard/organization/courses/${courseId}/modules/${module.id}/lessons`} className="inline-flex items-center rounded-md px-3 py-1.5 text-sm font-medium text-primary-600 hover:text-primary-700 hover:bg-primary-50 transition-colors">Lessons</Link>
-                            <Link href={`/dashboard/organization/courses/${courseId}/modules/${module.id}/quizzes`} className="inline-flex items-center rounded-md px-3 py-1.5 text-sm font-medium text-primary-600 hover:text-primary-700 hover:bg-primary-50 transition-colors">Quizzes</Link>
+                            <Link href={`/dashboard/organization/courses/${courseId}/modules/${module.id}/lessons${organizationId ? `?organization=${organizationId}` : ''}`} className="inline-flex items-center rounded-md px-3 py-1.5 text-sm font-medium text-primary-600 hover:text-primary-700 hover:bg-primary-50 transition-colors">Lessons</Link>
+                            <Link href={`/dashboard/organization/courses/${courseId}/modules/${module.id}/quizzes${organizationId ? `?organization=${organizationId}` : ''}`} className="inline-flex items-center rounded-md px-3 py-1.5 text-sm font-medium text-primary-600 hover:text-primary-700 hover:bg-primary-50 transition-colors">Quizzes</Link>
                             <Button variant="ghost" size="sm" onClick={() => openEditModal(module)}>Edit</Button>
                             <Button variant="danger" size="sm" onClick={() => handleDelete(module.id)}>Delete</Button>
                           </div>
@@ -435,8 +435,8 @@ export default function CourseModulesPage() {
                       <p className="mt-1 text-sm text-neutral-500">{module.description}</p>
                     )}
                     <div className="mt-3 flex flex-wrap items-center gap-2 border-t border-neutral-100 pt-3">
-                      <Link href={`/dashboard/organization/courses/${courseId}/modules/${module.id}/lessons`} className="inline-flex items-center rounded-lg px-3 py-1.5 text-sm font-medium text-primary-600 hover:bg-primary-50 transition-colors">Lessons</Link>
-                      <Link href={`/dashboard/organization/courses/${courseId}/modules/${module.id}/quizzes`} className="inline-flex items-center rounded-lg px-3 py-1.5 text-sm font-medium text-primary-600 hover:bg-primary-50 transition-colors">Quizzes</Link>
+                      <Link href={`/dashboard/organization/courses/${courseId}/modules/${module.id}/lessons${organizationId ? `?organization=${organizationId}` : ''}`} className="inline-flex items-center rounded-lg px-3 py-1.5 text-sm font-medium text-primary-600 hover:bg-primary-50 transition-colors">Lessons</Link>
+                      <Link href={`/dashboard/organization/courses/${courseId}/modules/${module.id}/quizzes${organizationId ? `?organization=${organizationId}` : ''}`} className="inline-flex items-center rounded-lg px-3 py-1.5 text-sm font-medium text-primary-600 hover:bg-primary-50 transition-colors">Quizzes</Link>
                       <Button variant="ghost" size="sm" onClick={() => openEditModal(module)}>Edit</Button>
                       <Button variant="danger" size="sm" onClick={() => handleDelete(module.id)}>Delete</Button>
                     </div>

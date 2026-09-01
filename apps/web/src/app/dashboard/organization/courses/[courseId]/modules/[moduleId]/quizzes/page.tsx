@@ -432,7 +432,7 @@ export default function ModuleQuizzesPage() {
       <div className="mx-auto max-w-5xl">
         <div className="mb-4 flex items-center justify-between">
           <p className="text-sm font-medium uppercase tracking-wide text-primary-600">Module Quizzes</p>
-          <LinkButton href={`/dashboard/organization/courses/${courseId}/modules`} variant="ghost" size="sm">
+          <LinkButton href={`/dashboard/organization/courses/${courseId}/modules${organizationId ? `?organization=${organizationId}` : ''}`} variant="ghost" size="sm">
             Back to Modules
           </LinkButton>
         </div>

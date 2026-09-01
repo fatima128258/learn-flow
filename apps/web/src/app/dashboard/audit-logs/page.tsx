@@ -10,8 +10,12 @@ export default function PlatformAuditLogsPage() {
 
   useEffect(() => {
     if (userLoading) return;
-    if (!user || user.role !== 'PLATFORM_ADMIN') {
-      window.location.href = '/dashboard/organization';
+    if (!user) {
+      window.location.href = '/login';
+      return;
+    }
+    if (user.role !== 'PLATFORM_ADMIN') {
+      window.location.href = '/login';
     }
   }, [user, userLoading]);
 

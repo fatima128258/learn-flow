@@ -652,7 +652,7 @@ export default function QuizQuestionsPage() {
         <div className="mb-4 flex items-center justify-between">
           <p className="text-sm font-medium uppercase tracking-wide text-primary-600">Quiz Questions</p>
           <LinkButton
-            href={`/dashboard/organization/courses/${courseId}/modules/${moduleId}/quizzes`}
+            href={`/dashboard/organization/courses/${courseId}/modules/${moduleId}/quizzes${organizationId ? `?organization=${organizationId}` : ''}`}
             variant="ghost"
             size="sm"
           >

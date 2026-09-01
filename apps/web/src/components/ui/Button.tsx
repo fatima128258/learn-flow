@@ -8,6 +8,7 @@ export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElemen
   variant?: ButtonVariant;
   size?: ButtonSize;
   loading?: boolean;
+  loadingText?: string;
   fullWidth?: boolean;
   children: React.ReactNode;
 }
@@ -32,6 +33,7 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
       variant = 'primary',
       size = 'md',
       loading = false,
+      loadingText,
       fullWidth = false,
       disabled,
       className = '',
@@ -51,7 +53,7 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
         {...rest}
       >
         {loading && <ButtonSpinner />}
-        {children}
+        {loading && loadingText ? loadingText : children}
       </button>
     );
   }

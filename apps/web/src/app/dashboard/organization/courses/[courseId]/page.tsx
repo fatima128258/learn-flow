@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
-import { Alert, Badge, Spinner } from '../../../../../components/ui';
+import { Alert, Spinner } from '../../../../../components/ui';
 import { LinkButton } from '../../../../../components/ui/LinkButton';
 import { getCreateCourseErrorMessage } from '../../../../../features/course/createCourseErrors';
 import { useToast } from '../../../../../components/ui/ToastProvider';
@@ -39,13 +39,6 @@ type GetCourseResponse = {
   data?: CourseDetail;
   error?: string;
 };
-
-function statusBadgeVariant(status: string) {
-  if (status === 'PUBLISHED') return 'success' as const;
-  if (status === 'REVIEW') return 'warning' as const;
-  if (status === 'ARCHIVED') return 'error' as const;
-  return 'default' as const;
-}
 
 const STATUS_OPTIONS = [
   { value: 'DRAFT', label: 'Draft' },
@@ -205,7 +198,7 @@ export default function CourseDetailPage() {
       <div className="mx-auto max-w-3xl">
         <div className="mb-4 flex items-center justify-between">
           <p className="text-sm font-medium uppercase tracking-wide text-primary-600">Course Details</p>
-          <LinkButton href="/dashboard/organization/courses" variant="ghost" size="sm">
+          <LinkButton href={`/dashboard/organization/courses${organizationId ? `?organization=${organizationId}` : ''}`} variant="ghost" size="sm">
             Back to My Courses
           </LinkButton>
         </div>
@@ -236,8 +229,11 @@ export default function CourseDetailPage() {
                       </option>
                     ))}
                   </select>
-                  <LinkButton href={`/dashboard/organization/courses/${courseId}/modules`} size="sm" variant="primary">
+                  <LinkButton href={`/dashboard/organization/courses/${courseId}/modules${organizationId ? `?organization=${organizationId}` : ''}`} size="sm" variant="primary">
                     Manage Modules
+                  </LinkButton>
+                  <LinkButton href={`/dashboard/organization/courses/${courseId}/edit${organizationId ? `?organization=${organizationId}` : ''}`} size="sm" variant="secondary">
+                    Edit
                   </LinkButton>
                 </div>
               </div>

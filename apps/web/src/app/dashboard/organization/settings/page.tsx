@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { Suspense, useEffect, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { Badge, Card, ErrorState, Skeleton } from '@/components/ui';
 import { useCurrentUser } from '@/features/auth/useCurrentUser';
@@ -19,7 +19,7 @@ type OrganizationInfo = {
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || '';
 
-export default function OrgSettingsPage() {
+function OrgSettingsContent() {
   const { data: user, isLoading: userLoading } = useCurrentUser();
   const searchParams = useSearchParams();
   const orgId = searchParams.get('organization');
@@ -140,5 +140,24 @@ export default function OrgSettingsPage() {
           </>
         ) : null}
     </div>
+  );
+}
+
+function SettingsLoadingFallback() {
+  return (
+    <div className="mx-auto max-w-4xl">
+      <div className="space-y-4">
+        <Skeleton variant="text" height={24} width={200} />
+        <Skeleton variant="text" height={24} width={320} />
+      </div>
+    </div>
+  );
+}
+
+export default function OrgSettingsPage() {
+  return (
+    <Suspense fallback={<SettingsLoadingFallback />}>
+      <OrgSettingsContent />
+    </Suspense>
   );
 }

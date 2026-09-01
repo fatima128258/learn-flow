@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useMemo } from 'react';
+import React, { Suspense, useMemo } from 'react';
 import { usePathname, useSearchParams } from 'next/navigation';
 import { DashboardLayout, type NavItem } from './DashboardLayout';
 import { platformAdminNav } from '@/features/platformAdmin/nav';
@@ -24,11 +24,6 @@ function withOrgContext(items: NavItem[], orgId: string | null): NavItem[] {
   });
 }
 
-/**
- * Picks the sidebar navigation (label + items) for the current dashboard route.
- * Selection is driven primarily by the pathname so the shell renders immediately
- * without waiting on any async role lookup (no navigation flash).
- */
 function resolveNav(
   pathname: string,
   role: string | null | undefined,
@@ -60,7 +55,7 @@ function resolveNav(
   return { navLabel: 'Platform Admin', items: platformAdminNav };
 }
 
-export const DashboardShell: React.FC<DashboardShellProps> = ({ children }) => {
+function DashboardShellInner({ children }: DashboardShellProps) {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const orgId = searchParams.get('organization');
@@ -75,6 +70,14 @@ export const DashboardShell: React.FC<DashboardShellProps> = ({ children }) => {
     <DashboardLayout navLabel={navLabel} items={items}>
       {children}
     </DashboardLayout>
+  );
+}
+
+export const DashboardShell: React.FC<DashboardShellProps> = ({ children }) => {
+  return (
+    <Suspense>
+      <DashboardShellInner>{children}</DashboardShellInner>
+    </Suspense>
   );
 };
 

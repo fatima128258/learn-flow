@@ -88,12 +88,12 @@ services:
 
   web:
     build:
-      context: ./apps/web
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: apps/web/Dockerfile
     ports:
       - "3000:3000"
     environment:
-      NODE_ENV: development
+      NODE_ENV: production
       NEXT_PUBLIC_API_URL: http://api:4000
     depends_on:
       - api
@@ -106,14 +106,20 @@ services:
       - ./apps/api:/workspace
     environment:
       DATABASE_URL: postgresql://learnflow:learnflow_pass@db:5432/learnflow_db?schema=public
+      REDIS_URL: redis://redis:6379
       ADMIN_EMAIL: ${ADMIN_EMAIL}
       ADMIN_PASSWORD: ${ADMIN_PASSWORD}
+      NODE_ENV: production
     depends_on:
       db:
         condition: service_healthy
-    command: sh -c "npm ci && npx prisma migrate deploy && node prisma/seed.js"
+      redis:
+        condition: service_healthy
+    command: sh -c "npm install && npx prisma migrate deploy && node prisma/seed.js"
     profiles:
       - setup
+    networks:
+      - default
 
 volumes:
   pgdata:

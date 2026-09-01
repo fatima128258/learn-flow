@@ -68,6 +68,10 @@ export async function patchJson<T>(path: string, body: unknown): Promise<T> {
   });
 }
 
+export async function deleteJson<T>(path: string): Promise<T> {
+  return apiRequest<T>(path, { method: 'DELETE' });
+}
+
 export async function logout(): Promise<void> {
   try {
     await apiRequest('/api/v1/auth/logout', { method: 'POST' });
