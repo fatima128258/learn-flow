@@ -42,7 +42,7 @@ function setSessionCookie(res: Response, token: string, expiresAt: Date) {
     httpOnly: true,
     path: '/',
     maxAge,
-    sameSite: 'lax',
+    sameSite: COOKIE_SECURE ? 'none' : 'lax',
     secure: COOKIE_SECURE,
     expires: new Date(expiresAt),
   });
@@ -90,11 +90,11 @@ export async function logout(req: Request, res: Response) {
   try {
     const token = req.cookies?.[COOKIE_NAME] || null;
     if (!token) {
-      res.clearCookie(COOKIE_NAME, { path: '/', sameSite: 'lax', secure: COOKIE_SECURE });
+      res.clearCookie(COOKIE_NAME, { path: '/', sameSite: COOKIE_SECURE ? 'none' : 'lax', secure: COOKIE_SECURE });
       return res.json({ ok: true });
     }
     await service.logoutSessionByToken(token);
-    res.clearCookie(COOKIE_NAME, { path: '/', sameSite: 'lax', secure: COOKIE_SECURE });
+    res.clearCookie(COOKIE_NAME, { path: '/', sameSite: COOKIE_SECURE ? 'none' : 'lax', secure: COOKIE_SECURE });
     return res.json({ ok: true });
   } catch {
     return res.status(500).json({ ok: false });
