@@ -44,7 +44,7 @@ export async function findSessionByTokenHash(tokenHash: string) {
 }
 
 export async function revokeSessionByTokenHash(tokenHash: string) {
-  return prisma().session.updateMany({ where: { tokenHash }, data: { revoked: true } });
+  return prisma().session.update({ where: { tokenHash }, data: { revoked: true } });
 }
 
 export async function revokeSessionById(id: string) {

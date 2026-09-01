@@ -8,19 +8,18 @@ import { getPostLoginRedirect } from '../../features/auth/postLoginRedirect';
 export default function RegisterPage() {
   const { data: user, isLoading } = useCurrentUser();
 
-  // If already authenticated, redirect to appropriate dashboard
-  // But don't interfere with the registration flow - user might be on the welcome page
+  // Only redirect if user is FULLY PROVISIONED (has role and organizationId)
+  // Allow unprovisioned users to stay on register page (they can create more accounts if needed)
+  // Allow unauthenticated users to stay on register page (normal signup flow)
   useEffect(() => {
     if (isLoading) return;
-    if (user) {
-      // Check if we're navigating back to /register after successful registration
-      // In that case, redirect to the welcome page instead
+    if (user?.role && user?.organizationId) {
       window.location.href = getPostLoginRedirect(user);
     }
   }, [user, isLoading]);
 
   // While checking auth, render nothing to avoid a flash of the register form
-  if (isLoading || user) return null;
+  if (isLoading) return null;
 
   return (
     <AuthLayout hideChrome>

@@ -281,8 +281,8 @@ export async function createManagedUser(organizationId: string, input: {
   if (createdNew) {
     await dispatchNotification({
       type: 'WELCOME',
-      title: `Welcome to ${organization.name}`,
-      body: `Your LearnFlow account is ready in ${organization.name}.`,
+      title: `🎉 Welcome, ${user.name || 'Student'}!`,
+      body: `Your learning journey begins now! Explore courses, complete lessons, and unlock certificates. Let's achieve great things together! 🚀`,
       data: { organizationName: organization.name },
       userId: user.id,
       organizationId,

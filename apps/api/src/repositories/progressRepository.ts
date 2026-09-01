@@ -83,11 +83,18 @@ export async function upsertCourseProgressLastVisited(data: UpsertCourseProgress
 }
 
 export async function markCourseCompleted(userId: string, courseId: string, completed: boolean) {
-  return prisma().courseProgress.update({
+  return prisma().courseProgress.upsert({
     where: {
       userId_courseId: { userId, courseId },
     },
-    data: {
+    update: {
+      completed,
+      completedAt: completed ? new Date() : null,
+    },
+    create: {
+      userId,
+      courseId,
+      organizationId: '', // Will be updated by next upsert
       completed,
       completedAt: completed ? new Date() : null,
     },

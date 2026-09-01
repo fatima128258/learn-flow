@@ -78,7 +78,7 @@ function WelcomeContent() {
   if (userLoading && !registeredEmail) {
     // Only show loading if we don't have query params to fall back on
     return (
-      <AuthLayout>
+      <AuthLayout hideChrome>
         <AuthCard title="Welcome" description="Loading your account details...">
           <PageLoader label="Loading..." compact />
         </AuthCard>
@@ -87,7 +87,7 @@ function WelcomeContent() {
   }
 
   return (
-    <AuthLayout>
+    <AuthLayout hideChrome>
       <AuthCard
         title="🎉 Account Created Successfully!"
         description="Welcome to LearnFlow – your learning journey starts here."
@@ -209,6 +209,34 @@ function WelcomeContent() {
                 ? 'Continue to Home'
                 : 'Sign in to Continue'}
           </SubmitButton>
+
+          {/* Additional Navigation Options */}
+          <div className="border-t border-neutral-200 pt-4">
+            <p className="mb-3 text-center text-sm text-neutral-600">Other options:</p>
+            <div className="flex flex-col gap-2 sm:flex-row">
+              <Button
+                variant="secondary"
+                className="flex-1"
+                onClick={() => (window.location.href = '/')}
+              >
+                Back to Home
+              </Button>
+              <Button
+                variant="secondary"
+                className="flex-1"
+                onClick={() => (window.location.href = '/login')}
+              >
+                Sign In
+              </Button>
+              <Button
+                variant="secondary"
+                className="flex-1"
+                onClick={() => (window.location.href = '/register')}
+              >
+                Create Account
+              </Button>
+            </div>
+          </div>
         </Stack>
       </AuthCard>
     </AuthLayout>
@@ -219,7 +247,7 @@ export default function WelcomePage() {
   return (
     <Suspense
       fallback={
-        <AuthLayout>
+        <AuthLayout hideChrome>
           <AuthCard title="Welcome" description="Loading...">
             <PageLoader label="Loading..." compact />
           </AuthCard>

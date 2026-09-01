@@ -4,13 +4,11 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import {
   Badge,
-  Button,
   EmptyState,
   EmptyStateIcons,
   ErrorState,
   Spinner,
 } from '@/components/ui';
-import { PageHeader, StatCard, Calendar } from '@/components/dashboard';
 
 type MeResponse = {
   user?: {
@@ -195,22 +193,6 @@ export default function StudentDashboardPage() {
 
   return (
     <div className="mx-auto max-w-6xl">
-      <PageHeader
-        title={`Welcome back${user?.name ? `, ${user.name}` : ''}`}
-        actions={
-          <>
-            <Link href="/courses">
-              <Button size="sm" variant="outline">Browse Courses</Button>
-            </Link>
-            <Link href="/dashboard/student/search">
-              <Button size="sm" variant="primary">Search &amp; Enroll</Button>
-            </Link>
-            <Link href="/dashboard/student/notifications">
-              <Button size="sm" variant="outline">Notifications</Button>
-            </Link>
-          </>
-        }
-      />
 
       {error ? (
         <div className="rounded-2xl border border-neutral-200 bg-white shadow-sm">
@@ -225,83 +207,15 @@ export default function StudentDashboardPage() {
           <EmptyState
             icon={EmptyStateIcons.NoCourses}
             title="No enrolled courses yet"
-            description="Browse the course catalog and enroll in courses to start learning."
+            description="Search for courses in the catalog and enroll to start learning."
             action={{
-              label: 'Browse Courses',
-              onClick: () => { window.location.href = '/courses'; },
+              label: 'Search Courses',
+              onClick: () => { window.location.href = '/dashboard/student/search'; },
             }}
           />
         </div>
       ) : courses !== null ? (
         <>
-          {/* Student stats from API */}
-          <div className="mb-8 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            <StatCard
-              label="Available Courses"
-              value={stats?.availableCourses ?? 0}
-              hint="Published courses available"
-              icon={AvailableCoursesIcon}
-              tone="neutral"
-            />
-            <StatCard
-              label="Enrolled Courses"
-              value={stats?.enrolledCourses ?? 0}
-              hint="Courses you're taking"
-              icon={BookIcon}
-              tone="primary"
-            />
-            <StatCard
-              label="In Progress"
-              value={stats?.inProgressCourses ?? 0}
-              hint="Courses you're learning"
-              icon={ProgressIcon}
-              tone="info"
-            />
-            <StatCard
-              label="Certificates Earned"
-              value={stats?.certificatesEarned ?? 0}
-              hint="Completed with certificate"
-              icon={CertificateIcon}
-              tone="success"
-            />
-          </div>
-
-          {/* Additional stats row */}
-          <div className="mb-8 grid grid-cols-1 gap-4 sm:grid-cols-3">
-            <StatCard
-              label="Completed"
-              value={stats?.completedCourses ?? 0}
-              hint="Courses finished"
-              icon={TagIcon}
-              tone="warning"
-            />
-            <StatCard
-              label="Topics Exploring"
-              value={stats?.categoriesExplored ?? 0}
-              hint="Distinct categories"
-              icon={TagIcon}
-              tone="info"
-            />
-            <StatCard
-              label="Learning Time"
-              value={`${stats?.totalEstimatedHours ?? 0}h`}
-              hint="Estimated total hours"
-              icon={ClockIcon}
-              tone="success"
-            />
-          </div>
-
-          {/* Calendar */}
-          <div className="mb-8">
-            <Calendar />
-          </div>
-
-          <div className="mb-4 flex items-center justify-between">
-            <h2 className="text-lg font-semibold text-neutral-900">My Enrolled Courses</h2>
-            <span className="text-sm text-neutral-500">
-              {enrolled.length} course{enrolled.length !== 1 ? 's' : ''}
-            </span>
-          </div>
           <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-3">
             {enrolled.map((course) => (
               <Link key={course.courseId} href={`/dashboard/student/courses/${course.courseId}`}>

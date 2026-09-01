@@ -27,6 +27,7 @@ function buildWhere(organizationId: string, filters: SearchFilters) {
     status: 'PUBLISHED',
   };
 
+  // Text search: title OR description must match
   if (query) {
     where.OR = [
       { title: { contains: query, mode: 'insensitive' } },
@@ -34,20 +35,24 @@ function buildWhere(organizationId: string, filters: SearchFilters) {
     ];
   }
 
+  // Category filter
   if (filters.category) {
     where.category = { name: filters.category };
   }
 
+  // Difficulty filter
   if (filters.difficulty) {
     where.difficulty = filters.difficulty;
   }
 
+  // Instructor filter
   if (filters.instructor) {
     where.instructorUser = {
       is: { name: { contains: filters.instructor, mode: 'insensitive' } },
     };
   }
 
+  // Price filter: must be applied as AND condition, not added to OR
   if (filters.minPrice !== undefined || filters.maxPrice !== undefined) {
     const priceRange: Prisma.DecimalFilter = {};
     if (filters.minPrice !== undefined) priceRange.gte = filters.minPrice;
@@ -55,13 +60,14 @@ function buildWhere(organizationId: string, filters: SearchFilters) {
 
     // Match against the effective price customers actually pay: the discount
     // price when one is set, otherwise the list price.
-    const existingOr = where.OR
-      ? Array.isArray(where.OR) ? where.OR : [where.OR]
-      : [];
-    where.OR = [
-      ...existingOr,
-      { discountPrice: { not: null, ...priceRange } },
-      { discountPrice: null, price: priceRange },
+    // This is an AND condition with everything else, so we add it separately
+    where.AND = [
+      {
+        OR: [
+          { discountPrice: { not: null, ...priceRange } },
+          { discountPrice: null, price: priceRange },
+        ],
+      },
     ];
   }
 

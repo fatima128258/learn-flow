@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { Badge, Button, EmptyState, EmptyStateIcons, Spinner } from '../../../../../../components/ui';
 import { Input } from '../../../../../../components/ui/Input';
@@ -9,6 +9,82 @@ import { Modal } from '../../../../../../components/ui/Modal';
 import Link from 'next/link';
 import { getModuleErrorMessage } from '../../../../../../features/course/moduleErrors';
 import { useToast } from '../../../../../../components/ui/ToastProvider';
+
+// 3-dot menu component
+function ModuleActionsMenu({ module, courseId, organizationId, onEdit, onDelete }: {
+  module: { id: string; title: string };
+  courseId: string;
+  organizationId: string;
+  onEdit: () => void;
+  onDelete: () => void;
+}) {
+  const [isOpen, setIsOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+        setIsOpen(false);
+      }
+    }
+
+    if (isOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+      return () => document.removeEventListener('mousedown', handleClickOutside);
+    }
+  }, [isOpen]);
+
+  return (
+    <div ref={menuRef} className="relative">
+      <button
+        onClick={() => setIsOpen(!isOpen)}
+        className="p-1 hover:bg-neutral-100 rounded-md transition-colors"
+        aria-label="Module actions"
+      >
+        <svg className="w-5 h-5 text-neutral-500" fill="currentColor" viewBox="0 0 24 24">
+          <path d="M12 8c1.1 0 2-0.9 2-2s-0.9-2-2-2-2 0.9-2 2 0.9 2 2 2zm0 2c-1.1 0-2 0.9-2 2s0.9 2 2 2 2-0.9 2-2-0.9-2-2-2zm0 6c-1.1 0-2 0.9-2 2s0.9 2 2 2 2-0.9 2-2-0.9-2-2-2z" />
+        </svg>
+      </button>
+
+      {isOpen && (
+        <div className="fixed bg-white rounded-lg border border-neutral-200 shadow-lg z-50 w-48">
+          <Link
+            href={`/dashboard/organization/courses/${courseId}/modules/${module.id}/lessons${organizationId ? `?organization=${organizationId}` : ''}`}
+            className="block px-4 py-2 text-sm text-neutral-700 hover:bg-neutral-50 border-b border-neutral-100 first:rounded-t-lg"
+            onClick={() => setIsOpen(false)}
+          >
+            📚 Add Lesson
+          </Link>
+          <Link
+            href={`/dashboard/organization/courses/${courseId}/modules/${module.id}/quizzes${organizationId ? `?organization=${organizationId}` : ''}`}
+            className="block px-4 py-2 text-sm text-neutral-700 hover:bg-neutral-50 border-b border-neutral-100"
+            onClick={() => setIsOpen(false)}
+          >
+            ❓ Add Quiz
+          </Link>
+          <button
+            onClick={() => {
+              onEdit();
+              setIsOpen(false);
+            }}
+            className="w-full text-left px-4 py-2 text-sm text-neutral-700 hover:bg-neutral-50 border-b border-neutral-100"
+          >
+            ✏️ Edit
+          </button>
+          <button
+            onClick={() => {
+              onDelete();
+              setIsOpen(false);
+            }}
+            className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 rounded-b-lg"
+          >
+            🗑️ Delete
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
 
 type MeResponse = {
   user?: {
@@ -399,7 +475,7 @@ export default function CourseModulesPage() {
                       <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-neutral-500 w-16">Order</th>
                       <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-neutral-500">Title</th>
                       <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-neutral-500">Description</th>
-                      <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-neutral-500 w-40">Actions</th>
+                      <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-neutral-500 w-10"></th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-neutral-200 bg-white">
@@ -410,13 +486,14 @@ export default function CourseModulesPage() {
                         </td>
                         <td className="px-6 py-4 text-sm font-medium text-primary-600 hover:text-primary-700">{module.title}</td>
                         <td className="px-6 py-4 text-sm text-neutral-700 max-w-md truncate">{module.description ?? '—'}</td>
-                        <td className="px-6 py-4">
-                          <div className="flex items-center gap-2">
-                            <Link href={`/dashboard/organization/courses/${courseId}/modules/${module.id}/lessons${organizationId ? `?organization=${organizationId}` : ''}`} className="inline-flex items-center rounded-md px-3 py-1.5 text-sm font-medium text-primary-600 hover:text-primary-700 hover:bg-primary-50 transition-colors">Lessons</Link>
-                            <Link href={`/dashboard/organization/courses/${courseId}/modules/${module.id}/quizzes${organizationId ? `?organization=${organizationId}` : ''}`} className="inline-flex items-center rounded-md px-3 py-1.5 text-sm font-medium text-primary-600 hover:text-primary-700 hover:bg-primary-50 transition-colors">Quizzes</Link>
-                            <Button variant="ghost" size="sm" onClick={() => openEditModal(module)}>Edit</Button>
-                            <Button variant="danger" size="sm" onClick={() => handleDelete(module.id)}>Delete</Button>
-                          </div>
+                        <td className="px-6 py-4 relative">
+                          <ModuleActionsMenu
+                            module={module}
+                            courseId={courseId!}
+                            organizationId={organizationId!}
+                            onEdit={() => openEditModal(module)}
+                            onDelete={() => handleDelete(module.id)}
+                          />
                         </td>
                       </tr>
                     ))}

@@ -153,14 +153,23 @@ export default function StudentCourseProgressPage() {
     setGenerateError(null);
     try {
       const apiBase = process.env.NEXT_PUBLIC_API_URL || '';
-      const res = await fetch(
-        `${apiBase}/api/v1/organizations/${orgId}/student/courses/${cid}/certificate`,
-        { method: 'POST', credentials: 'include' },
-      );
+      const url = `${apiBase}/api/v1/organizations/${orgId}/student/courses/${cid}/certificate`;
+      console.log('Certificate API URL:', url);
+      
+      const res = await fetch(url, { 
+        method: 'POST', 
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' }
+      });
+      
+      console.log('Certificate Response Status:', res.status);
+      
       if (!res.ok) {
         let code: unknown = null;
         try {
-          code = (await res.json())?.error;
+          const errorBody = await res.json();
+          console.log('Certificate Error Response:', errorBody);
+          code = errorBody?.error;
         } catch {
           code = null;
         }
@@ -170,17 +179,19 @@ export default function StudentCourseProgressPage() {
           window.location.href = '/dashboard/student/certificates';
           return;
         } else {
-          setGenerateError('Could not generate your certificate. Please try again.');
+          setGenerateError(`Could not generate certificate. Error: ${code || 'UNKNOWN'}`);
         }
         return;
       }
       const body = await res.json();
+      console.log('Certificate Success:', body);
       const certId = body.data?.certificateId;
       window.location.href = certId
         ? `/dashboard/student/certificates/${certId}`
         : '/dashboard/student/certificates';
-    } catch {
-      setGenerateError('Could not reach the server. Please try again.');
+    } catch (err) {
+      console.error('Certificate Generation Error:', err);
+      setGenerateError(`Could not reach the server: ${err instanceof Error ? err.message : 'Unknown error'}`);
     } finally {
       setGenerating(false);
     }
