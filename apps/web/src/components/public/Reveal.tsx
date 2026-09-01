@@ -42,7 +42,6 @@ export const Reveal: React.FC<RevealProps> = ({
       return;
     }
 
-    const safetyRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
     const observer = new IntersectionObserver(
       ([entry]) => {
         if (entry.isIntersecting) {
