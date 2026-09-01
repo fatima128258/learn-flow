@@ -7,3 +7,4 @@ export { TableCard, tableHeadClass, tableCellClass, tableRowHoverClass } from '.
 export { ProgressBar, type ProgressTone } from './ProgressBar';
 export { UserAvatar } from './UserAvatar';
 export { Calendar } from './Calendar';
+export { CourseActionsMenu } from './CourseActionsMenu';
