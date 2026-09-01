@@ -6,6 +6,7 @@ import { dispatchNotification } from './notificationDispatcher';
 import { record as recordAudit } from './auditLogService';
 import * as storage from '../storage';
 import { parsePagination, parseSort, buildMeta } from '../utils/pagination';
+import { assertCanManage } from './contentAccess';
 
 const VALID_COURSE_STATUSES = new Set(['DRAFT', 'REVIEW', 'PUBLISHED', 'ARCHIVED']);
 
@@ -140,6 +141,11 @@ function toCourseListItemDto(course: {
   };
 }
 
+export interface CourseActor {
+  userId: string;
+  role?: string | null;
+}
+
 export async function getCourse(organizationId: string, courseId: string) {
   const course = await courseRepo.getById(organizationId, courseId);
   if (!course) {
@@ -220,6 +226,114 @@ export async function createCourse(
   }
 }
 
+function requireMoney(value: unknown, field: string) {
+  if (value === undefined || value === null || value === '') return null;
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed) || parsed < 0) {
+    throw new Error(field === 'discountPrice' ? 'INVALID_DISCOUNT_PRICE' : 'INVALID_PRICE');
+  }
+  return parsed;
+}
+
+export async function updateCourse(
+  organizationId: string,
+  courseId: string,
+  rawInput: unknown,
+  actor?: CourseActor | null,
+) {
+  const existing = await courseRepo.getById(organizationId, courseId);
+  if (!existing) {
+    throw new Error('COURSE_NOT_FOUND');
+  }
+  assertCanManage(actor, existing);
+
+  const input = (rawInput ?? {}) as Record<string, unknown>;
+  const hasAnyField = [
+    'title', 'slug', 'description', 'thumbnailUrl', 'category', 'price',
+    'discountPrice', 'estimatedMinutes', 'difficulty', 'learningObjectives',
+    'instructorUserId',
+  ].some((key) => input[key] !== undefined);
+
+  if (!hasAnyField) {
+    throw new Error('MISSING_FIELDS');
+  }
+
+  const update: courseRepo.UpdateCourseData = {};
+
+  if (input.title !== undefined) {
+    update.title = requireTitle(input.title);
+  }
+
+  if (input.slug !== undefined && input.slug !== '' && input.slug !== null) {
+    const slug = String(input.slug).trim().toLowerCase();
+    if (!isValidSlug(slug)) {
+      throw new Error('INVALID_SLUG');
+    }
+    update.slug = slug;
+  }
+
+  if (input.description !== undefined) {
+    update.description = optionalString(input.description);
+  }
+
+  if (input.thumbnailUrl !== undefined) {
+    update.thumbnailUrl = optionalString(input.thumbnailUrl);
+  }
+
+  if (input.category !== undefined) {
+    const category = optionalString(input.category);
+    update.categoryId = category
+      ? await categoryService.resolveOrCreateCategoryId(organizationId, category)
+      : null;
+  }
+
+  if (input.price !== undefined) {
+    update.price = requireMoney(input.price, 'price');
+  }
+
+  if (input.discountPrice !== undefined) {
+    update.discountPrice = requireMoney(input.discountPrice, 'discountPrice');
+  }
+
+  if (input.estimatedMinutes !== undefined) {
+    update.estimatedMinutes = optionalPositiveInt(input.estimatedMinutes);
+  }
+
+  if (input.difficulty !== undefined) {
+    update.difficulty = optionalString(input.difficulty);
+  }
+
+  if (input.learningObjectives !== undefined) {
+    update.learningObjectives =
+      input.learningObjectives === null ? [] : optionalStringList(input.learningObjectives);
+  }
+
+  if (input.instructorUserId !== undefined) {
+    const isStaff = (actor?.role === 'ORG_ADMIN' || actor?.role === 'PLATFORM_ADMIN');
+    if (!isStaff) {
+      throw new Error('FORBIDDEN');
+    }
+    if (typeof input.instructorUserId !== 'string' || !input.instructorUserId.trim()) {
+      throw new Error('MISSING_FIELDS');
+    }
+    update.instructorUserId = input.instructorUserId;
+  }
+
+  let course;
+  try {
+    course = await courseRepo.updateCourse(organizationId, courseId, update);
+  } catch (err) {
+    if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === 'P2002') {
+      throw new Error('COURSE_SLUG_TAKEN');
+    }
+    throw err;
+  }
+  if (!course) {
+    throw new Error('COURSE_NOT_FOUND');
+  }
+  return toCourseDto(course);
+}
+
 export async function updateCourseStatus(
   organizationId: string,
   courseId: string,
@@ -239,6 +353,8 @@ export async function updateCourseStatus(
   if (!course) {
     throw new Error('COURSE_NOT_FOUND');
   }
+
+  assertCanManage(actor, course);
 
   const publishedAt = status === 'PUBLISHED' ? (course.publishedAt ?? new Date()) : null;
   const updated = await courseRepo.updateCourseStatus(organizationId, courseId, {

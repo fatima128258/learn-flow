@@ -1113,7 +1113,7 @@ describe('Complete Course System Production Audit', () => {
     // Check for orphaned modules
     const orphanedModules = await prisma.module.findMany({
       where: {
-        course: null
+        course: { is: null }
       }
     });
     expect(orphanedModules).toHaveLength(0);
@@ -1121,7 +1121,7 @@ describe('Complete Course System Production Audit', () => {
     // Check for orphaned lessons
     const orphanedLessons = await prisma.lesson.findMany({
       where: {
-        module: null
+        module: { is: null }
       }
     });
     expect(orphanedLessons).toHaveLength(0);
@@ -1129,7 +1129,7 @@ describe('Complete Course System Production Audit', () => {
     // Check for orphaned options
     const orphanedOptions = await prisma.quizOption.findMany({
       where: {
-        question: null
+        question: { is: null }
       }
     });
     expect(orphanedOptions).toHaveLength(0);

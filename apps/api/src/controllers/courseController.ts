@@ -34,6 +34,12 @@ function handleError(res: Response, err: unknown) {
       return fail(res, 413, 'MEDIA_TOO_LARGE');
     case 'COURSE_NOT_FOUND':
       return fail(res, 404, 'COURSE_NOT_FOUND');
+    case 'FORBIDDEN':
+      return fail(res, 403, 'FORBIDDEN');
+    case 'INVALID_PRICE':
+      return fail(res, 400, 'INVALID_PRICE');
+    case 'INVALID_DISCOUNT_PRICE':
+      return fail(res, 400, 'INVALID_DISCOUNT_PRICE');
     default:
       return fail(res, 500, 'SERVER_ERROR');
   }
@@ -83,6 +89,23 @@ export async function createCourse(req: AuthenticatedRequest, res: Response) {
       req.body,
     );
     return res.status(201).json({ success: true, data });
+  } catch (err) {
+    return handleError(res, err);
+  }
+}
+
+export async function updateCourse(req: AuthenticatedRequest, res: Response) {
+  try {
+    if (!req.user) {
+      return fail(res, 401, 'NOT_AUTHENTICATED');
+    }
+    const data = await service.updateCourse(
+      tenantOrganizationId(req),
+      req.params.courseId,
+      req.body,
+      { userId: req.user.id, role: req.user.role },
+    );
+    return res.status(200).json({ success: true, data });
   } catch (err) {
     return handleError(res, err);
   }

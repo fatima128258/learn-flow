@@ -12,6 +12,8 @@ export interface CreateAuditLogData {
   actorEmail?: string | null;
   actorRole?: string | null;
   action: string;
+  resourceType?: string | null;
+  resourceId?: string | null;
   metadata?: Prisma.InputJsonValue | null;
   ipAddress?: string | null;
 }
@@ -22,6 +24,8 @@ export interface ListAuditLogsOptions {
   actorUserId?: string;
   actorName?: string;
   actorEmail?: string;
+  resourceType?: string;
+  resourceId?: string;
   search?: string;
   from?: Date;
   to?: Date;
@@ -45,6 +49,12 @@ function listWhere(options: ListAuditLogsOptions): Prisma.AuditLogWhereInput {
   }
   if (options.actorEmail) {
     where.actorEmail = { contains: options.actorEmail, mode: 'insensitive' };
+  }
+  if (options.resourceType) {
+    where.resourceType = options.resourceType;
+  }
+  if (options.resourceId) {
+    where.resourceId = options.resourceId;
   }
   if (options.search) {
     where.OR = [
@@ -76,6 +86,8 @@ export async function create(data: CreateAuditLogData) {
       actorEmail: data.actorEmail ?? null,
       actorRole: data.actorRole ?? null,
       action: data.action,
+      resourceType: data.resourceType ?? null,
+      resourceId: data.resourceId ?? null,
       metadata: (data.metadata ?? undefined) as Prisma.InputJsonValue | undefined,
       ipAddress: data.ipAddress ?? null,
     },

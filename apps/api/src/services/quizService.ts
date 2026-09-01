@@ -2,6 +2,7 @@ import { Prisma } from '@prisma/client';
 import * as quizRepo from '../repositories/quizRepository';
 import * as moduleRepo from '../repositories/moduleRepository';
 import * as courseRepo from '../repositories/courseRepository';
+import { assertCanManage, type ContentActor } from './contentAccess';
 
 interface QuizRecord {
   id: string;
@@ -106,7 +107,7 @@ export async function verifyModuleAccess(organizationId: string, courseId: strin
   if (!module) {
     throw new Error('MODULE_NOT_FOUND');
   }
-  return module;
+  return { module, course };
 }
 
 export async function listQuizzes(organizationId: string, courseId: string, moduleId: string) {
@@ -124,8 +125,9 @@ export async function getQuiz(organizationId: string, courseId: string, moduleId
   return toQuizDto(quiz);
 }
 
-export async function createQuiz(organizationId: string, courseId: string, moduleId: string, rawInput: unknown) {
-  await verifyModuleAccess(organizationId, courseId, moduleId);
+export async function createQuiz(organizationId: string, courseId: string, moduleId: string, rawInput: unknown, actor?: ContentActor | null) {
+  const { course } = await verifyModuleAccess(organizationId, courseId, moduleId);
+  assertCanManage(actor, course);
 
   const input = (rawInput ?? {}) as Record<string, unknown>;
 
@@ -151,8 +153,9 @@ export async function createQuiz(organizationId: string, courseId: string, modul
   }
 }
 
-export async function updateQuiz(organizationId: string, courseId: string, moduleId: string, quizId: string, rawInput: unknown) {
-  await verifyModuleAccess(organizationId, courseId, moduleId);
+export async function updateQuiz(organizationId: string, courseId: string, moduleId: string, quizId: string, rawInput: unknown, actor?: ContentActor | null) {
+  const { course } = await verifyModuleAccess(organizationId, courseId, moduleId);
+  assertCanManage(actor, course);
 
   const existingQuiz = await quizRepo.getById(moduleId, quizId);
   if (!existingQuiz) {
@@ -208,8 +211,9 @@ export async function updateQuiz(organizationId: string, courseId: string, modul
   }
 }
 
-export async function deleteQuiz(organizationId: string, courseId: string, moduleId: string, quizId: string) {
-  await verifyModuleAccess(organizationId, courseId, moduleId);
+export async function deleteQuiz(organizationId: string, courseId: string, moduleId: string, quizId: string, actor?: ContentActor | null) {
+  const { course } = await verifyModuleAccess(organizationId, courseId, moduleId);
+  assertCanManage(actor, course);
 
   const existingQuiz = await quizRepo.getById(moduleId, quizId);
   if (!existingQuiz) {

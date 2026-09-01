@@ -28,6 +28,8 @@ function handleError(res: Response, err: unknown) {
       return fail(res, 404, 'MODULE_NOT_FOUND');
     case 'MODULE_ORDER_TAKEN':
       return fail(res, 409, 'MODULE_ORDER_TAKEN');
+    case 'FORBIDDEN':
+      return fail(res, 403, 'FORBIDDEN');
     default:
       return fail(res, 500, 'SERVER_ERROR');
   }
@@ -73,6 +75,7 @@ export async function createModule(req: AuthenticatedRequest, res: Response) {
       tenantOrganizationId(req),
       req.params.courseId,
       req.body,
+      { userId: req.user.id, role: req.user.role },
     );
     return res.status(201).json({ success: true, data });
   } catch (err) {
@@ -90,6 +93,7 @@ export async function updateModule(req: AuthenticatedRequest, res: Response) {
       req.params.courseId,
       req.params.moduleId,
       req.body,
+      { userId: req.user.id, role: req.user.role },
     );
     return res.status(200).json({ success: true, data });
   } catch (err) {
@@ -106,6 +110,7 @@ export async function deleteModule(req: AuthenticatedRequest, res: Response) {
       tenantOrganizationId(req),
       req.params.courseId,
       req.params.moduleId,
+      { userId: req.user.id, role: req.user.role },
     );
     return res.status(200).json({ success: true, data });
   } catch (err) {

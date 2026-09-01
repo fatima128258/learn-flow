@@ -135,3 +135,47 @@ export async function updateThumbnail(
     include: courseCategoryInclude,
   });
 }
+
+export interface UpdateCourseData {
+  title?: string;
+  slug?: string;
+  description?: string | null;
+  thumbnailUrl?: string | null;
+  categoryId?: string | null;
+  price?: number | null;
+  discountPrice?: number | null;
+  estimatedMinutes?: number | null;
+  difficulty?: string | null;
+  learningObjectives?: string[];
+  instructorUserId?: string;
+}
+
+export async function updateCourse(
+  organizationId: string,
+  courseId: string,
+  data: UpdateCourseData,
+) {
+  const result = await prisma().course.updateMany({
+    where: { id: courseId, organizationId },
+    data: {
+      title: data.title,
+      slug: data.slug,
+      description: data.description,
+      thumbnailUrl: data.thumbnailUrl,
+      categoryId: data.categoryId,
+      price: data.price,
+      discountPrice: data.discountPrice,
+      estimatedMinutes: data.estimatedMinutes,
+      difficulty: data.difficulty,
+      learningObjectives: data.learningObjectives,
+      instructorUserId: data.instructorUserId,
+    },
+  });
+  if (result.count === 0) {
+    return null;
+  }
+  return prisma().course.findFirst({
+    where: { id: courseId, organizationId },
+    include: courseCategoryInclude,
+  });
+}

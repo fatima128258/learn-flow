@@ -1,6 +1,7 @@
 import { Prisma } from '@prisma/client';
 import * as moduleRepo from '../repositories/moduleRepository';
 import * as courseRepo from '../repositories/courseRepository';
+import { assertCanManage, type ContentActor } from './contentAccess';
 
 interface ModuleRecord {
   id: string;
@@ -89,8 +90,14 @@ export async function getModule(organizationId: string, courseId: string, module
   return toModuleDto(module);
 }
 
-export async function createModule(organizationId: string, courseId: string, rawInput: unknown) {
-  await verifyCourseAccess(organizationId, courseId);
+export async function createModule(
+  organizationId: string,
+  courseId: string,
+  rawInput: unknown,
+  actor?: ContentActor | null,
+) {
+  const course = await verifyCourseAccess(organizationId, courseId);
+  assertCanManage(actor, course);
 
   const input = (rawInput ?? {}) as Record<string, unknown>;
 
@@ -113,8 +120,15 @@ export async function createModule(organizationId: string, courseId: string, raw
   }
 }
 
-export async function updateModule(organizationId: string, courseId: string, moduleId: string, rawInput: unknown) {
-  await verifyCourseAccess(organizationId, courseId);
+export async function updateModule(
+  organizationId: string,
+  courseId: string,
+  moduleId: string,
+  rawInput: unknown,
+  actor?: ContentActor | null,
+) {
+  const course = await verifyCourseAccess(organizationId, courseId);
+  assertCanManage(actor, course);
 
   const existingModule = await moduleRepo.getById(courseId, moduleId);
   if (!existingModule) {
@@ -151,8 +165,14 @@ export async function updateModule(organizationId: string, courseId: string, mod
   }
 }
 
-export async function deleteModule(organizationId: string, courseId: string, moduleId: string) {
-  await verifyCourseAccess(organizationId, courseId);
+export async function deleteModule(
+  organizationId: string,
+  courseId: string,
+  moduleId: string,
+  actor?: ContentActor | null,
+) {
+  const course = await verifyCourseAccess(organizationId, courseId);
+  assertCanManage(actor, course);
 
   const existingModule = await moduleRepo.getById(courseId, moduleId);
   if (!existingModule) {

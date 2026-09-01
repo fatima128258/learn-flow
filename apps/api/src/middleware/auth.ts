@@ -198,6 +198,15 @@ export async function requireOrgAdmin(req: AuthenticatedRequest, res: Response, 
   try {
     const prisma = getPrisma();
 
+    // Get organization ID from request
+    const rawOrgId = req.headers['x-organization-id'] || req.query.organizationId || req.params.organizationId || req.body?.organizationId;
+    const orgId = Array.isArray(rawOrgId) ? rawOrgId[0] : rawOrgId;
+
+    if (!orgId || typeof orgId !== 'string') {
+      return res.status(400).json({ success: false, error: 'ORGANIZATION_REQUIRED' });
+    }
+
+    // Check if user is platform admin
     const platformAdminMembership = await prisma.userOrganization.findFirst({
       where: {
         userId: req.user.id,
@@ -206,40 +215,37 @@ export async function requireOrgAdmin(req: AuthenticatedRequest, res: Response, 
     });
 
     if (platformAdminMembership) {
-      const rawOrgId = req.headers['x-organization-id'] || req.query.organizationId || req.params.organizationId;
-      const orgId = Array.isArray(rawOrgId) ? rawOrgId[0] : rawOrgId;
+      const organization = await prisma.organization.findUnique({
+        where: { id: orgId },
+      });
 
-      if (orgId && typeof orgId === 'string') {
-        const organization = await prisma.organization.findUnique({
-          where: { id: orgId },
-        });
-
-        if (!organization) {
-          return res.status(404).json({ success: false, error: 'ORGANIZATION_NOT_FOUND' });
-        }
-
-        req.user.role = 'PLATFORM_ADMIN';
-        req.user.organizationId = orgId;
-        req.organizationId = orgId;
-        return next();
+      if (!organization) {
+        return res.status(404).json({ success: false, error: 'ORGANIZATION_NOT_FOUND' });
       }
+
+      req.user.role = 'PLATFORM_ADMIN';
+      req.user.organizationId = orgId;
+      req.organizationId = orgId;
+      return next();
     }
 
-    const membership = await prisma.userOrganization.findFirst({
+    // Check if user has ORG_ADMIN role for the specific organization
+    const membership = await prisma.userOrganization.findUnique({
       where: {
-        userId: req.user.id,
-        role: 'ORG_ADMIN',
+        userId_organizationId: {
+          userId: req.user.id,
+          organizationId: orgId,
+        },
       },
-      orderBy: { createdAt: 'asc' },
     });
 
-    if (!membership) {
+    if (!membership || membership.role !== 'ORG_ADMIN') {
       return res.status(403).json({ success: false, error: 'ORG_ADMIN_REQUIRED' });
     }
 
     req.user.role = 'ORG_ADMIN';
-    req.user.organizationId = membership.organizationId;
-    req.organizationId = membership.organizationId;
+    req.user.organizationId = orgId;
+    req.organizationId = orgId;
 
     next();
   } catch {

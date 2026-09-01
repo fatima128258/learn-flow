@@ -4,7 +4,6 @@ import * as moduleRepo from '../repositories/moduleRepository';
 import * as lessonRepo from '../repositories/lessonRepository';
 import * as searchRepo from '../repositories/searchRepository';
 import * as certificateRepo from '../repositories/certificateRepository';
-import * as progressRepo from '../repositories/progressRepository';
 import { categoryLabel } from '../utils/categoryLabel';
 import getPrisma from '../prisma';
 
@@ -325,22 +324,21 @@ export async function getStudentStats(organizationId: string, userId: string) {
   const certificates = await certificateRepo.listByUserAndOrganization(userId, organizationId);
   const certificatesEarned = certificates.length;
 
-  // Learning time from enrolled courses
+  // Learning time and categories from enrolled courses
   const enrolledCourseIds = orgEnrollments.map((e: EnrolledEnrollment) => e.courseId);
-  let totalEstimatedMinutes = 0;
-  if (enrolledCourseIds.length > 0) {
-    const courses = await prisma.course.findMany({
-      where: {
-        id: { in: enrolledCourseIds },
-        organizationId,
-      },
-      select: { estimatedMinutes: true },
-    });
-    totalEstimatedMinutes = courses.reduce<number>(
-      (sum, c) => sum + (c.estimatedMinutes ?? 0),
-      0,
-    );
-  }
+  const courses = enrolledCourseIds.length
+    ? await prisma.course.findMany({
+        where: {
+          id: { in: enrolledCourseIds },
+          organizationId,
+        },
+        select: { id: true, category: true, estimatedMinutes: true },
+      })
+    : [];
+  const totalEstimatedMinutes = courses.reduce<number>(
+    (sum, c) => sum + (c.estimatedMinutes ?? 0),
+    0,
+  );
 
   // Categories explored (unique categories from enrolled courses)
   const categoryCount = new Set(

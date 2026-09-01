@@ -32,6 +32,8 @@ function handleError(res: Response, err: unknown) {
       return fail(res, 404, 'QUIZ_NOT_FOUND');
     case 'QUIZ_ORDER_TAKEN':
       return fail(res, 409, 'QUIZ_ORDER_TAKEN');
+    case 'FORBIDDEN':
+      return fail(res, 403, 'FORBIDDEN');
     default:
       return fail(res, 500, 'SERVER_ERROR');
   }
@@ -80,6 +82,7 @@ export async function createQuiz(req: AuthenticatedRequest, res: Response) {
       req.params.courseId,
       req.params.moduleId,
       req.body,
+      { userId: req.user.id, role: req.user.role },
     );
     return res.status(201).json({ success: true, data });
   } catch (err) {
@@ -98,6 +101,7 @@ export async function updateQuiz(req: AuthenticatedRequest, res: Response) {
       req.params.moduleId,
       req.params.quizId,
       req.body,
+      { userId: req.user.id, role: req.user.role },
     );
     return res.status(200).json({ success: true, data });
   } catch (err) {
@@ -115,6 +119,7 @@ export async function deleteQuiz(req: AuthenticatedRequest, res: Response) {
       req.params.courseId,
       req.params.moduleId,
       req.params.quizId,
+      { userId: req.user.id, role: req.user.role },
     );
     return res.status(200).json({ success: true, data });
   } catch (err) {

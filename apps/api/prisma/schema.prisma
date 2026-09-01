@@ -448,6 +448,8 @@ model AuditLog {
   actorEmail     String?
   actorRole      String?
   action         String
+  resourceType   String?
+  resourceId     String?
   metadata       Json?
   ipAddress      String?
   createdAt      DateTime @default(now())

@@ -2,6 +2,7 @@ import { Prisma } from '@prisma/client';
 import * as questionRepo from '../repositories/questionRepository';
 import * as quizRepo from '../repositories/quizRepository';
 import * as courseRepo from '../repositories/courseRepository';
+import { assertCanManage, type ContentActor } from './contentAccess';
 
 interface OptionRecord {
   id: string;
@@ -117,7 +118,7 @@ export async function verifyQuizAccess(organizationId: string, courseId: string,
   if (!quiz) {
     throw new Error('QUIZ_NOT_FOUND');
   }
-  return quiz;
+  return { quiz, course };
 }
 
 export async function listQuestions(organizationId: string, courseId: string, moduleId: string, quizId: string) {
@@ -135,8 +136,9 @@ export async function getQuestion(organizationId: string, courseId: string, modu
   return toQuestionDetailDto(question);
 }
 
-export async function createQuestion(organizationId: string, courseId: string, moduleId: string, quizId: string, rawInput: unknown) {
-  await verifyQuizAccess(organizationId, courseId, moduleId, quizId);
+export async function createQuestion(organizationId: string, courseId: string, moduleId: string, quizId: string, rawInput: unknown, actor?: ContentActor | null) {
+  const { course } = await verifyQuizAccess(organizationId, courseId, moduleId, quizId);
+  assertCanManage(actor, course);
 
   const input = (rawInput ?? {}) as Record<string, unknown>;
 
@@ -160,8 +162,9 @@ export async function createQuestion(organizationId: string, courseId: string, m
   }
 }
 
-export async function updateQuestion(organizationId: string, courseId: string, moduleId: string, quizId: string, questionId: string, rawInput: unknown) {
-  await verifyQuizAccess(organizationId, courseId, moduleId, quizId);
+export async function updateQuestion(organizationId: string, courseId: string, moduleId: string, quizId: string, questionId: string, rawInput: unknown, actor?: ContentActor | null) {
+  const { course } = await verifyQuizAccess(organizationId, courseId, moduleId, quizId);
+  assertCanManage(actor, course);
 
   const existingQuestion = await questionRepo.getById(quizId, questionId);
   if (!existingQuestion) {
@@ -202,8 +205,9 @@ export async function updateQuestion(organizationId: string, courseId: string, m
   }
 }
 
-export async function deleteQuestion(organizationId: string, courseId: string, moduleId: string, quizId: string, questionId: string) {
-  await verifyQuizAccess(organizationId, courseId, moduleId, quizId);
+export async function deleteQuestion(organizationId: string, courseId: string, moduleId: string, quizId: string, questionId: string, actor?: ContentActor | null) {
+  const { course } = await verifyQuizAccess(organizationId, courseId, moduleId, quizId);
+  assertCanManage(actor, course);
 
   const existingQuestion = await questionRepo.getById(quizId, questionId);
   if (!existingQuestion) {
@@ -226,8 +230,9 @@ export async function listOptions(organizationId: string, courseId: string, modu
   return options.map(toOptionDto);
 }
 
-export async function createOption(organizationId: string, courseId: string, moduleId: string, quizId: string, questionId: string, rawInput: unknown) {
-  await verifyQuizAccess(organizationId, courseId, moduleId, quizId);
+export async function createOption(organizationId: string, courseId: string, moduleId: string, quizId: string, questionId: string, rawInput: unknown, actor?: ContentActor | null) {
+  const { course } = await verifyQuizAccess(organizationId, courseId, moduleId, quizId);
+  assertCanManage(actor, course);
 
   const existingQuestion = await questionRepo.getById(quizId, questionId);
   if (!existingQuestion) {
@@ -256,8 +261,9 @@ export async function createOption(organizationId: string, courseId: string, mod
   }
 }
 
-export async function updateOption(organizationId: string, courseId: string, moduleId: string, quizId: string, questionId: string, optionId: string, rawInput: unknown) {
-  await verifyQuizAccess(organizationId, courseId, moduleId, quizId);
+export async function updateOption(organizationId: string, courseId: string, moduleId: string, quizId: string, questionId: string, optionId: string, rawInput: unknown, actor?: ContentActor | null) {
+  const { course } = await verifyQuizAccess(organizationId, courseId, moduleId, quizId);
+  assertCanManage(actor, course);
 
   const existingQuestion = await questionRepo.getById(quizId, questionId);
   if (!existingQuestion) {
@@ -303,8 +309,9 @@ export async function updateOption(organizationId: string, courseId: string, mod
   }
 }
 
-export async function deleteOption(organizationId: string, courseId: string, moduleId: string, quizId: string, questionId: string, optionId: string) {
-  await verifyQuizAccess(organizationId, courseId, moduleId, quizId);
+export async function deleteOption(organizationId: string, courseId: string, moduleId: string, quizId: string, questionId: string, optionId: string, actor?: ContentActor | null) {
+  const { course } = await verifyQuizAccess(organizationId, courseId, moduleId, quizId);
+  assertCanManage(actor, course);
 
   const existingQuestion = await questionRepo.getById(quizId, questionId);
   if (!existingQuestion) {

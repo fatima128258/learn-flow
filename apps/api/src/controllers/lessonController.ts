@@ -32,6 +32,8 @@ function handleError(res: Response, err: unknown) {
       return fail(res, 404, 'LESSON_NOT_FOUND');
     case 'LESSON_ORDER_TAKEN':
       return fail(res, 409, 'LESSON_ORDER_TAKEN');
+    case 'FORBIDDEN':
+      return fail(res, 403, 'FORBIDDEN');
     default:
       return fail(res, 500, 'SERVER_ERROR');
   }
@@ -80,6 +82,7 @@ export async function createLesson(req: AuthenticatedRequest, res: Response) {
       req.params.courseId,
       req.params.moduleId,
       req.body,
+      { userId: req.user.id, role: req.user.role },
     );
     return res.status(201).json({ success: true, data });
   } catch (err) {
@@ -98,6 +101,7 @@ export async function updateLesson(req: AuthenticatedRequest, res: Response) {
       req.params.moduleId,
       req.params.lessonId,
       req.body,
+      { userId: req.user.id, role: req.user.role },
     );
     return res.status(200).json({ success: true, data });
   } catch (err) {
@@ -115,6 +119,7 @@ export async function deleteLesson(req: AuthenticatedRequest, res: Response) {
       req.params.courseId,
       req.params.moduleId,
       req.params.lessonId,
+      { userId: req.user.id, role: req.user.role },
     );
     return res.status(200).json({ success: true, data });
   } catch (err) {

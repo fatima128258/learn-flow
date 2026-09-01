@@ -9,6 +9,7 @@ import {
   listCourses,
   getCourse,
   createCourse,
+  updateCourse,
   updateCourseStatus,
   updateCourseThumbnail,
 } from '../controllers/courseController';
@@ -41,6 +42,15 @@ courseRouter.post(
   requireOrganizationContext,
   requireRole('ORG_ADMIN', 'INSTRUCTOR'),
   createCourse,
+);
+
+courseRouter.patch(
+  '/:organizationId/courses/:courseId',
+  requireAuth,
+  requireVerifiedEmail,
+  requireOrganizationContext,
+  requireRole('ORG_ADMIN', 'INSTRUCTOR'),
+  updateCourse,
 );
 
 courseRouter.patch(

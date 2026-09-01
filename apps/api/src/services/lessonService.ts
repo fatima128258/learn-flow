@@ -2,6 +2,7 @@ import { Prisma } from '@prisma/client';
 import * as lessonRepo from '../repositories/lessonRepository';
 import * as moduleRepo from '../repositories/moduleRepository';
 import * as courseRepo from '../repositories/courseRepository';
+import { assertCanManage, type ContentActor } from './contentAccess';
 
 interface LessonRecord {
   id: string;
@@ -108,7 +109,7 @@ export async function verifyModuleAccess(organizationId: string, courseId: strin
   if (!module) {
     throw new Error('MODULE_NOT_FOUND');
   }
-  return module;
+  return { module, course };
 }
 
 export async function listLessons(organizationId: string, courseId: string, moduleId: string) {
@@ -126,8 +127,9 @@ export async function getLesson(organizationId: string, courseId: string, module
   return toLessonDto(lesson);
 }
 
-export async function createLesson(organizationId: string, courseId: string, moduleId: string, rawInput: unknown) {
-  await verifyModuleAccess(organizationId, courseId, moduleId);
+export async function createLesson(organizationId: string, courseId: string, moduleId: string, rawInput: unknown, actor?: ContentActor | null) {
+  const { course } = await verifyModuleAccess(organizationId, courseId, moduleId);
+  assertCanManage(actor, course);
 
   const input = (rawInput ?? {}) as Record<string, unknown>;
 
@@ -156,8 +158,9 @@ export async function createLesson(organizationId: string, courseId: string, mod
   }
 }
 
-export async function updateLesson(organizationId: string, courseId: string, moduleId: string, lessonId: string, rawInput: unknown) {
-  await verifyModuleAccess(organizationId, courseId, moduleId);
+export async function updateLesson(organizationId: string, courseId: string, moduleId: string, lessonId: string, rawInput: unknown, actor?: ContentActor | null) {
+  const { course } = await verifyModuleAccess(organizationId, courseId, moduleId);
+  assertCanManage(actor, course);
 
   const existingLesson = await lessonRepo.getById(moduleId, lessonId);
   if (!existingLesson) {
@@ -228,8 +231,9 @@ export async function updateLesson(organizationId: string, courseId: string, mod
   }
 }
 
-export async function deleteLesson(organizationId: string, courseId: string, moduleId: string, lessonId: string) {
-  await verifyModuleAccess(organizationId, courseId, moduleId);
+export async function deleteLesson(organizationId: string, courseId: string, moduleId: string, lessonId: string, actor?: ContentActor | null) {
+  const { course } = await verifyModuleAccess(organizationId, courseId, moduleId);
+  assertCanManage(actor, course);
 
   const existingLesson = await lessonRepo.getById(moduleId, lessonId);
   if (!existingLesson) {

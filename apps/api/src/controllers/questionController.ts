@@ -38,6 +38,8 @@ function handleError(res: Response, err: unknown) {
       return fail(res, 409, 'QUESTION_ORDER_TAKEN');
     case 'OPTION_ORDER_TAKEN':
       return fail(res, 409, 'OPTION_ORDER_TAKEN');
+    case 'FORBIDDEN':
+      return fail(res, 403, 'FORBIDDEN');
     default:
       return fail(res, 500, 'SERVER_ERROR');
   }
@@ -89,6 +91,7 @@ export async function createQuestion(req: AuthenticatedRequest, res: Response) {
       req.params.moduleId,
       req.params.quizId,
       req.body,
+      { userId: req.user.id, role: req.user.role },
     );
     return res.status(201).json({ success: true, data });
   } catch (err) {
@@ -108,6 +111,7 @@ export async function updateQuestion(req: AuthenticatedRequest, res: Response) {
       req.params.quizId,
       req.params.questionId,
       req.body,
+      { userId: req.user.id, role: req.user.role },
     );
     return res.status(200).json({ success: true, data });
   } catch (err) {
@@ -126,6 +130,7 @@ export async function deleteQuestion(req: AuthenticatedRequest, res: Response) {
       req.params.moduleId,
       req.params.quizId,
       req.params.questionId,
+      { userId: req.user.id, role: req.user.role },
     );
     return res.status(200).json({ success: true, data });
   } catch (err) {
@@ -163,6 +168,7 @@ export async function createOption(req: AuthenticatedRequest, res: Response) {
       req.params.quizId,
       req.params.questionId,
       req.body,
+      { userId: req.user.id, role: req.user.role },
     );
     return res.status(201).json({ success: true, data });
   } catch (err) {
@@ -183,6 +189,7 @@ export async function updateOption(req: AuthenticatedRequest, res: Response) {
       req.params.questionId,
       req.params.optionId,
       req.body,
+      { userId: req.user.id, role: req.user.role },
     );
     return res.status(200).json({ success: true, data });
   } catch (err) {
@@ -202,6 +209,7 @@ export async function deleteOption(req: AuthenticatedRequest, res: Response) {
       req.params.quizId,
       req.params.questionId,
       req.params.optionId,
+      { userId: req.user.id, role: req.user.role },
     );
     return res.status(200).json({ success: true, data });
   } catch (err) {
