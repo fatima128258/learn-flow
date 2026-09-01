@@ -235,6 +235,11 @@ export default function CreateCoursePage() {
 
       if (res.status === 201) {
         toast.success('Course created as a draft.');
+        const data = await res.json();
+        if (data.data?.id) {
+          window.location.href = `/dashboard/organization/courses/${data.data.id}`;
+          return;
+        }
         resetForm();
         return;
       }

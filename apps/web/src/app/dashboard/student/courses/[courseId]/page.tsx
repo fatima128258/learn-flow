@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import {
   Badge,
@@ -49,12 +49,14 @@ type CourseDetail = {
 
 export default function StudentCoursePage() {
   const params = useParams();
+  const router = useRouter();
   const courseId = typeof params.courseId === 'string' ? params.courseId : null;
 
   const [course, setCourse] = useState<CourseDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [organizationId, setOrganizationId] = useState<string | null>(null);
+  const [progressLoading, setProgressLoading] = useState(false);
 
   useEffect(() => {
     let active = true;
@@ -94,6 +96,14 @@ export default function StudentCoursePage() {
     };
   }, [courseId]);
 
+  // Redirect to overview if course is still loading (overview handles non-enrolled users)
+  useEffect(() => {
+    if (!loading && !course && !error && organizationId && courseId) {
+      // If not enrolled, redirect to overview
+      router.replace(`/dashboard/student/courses/${courseId}/overview`);
+    }
+  }, [loading, course, error, organizationId, courseId, router]);
+
   async function loadCourse(orgId: string, cid: string) {
     try {
       const apiBase = process.env.NEXT_PUBLIC_API_URL || '';
@@ -120,6 +130,17 @@ export default function StudentCoursePage() {
       setCourse(body.data ?? null);
     } catch {
       setError('Could not reach the server. Please try again.');
+    }
+  }
+
+  async function handleViewProgress() {
+    if (!courseId || progressLoading) return;
+    
+    setProgressLoading(true);
+    try {
+      router.push(`/dashboard/student/courses/${courseId}/progress`);
+    } catch (error) {
+      setProgressLoading(false);
     }
   }
 
@@ -176,8 +197,10 @@ export default function StudentCoursePage() {
                 </div>
                 <Button
                   size="sm"
-                  variant="outline"
-                  onClick={() => { window.location.href = `/dashboard/student/courses/${courseId}/progress`; }}
+                  variant="primary"
+                  onClick={handleViewProgress}
+                  loading={progressLoading}
+                  disabled={progressLoading}
                 >
                   View Progress
                 </Button>

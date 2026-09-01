@@ -39,6 +39,7 @@ type CourseHit = {
   learningObjectives: string[];
   status: string;
   publishedAt: string | null;
+  isEnrolled: boolean;
 };
 
 function formatPrice(value: number | null) {
@@ -90,8 +91,8 @@ export default function StudentSearchPage() {
     };
   }, []);
 
-  async function runSearch(e: React.FormEvent) {
-    e.preventDefault();
+  async function runSearch(e?: React.FormEvent) {
+    if (e) e.preventDefault();
     if (!organizationId) return;
 
     setLoading(true);
@@ -119,6 +120,12 @@ export default function StudentSearchPage() {
       setLoading(false);
     }
   }
+
+  // Auto-load available courses on mount
+  useEffect(() => {
+    if (!organizationId) return;
+    runSearch();
+  }, [organizationId]);
 
   return (
     <div className="mx-auto max-w-6xl">
@@ -179,6 +186,7 @@ export default function StudentSearchPage() {
                   <div className="mb-3 flex flex-wrap items-center gap-2">
                     {course.category && <Badge variant="primary" size="sm">{course.category}</Badge>}
                     {course.difficulty && <Badge variant="default" size="sm">{course.difficulty}</Badge>}
+                    {course.isEnrolled && <Badge variant="success" size="sm">Enrolled</Badge>}
                   </div>
                   <h3 className="text-lg font-semibold text-neutral-900 line-clamp-2">{course.title}</h3>
                   <p className="mt-1 text-sm text-neutral-500">
@@ -196,9 +204,15 @@ export default function StudentSearchPage() {
                     <span className="font-semibold text-neutral-900">{formatPrice(course.price)}</span>
                   </div>
                   <div className="mt-4">
-                    <LinkButton href={`/courses/${course.id}`} variant="primary" size="sm" fullWidth>
-                      View & Enroll
-                    </LinkButton>
+                    {course.isEnrolled ? (
+                      <LinkButton href={`/dashboard/student/courses/${course.id}`} variant="primary" size="sm" fullWidth>
+                        Continue Learning
+                      </LinkButton>
+                    ) : (
+                      <LinkButton href={`/dashboard/student/courses/${course.id}`} variant="primary" size="sm" fullWidth>
+                        View & Enroll
+                      </LinkButton>
+                    )}
                   </div>
                 </div>
               ))}
