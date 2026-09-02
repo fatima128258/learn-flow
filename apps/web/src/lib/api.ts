@@ -27,12 +27,25 @@ export async function apiRequest<T>(
   const isFormData = options.body instanceof FormData;
   let res: Response;
   try {
-    res = await fetch(`${API_BASE}${path}`, {
-      credentials: 'include',
-      headers: isFormData ? undefined : { 'Content-Type': 'application/json', ...(options.headers || {}) },
+    const url = `${API_BASE}${path}`;
+    
+    // DEBUG: Log cross-origin requests
+    if (typeof window !== 'undefined' && API_BASE !== '' && !API_BASE.includes(window.location.host)) {
+      console.log(`[API] Cross-origin request: ${options.method || 'GET'} ${path} to ${API_BASE}`);
+    }
+    
+    res = await fetch(url, {
+      credentials: 'include',  // CRITICAL: Include cookies in cross-origin requests
+      headers: isFormData 
+        ? undefined 
+        : { 
+            'Content-Type': 'application/json', 
+            ...(options.headers || {}) 
+          },
       ...options,
     });
-  } catch {
+  } catch (err) {
+    console.error(`[API] Network error: ${err instanceof Error ? err.message : 'Unknown'}`);
     throw new ApiError(0, 'NETWORK_ERROR');
   }
 
@@ -44,6 +57,7 @@ export async function apiRequest<T>(
     } catch {
       // non-JSON error body
     }
+    console.warn(`[API] ${res.status} ${code}: ${options.method || 'GET'} ${path}`);
     throw new ApiError(res.status, code);
   }
 

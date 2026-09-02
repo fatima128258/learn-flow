@@ -38,11 +38,14 @@ app.use(cors({
     if (isAllowedOrigin(origin)) {
       return callback(null, true);
     }
+    // Log rejected origins for debugging
+    console.warn(`[CORS] Origin rejected: ${origin}`);
     return callback(new Error('Not allowed by CORS'));
   },
-  credentials: true,
+  credentials: true,  // CRITICAL: enables cookie transmission
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'X-Organization-Id'],
+  maxAge: 86400,  // Preflight cache duration (24 hours)
 }));
 app.use(cookieParser());
 app.use(express.json({ limit: '1mb' }));
@@ -158,8 +161,16 @@ export const start = (port: number | string = process.env.PORT ?? 4000) => {
     console.log(`API server listening on http://localhost:${p}`);
     console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
     const cookieSecure = process.env.NODE_ENV === 'production' || String(process.env.SESSION_COOKIE_SECURE || '').toLowerCase() === 'true';
-    console.log(`Session cookie mode: ${cookieSecure ? 'Secure (SameSite=None)' : 'Insecure (SameSite=Lax, localhost only)'}`);
-    console.log(`CORS allowed origins: ${getAllowedOrigins().join(', ')}`);
+    console.log(`\n🔐 SESSION COOKIE CONFIGURATION:`);
+    console.log(`   Name: ${process.env.SESSION_COOKIE_NAME || 'learnflow_session'}`);
+    console.log(`   HttpOnly: true`);
+    console.log(`   Secure: ${cookieSecure}`);
+    console.log(`   SameSite: ${cookieSecure ? 'None' : 'Lax'}`);
+    console.log(`   Path: /`);
+    console.log(`   TTL: ${process.env.SESSION_TTL_SECONDS || 604800} seconds (7 days)\n`);
+    console.log(`✅ CORS Configuration:`);
+    console.log(`   Credentials: enabled`);
+    console.log(`   Allowed Origins: ${getAllowedOrigins().join(', ')}\n`);
   });
 };
 

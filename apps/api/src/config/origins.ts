@@ -5,6 +5,9 @@ const DEFAULT_ALLOWED_ORIGINS = [
   'http://127.0.0.1:3001',
   'http://web:3000',
   'http://frontend:3000',
+  // Production URLs - CRITICAL for cross-origin cookie handling
+  'https://learn-flow-web-indol.vercel.app',
+  'https://www.learn-flow-web-indol.vercel.app',
 ];
 
 export function getAllowedOrigins() {

@@ -12,8 +12,13 @@ export function securityHeaders(_req: Request, res: Response, next: NextFunction
   res.setHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
   res.setHeader('Cross-Origin-Resource-Policy', 'same-origin');
   res.setHeader('Cross-Origin-Opener-Policy', 'same-origin');
+  // Production: always enable HSTS when cookie security is enabled
   if (COOKIE_SECURE) {
     res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
+  }
+  // Log cookie mode for debugging
+  if (process.env.NODE_ENV === 'development' || process.env.DEBUG_COOKIES) {
+    console.log(`[Security] Cookie mode: ${COOKIE_SECURE ? 'Secure (cross-origin)' : 'Insecure (localhost only)'}`);
   }
   next();
 }
