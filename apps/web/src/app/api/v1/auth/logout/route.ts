@@ -6,16 +6,18 @@ export async function POST(req: Request) {
   const resp = await fetch(`${apiBase}/api/v1/auth/logout`, { method: 'POST', headers: { Cookie: cookie } });
   const data = await resp.text();
   
-  // Forward all response headers from backend, including Set-Cookie for session clearing
-  const responseHeaders: Record<string, string> = {
-    'Content-Type': 'application/json',
-  };
+  // Create response with proper Set-Cookie forwarding
+  const response = new NextResponse(data, { status: resp.status });
   
-  // Copy Set-Cookie headers from backend response (includes cookie clearing directives)
-  const setCookieHeader = resp.headers.get('set-cookie');
-  if (setCookieHeader) {
-    responseHeaders['set-cookie'] = setCookieHeader;
+  // Forward Set-Cookie headers from backend (includes cookie clearing directives)
+  // Use getSetCookie() which properly handles multiple Set-Cookie headers
+  const setCookies = resp.headers.getSetCookie();
+  for (const cookie of setCookies) {
+    response.headers.append('set-cookie', cookie);
   }
   
-  return new NextResponse(data, { status: resp.status, headers: responseHeaders });
+  // Ensure Content-Type is set
+  response.headers.set('Content-Type', 'application/json');
+  
+  return response;
 }
