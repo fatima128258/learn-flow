@@ -222,6 +222,11 @@ export async function updateLesson(organizationId: string, courseId: string, mod
 
   try {
     const lesson = await lessonRepo.updateLesson(moduleId, lessonId, updateData);
+    // updateLesson now returns null when the (lessonId, moduleId) pair doesn't
+    // match — treat that the same as not found.
+    if (!lesson) {
+      throw new Error('LESSON_NOT_FOUND');
+    }
     return toLessonDto(lesson);
   } catch (err) {
     if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === 'P2002') {

@@ -157,6 +157,7 @@ export async function getCourse(organizationId: string, courseId: string) {
 export async function listCourses(
   organizationId: string,
   input: { page?: unknown; limit?: unknown; status?: unknown; sort?: unknown; order?: unknown } = {},
+  actor?: CourseActor | null,
 ) {
   let status: string | undefined;
   if (input.status !== undefined && input.status !== null && input.status !== '') {
@@ -174,9 +175,14 @@ export async function listCourses(
     { field: 'difficulty' },
   ]);
 
+  // INSTRUCTOR role: scope to only courses they own.
+  // ORG_ADMIN and PLATFORM_ADMIN see all courses in the organization.
+  const instructorId =
+    actor?.role === 'INSTRUCTOR' && actor.userId ? actor.userId : undefined;
+
   const [courses, total] = await Promise.all([
-    courseRepo.listByOrganization(organizationId, { skip, take, status, orderBy }),
-    courseRepo.countByOrganization(organizationId, status),
+    courseRepo.listByOrganization(organizationId, { skip, take, status, orderBy, instructorId }),
+    courseRepo.countByOrganization(organizationId, status, instructorId),
   ]);
 
   return {

@@ -229,7 +229,7 @@ export async function recordLessonProgress(
   );
 
   if (courseProgress && progress.courseComplete !== courseProgress.completed) {
-    await progressRepo.markCourseCompleted(userId, courseId, progress.courseComplete);
+    await progressRepo.markCourseCompleted(userId, courseId, progress.courseComplete, organizationId);
   }
 
   if (progress.courseComplete && !(courseProgress && courseProgress.completed)) {

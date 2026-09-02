@@ -92,5 +92,10 @@ export async function logout(): Promise<void> {
   } catch {
     // ignore network errors; redirect anyway
   }
+  // Clear all React Query cached data so that a subsequent user who logs in
+  // on the same browser tab cannot see the previous user's data during the
+  // 30-second stale window before their own fetches complete.
+  const { clearQueryCache } = await import('../providers/QueryProvider');
+  clearQueryCache();
   window.location.href = '/';
 }

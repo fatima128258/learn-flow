@@ -202,6 +202,11 @@ export async function updateQuiz(organizationId: string, courseId: string, modul
 
   try {
     const quiz = await quizRepo.updateQuiz(moduleId, quizId, updateData);
+    // updateQuiz now returns null when the (quizId, moduleId) pair doesn't
+    // match — treat that the same as not found.
+    if (!quiz) {
+      throw new Error('QUIZ_NOT_FOUND');
+    }
     return toQuizDto(quiz);
   } catch (err) {
     if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === 'P2002') {

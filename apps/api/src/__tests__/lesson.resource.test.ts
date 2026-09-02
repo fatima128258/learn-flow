@@ -20,6 +20,7 @@ const prismaMock = {
     create: vi.fn(),
     findFirst: vi.fn(),
     update: vi.fn(),
+    updateMany: vi.fn(),
   },
 };
 
@@ -158,6 +159,7 @@ function resetMocks() {
   prismaMock.lesson.create.mockReset();
   prismaMock.lesson.findFirst.mockReset();
   prismaMock.lesson.update.mockReset();
+  prismaMock.lesson.updateMany.mockReset();
 }
 
 async function setValidAuth() {
@@ -213,10 +215,11 @@ describe('Lesson PDF/resource attachments', () => {
 
   it('updates resourceUrl and resourceMimeType on an existing lesson', async () => {
     await setValidAuth();
-    prismaMock.lesson.findFirst.mockResolvedValue(lessonRecord());
-    prismaMock.lesson.update.mockImplementation(async ({ data }: { data?: Record<string, unknown> }) =>
-      lessonRecord({ ...data, createdAt: now, updatedAt: now }),
-    );
+    prismaMock.lesson.findFirst
+      .mockResolvedValueOnce(lessonRecord())  // pre-check getById
+      .mockResolvedValueOnce(lessonRecord({ resourceUrl: RESOURCE_URL, resourceMimeType: 'application/pdf' })); // post-update fetch
+    // updateLesson now uses updateMany bound to (lessonId, moduleId) (C-02 fix).
+    prismaMock.lesson.updateMany.mockResolvedValue({ count: 1 });
 
     const res = await request(app)
       .patch(`${BASE}/lesson-1`)
@@ -226,21 +229,21 @@ describe('Lesson PDF/resource attachments', () => {
     expect(res.status).toBe(200);
     expect(res.body.data.resourceUrl).toBe(RESOURCE_URL);
     expect(res.body.data.resourceMimeType).toBe('application/pdf');
-    expect(prismaMock.lesson.update).toHaveBeenCalledWith({
-      where: { id: 'lesson-1' },
+    expect(prismaMock.lesson.updateMany).toHaveBeenCalledWith(expect.objectContaining({
+      where: expect.objectContaining({ id: 'lesson-1', moduleId: 'module-1' }),
       data: expect.objectContaining({
         resourceUrl: RESOURCE_URL,
         resourceMimeType: 'application/pdf',
       }),
-    });
+    }));
   });
 
   it('clears a resource when an empty string is sent', async () => {
     await setValidAuth();
-    prismaMock.lesson.findFirst.mockResolvedValue(lessonRecord());
-    prismaMock.lesson.update.mockImplementation(async ({ data }: { data?: Record<string, unknown> }) =>
-      lessonRecord({ ...data, createdAt: now, updatedAt: now }),
-    );
+    prismaMock.lesson.findFirst
+      .mockResolvedValueOnce(lessonRecord())  // pre-check getById
+      .mockResolvedValueOnce(lessonRecord({ resourceUrl: null })); // post-update fetch
+    prismaMock.lesson.updateMany.mockResolvedValue({ count: 1 });
 
     const res = await request(app)
       .patch(`${BASE}/lesson-1`)
@@ -248,9 +251,9 @@ describe('Lesson PDF/resource attachments', () => {
       .send({ resourceUrl: '' });
 
     expect(res.status).toBe(200);
-    expect(prismaMock.lesson.update).toHaveBeenCalledWith({
-      where: { id: 'lesson-1' },
+    expect(prismaMock.lesson.updateMany).toHaveBeenCalledWith(expect.objectContaining({
+      where: expect.objectContaining({ id: 'lesson-1', moduleId: 'module-1' }),
       data: expect.objectContaining({ resourceUrl: null }),
-    });
+    }));
   });
 });

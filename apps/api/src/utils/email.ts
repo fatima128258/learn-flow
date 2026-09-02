@@ -110,13 +110,25 @@ export function getTransporter() {
   if (!transporter) {
     const host = process.env.MAIL_SMTP_HOST || 'localhost';
     const port = Number(process.env.MAIL_SMTP_PORT || '1025');
+    const user = process.env.MAIL_SMTP_USER;
+    const pass = process.env.MAIL_SMTP_PASS;
+
+    // For port 465: use implicit TLS (secure: true)
+    // For port 587: use explicit STARTTLS (secure: false, requireTLS: true)
+    // For local Mailpit (1025): no TLS, no auth
+    const isImplicitTLS = port === 465;
+    const isExplicitTLS = port === 587;
+    const requiresTLS = isImplicitTLS || isExplicitTLS;
+    const isLocalMailpit = port === 1025 || host === 'localhost' || host === 'mailpit';
 
     transporter = nodemailer.createTransport({
       host,
       port,
-      secure: false,
-      ignoreTLS: true, // Mailpit doesn't require TLS
-      auth: undefined, // No auth for local Mailpit
+      secure: isImplicitTLS,
+      requireTLS: requiresTLS && !isLocalMailpit,
+      ignoreTLS: isLocalMailpit, // Mailpit doesn't require TLS
+      // Only provide auth if BOTH username and password are set
+      auth: user && pass ? { user, pass } : undefined,
     });
   }
   return transporter;

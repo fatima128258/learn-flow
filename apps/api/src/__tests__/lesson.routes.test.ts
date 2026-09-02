@@ -22,7 +22,9 @@ const prismaMock = {
     findMany: vi.fn(),
     findFirst: vi.fn(),
     update: vi.fn(),
+    updateMany: vi.fn(),
     delete: vi.fn(),
+    deleteMany: vi.fn(),
   },
 };
 
@@ -179,7 +181,9 @@ function resetMocks() {
   prismaMock.lesson.findMany.mockReset();
   prismaMock.lesson.findFirst.mockReset();
   prismaMock.lesson.update.mockReset();
+  prismaMock.lesson.updateMany.mockReset();
   prismaMock.lesson.delete.mockReset();
+  prismaMock.lesson.deleteMany.mockReset();
 }
 
 const BASE = '/api/v1/organizations/org-a/courses/course-1/modules/module-1/lessons';
@@ -768,9 +772,11 @@ describe('PATCH /api/v1/organizations/:orgId/courses/:courseId/modules/:moduleId
   it('updates a lesson for an authorized instructor', async () => {
     await setValidAuth('INSTRUCTOR');
     prismaMock.lesson.findFirst.mockResolvedValue(lessonRecord());
-    prismaMock.lesson.update.mockImplementation(async ({ data }: { data?: Record<string, unknown> }) =>
-      lessonRecord({ ...data, createdAt: now, updatedAt: now }),
-    );
+    // updateLesson now uses updateMany (ownership-bound) then findFirst (C-02 fix).
+    prismaMock.lesson.updateMany.mockResolvedValue({ count: 1 });
+    prismaMock.lesson.findFirst
+      .mockResolvedValueOnce(lessonRecord())   // getById pre-check
+      .mockResolvedValueOnce(lessonRecord({ title: 'Updated Lesson', order: 1 })); // post-update fetch
 
     const res = await request(app)
       .patch(LESSON_URL)
@@ -781,6 +787,10 @@ describe('PATCH /api/v1/organizations/:orgId/courses/:courseId/modules/:moduleId
     expect(res.body.success).toBe(true);
     expect(res.body.data.title).toBe('Updated Lesson');
     expect(res.body.data.order).toBe(1);
+    // Verify the DB mutation is bound to BOTH lessonId AND moduleId.
+    expect(prismaMock.lesson.updateMany).toHaveBeenCalledWith(expect.objectContaining({
+      where: expect.objectContaining({ id: 'lesson-1', moduleId: 'module-1' }),
+    }));
   });
 
   it('rejects update when lesson does not exist', async () => {
@@ -838,7 +848,7 @@ describe('PATCH /api/v1/organizations/:orgId/courses/:courseId/modules/:moduleId
   it('maps duplicate order to 409', async () => {
     await setValidAuth('INSTRUCTOR');
     prismaMock.lesson.findFirst.mockResolvedValue(lessonRecord());
-    prismaMock.lesson.update.mockRejectedValue(
+    prismaMock.lesson.updateMany.mockRejectedValue(
       new Prisma.PrismaClientKnownRequestError('Unique constraint failed', {
         code: 'P2002',
         clientVersion: '4.16.2',
@@ -896,13 +906,13 @@ describe('DELETE /api/v1/organizations/:orgId/courses/:courseId/modules/:moduleI
 
     expect(res.status).toBe(401);
     expect(res.body.error).toBe('NOT_AUTHENTICATED');
-    expect(prismaMock.lesson.delete).not.toHaveBeenCalled();
+    expect(prismaMock.lesson.deleteMany).not.toHaveBeenCalled();
   });
 
   it('deletes a lesson for an authorized instructor', async () => {
     await setValidAuth('INSTRUCTOR');
     prismaMock.lesson.findFirst.mockResolvedValue(lessonRecord());
-    prismaMock.lesson.delete.mockResolvedValue({});
+    prismaMock.lesson.deleteMany.mockResolvedValue({ count: 1 });
 
     const res = await request(app)
       .delete(LESSON_URL)
@@ -910,8 +920,9 @@ describe('DELETE /api/v1/organizations/:orgId/courses/:courseId/modules/:moduleI
 
     expect(res.status).toBe(200);
     expect(res.body.success).toBe(true);
-    expect(prismaMock.lesson.delete).toHaveBeenCalledWith({
-      where: { id: 'lesson-1' },
+    // deleteLesson now uses deleteMany with BOTH lessonId AND moduleId (C-02 fix).
+    expect(prismaMock.lesson.deleteMany).toHaveBeenCalledWith({
+      where: { id: 'lesson-1', moduleId: 'module-1' },
     });
   });
 
@@ -925,7 +936,7 @@ describe('DELETE /api/v1/organizations/:orgId/courses/:courseId/modules/:moduleI
     );
     prismaMock.module.findFirst.mockResolvedValue(moduleRecord());
     prismaMock.lesson.findFirst.mockResolvedValue(lessonRecord());
-    prismaMock.lesson.delete.mockResolvedValue({});
+    prismaMock.lesson.deleteMany.mockResolvedValue({ count: 1 });
 
     const res = await request(app)
       .delete(LESSON_URL)

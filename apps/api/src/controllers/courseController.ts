@@ -65,13 +65,19 @@ export async function listCourses(req: AuthenticatedRequest, res: Response) {
     if (!req.user) {
       return fail(res, 401, 'NOT_AUTHENTICATED');
     }
-    const result = await service.listCourses(tenantOrganizationId(req), {
-      page: req.query.page,
-      limit: req.query.limit,
-      status: req.query.status,
-      sort: req.query.sort,
-      order: req.query.order,
-    });
+    const result = await service.listCourses(
+      tenantOrganizationId(req),
+      {
+        page: req.query.page,
+        limit: req.query.limit,
+        status: req.query.status,
+        sort: req.query.sort,
+        order: req.query.order,
+      },
+      // Pass the authenticated actor so the service can apply instructor-scoped
+      // filtering at the database level (INSTRUCTOR sees only their own courses).
+      { userId: req.user.id, role: req.user.role },
+    );
     return res.status(200).json({ success: true, data: result.items, meta: result.meta });
   } catch (err) {
     return handleError(res, err);

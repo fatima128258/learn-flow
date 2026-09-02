@@ -156,6 +156,11 @@ export async function updateModule(
 
   try {
     const module = await moduleRepo.updateModule(courseId, moduleId, updateData);
+    // updateModule now returns null when the (moduleId, courseId) pair doesn't
+    // match — treat that the same as not found.
+    if (!module) {
+      throw new Error('MODULE_NOT_FOUND');
+    }
     return toModuleDto(module);
   } catch (err) {
     if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === 'P2002') {
@@ -179,6 +184,7 @@ export async function deleteModule(
     throw new Error('MODULE_NOT_FOUND');
   }
 
+  // deleteModule now uses deleteMany bound to (moduleId, courseId).
   await moduleRepo.deleteModule(courseId, moduleId);
   return { success: true };
 }

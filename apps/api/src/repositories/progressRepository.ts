@@ -82,7 +82,19 @@ export async function upsertCourseProgressLastVisited(data: UpsertCourseProgress
   });
 }
 
-export async function markCourseCompleted(userId: string, courseId: string, completed: boolean) {
+export async function markCourseCompleted(
+  userId: string,
+  courseId: string,
+  completed: boolean,
+  organizationId: string,
+) {
+  // organizationId is required — it must come from the authenticated request
+  // context (enrollment record), never from client-supplied input. Storing an
+  // empty string here would corrupt CourseProgress records and break any
+  // subsequent query that filters on organizationId.
+  if (!organizationId) {
+    throw new Error('ORGANIZATION_REQUIRED');
+  }
   return prisma().courseProgress.upsert({
     where: {
       userId_courseId: { userId, courseId },
@@ -94,7 +106,7 @@ export async function markCourseCompleted(userId: string, courseId: string, comp
     create: {
       userId,
       courseId,
-      organizationId: '', // Will be updated by next upsert
+      organizationId,
       completed,
       completedAt: completed ? new Date() : null,
     },

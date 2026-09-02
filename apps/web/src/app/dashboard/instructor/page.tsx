@@ -188,7 +188,10 @@ export default function InstructorDashboardPage() {
   const [statusModalCourseId, setStatusModalCourseId] = useState<string | null>(null);
 
   const { data: courses, isLoading, isError, refetch } = useQuery({
-    queryKey: ['instructor', 'courses'],
+    // Include both organizationId and user id in the cache key so that cached
+    // courses from one instructor / organization are never served to a different
+    // instructor or organization in the same browser session.
+    queryKey: ['instructor', 'courses', user?.organizationId, user?.id],
     queryFn: async () => {
       const body = await getJson<{ data?: CourseItem[] }>(
         `/api/v1/organizations/${user?.organizationId ?? ''}/courses?page=1&limit=100`,
@@ -210,8 +213,11 @@ export default function InstructorDashboardPage() {
   }, [user, userLoading]);
 
   function handleStatusSuccess(courseId: string, newStatus: CourseStatus) {
-    queryClient.setQueryData<CourseItem[]>(['instructor', 'courses'], (prev) =>
-      prev?.map((c) => (c.id === courseId ? { ...c, status: newStatus } : c)) ?? [],
+    // Must use the same full cache key as the useQuery above so the optimistic
+    // update targets the correct cache entry.
+    queryClient.setQueryData<CourseItem[]>(
+      ['instructor', 'courses', user?.organizationId, user?.id],
+      (prev) => prev?.map((c) => (c.id === courseId ? { ...c, status: newStatus } : c)) ?? [],
     );
   }
 

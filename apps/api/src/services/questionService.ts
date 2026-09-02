@@ -196,6 +196,11 @@ export async function updateQuestion(organizationId: string, courseId: string, m
 
   try {
     const question = await questionRepo.updateQuestion(quizId, questionId, updateData);
+    // updateQuestion now returns null when the (questionId, quizId) pair doesn't
+    // match — treat that the same as not found.
+    if (!question) {
+      throw new Error('QUESTION_NOT_FOUND');
+    }
     return toQuestionDto(question);
   } catch (err) {
     if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === 'P2002') {
@@ -300,6 +305,11 @@ export async function updateOption(organizationId: string, courseId: string, mod
 
   try {
     const option = await questionRepo.updateOption(questionId, optionId, updateData);
+    // updateOption now returns null when the (optionId, questionId) pair doesn't
+    // match — treat that the same as not found.
+    if (!option) {
+      throw new Error('OPTION_NOT_FOUND');
+    }
     return toOptionDto(option);
   } catch (err) {
     if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === 'P2002') {

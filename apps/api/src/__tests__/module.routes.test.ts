@@ -19,7 +19,9 @@ const prismaMock = {
     findMany: vi.fn(),
     findFirst: vi.fn(),
     update: vi.fn(),
+    updateMany: vi.fn(),
     delete: vi.fn(),
+    deleteMany: vi.fn(),
   },
 };
 
@@ -143,7 +145,9 @@ function resetMocks() {
   prismaMock.module.findMany.mockReset();
   prismaMock.module.findFirst.mockReset();
   prismaMock.module.update.mockReset();
+  prismaMock.module.updateMany.mockReset();
   prismaMock.module.delete.mockReset();
+  prismaMock.module.deleteMany.mockReset();
 }
 
 describe('POST /api/v1/organizations/:organizationId/courses/:courseId/modules', () => {
@@ -546,9 +550,11 @@ describe('PATCH /api/v1/organizations/:organizationId/courses/:courseId/modules/
     prismaMock.userOrganization.findUnique.mockResolvedValue(membershipRecord());
     prismaMock.course.findFirst.mockResolvedValue(courseRecord());
     prismaMock.module.findFirst.mockResolvedValue(moduleRecord());
-    prismaMock.module.update.mockImplementation(async ({ data }: { data?: Record<string, unknown> }) =>
-      moduleRecord({ ...data, createdAt: now, updatedAt: now }),
-    );
+    // updateModule now uses updateMany (ownership-bound) then findFirst to
+    // return the updated record (C-01 security fix).
+    prismaMock.module.updateMany.mockResolvedValue({ count: 1 });
+    prismaMock.module.findFirst.mockResolvedValueOnce(moduleRecord())  // getById pre-check
+      .mockResolvedValueOnce(moduleRecord({ title: 'Updated Module', order: 1 })); // post-update fetch
 
     const res = await request(app)
       .patch('/api/v1/organizations/org-a/courses/course-1/modules/module-1')
@@ -559,6 +565,10 @@ describe('PATCH /api/v1/organizations/:organizationId/courses/:courseId/modules/
     expect(res.body.success).toBe(true);
     expect(res.body.data.title).toBe('Updated Module');
     expect(res.body.data.order).toBe(1);
+    // Verify the DB mutation is bound to BOTH moduleId AND courseId.
+    expect(prismaMock.module.updateMany).toHaveBeenCalledWith(expect.objectContaining({
+      where: expect.objectContaining({ id: 'module-1', courseId: 'course-1' }),
+    }));
   });
 
   it('rejects update when module does not exist', async () => {
@@ -596,7 +606,7 @@ describe('PATCH /api/v1/organizations/:organizationId/courses/:courseId/modules/
     prismaMock.userOrganization.findUnique.mockResolvedValue(membershipRecord());
     prismaMock.course.findFirst.mockResolvedValue(courseRecord());
     prismaMock.module.findFirst.mockResolvedValue(moduleRecord());
-    prismaMock.module.update.mockRejectedValue(
+    prismaMock.module.updateMany.mockRejectedValue(
       new Prisma.PrismaClientKnownRequestError('Unique constraint failed', {
         code: 'P2002',
         clientVersion: '4.16.2',
@@ -633,7 +643,7 @@ describe('DELETE /api/v1/organizations/:organizationId/courses/:courseId/modules
     prismaMock.userOrganization.findUnique.mockResolvedValue(membershipRecord());
     prismaMock.course.findFirst.mockResolvedValue(courseRecord());
     prismaMock.module.findFirst.mockResolvedValue(moduleRecord());
-    prismaMock.module.delete.mockResolvedValue({});
+    prismaMock.module.deleteMany.mockResolvedValue({ count: 1 });
 
     const res = await request(app)
       .delete('/api/v1/organizations/org-a/courses/course-1/modules/module-1')
@@ -641,8 +651,10 @@ describe('DELETE /api/v1/organizations/:organizationId/courses/:courseId/modules
 
     expect(res.status).toBe(200);
     expect(res.body.success).toBe(true);
-    expect(prismaMock.module.delete).toHaveBeenCalledWith({
-      where: { id: 'module-1' },
+    // deleteModule now uses deleteMany with BOTH moduleId AND courseId to prevent
+    // cross-tenant deletion (C-01 security fix).
+    expect(prismaMock.module.deleteMany).toHaveBeenCalledWith({
+      where: { id: 'module-1', courseId: 'course-1' },
     });
   });
 

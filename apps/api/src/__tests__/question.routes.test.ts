@@ -26,14 +26,18 @@ const prismaMock = {
     findFirst: vi.fn(),
     findUnique: vi.fn(),
     update: vi.fn(),
+    updateMany: vi.fn(),
     delete: vi.fn(),
+    deleteMany: vi.fn(),
   },
   quizOption: {
     create: vi.fn(),
     findMany: vi.fn(),
     findFirst: vi.fn(),
     update: vi.fn(),
+    updateMany: vi.fn(),
     delete: vi.fn(),
+    deleteMany: vi.fn(),
   },
 };
 
@@ -172,7 +176,7 @@ async function authenticateAs(
   });
 
   prismaMock.userOrganization.findMany.mockResolvedValue([
-    { role, organizationId, userId },
+    { role, organizationId, userId, organization: { slug: organizationId, id: organizationId } },
   ]);
 
   prismaMock.userOrganization.findFirst.mockImplementation(async ({ where }: { where?: { role?: string; organizationId?: string; userId?: string; id?: string; courseId?: string; moduleId?: string; quizId?: string; status?: string } }) => {
@@ -204,12 +208,16 @@ function resetMocks() {
   prismaMock.question.findFirst.mockReset();
   prismaMock.question.findUnique.mockReset();
   prismaMock.question.update.mockReset();
+  prismaMock.question.updateMany.mockReset();
   prismaMock.question.delete.mockReset();
+  prismaMock.question.deleteMany.mockReset();
   prismaMock.quizOption.create.mockReset();
   prismaMock.quizOption.findMany.mockReset();
   prismaMock.quizOption.findFirst.mockReset();
   prismaMock.quizOption.update.mockReset();
+  prismaMock.quizOption.updateMany.mockReset();
   prismaMock.quizOption.delete.mockReset();
+  prismaMock.quizOption.deleteMany.mockReset();
   vi.mocked(authService.getSessionFromToken).mockReset();
   vi.mocked(authService.getUserById).mockReset();
 }
@@ -435,7 +443,11 @@ describe('Question routes', () => {
     it('updates question as instructor', async () => {
       await setValidAuth('INSTRUCTOR');
       prismaMock.question.findFirst.mockResolvedValue(questionDetailRecord());
-      prismaMock.question.update.mockResolvedValue(questionRecord({ questionText: 'Updated Q' }));
+      // updateQuestion now uses updateMany bound to (questionId, quizId) then findFirst (fix).
+      prismaMock.question.updateMany.mockResolvedValue({ count: 1 });
+      prismaMock.question.findFirst
+        .mockResolvedValueOnce(questionDetailRecord())                            // pre-check getById
+        .mockResolvedValueOnce(questionDetailRecord({ questionText: 'Updated Q' })); // post-update fetch
 
       const res = await request(app)
         .patch(`${QUESTIONS_BASE}/question-1`)
@@ -443,6 +455,12 @@ describe('Question routes', () => {
         .send({ questionText: 'Updated Q' });
       expect(res.status).toBe(200);
       expect(res.body.success).toBe(true);
+      // Verify DB mutation is bound to BOTH questionId AND quizId.
+      expect(prismaMock.question.updateMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({ id: 'question-1', quizId: 'quiz-1' }),
+        }),
+      );
     });
 
     it('returns 404 when question not found', async () => {
@@ -472,7 +490,8 @@ describe('Question routes', () => {
     it('returns 409 when order is duplicate', async () => {
       await setValidAuth();
       prismaMock.question.findFirst.mockResolvedValue(questionDetailRecord());
-      prismaMock.question.update.mockRejectedValue(
+      // updateQuestion now uses updateMany bound to (questionId, quizId).
+      prismaMock.question.updateMany.mockRejectedValue(
         new Prisma.PrismaClientKnownRequestError('Unique constraint', { code: 'P2002', clientVersion: '4.0.0', meta: {} }),
       );
 
@@ -494,11 +513,15 @@ describe('Question routes', () => {
     it('deletes question as instructor', async () => {
       await setValidAuth('INSTRUCTOR');
       prismaMock.question.findFirst.mockResolvedValue(questionDetailRecord());
-      prismaMock.question.delete.mockResolvedValue(questionRecord());
+      // deleteQuestion now uses deleteMany bound to (questionId, quizId).
+      prismaMock.question.deleteMany.mockResolvedValue({ count: 1 });
 
       const res = await request(app).delete(`${QUESTIONS_BASE}/question-1`).set('Cookie', cookie());
       expect(res.status).toBe(200);
       expect(res.body.success).toBe(true);
+      expect(prismaMock.question.deleteMany).toHaveBeenCalledWith({
+        where: { id: 'question-1', quizId: 'quiz-1' },
+      });
     });
 
     it('returns 404 when question not found', async () => {
@@ -667,7 +690,11 @@ describe('QuizOption routes', () => {
       await setValidAuth('INSTRUCTOR');
       prismaMock.question.findFirst.mockResolvedValue(questionDetailRecord());
       prismaMock.quizOption.findFirst.mockResolvedValue(optionRecord());
-      prismaMock.quizOption.update.mockResolvedValue(optionRecord({ text: 'Updated' }));
+      // updateOption now uses updateMany bound to (optionId, questionId) then findFirst.
+      prismaMock.quizOption.updateMany.mockResolvedValue({ count: 1 });
+      prismaMock.quizOption.findFirst
+        .mockResolvedValueOnce(optionRecord())                  // pre-check getOptionById
+        .mockResolvedValueOnce(optionRecord({ text: 'Updated' })); // post-update fetch
 
       const res = await request(app)
         .patch(`${OPTIONS_BASE}/option-1`)
@@ -675,6 +702,11 @@ describe('QuizOption routes', () => {
         .send({ text: 'Updated' });
       expect(res.status).toBe(200);
       expect(res.body.success).toBe(true);
+      expect(prismaMock.quizOption.updateMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({ id: 'option-1', questionId: 'question-1' }),
+        }),
+      );
     });
 
     it('returns 404 when option not found', async () => {
@@ -714,11 +746,15 @@ describe('QuizOption routes', () => {
       await setValidAuth('INSTRUCTOR');
       prismaMock.question.findFirst.mockResolvedValue(questionDetailRecord());
       prismaMock.quizOption.findFirst.mockResolvedValue(optionRecord());
-      prismaMock.quizOption.delete.mockResolvedValue(optionRecord());
+      // deleteOption now uses deleteMany bound to (optionId, questionId).
+      prismaMock.quizOption.deleteMany.mockResolvedValue({ count: 1 });
 
       const res = await request(app).delete(`${OPTIONS_BASE}/option-1`).set('Cookie', cookie());
       expect(res.status).toBe(200);
       expect(res.body.success).toBe(true);
+      expect(prismaMock.quizOption.deleteMany).toHaveBeenCalledWith({
+        where: { id: 'option-1', questionId: 'question-1' },
+      });
     });
 
     it('returns 404 when option not found', async () => {
@@ -777,5 +813,311 @@ describe('Parent ownership isolation', () => {
       .send({ text: 'Updated' });
     expect(res.status).toBe(404);
     expect(res.body.error).toBe('OPTION_NOT_FOUND');
+  });
+});
+
+// ─── Security Regression Tests: Question & Option Ownership ───────────────────
+//
+// These tests verify that the final Prisma mutation is bound to the parent ID
+// at the persistence layer — not merely guarded by service-level checks.
+//
+// A. Question from Quiz B cannot be updated via Quiz A context.
+// B. Question from Quiz B cannot be deleted via Quiz A context.
+// C. Option from Question B cannot be updated via Question A context.
+// D. Option from Question B cannot be deleted via Question A context.
+// E. Correct parent IDs allow legitimate update/delete.
+// F. Org → course → module → quiz authorization chain remains intact.
+
+describe('Question & Option ownership security regression (NEW-H-01 fix)', () => {
+  beforeEach(() => {
+    resetMocks();
+  });
+
+  // ── A: Question from Quiz B cannot be updated via Quiz A ──────────────────
+
+  describe('A. Question from Quiz B cannot be updated through Quiz A context', () => {
+    it('returns 404 when questionId does not belong to the requested quizId', async () => {
+      await setValidAuth('INSTRUCTOR');
+      // getById(quizId='quiz-1', questionId='question-from-quiz-b') returns null
+      prismaMock.question.findFirst.mockResolvedValue(null);
+
+      const res = await request(app)
+        .patch(`${QUESTIONS_BASE}/question-from-quiz-b`)
+        .set('Cookie', cookie())
+        .send({ questionText: 'Injected update' });
+
+      expect(res.status).toBe(404);
+      expect(res.body.error).toBe('QUESTION_NOT_FOUND');
+      // The DB updateMany must never be reached.
+      expect(prismaMock.question.updateMany).not.toHaveBeenCalled();
+    });
+
+    it('updateMany WHERE clause is bound to BOTH questionId AND quizId', async () => {
+      await setValidAuth('INSTRUCTOR');
+      prismaMock.question.findFirst
+        .mockResolvedValueOnce(questionDetailRecord())           // pre-check passes
+        .mockResolvedValueOnce(questionDetailRecord({ questionText: 'Updated' })); // post-update fetch
+      prismaMock.question.updateMany.mockResolvedValue({ count: 1 });
+
+      await request(app)
+        .patch(`${QUESTIONS_BASE}/question-1`)
+        .set('Cookie', cookie())
+        .send({ questionText: 'Updated' });
+
+      expect(prismaMock.question.updateMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({ id: 'question-1', quizId: 'quiz-1' }),
+        }),
+      );
+    });
+  });
+
+  // ── B: Question from Quiz B cannot be deleted via Quiz A ──────────────────
+
+  describe('B. Question from Quiz B cannot be deleted through Quiz A context', () => {
+    it('returns 404 when questionId does not belong to the requested quizId', async () => {
+      await setValidAuth('INSTRUCTOR');
+      prismaMock.question.findFirst.mockResolvedValue(null);
+
+      const res = await request(app)
+        .delete(`${QUESTIONS_BASE}/question-from-quiz-b`)
+        .set('Cookie', cookie());
+
+      expect(res.status).toBe(404);
+      expect(res.body.error).toBe('QUESTION_NOT_FOUND');
+      expect(prismaMock.question.deleteMany).not.toHaveBeenCalled();
+    });
+
+    it('deleteMany WHERE clause is bound to BOTH questionId AND quizId', async () => {
+      await setValidAuth('INSTRUCTOR');
+      prismaMock.question.findFirst.mockResolvedValue(questionDetailRecord());
+      prismaMock.question.deleteMany.mockResolvedValue({ count: 1 });
+
+      await request(app)
+        .delete(`${QUESTIONS_BASE}/question-1`)
+        .set('Cookie', cookie());
+
+      expect(prismaMock.question.deleteMany).toHaveBeenCalledWith({
+        where: { id: 'question-1', quizId: 'quiz-1' },
+      });
+    });
+  });
+
+  // ── C: Option from Question B cannot be updated via Question A ────────────
+
+  describe('C. Option from Question B cannot be updated through Question A context', () => {
+    it('returns 404 when optionId does not belong to the requested questionId', async () => {
+      await setValidAuth('INSTRUCTOR');
+      prismaMock.question.findFirst.mockResolvedValue(questionDetailRecord());
+      // getOptionById(questionId='question-1', optionId='option-from-question-b') → null
+      prismaMock.quizOption.findFirst.mockResolvedValue(null);
+
+      const res = await request(app)
+        .patch(`${OPTIONS_BASE}/option-from-question-b`)
+        .set('Cookie', cookie())
+        .send({ text: 'Injected update' });
+
+      expect(res.status).toBe(404);
+      expect(res.body.error).toBe('OPTION_NOT_FOUND');
+      expect(prismaMock.quizOption.updateMany).not.toHaveBeenCalled();
+    });
+
+    it('updateMany WHERE clause is bound to BOTH optionId AND questionId', async () => {
+      await setValidAuth('INSTRUCTOR');
+      prismaMock.question.findFirst.mockResolvedValue(questionDetailRecord());
+      prismaMock.quizOption.findFirst
+        .mockResolvedValueOnce(optionRecord())                  // pre-check getOptionById
+        .mockResolvedValueOnce(optionRecord({ text: 'Updated' })); // post-update fetch
+      prismaMock.quizOption.updateMany.mockResolvedValue({ count: 1 });
+
+      await request(app)
+        .patch(`${OPTIONS_BASE}/option-1`)
+        .set('Cookie', cookie())
+        .send({ text: 'Updated' });
+
+      expect(prismaMock.quizOption.updateMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({ id: 'option-1', questionId: 'question-1' }),
+        }),
+      );
+    });
+  });
+
+  // ── D: Option from Question B cannot be deleted via Question A ────────────
+
+  describe('D. Option from Question B cannot be deleted through Question A context', () => {
+    it('returns 404 when optionId does not belong to the requested questionId', async () => {
+      await setValidAuth('INSTRUCTOR');
+      prismaMock.question.findFirst.mockResolvedValue(questionDetailRecord());
+      prismaMock.quizOption.findFirst.mockResolvedValue(null);
+
+      const res = await request(app)
+        .delete(`${OPTIONS_BASE}/option-from-question-b`)
+        .set('Cookie', cookie());
+
+      expect(res.status).toBe(404);
+      expect(res.body.error).toBe('OPTION_NOT_FOUND');
+      expect(prismaMock.quizOption.deleteMany).not.toHaveBeenCalled();
+    });
+
+    it('deleteMany WHERE clause is bound to BOTH optionId AND questionId', async () => {
+      await setValidAuth('INSTRUCTOR');
+      prismaMock.question.findFirst.mockResolvedValue(questionDetailRecord());
+      prismaMock.quizOption.findFirst.mockResolvedValue(optionRecord());
+      prismaMock.quizOption.deleteMany.mockResolvedValue({ count: 1 });
+
+      await request(app)
+        .delete(`${OPTIONS_BASE}/option-1`)
+        .set('Cookie', cookie());
+
+      expect(prismaMock.quizOption.deleteMany).toHaveBeenCalledWith({
+        where: { id: 'option-1', questionId: 'question-1' },
+      });
+    });
+  });
+
+  // ── E: Correct parent IDs still allow legitimate operations ───────────────
+
+  describe('E. Correct parent IDs allow legitimate update and delete', () => {
+    it('successfully updates a question with correct quizId', async () => {
+      await setValidAuth('INSTRUCTOR');
+      prismaMock.question.findFirst
+        .mockResolvedValueOnce(questionDetailRecord())
+        .mockResolvedValueOnce(questionDetailRecord({ questionText: 'New text' }));
+      prismaMock.question.updateMany.mockResolvedValue({ count: 1 });
+
+      const res = await request(app)
+        .patch(`${QUESTIONS_BASE}/question-1`)
+        .set('Cookie', cookie())
+        .send({ questionText: 'New text' });
+
+      expect(res.status).toBe(200);
+      expect(res.body.data.questionText).toBe('New text');
+    });
+
+    it('successfully deletes a question with correct quizId', async () => {
+      await setValidAuth('INSTRUCTOR');
+      prismaMock.question.findFirst.mockResolvedValue(questionDetailRecord());
+      prismaMock.question.deleteMany.mockResolvedValue({ count: 1 });
+
+      const res = await request(app)
+        .delete(`${QUESTIONS_BASE}/question-1`)
+        .set('Cookie', cookie());
+
+      expect(res.status).toBe(200);
+      expect(res.body.success).toBe(true);
+    });
+
+    it('successfully updates an option with correct questionId', async () => {
+      await setValidAuth('INSTRUCTOR');
+      prismaMock.question.findFirst.mockResolvedValue(questionDetailRecord());
+      prismaMock.quizOption.findFirst
+        .mockResolvedValueOnce(optionRecord())
+        .mockResolvedValueOnce(optionRecord({ text: 'New text' }));
+      prismaMock.quizOption.updateMany.mockResolvedValue({ count: 1 });
+
+      const res = await request(app)
+        .patch(`${OPTIONS_BASE}/option-1`)
+        .set('Cookie', cookie())
+        .send({ text: 'New text' });
+
+      expect(res.status).toBe(200);
+      expect(res.body.data.text).toBe('New text');
+    });
+
+    it('successfully deletes an option with correct questionId', async () => {
+      await setValidAuth('INSTRUCTOR');
+      prismaMock.question.findFirst.mockResolvedValue(questionDetailRecord());
+      prismaMock.quizOption.findFirst.mockResolvedValue(optionRecord());
+      prismaMock.quizOption.deleteMany.mockResolvedValue({ count: 1 });
+
+      const res = await request(app)
+        .delete(`${OPTIONS_BASE}/option-1`)
+        .set('Cookie', cookie());
+
+      expect(res.status).toBe(200);
+      expect(res.body.success).toBe(true);
+    });
+  });
+
+  // ── F: Org → course → module → quiz authorization chain still intact ──────
+
+  describe('F. Full authorization chain remains enforced', () => {
+    it('rejects unauthenticated question update (401)', async () => {
+      const res = await request(app)
+        .patch(`${QUESTIONS_BASE}/question-1`)
+        .send({ questionText: 'Hacked' });
+      expect(res.status).toBe(401);
+      expect(prismaMock.question.updateMany).not.toHaveBeenCalled();
+    });
+
+    it('rejects student role on question update (403)', async () => {
+      await authenticateAs('STUDENT');
+      prismaMock.userOrganization.findUnique.mockResolvedValue(
+        membershipRecord({ role: 'STUDENT' }),
+      );
+      prismaMock.course.findFirst.mockResolvedValue(courseRecord());
+      prismaMock.module.findFirst.mockResolvedValue(moduleRecord());
+      prismaMock.quiz.findFirst.mockResolvedValue(quizRecord());
+
+      const res = await request(app)
+        .patch(`${QUESTIONS_BASE}/question-1`)
+        .set('Cookie', cookie())
+        .send({ questionText: 'Hacked' });
+      expect(res.status).toBe(403);
+      expect(prismaMock.question.updateMany).not.toHaveBeenCalled();
+    });
+
+    it('rejects cross-org question update (403)', async () => {
+      await authenticateAs('INSTRUCTOR', { organizationId: 'org-a' });
+      // Not a member of org-b — findUnique returns null
+      prismaMock.userOrganization.findUnique.mockResolvedValue(null);
+
+      const res = await request(app)
+        .patch('/api/v1/organizations/org-b/courses/course-1/modules/module-1/quizzes/quiz-1/questions/question-1')
+        .set('Cookie', cookie())
+        .send({ questionText: 'Cross-org injection' });
+      expect(res.status).toBe(403);
+      expect(res.body.error).toBe('ORGANIZATION_ACCESS_DENIED');
+      expect(prismaMock.question.updateMany).not.toHaveBeenCalled();
+    });
+
+    it('rejects update when quiz does not exist in the module (404)', async () => {
+      await setValidAuth('INSTRUCTOR');
+      // Override: quiz doesn't exist — service throws QUIZ_NOT_FOUND before touching questions
+      prismaMock.quiz.findFirst.mockResolvedValue(null);
+
+      const res = await request(app)
+        .patch(`${QUESTIONS_BASE}/question-1`)
+        .set('Cookie', cookie())
+        .send({ questionText: 'Some text' });
+      expect(res.status).toBe(404);
+      expect(res.body.error).toBe('QUIZ_NOT_FOUND');
+      expect(prismaMock.question.updateMany).not.toHaveBeenCalled();
+    });
+
+    it('rejects unauthenticated option delete (401)', async () => {
+      const res = await request(app).delete(`${OPTIONS_BASE}/option-1`);
+      expect(res.status).toBe(401);
+      expect(prismaMock.quizOption.deleteMany).not.toHaveBeenCalled();
+    });
+
+    it('rejects cross-org option delete (403)', async () => {
+      await authenticateAs('INSTRUCTOR', { organizationId: 'org-a' });
+      // requireAuth needs organization.slug in findMany result to filter memberships
+      prismaMock.userOrganization.findMany.mockResolvedValue([
+        { role: 'INSTRUCTOR', organizationId: 'org-a', userId: 'user-1',
+          organization: { slug: 'org-a', id: 'org-a' } },
+      ]);
+      // Not a member of org-b — findUnique returns null
+      prismaMock.userOrganization.findUnique.mockResolvedValue(null);
+
+      const res = await request(app)
+        .delete('/api/v1/organizations/org-b/courses/course-1/modules/module-1/quizzes/quiz-1/questions/question-1/options/option-1')
+        .set('Cookie', cookie());
+      expect(res.status).toBe(403);
+      expect(res.body.error).toBe('ORGANIZATION_ACCESS_DENIED');
+      expect(prismaMock.quizOption.deleteMany).not.toHaveBeenCalled();
+    });
   });
 });

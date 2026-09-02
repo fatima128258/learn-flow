@@ -60,14 +60,25 @@ export async function updateQuiz(moduleId: string, quizId: string, data: {
   maxAttempts?: number | null;
   order?: number;
 }) {
-  return prisma().quiz.update({
-    where: { id: quizId },
+  // Use updateMany so the WHERE clause is atomically bound to BOTH quizId AND
+  // moduleId. A plain update({ where: { id } }) would mutate any quiz in the
+  // database regardless of which module it belongs to.
+  const result = await prisma().quiz.updateMany({
+    where: { id: quizId, moduleId },
     data,
   });
+  if (result.count === 0) {
+    return null;
+  }
+  return prisma().quiz.findFirst({ where: { id: quizId, moduleId } });
 }
 
 export async function deleteQuiz(moduleId: string, quizId: string) {
-  return prisma().quiz.delete({
-    where: { id: quizId },
+  // Use deleteMany so the WHERE clause is atomically bound to BOTH quizId AND
+  // moduleId. A plain delete({ where: { id } }) would delete any quiz in the
+  // database regardless of which module it belongs to.
+  const result = await prisma().quiz.deleteMany({
+    where: { id: quizId, moduleId },
   });
+  return result;
 }

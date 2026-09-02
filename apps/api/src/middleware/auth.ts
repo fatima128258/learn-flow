@@ -112,7 +112,11 @@ export async function requireOrganizationContext(req: AuthenticatedRequest, res:
   }
 
   try {
-    const rawOrgId = req.params.organizationId || req.headers['x-organization-id'] || req.query.organizationId || req.body?.organizationId;
+    // Accept organizationId only from the URL path parameter or the explicit
+    // X-Organization-Id header (used by the platform-admin dashboard to act on
+    // behalf of a specific org). Accepting it from req.query or req.body would
+    // allow any client to inject an arbitrary tenant context.
+    const rawOrgId = req.params.organizationId || req.headers['x-organization-id'];
     const orgId = Array.isArray(rawOrgId) ? rawOrgId[0] : rawOrgId;
 
     // If no organization ID provided in request, use the user's organization ID from session
@@ -218,8 +222,10 @@ export async function requireOrgAdmin(req: AuthenticatedRequest, res: Response, 
   try {
     const prisma = getPrisma();
 
-    // Get organization ID from request
-    const rawOrgId = req.headers['x-organization-id'] || req.query.organizationId || req.params.organizationId || req.body?.organizationId;
+    // Accept organizationId only from the URL path parameter or the explicit
+    // X-Organization-Id header. Accepting it from req.query or req.body would
+    // allow any client to inject an arbitrary tenant context.
+    const rawOrgId = req.headers['x-organization-id'] || req.params.organizationId;
     const orgId = Array.isArray(rawOrgId) ? rawOrgId[0] : rawOrgId;
 
     // If no organization ID provided in request, use the user's organization ID from session

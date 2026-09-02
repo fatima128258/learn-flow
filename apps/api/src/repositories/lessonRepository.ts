@@ -69,14 +69,25 @@ export async function updateLesson(moduleId: string, lessonId: string, data: {
   order?: number;
   isPreview?: boolean;
 }) {
-  return prisma().lesson.update({
-    where: { id: lessonId },
+  // Use updateMany so the WHERE clause is atomically bound to BOTH lessonId AND
+  // moduleId. A plain update({ where: { id } }) would mutate any lesson in the
+  // database regardless of which module it belongs to.
+  const result = await prisma().lesson.updateMany({
+    where: { id: lessonId, moduleId },
     data,
   });
+  if (result.count === 0) {
+    return null;
+  }
+  return prisma().lesson.findFirst({ where: { id: lessonId, moduleId } });
 }
 
 export async function deleteLesson(moduleId: string, lessonId: string) {
-  return prisma().lesson.delete({
-    where: { id: lessonId },
+  // Use deleteMany so the WHERE clause is atomically bound to BOTH lessonId AND
+  // moduleId. A plain delete({ where: { id } }) would delete any lesson in the
+  // database regardless of which module it belongs to.
+  const result = await prisma().lesson.deleteMany({
+    where: { id: lessonId, moduleId },
   });
+  return result;
 }

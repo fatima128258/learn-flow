@@ -59,12 +59,17 @@ export interface ListCoursesOptions {
   take?: number;
   status?: string;
   orderBy?: Record<string, 'asc' | 'desc'>;
+  /** When set, restricts results to courses owned by this instructor. */
+  instructorId?: string;
 }
 
 export async function listByOrganization(organizationId: string, options: ListCoursesOptions = {}) {
   const where: Prisma.CourseWhereInput = { organizationId };
   if (options.status) {
     where.status = options.status as Prisma.CourseWhereInput['status'];
+  }
+  if (options.instructorId) {
+    where.instructorUserId = options.instructorId;
   }
   return prisma().course.findMany({
     where,
@@ -82,10 +87,13 @@ export async function listByOrganization(organizationId: string, options: ListCo
   });
 }
 
-export async function countByOrganization(organizationId: string, status?: string) {
+export async function countByOrganization(organizationId: string, status?: string, instructorId?: string) {
   const where: Prisma.CourseWhereInput = { organizationId };
   if (status) {
     where.status = status as Prisma.CourseWhereInput['status'];
+  }
+  if (instructorId) {
+    where.instructorUserId = instructorId;
   }
   return prisma().course.count({ where });
 }

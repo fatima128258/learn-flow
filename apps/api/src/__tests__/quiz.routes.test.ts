@@ -22,7 +22,9 @@ const prismaMock = {
     findMany: vi.fn(),
     findFirst: vi.fn(),
     update: vi.fn(),
+    updateMany: vi.fn(),
     delete: vi.fn(),
+    deleteMany: vi.fn(),
   },
 };
 
@@ -171,7 +173,9 @@ function resetMocks() {
   prismaMock.quiz.findMany.mockReset();
   prismaMock.quiz.findFirst.mockReset();
   prismaMock.quiz.update.mockReset();
+  prismaMock.quiz.updateMany.mockReset();
   prismaMock.quiz.delete.mockReset();
+  prismaMock.quiz.deleteMany.mockReset();
   vi.mocked(authService.getSessionFromToken).mockReset();
   vi.mocked(authService.getUserById).mockReset();
 }
@@ -579,7 +583,11 @@ describe('PATCH /api/v1/organizations/:organizationId/courses/:courseId/modules/
   it('updates quiz as instructor', async () => {
     await setValidAuth('INSTRUCTOR');
     prismaMock.quiz.findFirst.mockResolvedValue(quizRecord());
-    prismaMock.quiz.update.mockResolvedValue(quizRecord({ title: 'Updated Quiz' }));
+    // updateQuiz now uses updateMany bound to (quizId, moduleId), then findFirst (C-03 fix).
+    prismaMock.quiz.updateMany.mockResolvedValue({ count: 1 });
+    prismaMock.quiz.findFirst
+      .mockResolvedValueOnce(quizRecord())                          // pre-check getById
+      .mockResolvedValueOnce(quizRecord({ title: 'Updated Quiz' })); // post-update fetch
 
     const res = await request(app)
       .patch(`${BASE}/quiz-1`)
@@ -587,12 +595,18 @@ describe('PATCH /api/v1/organizations/:organizationId/courses/:courseId/modules/
       .send({ title: 'Updated Quiz' });
     expect(res.status).toBe(200);
     expect(res.body.success).toBe(true);
+    expect(prismaMock.quiz.updateMany).toHaveBeenCalledWith(expect.objectContaining({
+      where: expect.objectContaining({ id: 'quiz-1', moduleId: 'module-1' }),
+    }));
   });
 
   it('updates quiz as org admin', async () => {
     await setValidAuth('ORG_ADMIN');
     prismaMock.quiz.findFirst.mockResolvedValue(quizRecord());
-    prismaMock.quiz.update.mockResolvedValue(quizRecord({ title: 'Updated Quiz' }));
+    prismaMock.quiz.updateMany.mockResolvedValue({ count: 1 });
+    prismaMock.quiz.findFirst
+      .mockResolvedValueOnce(quizRecord())
+      .mockResolvedValueOnce(quizRecord({ title: 'Updated Quiz' }));
 
     const res = await request(app)
       .patch(`${BASE}/quiz-1`)
@@ -734,7 +748,7 @@ describe('PATCH /api/v1/organizations/:organizationId/courses/:courseId/modules/
   it('returns 409 when order is duplicate', async () => {
     await setValidAuth();
     prismaMock.quiz.findFirst.mockResolvedValue(quizRecord());
-    prismaMock.quiz.update.mockRejectedValue(
+    prismaMock.quiz.updateMany.mockRejectedValue(
       new Prisma.PrismaClientKnownRequestError('Unique constraint', { code: 'P2002', clientVersion: '4.0.0', meta: {} }),
     );
 
@@ -776,17 +790,21 @@ describe('DELETE /api/v1/organizations/:organizationId/courses/:courseId/modules
   it('deletes quiz as instructor', async () => {
     await setValidAuth('INSTRUCTOR');
     prismaMock.quiz.findFirst.mockResolvedValue(quizRecord());
-    prismaMock.quiz.delete.mockResolvedValue(quizRecord());
+    // deleteQuiz now uses deleteMany bound to (quizId, moduleId) (C-03 fix).
+    prismaMock.quiz.deleteMany.mockResolvedValue({ count: 1 });
 
     const res = await request(app).delete(`${BASE}/quiz-1`).set('Cookie', cookie());
     expect(res.status).toBe(200);
     expect(res.body.success).toBe(true);
+    expect(prismaMock.quiz.deleteMany).toHaveBeenCalledWith({
+      where: { id: 'quiz-1', moduleId: 'module-1' },
+    });
   });
 
   it('deletes quiz as org admin', async () => {
     await setValidAuth('ORG_ADMIN');
     prismaMock.quiz.findFirst.mockResolvedValue(quizRecord());
-    prismaMock.quiz.delete.mockResolvedValue(quizRecord());
+    prismaMock.quiz.deleteMany.mockResolvedValue({ count: 1 });
 
     const res = await request(app).delete(`${BASE}/quiz-1`).set('Cookie', cookie());
     expect(res.status).toBe(200);

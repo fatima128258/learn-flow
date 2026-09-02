@@ -56,16 +56,34 @@ export async function createQuestion(data: CreateQuestionData) {
 }
 
 export async function updateQuestion(quizId: string, questionId: string, data: UpdateQuestionData) {
-  return prisma().question.update({
-    where: { id: questionId },
+  // Use updateMany so the WHERE clause is atomically bound to BOTH questionId AND
+  // quizId. A plain update({ where: { id } }) would mutate any question in the
+  // database regardless of which quiz it belongs to.
+  const result = await prisma().question.updateMany({
+    where: { id: questionId, quizId },
     data,
+  });
+  if (result.count === 0) {
+    return null;
+  }
+  return prisma().question.findFirst({
+    where: { id: questionId, quizId },
+    include: {
+      options: {
+        orderBy: { order: 'asc' },
+      },
+    },
   });
 }
 
 export async function deleteQuestion(quizId: string, questionId: string) {
-  return prisma().question.delete({
-    where: { id: questionId },
+  // Use deleteMany so the WHERE clause is atomically bound to BOTH questionId AND
+  // quizId. A plain delete({ where: { id } }) would delete any question in the
+  // database regardless of which quiz it belongs to.
+  const result = await prisma().question.deleteMany({
+    where: { id: questionId, quizId },
   });
+  return result;
 }
 
 export async function getQuizOwnerId(quizId: string) {
@@ -131,14 +149,27 @@ export async function createOption(data: CreateOptionData) {
 }
 
 export async function updateOption(questionId: string, optionId: string, data: UpdateOptionData) {
-  return prisma().quizOption.update({
-    where: { id: optionId },
+  // Use updateMany so the WHERE clause is atomically bound to BOTH optionId AND
+  // questionId. A plain update({ where: { id } }) would mutate any option in the
+  // database regardless of which question it belongs to.
+  const result = await prisma().quizOption.updateMany({
+    where: { id: optionId, questionId },
     data,
+  });
+  if (result.count === 0) {
+    return null;
+  }
+  return prisma().quizOption.findFirst({
+    where: { id: optionId, questionId },
   });
 }
 
 export async function deleteOption(questionId: string, optionId: string) {
-  return prisma().quizOption.delete({
-    where: { id: optionId },
+  // Use deleteMany so the WHERE clause is atomically bound to BOTH optionId AND
+  // questionId. A plain delete({ where: { id } }) would delete any option in the
+  // database regardless of which question it belongs to.
+  const result = await prisma().quizOption.deleteMany({
+    where: { id: optionId, questionId },
   });
+  return result;
 }
