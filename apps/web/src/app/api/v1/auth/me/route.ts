@@ -1,9 +1,10 @@
 import { NextResponse } from 'next/server';
 
 export async function GET(req: Request) {
-  const apiBase = process.env.NEXT_PUBLIC_API_URL || '';
+  // Server-side: use direct Render backend URL (not proxied)
+  const backendUrl = process.env.BACKEND_URL || 'https://learn-flow-1-1gl3.onrender.com';
   const cookie = req.headers.get('cookie') || '';
-  const resp = await fetch(`${apiBase}/api/v1/auth/me`, {
+  const resp = await fetch(`${backendUrl}/api/v1/auth/me`, {
     method: 'GET',
     headers: { Cookie: cookie },
   });

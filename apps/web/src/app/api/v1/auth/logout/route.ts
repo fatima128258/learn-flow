@@ -1,9 +1,10 @@
 import { NextResponse } from 'next/server';
 
 export async function POST(req: Request) {
-  const apiBase = process.env.NEXT_PUBLIC_API_URL || '';
+  // Server-side: use direct Render backend URL (not proxied)
+  const backendUrl = process.env.BACKEND_URL || 'https://learn-flow-1-1gl3.onrender.com';
   const cookie = req.headers.get('cookie') || '';
-  const resp = await fetch(`${apiBase}/api/v1/auth/logout`, { method: 'POST', headers: { Cookie: cookie } });
+  const resp = await fetch(`${backendUrl}/api/v1/auth/logout`, { method: 'POST', headers: { Cookie: cookie } });
   const data = await resp.text();
   
   // Create response with proper Set-Cookie forwarding
