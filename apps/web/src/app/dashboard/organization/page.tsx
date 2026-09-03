@@ -304,9 +304,6 @@ export default function OrganizationDashboardPage() {
   return (
     <>
       <div className="mx-auto max-w-6xl">
-        <div className="mb-8">
-          <PageHeader title={summary ? summary.organization.name : 'Organization'} />
-        </div>
 
         {error ? (
           <div className="rounded-2xl border border-neutral-200 bg-white shadow-sm">
