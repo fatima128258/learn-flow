@@ -38,7 +38,6 @@ export default function StudentLessonPage() {
   const [error, setError] = useState<string | null>(null);
   const [marking, setMarking] = useState(false);
   const [markError, setMarkError] = useState<string | null>(null);
-  const [organizationId, setOrganizationId] = useState<string | null>(null);
 
   async function loadLesson(orgId: string, cid: string, mid: string, lid: string) {
     try {
@@ -72,7 +71,7 @@ export default function StudentLessonPage() {
     }
   }
 
-  // Check auth and set organizationId
+  // Check auth and load lesson - consolidated to single effect
   useEffect(() => {
     if (userLoading) return;
     
@@ -91,22 +90,19 @@ export default function StudentLessonPage() {
       window.location.href = '/login';
       return;
     }
-    
-    setOrganizationId(orgId);
-    if (courseId && moduleId && lessonId) loadLesson(orgId, courseId, moduleId, lessonId);
-  }, [user, userLoading, courseId, moduleId, lessonId]);
 
-  // Load lesson data
-  useEffect(() => {
-    if (!organizationId || !courseId || !moduleId || !lessonId) {
+    if (!courseId || !moduleId || !lessonId) {
       setLoading(false);
       return;
     }
+
     let active = true;
 
     async function load() {
       try {
-        await loadLesson(organizationId ?? '', courseId ?? '', moduleId ?? '', lessonId ?? '');
+        setLoading(true);
+        // orgId is guaranteed to be non-null by the check above
+        await loadLesson(orgId as string, courseId ?? '', moduleId ?? '', lessonId ?? '');
       } finally {
         if (active) setLoading(false);
       }
@@ -116,16 +112,16 @@ export default function StudentLessonPage() {
     return () => {
       active = false;
     };
-  }, [organizationId, courseId, moduleId, lessonId]);
+  }, [userLoading, user, courseId, moduleId, lessonId]);
 
   async function markComplete(completed: boolean) {
-    if (!organizationId || !courseId || !moduleId || !lessonId) return;
+    if (!user?.organizationId || !courseId || !moduleId || !lessonId) return;
     setMarking(true);
     setMarkError(null);
     try {
       const apiBase = '';
       const res = await fetch(
-        `${apiBase}/api/v1/organizations/${organizationId}/student/courses/${courseId}/modules/${moduleId}/lessons/${lessonId}/progress`,
+        `${apiBase}/api/v1/organizations/${user.organizationId}/student/courses/${courseId}/modules/${moduleId}/lessons/${lessonId}/progress`,
         {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
