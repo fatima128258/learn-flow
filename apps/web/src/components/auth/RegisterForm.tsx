@@ -103,6 +103,25 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
     }
   };
 
+  if (success) {
+    return (
+      <div className="space-y-4">
+        <div className="rounded-lg border-2 border-success-200 bg-success-50 p-6">
+          <h3 className="text-lg font-semibold text-success-900">🎉 Welcome!</h3>
+          <p className="mt-2 text-sm text-success-700">
+            Your account has been created successfully.
+          </p>
+          <p className="mt-3 text-sm text-success-700">
+            An admin will verify and approve your account shortly. Once approved, you'll be able to access the full platform.
+          </p>
+          <p className="mt-4 text-xs text-success-600">
+            Please check your email for further instructions.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <form onSubmit={handleSubmit} noValidate>
       <Stack spacing="md">

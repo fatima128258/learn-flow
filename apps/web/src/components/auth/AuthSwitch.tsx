@@ -87,16 +87,6 @@ export const AuthSwitch: React.FC<AuthSwitchProps> = ({ initialMode = 'login' })
 
       setSuccess(true);
       toast.success('Account created successfully!');
-      
-      // OPTIMIZATION: Invalidate auth cache to ensure fresh /auth/me data after registration
-      await queryClient.invalidateQueries({ queryKey: meKey });
-      
-      // Redirect to welcome page with user details using client-side navigation
-      const params = new URLSearchParams({
-        email: data.email,
-        name: data.name,
-      });
-      router.push(`/welcome?${params.toString()}`);
     } catch {
       toast.error('Unable to create your account. Please try again.');
       setIsSubmitting(false);
