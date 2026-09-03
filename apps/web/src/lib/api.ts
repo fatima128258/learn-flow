@@ -1,9 +1,8 @@
 'use client';
 
 // Use relative same-origin API paths by default for browser-side requests
-// This routes through Vercel proxy (/api/v1/...) which forwards to Render backend
-// Only use NEXT_PUBLIC_BACKEND_URL if explicitly set (e.g., for local dev cross-origin)
-const API_BASE = process.env.NEXT_PUBLIC_BACKEND_URL || '';
+// Server-side proxy routes forward to actual backend using BACKEND_URL env var
+const API_BASE: string = '';
 
 export class ApiError extends Error {
   status: number;
@@ -33,7 +32,7 @@ export async function apiRequest<T>(
     const url = `${API_BASE}${path}`;
     
     // DEBUG: Log cross-origin requests
-    if (typeof window !== 'undefined' && API_BASE !== '' && !API_BASE.includes(window.location.host)) {
+    if (typeof window !== 'undefined' && API_BASE && !API_BASE.includes(window.location.host ?? '')) {
       console.log(`[API] Cross-origin request: ${options.method || 'GET'} ${path} to ${API_BASE}`);
     }
     

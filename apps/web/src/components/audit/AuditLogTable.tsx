@@ -24,9 +24,7 @@ export type AuditLogItem = {
 
 type Meta = { page: number; limit: number; total: number };
 
-const API_BASE = (typeof window !== 'undefined' && window.location.hostname !== 'localhost') 
-  ? (process.env.NEXT_PUBLIC_BACKEND_URL || process.env.NEXT_PUBLIC_API_BASE || '')
-  : (process.env.NEXT_PUBLIC_BACKEND_URL || '');
+const API_BASE = '';
 
 function actorLabel(item: AuditLogItem) {
   return item.actor.name ?? item.actor.email ?? item.actor.role ?? item.actor.userId;

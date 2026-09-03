@@ -144,13 +144,7 @@ export default function OrgAnalyticsPage() {
   return (
     <div className="mx-auto max-w-5xl">
       <PageHeader
-        subtitle="Organization Admin"
         title="Analytics"
-        description={
-          summary
-            ? `Usage and engagement metrics for ${summary.organization.name}.`
-            : 'Usage and engagement metrics for your organization.'
-        }
         badges={
           summary
             ? [

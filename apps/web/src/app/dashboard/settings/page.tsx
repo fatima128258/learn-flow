@@ -165,7 +165,7 @@ export default function SettingsPage() {
       <div className="rounded-2xl border border-neutral-200 bg-white shadow-sm">
         <div className="border-b border-neutral-200 px-6 py-4">
           <SectionHeader
-            title="Email address"
+            title="Email Settings"
             description={`You are signed in as ${user.email}.`}
           />
         </div>
@@ -196,7 +196,7 @@ export default function SettingsPage() {
       <div className="mt-6 rounded-2xl border border-neutral-200 bg-white shadow-sm">
         <div className="border-b border-neutral-200 px-6 py-4">
           <SectionHeader
-            title="Password"
+            title="Password Setting"
             description="Use at least 8 characters. Other active sessions will be signed out."
           />
         </div>

@@ -87,9 +87,11 @@ export default function OrgUsersPage() {
   const orgId = searchParams.get('organization');
 
   const [members, setMembers] = useState<MemberItem[] | null>(null);
+  const [filteredMembers, setFilteredMembers] = useState<MemberItem[] | null>(null);
   const [total, setTotal] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [searchInput, setSearchInput] = useState('');
 
   const [showAddModal, setShowAddModal] = useState(false);
   const [addRole, setAddRole] = useState<'INSTRUCTOR' | 'STUDENT'>('INSTRUCTOR');
@@ -117,6 +119,7 @@ export default function OrgUsersPage() {
       }
       const body: UsersResponse = await res.json();
       setMembers(Array.isArray(body.data) ? body.data : []);
+      setFilteredMembers(Array.isArray(body.data) ? body.data : []);
       setTotal(body.meta?.total ?? null);
     } catch {
       setError('Could not reach the API. Please try again.');
@@ -124,6 +127,23 @@ export default function OrgUsersPage() {
       setLoading(false);
     }
   }
+
+  const handleSearch = (value: string) => {
+    setSearchInput(value);
+    if (!members) return;
+    
+    const query = value.toLowerCase().trim();
+    if (!query) {
+      setFilteredMembers(members);
+    } else {
+      const filtered = members.filter((member) =>
+        member.name?.toLowerCase().includes(query) ||
+        member.email?.toLowerCase().includes(query) ||
+        member.role?.toLowerCase().includes(query)
+      );
+      setFilteredMembers(filtered);
+    }
+  };
 
   useEffect(() => {
     if (userLoading) return;
@@ -218,7 +238,6 @@ export default function OrgUsersPage() {
         <PageHeader
           subtitle="Organization Admin"
           title="Users"
-          description="Add and manage the members of your organization."
           actions={
             <>
               <Button size="sm" className="bg-gray-600 hover:bg-gray-700 text-white border-none" onClick={() => openAdd('STUDENT')}>
@@ -230,6 +249,15 @@ export default function OrgUsersPage() {
             </>
           }
         />
+
+        <div className="mb-4 max-w-md">
+          <Input
+            variant="line"
+            placeholder="Search by name, email, or role"
+            value={searchInput}
+            onChange={(e) => handleSearch(e.target.value)}
+          />
+        </div>
 
         {loading && members === null ? (
           <div className="mx-auto flex max-w-5xl items-center gap-3 text-neutral-700">
@@ -301,7 +329,7 @@ export default function OrgUsersPage() {
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-neutral-100">
-                        {(members ?? []).map((member) => (
+                        {(filteredMembers ?? []).map((member) => (
                           <tr key={member.id} className={tableRowHoverClass}>
                             <td className={tableCellClass}>
                               <span className="flex items-center gap-3">
@@ -323,7 +351,7 @@ export default function OrgUsersPage() {
                   </div>
                   {/* Mobile cards */}
                   <div className="space-y-3 p-3 md:hidden">
-                    {(members ?? []).map((member) => (
+                    {(filteredMembers ?? []).map((member) => (
                       <div key={member.id} className="rounded-2xl border border-neutral-200 bg-white p-4 shadow-sm">
                         <div className="flex items-center justify-between gap-2">
                           <div className="flex items-center gap-2 min-w-0">

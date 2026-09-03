@@ -69,7 +69,7 @@ function ResetPasswordForm() {
     }
 
     await submit(async () => {
-      const apiBase = process.env.NEXT_PUBLIC_BACKEND_URL || '';
+      const apiBase = '';
       const res = await fetch(`${apiBase}/api/v1/auth/reset-password`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },

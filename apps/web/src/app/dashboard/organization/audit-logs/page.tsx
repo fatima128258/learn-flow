@@ -3,7 +3,6 @@
 import { useEffect } from 'react';
 import { useCurrentUser } from '@/features/auth/useCurrentUser';
 import { AuditLogTable } from '@/components/audit/AuditLogTable';
-import { PageHeader } from '@/components/dashboard';
 
 export default function OrgAuditLogsPage() {
   const { data: user, isLoading: userLoading } = useCurrentUser();
@@ -17,10 +16,6 @@ export default function OrgAuditLogsPage() {
 
   return (
     <div className="mx-auto max-w-5xl">
-      <PageHeader
-        subtitle="Organization Admin"
-        title="Audit Logs"
-      />
       <AuditLogTable apiPath="/api/v1/org/audit-logs" />
     </div>
   );

@@ -71,7 +71,7 @@ export const AdminSidebar: React.FC = () => {
     if (loggingOut) return;
     setLoggingOut(true);
     try {
-      const apiBase = process.env.NEXT_PUBLIC_BACKEND_URL || '';
+      const apiBase = '';
       await fetch(`${apiBase}/api/v1/auth/logout`, {
         method: 'POST',
         credentials: 'include',

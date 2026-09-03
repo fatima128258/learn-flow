@@ -303,7 +303,6 @@ export default function MyCoursesPage() {
           <PageHeader
             subtitle="My Courses"
             title="Courses"
-            description="Courses belonging to your organization."
             actions={
               <LinkButton
                 href={`/dashboard/organization/courses/new${organizationId ? `?organization=${organizationId}` : ''}`}
