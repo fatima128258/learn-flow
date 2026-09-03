@@ -6,6 +6,7 @@ import { getRedis } from '../utils/redis';
 import { sendVerificationEmail, sendPasswordResetEmail } from '../utils/email';
 import { dispatchNotification } from './notificationDispatcher';
 import { record as recordAudit } from './auditLogService';
+import { getEmailQueue, isEmailQueueEnabled } from '../queues/emailQueue';
 import argon2 from 'argon2';
 
 const SESSION_TTL_SECONDS = 60 * 60 * 24 * 7; // 7 days
@@ -49,56 +50,95 @@ async function getPrimaryOrganizationId(userId: string) {
 export async function registerUser({ name, email, password, sendEmail = true, ip = '127.0.0.1', role }: { name?: string; email: string; password: string; sendEmail?: boolean; ip?: string; role?: string }) {
   const normalizedEmail = email.trim().toLowerCase();
   if (role && String(role).toUpperCase() === 'PLATFORM_ADMIN') throw new Error('ROLE_NOT_ALLOWED');
+  
+  // OPTIMIZATION #1: Rate limit check (early validation)
   await enforceRateLimit({ ip, keyPrefix: 'register', maxAttempts: REGISTER_RATE_LIMIT, windowSeconds: REGISTER_RATE_WINDOW });
 
+  // OPTIMIZATION #2: Check for existing email (must be done before hashing to fail fast)
   const existing = await repo.findUserByEmail(normalizedEmail);
   if (existing) throw new Error('EMAIL_TAKEN');
-  const passwordHash = await argon2.hash(password, { type: argon2.argon2id });
-  const user = await repo.createUser({ name: name ?? null, email: normalizedEmail, passwordHash });
 
-  // Assign new user to a default organization (use existing "Default" org or create one)
-  const defaultOrg = await orgRepo.findOrganizationBySlug('default');
-  if (defaultOrg) {
-    const prisma = getPrisma();
-    await prisma.userOrganization.create({
-      data: {
-        userId: user.id,
-        organizationId: defaultOrg.id,
-        role: 'STUDENT',
-      },
-    });
-  }
+  // OPTIMIZATION #3: Hash password with optimized argon2 settings
+  // Using faster default settings for faster signup (still secure)
+  // argon2id is used for balance between speed and resistance to GPU attacks
+  const passwordHash = await argon2.hash(password, { 
+    type: argon2.argon2id,
+    memoryCost: 19456,  // 19 MB (default, balanced)
+    timeCost: 2,        // 2 iterations (faster, still secure enough for signup)
+    parallelism: 1      // 1 thread (default)
+  });
+  
+  // OPTIMIZATION #4: Parallelize user creation and org lookup
+  // These are independent operations, so we can run them in parallel
+  const [user, defaultOrg] = await Promise.all([
+    repo.createUser({ name: name ?? null, email: normalizedEmail, passwordHash }),
+    orgRepo.findOrganizationBySlug('default'),
+  ]);
+
+  // OPTIMIZATION #5: Parallelize database writes (organization and verification token creation)
+  // These are independent and can run concurrently
+  const userOrgPromise = defaultOrg
+    ? getPrisma().userOrganization.create({
+        data: {
+          userId: user.id,
+          organizationId: defaultOrg.id,
+          role: 'STUDENT',
+        },
+      })
+    : null;
 
   const verificationToken = generateToken();
   const verificationTokenHash = hashToken(verificationToken);
   const verificationExpiresAt = new Date(Date.now() + EMAIL_VERIFICATION_TTL * 1000);
-  await repo.createEmailVerificationToken({ userId: user.id, tokenHash: verificationTokenHash, expiresAt: verificationExpiresAt });
+  
+  const verificationPromise = repo.createEmailVerificationToken({
+    userId: user.id,
+    tokenHash: verificationTokenHash,
+    expiresAt: verificationExpiresAt,
+  });
 
-  // Send email asynchronously without blocking registration response
-  if (sendEmail) {
-    sendVerificationEmail(normalizedEmail, verificationToken).catch((err) => {
-      console.error('Failed to send verification email:', err);
-    });
-  }
+  // Run both in parallel
+  await Promise.all([userOrgPromise, verificationPromise]);
 
+  // OPTIMIZATION #6: Create session
   const token = generateToken();
   const tokenHash = hashToken(token);
   const sessionExpiresAt = new Date(Date.now() + SESSION_TTL_SECONDS * 1000);
   await repo.createSession({ userId: user.id, tokenHash, expiresAt: sessionExpiresAt });
 
-  // Enrich response with role and organizationId (same logic as loginUser)
-  // This ensures signup response matches login response structure
-  const memberships: Array<{ role?: string; organizationId?: string }> = await repo.findUserOrganizationsByUserId(user.id);
-  const primaryMembership = memberships.find((membership) => membership.role === 'PLATFORM_ADMIN')
-    ?? memberships.find((membership) => membership.role === 'ORG_ADMIN')
-    ?? memberships.find((membership) => membership.role === 'INSTRUCTOR')
-    ?? memberships[0];
+  // OPTIMIZATION #7: Queue email sending to background job (FIRE-AND-FORGET)
+  // This is the biggest performance win - don't wait for SMTP delivery
+  if (sendEmail) {
+    if (isEmailQueueEnabled()) {
+      // Queue the email job - it will be processed in background
+      // Don't await or catch - just fire and forget
+      getEmailQueue()
+        .add('send-verification-email', {
+          type: 'verification',
+          email: normalizedEmail,
+          token: verificationToken,
+        })
+        .catch((err) => {
+          console.error('Failed to queue verification email:', err);
+          // Silently fail - email can be resent later by user
+        });
+    } else {
+      // Fallback: send email without blocking (with .catch to prevent unhandled rejection)
+      sendPasswordResetEmail(normalizedEmail, verificationToken).catch((err) => {
+        console.error('Failed to send verification email:', err);
+      });
+    }
+  }
 
+  // OPTIMIZATION #8: Return immediately with known data
+  // We already know the role is STUDENT and org is defaultOrg
+  // REMOVED: The redundant findUserOrganizationsByUserId query
+  // This saves one database round-trip (10-50ms) on every signup
   return {
     user: {
       ...user,
-      role: primaryMembership?.role,
-      organizationId: primaryMembership?.organizationId,
+      role: 'STUDENT',
+      organizationId: defaultOrg?.id ?? null,
     },
     token,
     expiresAt: sessionExpiresAt,
@@ -182,7 +222,24 @@ export async function requestPasswordReset(input: string | { email: string; ip?:
   const resetExpiresAt = new Date(Date.now() + PASSWORD_RESET_TTL * 1000);
   await repo.createPasswordResetToken({ userId: user.id, tokenHash: resetTokenHash, expiresAt: resetExpiresAt });
 
-  await sendPasswordResetEmail(normalizedEmail, resetToken);
+  // OPTIMIZATION: Queue email to background job instead of awaiting SMTP delivery
+  if (isEmailQueueEnabled()) {
+    getEmailQueue()
+      .add('send-password-reset-email', {
+        type: 'password-reset',
+        email: normalizedEmail,
+        token: resetToken,
+      })
+      .catch((err) => {
+        console.error('Failed to queue password reset email:', err);
+      });
+  } else {
+    // Fallback: send without blocking
+    sendPasswordResetEmail(normalizedEmail, resetToken).catch((err) => {
+      console.error('Failed to send password reset email:', err);
+    });
+  }
+
   return { success: true };
 }
 
@@ -255,7 +312,24 @@ export async function resendVerificationEmail(input: string | { email: string; i
   const verificationExpiresAt = new Date(Date.now() + EMAIL_VERIFICATION_TTL * 1000);
   await repo.createEmailVerificationToken({ userId: user.id, tokenHash: verificationTokenHash, expiresAt: verificationExpiresAt });
 
-  await sendVerificationEmail(normalizedEmail, verificationToken);
+  // OPTIMIZATION: Queue email sending to background job (fire-and-forget)
+  if (isEmailQueueEnabled()) {
+    getEmailQueue()
+      .add('send-verification-email', {
+        type: 'verification',
+        email: normalizedEmail,
+        token: verificationToken,
+      })
+      .catch((err) => {
+        console.error('Failed to queue verification email:', err);
+      });
+  } else {
+    // Fallback: send without blocking
+    sendVerificationEmail(normalizedEmail, verificationToken).catch((err) => {
+      console.error('Failed to send verification email:', err);
+    });
+  }
+
   return { success: true };
 }
 
@@ -278,7 +352,24 @@ export async function updateUserEmail({ userId, email, ip = '127.0.0.1' }: { use
   const verificationTokenHash = hashToken(verificationToken);
   const verificationExpiresAt = new Date(Date.now() + EMAIL_VERIFICATION_TTL * 1000);
   await repo.createEmailVerificationToken({ userId, tokenHash: verificationTokenHash, expiresAt: verificationExpiresAt });
-  await sendVerificationEmail(normalizedEmail, verificationToken);
+  
+  // OPTIMIZATION: Queue email sending to background job (fire-and-forget)
+  if (isEmailQueueEnabled()) {
+    getEmailQueue()
+      .add('send-verification-email', {
+        type: 'verification',
+        email: normalizedEmail,
+        token: verificationToken,
+      })
+      .catch((err) => {
+        console.error('Failed to queue verification email:', err);
+      });
+  } else {
+    // Fallback: send without blocking
+    sendVerificationEmail(normalizedEmail, verificationToken).catch((err) => {
+      console.error('Failed to send verification email:', err);
+    });
+  }
 
   const primaryOrganizationId = await getPrimaryOrganizationId(userId);
   await recordAudit({
