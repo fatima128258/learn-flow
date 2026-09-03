@@ -94,37 +94,58 @@ export default function StudentCourseProgressPage() {
     }
     
     setOrganizationId(orgId);
-    if (courseId) loadProgress(orgId, courseId);
-  }, [user, userLoading, courseId]);
+  }, [user, userLoading]);
 
-  async function loadProgress(orgId: string, cid: string) {
-    try {
-      const apiBase = '';
-      const res = await fetch(`${apiBase}/api/v1/organizations/${orgId}/student/courses/${cid}/progress`, {
-        credentials: 'include',
-      });
-      if (!res.ok) {
-        let code: unknown = null;
-        try {
-          code = (await res.json())?.error;
-        } catch {
-          code = null;
-        }
-        if (code === 'STUDENT_NOT_ENROLLED') {
-          setError('You are not enrolled in this course.');
-        } else if (code === 'COURSE_NOT_FOUND') {
-          setError('Course not found.');
-        } else {
-          setError('Could not load progress. Please try again.');
-        }
-        return;
-      }
-      const body = await res.json();
-      setProgress(body.data ?? null);
-    } catch {
-      setError('Could not reach the server. Please try again.');
+  // Load progress once organizationId and courseId are set
+  useEffect(() => {
+    if (!organizationId || !courseId) {
+      setLoading(false);
+      return;
     }
-  }
+    let active = true;
+
+    async function loadProgressData() {
+      setLoading(true);
+      try {
+        const apiBase = '';
+        const res = await fetch(`${apiBase}/api/v1/organizations/${organizationId}/student/courses/${courseId}/progress`, {
+          credentials: 'include',
+        });
+        if (!active) return;
+        if (!res.ok) {
+          let code: unknown = null;
+          try {
+            code = (await res.json())?.error;
+          } catch {
+            code = null;
+          }
+          if (code === 'STUDENT_NOT_ENROLLED') {
+            setError('You are not enrolled in this course.');
+          } else if (code === 'COURSE_NOT_FOUND') {
+            setError('Course not found.');
+          } else {
+            setError('Could not load progress. Please try again.');
+          }
+          setLoading(false);
+          return;
+        }
+        const body = await res.json();
+        if (!active) return;
+        setProgress(body.data ?? null);
+        setLoading(false);
+      } catch {
+        if (active) {
+          setError('Could not reach the server. Please try again.');
+          setLoading(false);
+        }
+      }
+    }
+
+    loadProgressData();
+    return () => {
+      active = false;
+    };
+  }, [organizationId, courseId]);
 
   async function generateCertificate(orgId: string, cid: string) {
     setGenerating(true);
@@ -216,7 +237,17 @@ export default function StudentCourseProgressPage() {
             <ErrorState
               title="Unable to load progress"
               message={error}
-              action={organizationId && courseId ? { label: 'Retry', onClick: () => loadProgress(organizationId, courseId!) } : undefined}
+              action={
+                organizationId && courseId
+                  ? {
+                      label: 'Retry',
+                      onClick: () => {
+                        setError(null);
+                        setLoading(true);
+                      },
+                    }
+                  : undefined
+              }
             />
           </div>
         ) : progress ? (
