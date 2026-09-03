@@ -99,9 +99,9 @@ export const Navbar: React.FC = () => {
           <div className="hidden lg:flex items-center gap-2.5 shrink-0">
             <LinkButton
               href="/login"
-              variant="ghost"
+              variant="primary"
               size="sm"
-              className="text-primary-700 hover:bg-neutral-200 bg-neutral-200 rounded-md"
+              className="rounded-md"
               showLoading
               loadingText="Loading..."
             >
