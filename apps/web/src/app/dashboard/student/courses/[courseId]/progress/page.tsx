@@ -13,7 +13,7 @@ import {
 } from '@/components/ui';
 import { PageHeader } from '@/components/dashboard';
 import { useCurrentUser } from '@/features/auth/useCurrentUser';
-import { useProgress, useGenerateCertificate } from '@/features/student/useProgress';
+import { useProgress, useGenerateCertificate, useRecordProgress } from '@/features/student/useProgress';
 
 type ProgressModule = {
   id: string;
@@ -63,12 +63,45 @@ function ProgressBar({ percentage, color = 'bg-primary-600' }: { percentage: num
   );
 }
 
+function lessonTypeIcon(type: string | null) {
+  switch (type?.toLowerCase()) {
+    case 'video':
+      return (
+        <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+      );
+    case 'article':
+      return (
+        <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+        </svg>
+      );
+    case 'pdf':
+      return (
+        <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+        </svg>
+      );
+    default:
+      return (
+        <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+        </svg>
+      );
+  }
+}
+
 export default function StudentCourseProgressPage() {
   const params = useParams();
   const courseId = typeof params.courseId === 'string' ? params.courseId : null;
   const { data: user, isLoading: userLoading } = useCurrentUser();
 
   const [organizationId, setOrganizationId] = useState<string | null>(null);
+  const [markingLessonId, setMarkingLessonId] = useState<string | null>(null);
+  const [markingError, setMarkingError] = useState<string | null>(null);
+  const [completedLessonIds, setCompletedLessonIds] = useState<Set<string>>(new Set());
 
   // Use React Query hooks for progress and certificate generation
   const { 
@@ -296,6 +329,59 @@ export default function StudentCourseProgressPage() {
                   ))}
                 </div>
               </>
+            )}
+
+            <h2 className="mb-4 mt-8 text-lg font-semibold text-neutral-900">Mark Lessons as Viewed</h2>
+            <div className="space-y-3">
+              {progress.modules.length === 0 ? (
+                <div className="rounded-2xl border border-neutral-200 bg-white shadow-sm">
+                  <EmptyState
+                    icon={EmptyStateIcons.NoData}
+                    title="No modules yet"
+                    description="The instructor hasn't added any modules to this course yet."
+                  />
+                </div>
+              ) : (
+                progress.modules.map((module) => (
+                  <div key={module.id} className="rounded-2xl border border-neutral-200 bg-white p-5 shadow-sm">
+                    <div className="mb-4 flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary-50 text-sm font-bold text-primary-700">
+                          {module.moduleIndex + 1}
+                        </div>
+                        <div>
+                          <h3 className="font-semibold text-neutral-900">{module.title}</h3>
+                          <p className="text-sm text-neutral-500">
+                            {module.completedLessons} of {module.lessonCount} lessons completed ({module.percentage}%)
+                          </p>
+                        </div>
+                      </div>
+                      <Link
+                        href={`/dashboard/student/courses/${courseId}/modules/${module.id}`}
+                        className="inline-flex items-center gap-2 rounded-lg bg-primary-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-primary-700"
+                      >
+                        View & Mark Lessons
+                      </Link>
+                    </div>
+                    <ProgressBar
+                      percentage={module.percentage}
+                      color={module.complete ? 'bg-success-500' : 'bg-primary-600'}
+                    />
+                  </div>
+                ))
+              )}
+            </div>
+
+            {markingError && (
+              <div className="mt-4 rounded-lg border border-error-200 bg-error-50 p-3">
+                <p className="text-sm text-error-700">{markingError}</p>
+                <button
+                  onClick={() => setMarkingError(null)}
+                  className="mt-2 text-sm text-error-600 hover:text-error-700"
+                >
+                  Dismiss
+                </button>
+              </div>
             )}
           </>
         ) : null}
