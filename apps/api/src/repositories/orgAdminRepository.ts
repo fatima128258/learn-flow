@@ -29,7 +29,10 @@ export async function getOrganizationMemberCounts(organizationId: string) {
   for (const row of rows) {
     const count = row._count._all;
     counts[row.role] = count;
-    total += count;
+    // Only count managed roles (ORG_ADMIN, INSTRUCTOR, STUDENT) in total
+    if (['ORG_ADMIN', 'INSTRUCTOR', 'STUDENT'].includes(row.role)) {
+      total += count;
+    }
   }
 
   return {
@@ -84,7 +87,8 @@ export async function listOrganizationMembers(params: {
 }) {
   const where = {
     organizationId: params.organizationId,
-    ...(params.role ? { role: params.role } : {}),
+    // Exclude ORG_ADMIN from members list
+    role: params.role ? params.role : { not: 'ORG_ADMIN' },
   };
 
   const [items, total] = await Promise.all([

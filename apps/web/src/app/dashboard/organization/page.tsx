@@ -318,11 +318,13 @@ export default function OrganizationDashboardPage() {
           <>
             <div className="mb-8 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
               <StatCard
-                label="Courses"
-                value={courseCount ?? 0}
-                icon={CoursesIcon}
+                label="Total members"
+                value={summary.users.total}
+                icon={<svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.354a4 4 0 110 8.048M12 4.354L8.323 8.031M12 4.354l3.677 3.677M9 20H3v-2a6 6 0 0112 0v2m0 0h6v-2a6 6 0 00-9-5.659" />
+                </svg>}
                 tone="primary"
-                hint="Courses in your organization"
+                hint="Everyone in your organization"
               />
               <StatCard
                 label="Instructors"
@@ -337,6 +339,13 @@ export default function OrganizationDashboardPage() {
                 icon={StudentsIcon}
                 tone="success"
                 hint="Active learners"
+              />
+              <StatCard
+                label="Courses"
+                value={courseCount ?? 0}
+                icon={CoursesIcon}
+                tone="primary"
+                hint="Courses in your organization"
               />
             </div>
 
