@@ -251,7 +251,7 @@ export const AuditLogTable: React.FC<AuditLogTableProps> = ({
 
   return (
     <div>
-      <div className="mb-4 max-w-md">
+      <div className="mb-4">
         <Input
           variant="line"
           placeholder="Search by action, actor name, or email"

@@ -300,7 +300,7 @@ function OrgActionsMenu({
         aria-label="Organization actions"
         aria-haspopup="true"
         aria-expanded={open}
-        className="flex h-8 w-8 items-center justify-center rounded-lg text-neutral-500 transition-colors hover:bg-neutral-100 hover:text-neutral-800 focus:outline-none focus:ring-2 focus:ring-primary-500"
+        className="flex h-8 w-8 items-center justify-center rounded-lg text-neutral-500 transition-colors hover:bg-neutral-100 hover:text-neutral-800"
       >
         {/* 3 vertical dots */}
         <svg className="h-5 w-5" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
