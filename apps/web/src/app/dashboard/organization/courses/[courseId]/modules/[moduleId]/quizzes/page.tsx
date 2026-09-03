@@ -104,7 +104,7 @@ export default function ModuleQuizzesPage() {
     async function load() {
       setLoading(true);
       try {
-        const apiBase = process.env.NEXT_PUBLIC_BACKEND_URL || '';
+        const apiBase = '';
         const res = await fetch(
           `${apiBase}/api/v1/organizations/${organizationId}/courses/${courseId}/modules/${moduleId}/quizzes`,
           { credentials: 'include' }
@@ -142,7 +142,7 @@ export default function ModuleQuizzesPage() {
     
     setLoading(true);
     try {
-      const apiBase = process.env.NEXT_PUBLIC_BACKEND_URL || '';
+      const apiBase = '';
       const res = await fetch(
         `${apiBase}/api/v1/organizations/${organizationId}/courses/${courseId}/modules/${moduleId}/quizzes`,
         { credentials: 'include' }
@@ -240,7 +240,7 @@ export default function ModuleQuizzesPage() {
 
     setCreating(true);
     try {
-      const apiBase = process.env.NEXT_PUBLIC_BACKEND_URL || '';
+      const apiBase = '';
       const body: Record<string, unknown> = {
         title: title.trim(),
         order: parseInt(order, 10),
@@ -289,7 +289,7 @@ export default function ModuleQuizzesPage() {
     if (!organizationId || !courseId || !moduleId) return;
 
     try {
-      const apiBase = process.env.NEXT_PUBLIC_BACKEND_URL || '';
+      const apiBase = '';
       const res = await fetch(
         `${apiBase}/api/v1/organizations/${organizationId}/courses/${courseId}/modules/${moduleId}/quizzes/${quiz.id}`,
         { credentials: 'include' }
@@ -331,7 +331,7 @@ export default function ModuleQuizzesPage() {
 
     setUpdating(true);
     try {
-      const apiBase = process.env.NEXT_PUBLIC_BACKEND_URL || '';
+      const apiBase = '';
       const body: Record<string, unknown> = {
         title: title.trim(),
         order: parseInt(order, 10),
@@ -385,7 +385,7 @@ export default function ModuleQuizzesPage() {
     if (!organizationId || !courseId || !moduleId) return;
 
     try {
-      const apiBase = process.env.NEXT_PUBLIC_BACKEND_URL || '';
+      const apiBase = '';
       const res = await fetch(
         `${apiBase}/api/v1/organizations/${organizationId}/courses/${courseId}/modules/${moduleId}/quizzes/${quizId}`,
         {

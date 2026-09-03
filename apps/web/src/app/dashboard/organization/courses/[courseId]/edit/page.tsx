@@ -110,7 +110,7 @@ export default function EditCoursePage() {
     async function load() {
       setLoadingCourse(true);
       try {
-        const apiBase = process.env.NEXT_PUBLIC_BACKEND_URL || '';
+        const apiBase = '';
         const res = await fetch(
           `${apiBase}/api/v1/organizations/${organizationId}/courses/${courseId}`,
           { credentials: 'include' }
@@ -265,7 +265,7 @@ export default function EditCoursePage() {
 
     setSubmitting(true);
     try {
-      const apiBase = process.env.NEXT_PUBLIC_BACKEND_URL || '';
+      const apiBase = '';
       const res = await fetch(
         `${apiBase}/api/v1/organizations/${organizationId}/courses/${courseId}`,
         {
@@ -338,17 +338,6 @@ export default function EditCoursePage() {
                 autoComplete="off"
                 disabled={submitting}
                 required
-              />
-
-              <Input
-                label="Slug"
-                value={slug}
-                onChange={(e) => setSlug(e.target.value)}
-                error={slugError}
-                helperText="Lowercase letters, numbers and hyphens only."
-                placeholder="e.g. introduction-to-programming"
-                autoComplete="off"
-                disabled={submitting}
               />
 
               <Textarea

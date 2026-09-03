@@ -84,7 +84,7 @@ export default function StudentCoursePage() {
 
     async function load() {
       try {
-        const apiBase = process.env.NEXT_PUBLIC_BACKEND_URL || '';
+        const apiBase = '';
         const res = await fetch(`${apiBase}/api/v1/organizations/${organizationId}/student/courses/${courseId}`, {
           credentials: 'include',
         });
@@ -131,7 +131,7 @@ export default function StudentCoursePage() {
 
   async function loadCourse(orgId: string, cid: string) {
     try {
-      const apiBase = process.env.NEXT_PUBLIC_BACKEND_URL || '';
+      const apiBase = '';
       const res = await fetch(`${apiBase}/api/v1/organizations/${orgId}/student/courses/${cid}`, {
         credentials: 'include',
       });

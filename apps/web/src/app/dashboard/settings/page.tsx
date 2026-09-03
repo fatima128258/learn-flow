@@ -158,7 +158,6 @@ export default function SettingsPage() {
     <div className="mx-auto max-w-3xl">
       <PageHeader
         title="Settings"
-        description="Manage the email address and password for your account."
       />
 
       {/* ── Email address ─────────────────────────────────────────────── */}

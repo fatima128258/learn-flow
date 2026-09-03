@@ -80,7 +80,7 @@ export default function StudentSearchPage() {
     setLoading(true);
     setSearchError(null);
     try {
-      const apiBase = process.env.NEXT_PUBLIC_BACKEND_URL || '';
+      const apiBase = '';
       const params = new URLSearchParams();
       if (query.trim()) params.set('q', query.trim());
       const qs = params.toString();

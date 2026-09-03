@@ -123,7 +123,7 @@ export default function StudentDashboardPage() {
     async function loadCourses() {
       setCoursesLoading(true);
       try {
-        const apiBase = process.env.NEXT_PUBLIC_BACKEND_URL || '';
+        const apiBase = '';
         const [coursesRes, statsRes] = await Promise.all([
           fetch(`${apiBase}/api/v1/organizations/${organizationId}/student/courses`, {
             credentials: 'include',
@@ -174,7 +174,7 @@ export default function StudentDashboardPage() {
       setCoursesLoading(true);
       setError(null);
       try {
-        const apiBase = process.env.NEXT_PUBLIC_BACKEND_URL || '';
+        const apiBase = '';
         const [coursesRes, statsRes] = await Promise.all([
           fetch(`${apiBase}/api/v1/organizations/${organizationId}/student/courses`, {
             credentials: 'include',

@@ -42,7 +42,7 @@ export default function StudentNotificationsPage() {
   async function loadNotifications(orgId: string) {
     setNotificationsLoading(true);
     try {
-      const apiBase = process.env.NEXT_PUBLIC_BACKEND_URL || '';
+      const apiBase = '';
       const res = await fetch(`${apiBase}/api/v1/organizations/${orgId}/student/notifications`, {
         credentials: 'include',
       });
@@ -91,7 +91,7 @@ export default function StudentNotificationsPage() {
     const load = async () => {
       setNotificationsLoading(true);
       try {
-        const apiBase = process.env.NEXT_PUBLIC_BACKEND_URL || '';
+        const apiBase = '';
         const res = await fetch(`${apiBase}/api/v1/organizations/${organizationId}/student/notifications`, {
           credentials: 'include',
         });
@@ -120,7 +120,7 @@ export default function StudentNotificationsPage() {
   async function markAsRead(id: string) {
     if (!organizationId) return;
     try {
-      const apiBase = process.env.NEXT_PUBLIC_BACKEND_URL || '';
+      const apiBase = '';
       const res = await fetch(
         `${apiBase}/api/v1/organizations/${organizationId}/student/notifications/${id}/read`,
         { method: 'POST', credentials: 'include' },
@@ -139,7 +139,7 @@ export default function StudentNotificationsPage() {
   async function markAllAsRead() {
     if (!organizationId) return;
     try {
-      const apiBase = process.env.NEXT_PUBLIC_BACKEND_URL || '';
+      const apiBase = '';
       const res = await fetch(
         `${apiBase}/api/v1/organizations/${organizationId}/student/notifications/read-all`,
         { method: 'POST', credentials: 'include' },

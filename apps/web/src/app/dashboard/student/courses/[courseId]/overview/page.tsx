@@ -96,7 +96,7 @@ export default function StudentCourseOverviewPage() {
 
   async function loadCourse(orgId: string, cid: string) {
     try {
-      const apiBase = process.env.NEXT_PUBLIC_BACKEND_URL || '';
+      const apiBase = '';
       const res = await fetch(
         `${apiBase}/api/v1/organizations/${orgId}/student/courses/${cid}/overview`,
         { credentials: 'include' }

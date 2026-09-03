@@ -78,7 +78,7 @@ const StudentsIcon = (
   </svg>
 );
 
-const API_BASE = process.env.NEXT_PUBLIC_BACKEND_URL || '';
+const API_BASE = '';
 
 export default function OrgUsersPage() {
   const { data: user, isLoading: userLoading } = useCurrentUser();
@@ -236,27 +236,25 @@ export default function OrgUsersPage() {
     <>
       <div className="mx-auto max-w-5xl">
         <PageHeader
-          subtitle="Organization Admin"
-          title="Users"
-          actions={
-            <>
-              <Button size="sm" className="bg-gray-600 hover:bg-gray-700 text-white border-none" onClick={() => openAdd('STUDENT')}>
-                Add Student
-              </Button>
-              <Button size="sm" onClick={() => openAdd('INSTRUCTOR')}>
-                Add Instructor
-              </Button>
-            </>
-          }
+          actions={null}
         />
 
-        <div className="mb-4 max-w-md">
+        <div className="mb-4 flex items-center justify-between gap-3">
           <Input
             variant="line"
             placeholder="Search by name, email, or role"
             value={searchInput}
             onChange={(e) => handleSearch(e.target.value)}
+            className="max-w-md"
           />
+          <div className="flex items-center gap-2">
+            <Button size="sm" className="bg-gray-600 hover:bg-gray-700 text-white border-none" onClick={() => openAdd('STUDENT')}>
+              Add Student
+            </Button>
+            <Button size="sm" onClick={() => openAdd('INSTRUCTOR')}>
+              Add Instructor
+            </Button>
+          </div>
         </div>
 
         {loading && members === null ? (

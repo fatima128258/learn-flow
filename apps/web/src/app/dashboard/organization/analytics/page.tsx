@@ -36,7 +36,7 @@ type OrgAnalytics = {
   roles?: RoleBreakdown[];
 };
 
-const API_BASE = process.env.NEXT_PUBLIC_BACKEND_URL || '';
+const API_BASE = '';
 const statusBarTone = (status: string): BarDatum['tone'] => {
   if (status === 'PUBLISHED') return 'success';
   if (status === 'ARCHIVED') return 'neutral';
@@ -144,7 +144,6 @@ export default function OrgAnalyticsPage() {
   return (
     <div className="mx-auto max-w-5xl">
       <PageHeader
-        title="Analytics"
         badges={
           summary
             ? [

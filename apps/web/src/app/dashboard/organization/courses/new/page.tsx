@@ -196,7 +196,7 @@ export default function CreateCoursePage() {
 
     setSubmitting(true);
     try {
-      const apiBase = process.env.NEXT_PUBLIC_BACKEND_URL || '';
+      const apiBase = '';
       const res = await fetch(
         `${apiBase}/api/v1/organizations/${organizationId}/courses`,
         {
@@ -270,17 +270,6 @@ export default function CreateCoursePage() {
                 autoComplete="off"
                 disabled={submitting}
                 required
-              />
-
-              <Input
-                label="Slug"
-                value={slug}
-                onChange={(e) => setSlug(e.target.value)}
-                error={slugError}
-                helperText="Optional. Generated from the title if left empty."
-                placeholder="e.g. introduction-to-programming"
-                autoComplete="off"
-                disabled={submitting}
               />
 
               <Textarea

@@ -75,7 +75,7 @@ export default function StudentQuizTakingPage() {
 
   async function loadQuiz(orgId: string, cid: string, mid: string, qid: string) {
     try {
-      const apiBase = process.env.NEXT_PUBLIC_BACKEND_URL || '';
+      const apiBase = '';
       const res = await fetch(
         `${apiBase}/api/v1/organizations/${orgId}/student/courses/${cid}/modules/${mid}/quizzes/${qid}`,
         { credentials: 'include' }
@@ -156,7 +156,7 @@ export default function StudentQuizTakingPage() {
     }
     setSubmitting(true);
     try {
-      const apiBase = process.env.NEXT_PUBLIC_BACKEND_URL || '';
+      const apiBase = '';
       const res = await fetch(
         `${apiBase}/api/v1/organizations/${organizationId}/student/courses/${courseId}/modules/${moduleId}/quizzes/${quizId}/attempts`,
         {
