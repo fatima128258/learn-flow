@@ -10,32 +10,7 @@ import {
   Spinner,
 } from '@/components/ui';
 import { useCurrentUser } from '@/features/auth/useCurrentUser';
-
-type StatsResponse = {
-  availableCourses: number;
-  enrolledCourses: number;
-  certificatesEarned: number;
-  completedCourses: number;
-  inProgressCourses: number;
-  categoriesExplored: number;
-  totalEstimatedMinutes: number;
-  totalEstimatedHours: number;
-};
-
-type EnrolledCourse = {
-  enrollmentId: string;
-  enrollmentStatus: string;
-  enrolledAt: string;
-  courseId: string;
-  title: string;
-  slug: string;
-  description: string | null;
-  thumbnailUrl: string | null;
-  category: string | null;
-  difficulty: string | null;
-  estimatedMinutes: number | null;
-  learningObjectives: string[];
-};
+import { useMyCourses, useMyStats } from '@/features/student/useMyCourses';
 
 const BookIcon = (
   <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
@@ -85,11 +60,7 @@ const categoryFallback = (title: string) => {
 };
 
 export default function StudentDashboardPage() {
-  const { data: user, isLoading: userLoading, error: userError } = useCurrentUser();
-  const [courses, setCourses] = useState<EnrolledCourse[] | null>(null);
-  const [stats, setStats] = useState<StatsResponse | null>(null);
-  const [coursesLoading, setCoursesLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const { data: user, isLoading: userLoading } = useCurrentUser();
   const [organizationId, setOrganizationId] = useState<string | null>(null);
 
   // Extract organizationId from user and perform role check
@@ -115,95 +86,31 @@ export default function StudentDashboardPage() {
     setOrganizationId(orgId);
   }, [user, userLoading]);
 
-  // Load courses once organizationId is set
-  useEffect(() => {
-    if (!organizationId) return;
-    let active = true;
+  // Use React Query hooks for data fetching with automatic cache management
+  const {
+    data: courses = [],
+    isLoading: coursesLoading,
+    isError: coursesError,
+    error: errorMessage,
+    refetch: refetchCourses
+  } = useMyCourses(organizationId || '');
 
-    async function loadCourses() {
-      setCoursesLoading(true);
-      try {
-        const apiBase = '';
-        const [coursesRes, statsRes] = await Promise.all([
-          fetch(`${apiBase}/api/v1/organizations/${organizationId}/student/courses`, {
-            credentials: 'include',
-          }),
-          fetch(`${apiBase}/api/v1/organizations/${organizationId}/student/stats`, {
-            credentials: 'include',
-          }),
-        ]);
+  const { data: stats } = useMyStats(organizationId || '');
 
-        if (!active) return;
-
-        if (!coursesRes.ok) {
-          setError('Could not load your courses. Please try again.');
-          return;
-        }
-
-        const coursesBody = await coursesRes.json();
-        if (!active) return;
-        setCourses(coursesBody.data ?? []);
-
-        if (statsRes.ok) {
-          const statsBody = await statsRes.json();
-          if (active) setStats(statsBody.data ?? null);
-        }
-      } catch {
-        if (active) setError('Could not reach the server. Please try again.');
-      } finally {
-        if (active) setCoursesLoading(false);
-      }
-    }
-
-    loadCourses();
-    return () => {
-      active = false;
-    };
-  }, [organizationId]);
-
-  const categoryCount = new Set(courses ? courses.map((c) => c.category).filter(Boolean) : []).size;
-  const totalMinutes = courses ? courses.reduce<number>(
+  const categoryCount = new Set(courses.map((c) => c.category).filter(Boolean)).size;
+  const totalMinutes = courses.reduce<number>(
     (sum, c) => sum + (c.estimatedMinutes ?? 0),
     0,
-  ) : 0;
+  );
   const estHours = totalMinutes > 0 ? `${Math.round(totalMinutes / 60)}h` : '0h';
 
-  const handleRetryCourses = async () => {
-    if (organizationId) {
-      setCoursesLoading(true);
-      setError(null);
-      try {
-        const apiBase = '';
-        const [coursesRes, statsRes] = await Promise.all([
-          fetch(`${apiBase}/api/v1/organizations/${organizationId}/student/courses`, {
-            credentials: 'include',
-          }),
-          fetch(`${apiBase}/api/v1/organizations/${organizationId}/student/stats`, {
-            credentials: 'include',
-          }),
-        ]);
-
-        if (!coursesRes.ok) {
-          setError('Could not load your courses. Please try again.');
-          return;
-        }
-
-        const coursesBody = await coursesRes.json();
-        setCourses(coursesBody.data ?? []);
-
-        if (statsRes.ok) {
-          const statsBody = await statsRes.json();
-          setStats(statsBody.data ?? null);
-        }
-      } catch {
-        setError('Could not reach the server. Please try again.');
-      } finally {
-        setCoursesLoading(false);
-      }
-    }
+  const handleRetryCourses = () => {
+    refetchCourses();
   };
 
-  // Show loading only if user data is still loading and we don't have error/courses yet
+  const errorMessage_ = coursesError && errorMessage instanceof Error ? errorMessage.message : 'Could not load your courses. Please try again.';
+
+  // Show loading only if user data is still loading
   if (userLoading) {
     return (
       <div className="flex min-h-[50vh] items-center justify-center">
@@ -215,30 +122,25 @@ export default function StudentDashboardPage() {
     );
   }
 
-  // After user is loaded, ensure courses always has a value (never null)
-  // This prevents infinite loading state
-  const finalCourses = courses ?? [];
-  const isLoadingCourses = courses === null && coursesLoading;
-
   return (
     <div className="mx-auto max-w-6xl">
 
-      {isLoadingCourses ? (
+      {coursesLoading ? (
         <div className="flex min-h-[50vh] items-center justify-center">
           <div className="flex items-center gap-3 text-neutral-700">
             <Spinner size="lg" label="Loading courses..." />
             <span>Loading courses...</span>
           </div>
         </div>
-      ) : error ? (
+      ) : coursesError ? (
         <div className="rounded-2xl border border-neutral-200 bg-white shadow-sm">
           <ErrorState
             title="Unable to load courses"
-            message={error}
+            message={errorMessage_}
             action={{ label: 'Retry', onClick: handleRetryCourses }}
           />
         </div>
-      ) : finalCourses.length === 0 ? (
+      ) : courses.length === 0 ? (
         <div className="rounded-2xl border border-neutral-200 bg-white shadow-sm">
           <EmptyState
             icon={EmptyStateIcons.NoCourses}
@@ -253,7 +155,7 @@ export default function StudentDashboardPage() {
       ) : (
         <>
           <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-3">
-            {finalCourses.map((course) => (
+            {courses.map((course) => (
               <Link key={course.courseId} href={`/dashboard/student/courses/${course.courseId}`}>
                 <div className="group h-full overflow-hidden rounded-2xl border border-neutral-200 bg-white shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-primary-200 hover:shadow-md">
                   {course.thumbnailUrl ? (
