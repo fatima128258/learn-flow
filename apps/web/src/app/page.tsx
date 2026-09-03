@@ -96,12 +96,12 @@ export default function Home() {
                   spend less time managing and more time actually learning.
                 </p>
 
-                <Stack direction="horizontal" spacing="sm" justify="center" className="mt-8 flex-wrap md:justify-start animate-slide-up" style={{ animationDelay: '0.1s' }}>
+                <Stack direction="horizontal" spacing="sm" justify="center" className="mt-8 flex-wrap gap-3 md:justify-start md:gap-4 animate-slide-up w-full md:w-auto" style={{ animationDelay: '0.1s' }}>
                   <LinkButton
                     href="/register"
                     variant="primary"
                     size="md"
-                    className="!font-normal shadow-sm shadow-primary-200"
+                    className="!font-normal shadow-sm shadow-primary-200 w-full md:w-auto"
                     showLoading
                     loadingText="Redirecting..."
                   >
@@ -109,7 +109,7 @@ export default function Home() {
                   </LinkButton>
                   <Link
                     href="/#features"
-                    className="inline-flex h-10 items-center justify-center rounded-lg border border-neutral-300 px-5 text-sm font-normal text-neutral-700 transition-colors hover:bg-neutral-50 hover:border-neutral-400"
+                    className="inline-flex h-10 items-center justify-center rounded-lg border border-neutral-300 px-5 text-sm font-normal text-neutral-700 transition-colors hover:bg-neutral-50 hover:border-neutral-400 w-full md:w-auto"
                   >
                     See how it works
                   </Link>

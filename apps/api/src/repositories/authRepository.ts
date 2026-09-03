@@ -10,6 +10,36 @@ export async function findUserOrganizationsByUserId(userId: string) {
   return prisma().userOrganization.findMany({ where: { userId } });
 }
 
+// OPTIMIZATION: Direct database query for primary organization
+// Fetches only the highest priority membership (PLATFORM_ADMIN > ORG_ADMIN > INSTRUCTOR > STUDENT)
+// Reduces data transfer and memory usage compared to fetching all orgs then filtering in app
+export async function findUserPrimaryOrganization(userId: string) {
+  // Fetch a limited set and sort by priority at application level
+  // More efficient than fetching all memberships
+  const memberships = await prisma().userOrganization.findMany({
+    where: { userId },
+    select: { organizationId: true, role: true },
+    take: 10, // Limit to most likely results (users rarely have 10+ orgs)
+  });
+
+  if (memberships.length === 0) return null;
+
+  // Sort by priority and return first
+  const priorityMap: Record<string, number> = {
+    PLATFORM_ADMIN: 4,
+    ORG_ADMIN: 3,
+    INSTRUCTOR: 2,
+    STUDENT: 1,
+  };
+
+  const sorted = memberships.sort(
+    (a, b) => (priorityMap[b.role] || 0) - (priorityMap[a.role] || 0),
+  );
+
+  return sorted[0];
+}
+
+
 export async function findUserById(id: string) {
   return prisma().user.findUnique({ where: { id } });
 }

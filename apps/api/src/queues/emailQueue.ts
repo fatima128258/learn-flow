@@ -12,7 +12,10 @@ export interface EmailJobData {
 }
 
 export function isEmailQueueEnabled() {
-  return process.env.NODE_ENV !== 'test' && process.env.EMAIL_QUEUE_ENABLED !== 'false';
+  // Enable email queue by default (except in test environment)
+  // Can be explicitly disabled with EMAIL_QUEUE_ENABLED=false
+  if (process.env.NODE_ENV === 'test') return false;
+  return process.env.EMAIL_QUEUE_ENABLED !== 'false';
 }
 
 export function getEmailQueue() {

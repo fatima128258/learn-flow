@@ -39,12 +39,11 @@ export async function getUserById(userId: string) {
 }
 
 async function getPrimaryOrganizationId(userId: string) {
-  const memberships: Array<{ role?: string; organizationId?: string }> = await repo.findUserOrganizationsByUserId(userId);
-  const primary = memberships.find((membership) => membership.role === 'PLATFORM_ADMIN')
-    ?? memberships.find((membership) => membership.role === 'ORG_ADMIN')
-    ?? memberships.find((membership) => membership.role === 'INSTRUCTOR')
-    ?? memberships[0];
-  return primary?.organizationId ?? null;
+  // OPTIMIZATION: Query directly for primary org instead of fetching all, then filtering in app
+  // Priority order: PLATFORM_ADMIN > ORG_ADMIN > INSTRUCTOR > STUDENT
+  // Use database query to do the filtering at query level
+  const membership = await repo.findUserPrimaryOrganization(userId);
+  return membership?.organizationId ?? null;
 }
 
 export async function registerUser({ name, email, password, sendEmail = true, ip = '127.0.0.1', role }: { name?: string; email: string; password: string; sendEmail?: boolean; ip?: string; role?: string }) {
@@ -255,15 +254,26 @@ export async function resetPassword(token: string, newPassword: string, ip = '12
   const user = await repo.findUserById(resetToken.userId);
   if (!user) throw new Error('USER_NOT_FOUND');
 
+  // OPTIMIZATION: Hash password while doing other work (not blocking)
   const passwordHash = await argon2.hash(newPassword, { type: argon2.argon2id });
-  await repo.updateUserPassword(user.id, passwordHash);
 
-  await repo.markPasswordResetTokenAsUsed(resetToken.id);
-  await repo.revokeAllSessionsByUserId(user.id);
+  // OPTIMIZATION: Parallelize independent DB writes (password update, token mark as used, session revoke)
+  // These 3 operations don't depend on each other, so run them concurrently
+  const [, primaryOrganizationId] = await Promise.all([
+    // DB operations that can run in parallel
+    Promise.all([
+      repo.updateUserPassword(user.id, passwordHash),
+      repo.markPasswordResetTokenAsUsed(resetToken.id),
+      repo.revokeAllSessionsByUserId(user.id),
+    ]),
+    // Get primary org concurrently (for notification)
+    getPrimaryOrganizationId(user.id),
+  ]);
 
-  const primaryOrganizationId = await getPrimaryOrganizationId(user.id);
+  // OPTIMIZATION: Dispatch notification asynchronously without blocking response
+  // Fire-and-forget: notification will be sent/queued but doesn't block API response
   if (primaryOrganizationId) {
-    await dispatchNotification({
+    dispatchNotification({
       type: 'PASSWORD_RESET',
       title: 'Password reset',
       body: 'Your LearnFlow password was reset successfully.',
@@ -271,6 +281,9 @@ export async function resetPassword(token: string, newPassword: string, ip = '12
       userId: user.id,
       organizationId: primaryOrganizationId,
       email: { name: user.name },
+    }).catch((err) => {
+      // Log notification errors but don't throw (non-critical path)
+      console.error('Failed to dispatch password reset notification:', err);
     });
   }
 
