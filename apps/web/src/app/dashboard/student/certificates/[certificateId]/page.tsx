@@ -50,8 +50,9 @@ export default function StudentCertificateViewPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+  const [retrying, setRetrying] = useState(false);
 
-  async function loadCertificate(orgId: string, certId: string) {
+  async function loadCertificate(orgId: string, certId: string, retryCount = 0) {
     try {
       const apiBase = '';
       const res = await fetch(`${apiBase}/api/v1/organizations/${orgId}/student/certificates/${certId}`, {
@@ -68,9 +69,28 @@ export default function StudentCertificateViewPage() {
         return;
       }
       const body = await res.json();
-      setCertificate(body.data ?? null);
+      const cert = body.data ?? null;
+      setCertificate(cert);
+      
+      // If PDF is still being generated (newly created certificate), retry after a delay
+      if (cert && !cert.pdfUrl && retryCount < 5) {
+        setError(null); // Clear any previous error
+        setRetrying(true);
+        const delay = Math.min(1000 + retryCount * 500, 3000); // Start at 1s, increase each retry up to 3s
+        setTimeout(() => {
+          loadCertificate(orgId, certId, retryCount + 1);
+        }, delay);
+      } else if (cert && !cert.pdfUrl && retryCount >= 5) {
+        // After 5 retries, still no PDF - show it anyway, PDF might still be generating
+        setError(null);
+        setRetrying(false);
+      } else {
+        // PDF is available
+        setRetrying(false);
+      }
     } catch {
       setError('Could not reach the server. Please try again.');
+      setRetrying(false);
     }
   }
 
@@ -131,8 +151,8 @@ export default function StudentCertificateViewPage() {
       <div className="mx-auto max-w-6xl">
         <PageHeader subtitle="Student" title="View Certificate" />
         <div className="flex items-center gap-3 rounded-2xl border border-neutral-200 bg-white p-8 shadow-sm">
-          <Spinner size="lg" label="Loading certificate..." />
-          <span className="text-neutral-700">Loading certificate...</span>
+          <Spinner size="lg" label={retrying ? "Generating certificate..." : "Loading certificate..."} />
+          <span className="text-neutral-700">{retrying ? "Generating certificate..." : "Loading certificate..."}</span>
         </div>
       </div>
     );
