@@ -2,8 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: Promise<{ path?: string[] }> }
+  context: { params: Promise<{ path?: string[] }> }
 ) {
+  const { params } = context;
   try {
     const backendUrl = process.env.BACKEND_URL;
     const { path: pathArray = [] } = await params;
@@ -49,8 +50,9 @@ export async function GET(
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: Promise<{ path?: string[] }> }
+  context: { params: Promise<{ path?: string[] }> }
 ) {
+  const { params } = context;
   try {
     const backendUrl = process.env.BACKEND_URL;
     const { path: pathArray = [] } = await params;
@@ -99,8 +101,9 @@ export async function POST(
 
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: Promise<{ path?: string[] }> }
+  context: { params: Promise<{ path?: string[] }> }
 ) {
+  const { params } = context;
   try {
     const backendUrl = process.env.BACKEND_URL;
     const { path: pathArray = [] } = await params;
@@ -149,8 +152,9 @@ export async function PATCH(
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: Promise<{ path?: string[] }> }
+  context: { params: Promise<{ path?: string[] }> }
 ) {
+  const { params } = context;
   try {
     const backendUrl = process.env.BACKEND_URL;
     const { path: pathArray = [] } = await params;
