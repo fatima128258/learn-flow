@@ -30,7 +30,13 @@ function userDto(user: {
   organizationId?: string | null;
 }) {
   const base = { id: user.id, name: user.name, email: user.email, emailVerified: user.emailVerified, createdAt: user.createdAt };
-  return user.role ? { ...base, role: user.role, organizationId: user.organizationId } : base;
+  // BUGFIX: Always include role and organizationId if they exist in the input
+  // Previously, this would omit them if role was null/undefined, breaking login redirect logic
+  // Now: if role or organizationId are provided in the input object, include them in output
+  if ('role' in user || 'organizationId' in user) {
+    return { ...base, role: user.role, organizationId: user.organizationId };
+  }
+  return base;
 }
 
 function getClientIp(req: Request) {
