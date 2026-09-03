@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { Badge, EmptyState, EmptyStateIcons, ErrorState, Spinner } from '@/components/ui';
+import { PageHeader } from '@/components/dashboard';
 import { useCurrentUser } from '@/features/auth/useCurrentUser';
 
 type NotificationDto = {
@@ -166,6 +167,7 @@ export default function StudentNotificationsPage() {
 
   return (
     <div className="mx-auto max-w-6xl">
+      <PageHeader title="Notifications" />
       {error ? (
           <div className="rounded-2xl border border-neutral-200 bg-white shadow-sm">
             <ErrorState

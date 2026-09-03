@@ -172,7 +172,7 @@ export default function OrgAnalyticsPage() {
         </div>
       ) : summary ? (
         <>
-          <div className="mb-8 hidden grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="mb-8 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
             <StatCard
               label="Total members"
               value={summary.users.total}

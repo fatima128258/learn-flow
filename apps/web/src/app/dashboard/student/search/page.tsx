@@ -10,6 +10,7 @@ import {
   ErrorState,
   Input,
 } from '@/components/ui';
+import { PageHeader } from '@/components/dashboard';
 import { useCurrentUser } from '@/features/auth/useCurrentUser';
 
 type CourseHit = {
@@ -109,6 +110,7 @@ export default function StudentSearchPage() {
 
   return (
     <div className="mx-auto max-w-6xl">
+      <PageHeader title="Available Courses" />
       <div className="mb-8 max-w-md">
         <Input
           variant="line"

@@ -9,7 +9,7 @@ import {
   ErrorState,
   Spinner,
 } from '@/components/ui';
-
+import { PageHeader } from '@/components/dashboard';
 import { useCurrentUser } from '@/features/auth/useCurrentUser';
 
 type Certificate = {
@@ -119,6 +119,7 @@ export default function StudentCertificatesPage() {
 
   return (
     <div className="mx-auto max-w-6xl">
+      <PageHeader title="Certificates" />
       {error ? (
           <div className="rounded-2xl border border-neutral-200 bg-white shadow-sm">
             <ErrorState
