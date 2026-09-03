@@ -50,7 +50,6 @@ export default function StudentCertificateViewPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
-  const [organizationId, setOrganizationId] = useState<string | null>(null);
 
   async function loadCertificate(orgId: string, certId: string) {
     try {
@@ -75,7 +74,7 @@ export default function StudentCertificateViewPage() {
     }
   }
 
-  // Check auth and set organizationId
+  // Check auth and load certificate
   useEffect(() => {
     if (userLoading) return;
     
@@ -89,27 +88,22 @@ export default function StudentCertificateViewPage() {
       return;
     }
     
-    const orgId = user.organizationId ?? null;
+    const orgId = user.organizationId;
     if (!orgId) {
       window.location.href = '/login';
       return;
     }
     
-    setOrganizationId(orgId);
-    if (certificateId) loadCertificate(orgId, certificateId);
-  }, [user, userLoading, certificateId]);
-
-  // Load certificate data
-  useEffect(() => {
-    if (!organizationId || !certificateId) {
+    if (!certificateId) {
       setLoading(false);
       return;
     }
+    
     let active = true;
 
     async function load() {
       try {
-        await loadCertificate(organizationId ?? '', certificateId ?? '');
+        await loadCertificate(orgId as string, certificateId as string);
       } finally {
         if (active) setLoading(false);
       }
@@ -119,7 +113,7 @@ export default function StudentCertificateViewPage() {
     return () => {
       active = false;
     };
-  }, [organizationId, certificateId]);
+  }, [user, userLoading, certificateId]);
 
   async function copyUrl() {
     if (!certificate) return;
