@@ -54,6 +54,16 @@ export async function registerUser({ name, email, password, sendEmail = true, ip
   const passwordHash = await argon2.hash(password, { type: argon2.argon2id });
   const user = await repo.createUser({ name: name ?? null, email: normalizedEmail, passwordHash });
 
+  // Assign new user to a default organization (use existing "Default" org or create one)
+  const defaultOrg = await repo.findOrganizationBySlug('default');
+  if (defaultOrg) {
+    await repo.createUserOrganization({
+      userId: user.id,
+      organizationId: defaultOrg.id,
+      role: 'STUDENT',
+    });
+  }
+
   const verificationToken = generateToken();
   const verificationTokenHash = hashToken(verificationToken);
   const verificationExpiresAt = new Date(Date.now() + EMAIL_VERIFICATION_TTL * 1000);
