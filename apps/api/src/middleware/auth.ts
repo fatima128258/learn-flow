@@ -77,7 +77,6 @@ export async function requireAuth(req: AuthenticatedRequest, res: Response, next
     
     // Get user's organization memberships with organization details
     // Use request-level cache to avoid duplicate queries within same request
-    const prisma = getPrisma();
     let userOrganizations = req.__authCache?.userOrganizations;
     
     if (!userOrganizations) {

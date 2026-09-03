@@ -101,7 +101,7 @@ export const Navbar: React.FC = () => {
               href="/login"
               variant="ghost"
               size="sm"
-              className="text-primary-700 hover:bg-primary-50 rounded-md"
+              className="text-primary-700 hover:bg-neutral-200 bg-neutral-200 rounded-md"
               showLoading
               loadingText="Loading..."
             >
