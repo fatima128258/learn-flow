@@ -729,7 +729,7 @@ export default function OrganizationsPage() {
               variant="line"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              placeholder="Search by name, slug, or admin email"
+              placeholder="Search by name, admin email"
             />
           </div>
           <Button size="sm" onClick={() => setShowCreateModal(true)}>

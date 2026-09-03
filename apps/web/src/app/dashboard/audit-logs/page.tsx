@@ -2,7 +2,6 @@
 
 import { useEffect } from 'react';
 import { useCurrentUser } from '@/features/auth/useCurrentUser';
-import { PageHeader } from '@/components/dashboard';
 import { AuditLogTable } from '@/components/audit/AuditLogTable';
 
 export default function PlatformAuditLogsPage() {
@@ -21,7 +20,6 @@ export default function PlatformAuditLogsPage() {
 
   return (
     <div className="mx-auto max-w-6xl">
-      <PageHeader title="Audit Logs" />
       <AuditLogTable apiPath="/api/v1/admin/audit-logs" showOrganization pageSize={50} />
     </div>
   );
