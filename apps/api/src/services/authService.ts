@@ -59,8 +59,11 @@ export async function registerUser({ name, email, password, sendEmail = true, ip
   const verificationExpiresAt = new Date(Date.now() + EMAIL_VERIFICATION_TTL * 1000);
   await repo.createEmailVerificationToken({ userId: user.id, tokenHash: verificationTokenHash, expiresAt: verificationExpiresAt });
 
+  // Send email asynchronously without blocking registration response
   if (sendEmail) {
-    await sendVerificationEmail(normalizedEmail, verificationToken);
+    sendVerificationEmail(normalizedEmail, verificationToken).catch((err) => {
+      console.error('Failed to send verification email:', err);
+    });
   }
 
   const token = generateToken();
