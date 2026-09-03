@@ -5,6 +5,7 @@ import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import {
   Badge,
+  Button,
   EmptyState,
   EmptyStateIcons,
   ErrorState,
@@ -12,6 +13,7 @@ import {
 } from '@/components/ui';
 import { PageHeader } from '@/components/dashboard';
 import { useCurrentUser } from '@/features/auth/useCurrentUser';
+import { useProgress, useGenerateCertificate } from '@/features/student/useProgress';
 
 type ProgressModule = {
   id: string;
@@ -66,12 +68,16 @@ export default function StudentCourseProgressPage() {
   const courseId = typeof params.courseId === 'string' ? params.courseId : null;
   const { data: user, isLoading: userLoading } = useCurrentUser();
 
-  const [progress, setProgress] = useState<CourseProgress | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [organizationId, setOrganizationId] = useState<string | null>(null);
-  const [generating, setGenerating] = useState(false);
-  const [generateError, setGenerateError] = useState<string | null>(null);
+
+  // Use React Query hooks for progress and certificate generation
+  const { 
+    data: progress, 
+    isLoading: progressLoading, 
+    error: progressError 
+  } = useProgress(organizationId ?? '', courseId ?? '');
+
+  const generateCertificateMutation = useGenerateCertificate(organizationId ?? '', courseId ?? '');
 
   // Check auth and set organizationId
   useEffect(() => {
@@ -96,107 +102,26 @@ export default function StudentCourseProgressPage() {
     setOrganizationId(orgId);
   }, [user, userLoading]);
 
-  // Load progress once organizationId and courseId are set
-  useEffect(() => {
-    if (!organizationId || !courseId) {
-      setLoading(false);
-      return;
-    }
-    let active = true;
-
-    async function loadProgressData() {
-      setLoading(true);
-      try {
-        const apiBase = '';
-        const res = await fetch(`${apiBase}/api/v1/organizations/${organizationId}/student/courses/${courseId}/progress`, {
-          credentials: 'include',
-        });
-        if (!active) return;
-        if (!res.ok) {
-          let code: unknown = null;
-          try {
-            code = (await res.json())?.error;
-          } catch {
-            code = null;
-          }
-          if (code === 'STUDENT_NOT_ENROLLED') {
-            setError('You are not enrolled in this course.');
-          } else if (code === 'COURSE_NOT_FOUND') {
-            setError('Course not found.');
-          } else {
-            setError('Could not load progress. Please try again.');
-          }
-          setLoading(false);
-          return;
-        }
-        const body = await res.json();
-        if (!active) return;
-        setProgress(body.data ?? null);
-        setLoading(false);
-      } catch {
-        if (active) {
-          setError('Could not reach the server. Please try again.');
-          setLoading(false);
-        }
-      }
-    }
-
-    loadProgressData();
-    return () => {
-      active = false;
-    };
-  }, [organizationId, courseId]);
-
-  async function generateCertificate(orgId: string, cid: string) {
-    setGenerating(true);
-    setGenerateError(null);
+  async function handleGenerateCertificate() {
+    if (!organizationId || !courseId) return;
+    
     try {
-      const apiBase = '';
-      const url = `${apiBase}/api/v1/organizations/${orgId}/student/courses/${cid}/certificate`;
-      console.log('Certificate API URL:', url);
-      
-      const res = await fetch(url, { 
-        method: 'POST', 
-        credentials: 'include',
-        headers: { 'Content-Type': 'application/json' }
-      });
-      
-      console.log('Certificate Response Status:', res.status);
-      
-      if (!res.ok) {
-        let code: unknown = null;
-        try {
-          const errorBody = await res.json();
-          console.log('Certificate Error Response:', errorBody);
-          code = errorBody?.error;
-        } catch {
-          code = null;
-        }
-        if (code === 'COURSE_NOT_COMPLETED') {
-          setGenerateError('Complete all lessons before generating your certificate.');
-        } else if (code === 'CERTIFICATE_EXISTS') {
-          window.location.href = '/dashboard/student/certificates';
-          return;
-        } else {
-          setGenerateError(`Could not generate certificate. Error: ${code || 'UNKNOWN'}`);
-        }
-        return;
+      const result = await generateCertificateMutation.mutateAsync();
+      if (result?.certificateId) {
+        window.location.href = `/dashboard/student/certificates/${result.certificateId}`;
+      } else {
+        window.location.href = '/dashboard/student/certificates';
       }
-      const body = await res.json();
-      console.log('Certificate Success:', body);
-      const certId = body.data?.certificateId;
-      window.location.href = certId
-        ? `/dashboard/student/certificates/${certId}`
-        : '/dashboard/student/certificates';
-    } catch (err) {
-      console.error('Certificate Generation Error:', err);
-      setGenerateError(`Could not reach the server: ${err instanceof Error ? err.message : 'Unknown error'}`);
-    } finally {
-      setGenerating(false);
+    } catch (error) {
+      // Error is handled by mutation error state
+      console.error('Certificate generation error:', error);
     }
   }
 
-  if (loading) {
+  const isLoading = userLoading || progressLoading;
+  const error = progressError?.message || (generateCertificateMutation.error instanceof Error ? generateCertificateMutation.error.message : null);
+
+  if (isLoading) {
     return (
       <div className="mx-auto flex max-w-5xl items-center gap-3 text-neutral-700">
         <Spinner size="lg" label="Loading progress..." />
@@ -242,8 +167,9 @@ export default function StudentCourseProgressPage() {
                   ? {
                       label: 'Retry',
                       onClick: () => {
-                        setError(null);
-                        setLoading(true);
+                        // Manually trigger a refetch by updating state
+                        setOrganizationId(null);
+                        setTimeout(() => setOrganizationId(organizationId), 0);
                       },
                     }
                   : undefined
@@ -283,16 +209,15 @@ export default function StudentCourseProgressPage() {
 
               {progress.courseComplete && (
                 <div className="mt-5 flex flex-wrap items-center gap-3">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      if (organizationId && courseId) generateCertificate(organizationId, courseId);
-                    }}
-                    disabled={generating}
-                    className="inline-flex items-center gap-2 rounded-lg bg-success-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-success-700 disabled:cursor-not-allowed disabled:bg-neutral-300"
+                  <Button
+                    size="sm"
+                    variant="primary"
+                    disabled={generateCertificateMutation.isPending}
+                    onClick={handleGenerateCertificate}
+                    className="bg-success-600 hover:bg-success-700"
                   >
-                    {generating ? 'Generating...' : 'Generate Certificate'}
-                  </button>
+                    {generateCertificateMutation.isPending ? 'Generating...' : 'Generate Certificate'}
+                  </Button>
                   <Link
                     href="/dashboard/student/certificates"
                     className="inline-flex items-center gap-2 rounded-lg border-2 border-primary-600 px-4 py-2 text-sm font-medium text-primary-600 transition-colors hover:bg-primary-50"
@@ -301,7 +226,13 @@ export default function StudentCourseProgressPage() {
                   </Link>
                 </div>
               )}
-              {generateError && <p className="mt-2 text-sm text-error-600">{generateError}</p>}
+              {generateCertificateMutation.error && (
+                <p className="mt-2 text-sm text-error-600">
+                  {generateCertificateMutation.error instanceof Error 
+                    ? generateCertificateMutation.error.message 
+                    : 'Failed to generate certificate'}
+                </p>
+              )}
             </div>
 
             <h2 className="mb-4 text-lg font-semibold text-neutral-900">Modules</h2>

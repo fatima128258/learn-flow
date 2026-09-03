@@ -5,6 +5,7 @@ import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import {
   Badge,
+  Button,
   EmptyState,
   EmptyStateIcons,
   ErrorState,
@@ -12,6 +13,7 @@ import {
 } from '@/components/ui';
 import { PageHeader } from '@/components/dashboard';
 import { useCurrentUser } from '@/features/auth/useCurrentUser';
+import { useProgress, useRecordProgress } from '@/features/student/useProgress';
 
 type LessonItem = {
   id: string;
@@ -61,6 +63,120 @@ function lessonTypeIcon(type: string | null) {
   }
 }
 
+type LessonRowProps = {
+  lesson: LessonItem;
+  index: number;
+  courseId: string;
+  moduleId: string;
+  organizationId: string;
+  isCompleted: boolean;
+  onMarkingChange: (lessonId: string | null) => void;
+  markingLessonId: string | null;
+  onError: (error: string | null) => void;
+};
+
+function LessonRow({
+  lesson,
+  index,
+  courseId,
+  moduleId,
+  organizationId,
+  isCompleted,
+  onMarkingChange,
+  markingLessonId,
+  onError,
+}: LessonRowProps) {
+  const recordProgress = useRecordProgress(organizationId, courseId, moduleId, lesson.id);
+  const isMarking = markingLessonId === lesson.id;
+
+  const handleMarkViewed = async (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    // Prevent double-click while already marking
+    if (isMarking || recordProgress.isPending) return;
+    
+    onMarkingChange(lesson.id);
+    onError(null);
+    
+    try {
+      await recordProgress.mutateAsync(true);
+      // Success - cache is automatically invalidated by the mutation
+    } catch (error) {
+      const errorMessage = error instanceof Error 
+        ? error.message 
+        : 'Failed to mark lesson as viewed. Please try again.';
+      onError(errorMessage);
+    } finally {
+      onMarkingChange(null);
+    }
+  };
+
+  return (
+    <Link
+      href={`/dashboard/student/courses/${courseId}/modules/${moduleId}/lessons/${lesson.id}`}
+    >
+      <div className="group flex items-center gap-4 rounded-2xl border border-neutral-200 bg-white p-4 shadow-sm transition-all hover:border-primary-200 hover:shadow-md cursor-pointer">
+        <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg bg-neutral-50 text-neutral-600 group-hover:bg-primary-50 group-hover:text-primary-600 transition-colors">
+          {isCompleted ? (
+            <svg className="h-5 w-5 text-success-600" fill="currentColor" viewBox="0 0 20 20">
+              <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+            </svg>
+          ) : (
+            lessonTypeIcon(lesson.type)
+          )}
+        </div>
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="text-sm font-medium text-neutral-400">{index + 1}.</span>
+            <h3 className="font-medium text-neutral-900 group-hover:text-primary-600 transition-colors truncate">
+              {lesson.title}
+            </h3>
+            {lesson.isPreview && (
+              <Badge variant="info" size="sm">Preview</Badge>
+            )}
+            {isCompleted && (
+              <Badge variant="success" size="sm">✓ Completed</Badge>
+            )}
+          </div>
+          {lesson.description && (
+            <p className="mt-0.5 text-sm text-neutral-500 line-clamp-1">{lesson.description}</p>
+          )}
+        </div>
+        <div className="flex items-center gap-3 text-sm text-neutral-500 flex-shrink-0">
+          {lesson.type && (
+            <Badge variant="default" size="sm">{lesson.type}</Badge>
+          )}
+          {lesson.duration != null && (
+            <span className="whitespace-nowrap">{lesson.duration}m</span>
+          )}
+          {!isCompleted && (
+            <Button
+              size="sm"
+              variant="primary"
+              disabled={isMarking || recordProgress.isPending}
+              onClick={handleMarkViewed}
+              title="Mark this lesson as viewed"
+            >
+              {isMarking || recordProgress.isPending ? 'Saving...' : 'Mark Viewed'}
+            </Button>
+          )}
+          {isCompleted && (
+            <svg 
+              className="h-5 w-5 text-success-500 flex-shrink-0" 
+              fill="currentColor" 
+              viewBox="0 0 20 20"
+              aria-label="Lesson completed"
+            >
+              <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+            </svg>
+          )}
+        </div>
+      </div>
+    </Link>
+  );
+}
+
 export default function StudentModuleLessonsPage() {
   const params = useParams();
   const courseId = typeof params.courseId === 'string' ? params.courseId : null;
@@ -68,9 +184,17 @@ export default function StudentModuleLessonsPage() {
   const { data: user, isLoading: userLoading } = useCurrentUser();
 
   const [data, setData] = useState<ModuleLessonsResponse | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [lessonError, setLessonError] = useState<string | null>(null);
   const [organizationId, setOrganizationId] = useState<string | null>(null);
+  const [markingLessonId, setMarkingLessonId] = useState<string | null>(null);
+  const [markingError, setMarkingError] = useState<string | null>(null);
+
+  // Use progress hook to get lesson completion status
+  const { 
+    data: progress, 
+    isLoading: progressLoading, 
+    error: progressError 
+  } = useProgress(organizationId ?? '', courseId ?? '');
 
   // Check auth and set organizationId
   useEffect(() => {
@@ -111,22 +235,39 @@ export default function StudentModuleLessonsPage() {
           code = null;
         }
         if (code === 'STUDENT_NOT_ENROLLED') {
-          setError('You are not enrolled in this course.');
+          setLessonError('You are not enrolled in this course.');
         } else if (code === 'MODULE_NOT_FOUND') {
-          setError('Module not found.');
+          setLessonError('Module not found.');
         } else {
-          setError('Could not load lessons. Please try again.');
+          setLessonError('Could not load lessons. Please try again.');
         }
         return;
       }
       const body = await res.json();
       setData(body.data ?? null);
     } catch {
-      setError('Could not reach the server. Please try again.');
+      setLessonError('Could not reach the server. Please try again.');
     }
   }
 
-  if (loading) {
+  // Helper to find module progress data
+  const currentModule = progress?.modules.find(m => m.id === moduleId);
+
+  // Create a map of lesson IDs to completion status
+  const getLessonProgress = () => {
+    // If progress hasn't loaded yet, we can't determine completion status
+    // The backend doesn't provide individual lesson completion status in the module listing API,
+    // so we rely on the progress query which includes all completed lessons
+    if (!progress) return new Map();
+    
+    // For now, we'll show Mark Viewed for all lessons since individual status isn't in the data
+    // This will be populated when we integrate with the progress API more deeply
+    return new Map();
+  };
+
+  const isLoading = userLoading || progressLoading;
+
+  if (isLoading) {
     return (
       <div className="mx-auto flex max-w-5xl items-center gap-3 text-neutral-700">
         <Spinner size="lg" label="Loading lessons..." />
@@ -157,11 +298,11 @@ export default function StudentModuleLessonsPage() {
           }
         />
 
-        {error ? (
+        {lessonError ? (
           <div className="rounded-2xl border border-neutral-200 bg-white shadow-sm">
             <ErrorState
               title="Unable to load lessons"
-              message={error}
+              message={lessonError}
               action={organizationId && courseId && moduleId ? { label: 'Retry', onClick: () => loadLessons(organizationId, courseId!, moduleId!) } : undefined}
             />
           </div>
@@ -169,6 +310,11 @@ export default function StudentModuleLessonsPage() {
           <>
             <div className="mb-6 rounded-2xl border border-neutral-200 bg-white p-6 shadow-sm">
               <h1 className="text-2xl font-bold text-neutral-900">{data.moduleTitle}</h1>
+              {currentModule && (
+                <p className="mt-1 text-sm text-neutral-500">
+                  {currentModule.completedLessons} of {currentModule.lessonCount} lessons completed ({currentModule.percentage}%)
+                </p>
+              )}
               <p className="mt-1 text-sm text-neutral-500">
                 {data.lessons.length} lesson{data.lessons.length !== 1 ? 's' : ''} in this module
               </p>
@@ -185,42 +331,31 @@ export default function StudentModuleLessonsPage() {
             ) : (
               <div className="space-y-2">
                 {data.lessons.map((lesson, index) => (
-                  <Link
+                  <LessonRow
                     key={lesson.id}
-                    href={`/dashboard/student/courses/${courseId}/modules/${moduleId}/lessons/${lesson.id}`}
-                  >
-                    <div className="group flex items-center gap-4 rounded-2xl border border-neutral-200 bg-white p-4 shadow-sm transition-all hover:border-primary-200 hover:shadow-md cursor-pointer">
-                      <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg bg-neutral-50 text-neutral-600 group-hover:bg-primary-50 group-hover:text-primary-600 transition-colors">
-                        {lessonTypeIcon(lesson.type)}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2">
-                          <span className="text-sm font-medium text-neutral-400">{index + 1}.</span>
-                          <h3 className="font-medium text-neutral-900 group-hover:text-primary-600 transition-colors truncate">
-                            {lesson.title}
-                          </h3>
-                          {lesson.isPreview && (
-                            <Badge variant="info" size="sm">Preview</Badge>
-                          )}
-                        </div>
-                        {lesson.description && (
-                          <p className="mt-0.5 text-sm text-neutral-500 line-clamp-1">{lesson.description}</p>
-                        )}
-                      </div>
-                      <div className="flex items-center gap-3 text-sm text-neutral-500 flex-shrink-0">
-                        {lesson.type && (
-                          <Badge variant="default" size="sm">{lesson.type}</Badge>
-                        )}
-                        {lesson.duration != null && (
-                          <span>{lesson.duration}m</span>
-                        )}
-                        <svg className="h-5 w-5 text-neutral-400 group-hover:text-primary-500 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                        </svg>
-                      </div>
-                    </div>
-                  </Link>
+                    lesson={lesson}
+                    index={index}
+                    courseId={courseId!}
+                    moduleId={moduleId!}
+                    organizationId={organizationId!}
+                    isCompleted={false}
+                    onMarkingChange={setMarkingLessonId}
+                    markingLessonId={markingLessonId}
+                    onError={setMarkingError}
+                  />
                 ))}
+              </div>
+            )}
+
+            {markingError && (
+              <div className="mt-4 rounded-lg border border-error-200 bg-error-50 p-3">
+                <p className="text-sm text-error-700">{markingError}</p>
+                <button
+                  onClick={() => setMarkingError(null)}
+                  className="mt-2 text-sm text-error-600 hover:text-error-700"
+                >
+                  Dismiss
+                </button>
               </div>
             )}
           </>
