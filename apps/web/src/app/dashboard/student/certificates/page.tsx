@@ -43,7 +43,6 @@ export default function StudentCertificatesPage() {
   const [certificates, setCertificates] = useState<Certificate[] | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [organizationId, setOrganizationId] = useState<string | null>(null);
 
   async function loadCertificates(orgId: string) {
     try {
@@ -62,7 +61,7 @@ export default function StudentCertificatesPage() {
     }
   }
 
-  // Check auth and set organizationId
+  // Check auth and load certificates
   useEffect(() => {
     if (userLoading) return;
     
@@ -76,27 +75,17 @@ export default function StudentCertificatesPage() {
       return;
     }
     
-    const orgId = user.organizationId ?? null;
+    const orgId = user.organizationId;
     if (!orgId) {
       window.location.href = '/login';
       return;
     }
     
-    setOrganizationId(orgId);
-    loadCertificates(orgId);
-  }, [user, userLoading]);
-
-  // Load certificates data
-  useEffect(() => {
-    if (!organizationId) {
-      setLoading(false);
-      return;
-    }
     let active = true;
 
     async function load() {
       try {
-        await loadCertificates(organizationId ?? '');
+        await loadCertificates(orgId as string);
       } finally {
         if (active) setLoading(false);
       }
@@ -106,7 +95,7 @@ export default function StudentCertificatesPage() {
     return () => {
       active = false;
     };
-  }, [organizationId]);
+  }, [user, userLoading]);
 
   if (loading) {
     return (
@@ -125,7 +114,14 @@ export default function StudentCertificatesPage() {
             <ErrorState
               title="Unable to load certificates"
               message={error}
-              action={organizationId ? { label: 'Retry', onClick: () => loadCertificates(organizationId!) } : undefined}
+              action={{ label: 'Retry', onClick: () => {
+                setError(null);
+                setCertificates(null);
+                setLoading(true);
+                if (user?.organizationId) {
+                  loadCertificates(user.organizationId);
+                }
+              }}}
             />
           </div>
         ) : certificates && certificates.length === 0 ? (

@@ -241,30 +241,40 @@ export default function StudentCourseProgressPage() {
               )}
 
               {progress.courseComplete && (
-                <div className="mt-5 flex flex-wrap items-center gap-3">
-                  <Button
-                    size="md"
-                    variant="primary"
-                    disabled={generateCertificateMutation.isPending}
-                    onClick={handleGenerateCertificate}
-                    className="bg-success-600 hover:bg-success-700"
-                  >
-                    {generateCertificateMutation.isPending ? 'Generating...' : 'Generate Certificate'}
-                  </Button>
-                  <Link
-                    href="/dashboard/student/certificates"
-                    className="inline-flex items-center gap-2 rounded-lg border-2 border-primary-600 px-4 py-2 text-sm font-medium text-primary-600 transition-colors hover:bg-primary-50"
-                  >
-                    View Certificates
-                  </Link>
+                <div className="mt-5">
+                  <div className="flex flex-wrap items-center gap-3">
+                    <Button
+                      size="md"
+                      variant="primary"
+                      disabled={generateCertificateMutation.isPending}
+                      onClick={handleGenerateCertificate}
+                      className="bg-success-600 hover:bg-success-700"
+                    >
+                      {generateCertificateMutation.isPending ? 'Generating...' : 'Generate Certificate'}
+                    </Button>
+                    <Link
+                      href="/dashboard/student/certificates"
+                      className="inline-flex items-center gap-2 rounded-lg border-2 border-primary-600 px-4 py-2 text-sm font-medium text-primary-600 transition-colors hover:bg-primary-50"
+                    >
+                      View Certificates
+                    </Link>
+                  </div>
+                  {generateCertificateMutation.error && (
+                    <div className="mt-3 rounded-lg border border-error-200 bg-error-50 p-3">
+                      <p className="text-sm text-error-700">
+                        {generateCertificateMutation.error instanceof Error 
+                          ? generateCertificateMutation.error.message 
+                          : 'Failed to generate certificate'}
+                      </p>
+                      <button
+                        onClick={() => generateCertificateMutation.reset()}
+                        className="mt-2 text-sm text-error-600 hover:text-error-700"
+                      >
+                        Dismiss
+                      </button>
+                    </div>
+                  )}
                 </div>
-              )}
-              {generateCertificateMutation.error && (
-                <p className="mt-2 text-sm text-error-600">
-                  {generateCertificateMutation.error instanceof Error 
-                    ? generateCertificateMutation.error.message 
-                    : 'Failed to generate certificate'}
-                </p>
               )}
             </div>
 
