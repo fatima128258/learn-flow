@@ -236,6 +236,7 @@ export default function OrgUsersPage() {
     <>
       <div className="mx-auto max-w-5xl">
         <PageHeader
+          title="Users"
           actions={null}
         />
 

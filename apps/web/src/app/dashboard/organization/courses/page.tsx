@@ -301,6 +301,7 @@ export default function MyCoursesPage() {
       <div>
         <div className="mx-auto max-w-5xl">
           <PageHeader
+            title="Courses"
             actions={
               <LinkButton
                 href={`/dashboard/organization/courses/new${organizationId ? `?organization=${organizationId}` : ''}`}

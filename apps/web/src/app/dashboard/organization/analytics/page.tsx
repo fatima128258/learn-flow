@@ -144,6 +144,7 @@ export default function OrgAnalyticsPage() {
   return (
     <div className="mx-auto max-w-5xl">
       <PageHeader
+        title="Analytics"
         badges={
           summary
             ? [
