@@ -107,8 +107,8 @@ export async function getDashboardCounts() {
     prisma().organization.count({ where: customerOrganizationWhere }),
     prisma().organization.count({ where: { ...customerOrganizationWhere, status: 'ACTIVE' } }),
     prisma().organization.count({ where: { ...customerOrganizationWhere, status: 'SUSPENDED' } }),
-    prisma().user.count(),
-    prisma().userOrganization.count({ where: { role: 'ORG_ADMIN' } }),
+    prisma().userOrganization.count({ where: { organization: { slug: { not: SYSTEM_ORGANIZATION_SLUG } } } }),
+    prisma().userOrganization.count({ where: { role: 'ORG_ADMIN', organization: { slug: { not: SYSTEM_ORGANIZATION_SLUG } } } }),
   ]);
 
   return {
