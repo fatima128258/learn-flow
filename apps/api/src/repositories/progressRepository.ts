@@ -128,14 +128,25 @@ export async function getCourseProgressWithLesson(userId: string, courseId: stri
 }
 
 export async function listAttemptsForCourse(userId: string, courseId: string) {
+  // Optimize: Get all quiz IDs for this course first, then query attempts
+  // This avoids nested relation traversal and uses proper indexes
+  const quizzes = await prisma().quiz.findMany({
+    where: {
+      module: { courseId },
+    },
+    select: { id: true },
+  });
+
+  if (quizzes.length === 0) {
+    return [];
+  }
+
+  const quizIds = quizzes.map(q => q.id);
+
   return prisma().quizAttempt.findMany({
     where: {
       userId,
-      quiz: {
-        module: {
-          courseId,
-        },
-      },
+      quizId: { in: quizIds },
     },
     select: {
       id: true,
