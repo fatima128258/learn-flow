@@ -2,10 +2,11 @@ import { NextRequest, NextResponse } from 'next/server';
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { path?: string[] } }
+  { params }: { params: Promise<{ path?: string[] }> }
 ) {
   try {
     const backendUrl = process.env.BACKEND_URL;
+    const { path: pathArray = [] } = await params;
     
     if (!backendUrl) {
       return NextResponse.json(
@@ -14,7 +15,7 @@ export async function GET(
       );
     }
 
-    const path = params.path ? params.path.join('/') : '';
+    const path = pathArray.join('/');
     const url = new URL(request.url);
     const queryString = url.searchParams.toString();
     const forwardUrl = `${backendUrl}/api/v1/org/${path}${queryString ? '?' + queryString : ''}`;
@@ -48,10 +49,11 @@ export async function GET(
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: { path?: string[] } }
+  { params }: { params: Promise<{ path?: string[] }> }
 ) {
   try {
     const backendUrl = process.env.BACKEND_URL;
+    const { path: pathArray = [] } = await params;
     
     if (!backendUrl) {
       return NextResponse.json(
@@ -60,7 +62,7 @@ export async function POST(
       );
     }
 
-    const path = params.path ? params.path.join('/') : '';
+    const path = pathArray.join('/');
     const url = new URL(request.url);
     const queryString = url.searchParams.toString();
     const forwardUrl = `${backendUrl}/api/v1/org/${path}${queryString ? '?' + queryString : ''}`;
@@ -97,10 +99,11 @@ export async function POST(
 
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { path?: string[] } }
+  { params }: { params: Promise<{ path?: string[] }> }
 ) {
   try {
     const backendUrl = process.env.BACKEND_URL;
+    const { path: pathArray = [] } = await params;
     
     if (!backendUrl) {
       return NextResponse.json(
@@ -109,7 +112,7 @@ export async function PATCH(
       );
     }
 
-    const path = params.path ? params.path.join('/') : '';
+    const path = pathArray.join('/');
     const url = new URL(request.url);
     const queryString = url.searchParams.toString();
     const forwardUrl = `${backendUrl}/api/v1/org/${path}${queryString ? '?' + queryString : ''}`;
@@ -146,10 +149,11 @@ export async function PATCH(
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { path?: string[] } }
+  { params }: { params: Promise<{ path?: string[] }> }
 ) {
   try {
     const backendUrl = process.env.BACKEND_URL;
+    const { path: pathArray = [] } = await params;
     
     if (!backendUrl) {
       return NextResponse.json(
@@ -158,7 +162,7 @@ export async function DELETE(
       );
     }
 
-    const path = params.path ? params.path.join('/') : '';
+    const path = pathArray.join('/');
     const url = new URL(request.url);
     const queryString = url.searchParams.toString();
     const forwardUrl = `${backendUrl}/api/v1/org/${path}${queryString ? '?' + queryString : ''}`;
