@@ -146,6 +146,10 @@ export default function StudentCourseProgressPage() {
         window.location.href = '/dashboard/student/certificates';
       }
     } catch (error) {
+      // If certificate already exists, redirect to certificates page
+      if (error instanceof Error && error.message === 'CERTIFICATE_EXISTS') {
+        window.location.href = '/dashboard/student/certificates';
+      }
       // Error is handled by mutation error state
       console.error('Certificate generation error:', error);
     }

@@ -399,7 +399,14 @@ export default function StudentModuleLessonsPage() {
                     onClick={async () => {
                       try {
                         await generateCertificate.mutateAsync();
+                        // Success - redirect to certificate
+                        window.location.href = '/dashboard/student/certificates';
                       } catch (error) {
+                        // If certificate already exists, redirect to certificates page
+                        if (error instanceof Error && error.message === 'CERTIFICATE_EXISTS') {
+                          window.location.href = '/dashboard/student/certificates';
+                          return;
+                        }
                         const errorMessage = error instanceof Error 
                           ? error.message 
                           : 'Failed to generate certificate. Please try again.';
