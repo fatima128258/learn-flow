@@ -58,11 +58,11 @@ function listWhere(options: ListAuditLogsOptions): Prisma.AuditLogWhereInput {
   }
   if (options.search) {
     where.OR = [
-      { action: { contains: options.search, mode: 'insensitive' } },
-      { actorName: { contains: options.search, mode: 'insensitive' } },
-      { actorEmail: { contains: options.search, mode: 'insensitive' } },
-      { actorRole: { contains: options.search, mode: 'insensitive' } },
-      { actorUserId: { contains: options.search, mode: 'insensitive' } },
+      { action: { equals: options.search, mode: 'insensitive' } },
+      { actorName: { equals: options.search, mode: 'insensitive' } },
+      { actorEmail: { equals: options.search, mode: 'insensitive' } },
+      { actorRole: { equals: options.search, mode: 'insensitive' } },
+      { actorUserId: { equals: options.search, mode: 'insensitive' } },
     ];
   }
   if (options.from || options.to) {

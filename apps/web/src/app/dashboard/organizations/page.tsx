@@ -700,11 +700,11 @@ export default function OrganizationsPage() {
   const filteredOrganizations = organizations
     ? organizations.filter((org) => {
         if (!normalizedSearch) return true;
-        const adminMatch = org.admins?.some((admin) => admin.email.toLowerCase().includes(normalizedSearch)) ?? false;
+        const adminMatch = org.admins?.some((admin) => admin.email.toLowerCase() === normalizedSearch) ?? false;
         return (
-          org.name.toLowerCase().includes(normalizedSearch) ||
-          org.slug.toLowerCase().includes(normalizedSearch) ||
-          org.status.toLowerCase().includes(normalizedSearch) ||
+          org.name.toLowerCase() === normalizedSearch ||
+          org.slug.toLowerCase() === normalizedSearch ||
+          org.status.toLowerCase() === normalizedSearch ||
           adminMatch
         );
       })
@@ -809,7 +809,7 @@ export default function OrganizationsPage() {
                         <td className={`${tableCellClass} text-neutral-700`}>
                           {new Date(org.createdAt).toLocaleDateString()}
                         </td>
-                        <td className={`${tableCellClass} text-right`}>
+                        <td className={`${tableCellClass} flex justify-center`}>
                           <OrgActionsMenu
                             org={org}
                             onMembers={() => openMembersModal(org)}

@@ -137,9 +137,9 @@ export default function OrgUsersPage() {
       setFilteredMembers(members);
     } else {
       const filtered = members.filter((member) =>
-        member.name?.toLowerCase().includes(query) ||
-        member.email?.toLowerCase().includes(query) ||
-        member.role?.toLowerCase().includes(query)
+        member.name?.toLowerCase() === query ||
+        member.email?.toLowerCase() === query ||
+        member.role?.toLowerCase() === query
       );
       setFilteredMembers(filtered);
     }
