@@ -99,9 +99,12 @@ export default function StudentCertificatesPage() {
 
   if (loading) {
     return (
-      <div className="mx-auto flex max-w-5xl items-center gap-3 text-neutral-700">
-        <Spinner size="lg" label="Loading certificates..." />
-        <span>Loading certificates...</span>
+      <div className="mx-auto max-w-6xl">
+        <PageHeader title="Certificates" />
+        <div className="flex items-center gap-3 rounded-2xl border border-neutral-200 bg-white p-8 shadow-sm">
+          <Spinner size="lg" label="Loading certificates..." />
+          <span className="text-neutral-700">Loading certificates...</span>
+        </div>
       </div>
     );
   }

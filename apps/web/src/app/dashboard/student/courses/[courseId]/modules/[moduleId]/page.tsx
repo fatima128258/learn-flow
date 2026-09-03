@@ -193,6 +193,7 @@ export default function StudentModuleLessonsPage() {
   const [markingLessonId, setMarkingLessonId] = useState<string | null>(null);
   const [markingError, setMarkingError] = useState<string | null>(null);
   const [completedLessonIds, setCompletedLessonIds] = useState<Set<string>>(new Set());
+  const [lessonsLoading, setLessonsLoading] = useState(false);
 
   // Use progress hook to get lesson completion status
   const { 
@@ -229,6 +230,7 @@ export default function StudentModuleLessonsPage() {
   }, [user, userLoading, courseId, moduleId]);
 
   async function loadLessons(orgId: string, cid: string, mid: string) {
+    setLessonsLoading(true);
     try {
       const apiBase = '';
       const res = await fetch(
@@ -255,6 +257,8 @@ export default function StudentModuleLessonsPage() {
       setData(body.data ?? null);
     } catch {
       setLessonError('Could not reach the server. Please try again.');
+    } finally {
+      setLessonsLoading(false);
     }
   }
 
@@ -280,7 +284,29 @@ export default function StudentModuleLessonsPage() {
     return false; // Will be updated when progress query refetches
   };
 
-  const isLoading = userLoading || progressLoading;
+  const isLoading = userLoading || lessonsLoading;
+
+  if (isLoading) {
+    return (
+      <div className="mx-auto max-w-6xl">
+        <PageHeader
+          subtitle="Student"
+          title="Module Lessons"
+          breadcrumbs={
+            <div className="flex items-center gap-2 text-sm">
+              <Link href="/dashboard/student" className="text-primary-600 hover:text-primary-700">My Courses</Link>
+              <span className="text-neutral-400">/</span>
+              <span className="text-neutral-600">Module</span>
+            </div>
+          }
+        />
+        <div className="flex items-center gap-3 rounded-2xl border border-neutral-200 bg-white p-8 shadow-sm">
+          <Spinner size="lg" label="Loading lessons..." />
+          <span className="text-neutral-700">Loading lessons...</span>
+        </div>
+      </div>
+    );
+  }
 
   if (isLoading) {
     return (

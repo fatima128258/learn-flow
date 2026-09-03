@@ -297,6 +297,7 @@ model Notification {
   @@index([userId, readAt])
   @@index([organizationId])
   @@index([type])
+  @@index([userId, organizationId, readAt])
 }
 
 model Order {

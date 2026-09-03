@@ -140,17 +140,21 @@ export default function StudentCourseProgressPage() {
     
     try {
       const result = await generateCertificateMutation.mutateAsync();
+      // Always redirect to the certificate detail page
+      // The result should always have certificateId if generation succeeds
       if (result?.certificateId) {
         window.location.href = `/dashboard/student/certificates/${result.certificateId}`;
       } else {
+        // Fallback: redirect to list and let user find their certificate
         window.location.href = '/dashboard/student/certificates';
       }
     } catch (error) {
-      // If certificate already exists, redirect to certificates page
+      // If certificate already exists, redirect to certificates list where they can see it
       if (error instanceof Error && error.message === 'CERTIFICATE_EXISTS') {
         window.location.href = '/dashboard/student/certificates';
+        return;
       }
-      // Error is handled by mutation error state
+      // Other errors are handled by mutation error state
       console.error('Certificate generation error:', error);
     }
   }

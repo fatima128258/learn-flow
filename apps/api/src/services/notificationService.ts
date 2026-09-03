@@ -72,8 +72,13 @@ export async function markNotificationAsRead(
   if (result.count === 0) {
     throw new Error('NOTIFICATION_NOT_FOUND');
   }
-  const notification = await notificationRepo.findByUserAndId(userId, organizationId, notificationId);
-  return toNotificationDto(notification!);
+  // Skip fetching notification after update - frontend already has the data
+  // and performs optimistic update. Return minimal DTO to confirm success.
+  return {
+    id: notificationId,
+    read: true,
+    readAt: new Date(),
+  };
 }
 
 export async function markAllNotificationsAsRead(organizationId: string, userId: string) {

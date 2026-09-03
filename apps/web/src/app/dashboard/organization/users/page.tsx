@@ -269,7 +269,7 @@ export default function OrgUsersPage() {
           </div>
         ) : (
           <>
-            <div className="mb-8">
+            <div className="mb-8 grid grid-cols-4 gap-4">
               <StatCard
                 label="Total members"
                 value={total ?? memberCount}
