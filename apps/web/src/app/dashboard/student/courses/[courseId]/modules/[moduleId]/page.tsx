@@ -343,6 +343,13 @@ export default function StudentModuleLessonsPage() {
               <span className="text-neutral-600">{data?.moduleTitle ?? 'Module'}</span>
             </div>
           }
+          actions={
+            isCourseComplete ? (
+              <Badge variant="success" size="sm">Course 100% Complete</Badge>
+            ) : progress ? (
+              <Badge variant="default" size="sm">{progress.coursePercentage}% Complete</Badge>
+            ) : undefined
+          }
         />
 
         {lessonError ? (
