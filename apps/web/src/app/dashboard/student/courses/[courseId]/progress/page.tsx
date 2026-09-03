@@ -5,7 +5,6 @@ import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import {
   Badge,
-  Button,
   EmptyState,
   EmptyStateIcons,
   ErrorState,
@@ -13,7 +12,7 @@ import {
 } from '@/components/ui';
 import { PageHeader } from '@/components/dashboard';
 import { useCurrentUser } from '@/features/auth/useCurrentUser';
-import { useProgress, useGenerateCertificate, useRecordProgress } from '@/features/student/useProgress';
+import { useProgress } from '@/features/student/useProgress';
 
 type ProgressModule = {
   id: string;
@@ -63,54 +62,20 @@ function ProgressBar({ percentage, color = 'bg-primary-600' }: { percentage: num
   );
 }
 
-function lessonTypeIcon(type: string | null) {
-  switch (type?.toLowerCase()) {
-    case 'video':
-      return (
-        <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-        </svg>
-      );
-    case 'article':
-      return (
-        <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-        </svg>
-      );
-    case 'pdf':
-      return (
-        <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
-        </svg>
-      );
-    default:
-      return (
-        <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
-        </svg>
-      );
-  }
-}
-
 export default function StudentCourseProgressPage() {
   const params = useParams();
   const courseId = typeof params.courseId === 'string' ? params.courseId : null;
   const { data: user, isLoading: userLoading } = useCurrentUser();
 
   const [organizationId, setOrganizationId] = useState<string | null>(null);
-  const [markingLessonId, setMarkingLessonId] = useState<string | null>(null);
   const [markingError, setMarkingError] = useState<string | null>(null);
-  const [completedLessonIds, setCompletedLessonIds] = useState<Set<string>>(new Set());
 
-  // Use React Query hooks for progress and certificate generation
+  // Use React Query hooks for progress
   const { 
     data: progress, 
     isLoading: progressLoading, 
     error: progressError 
   } = useProgress(organizationId ?? '', courseId ?? '');
-
-  const generateCertificateMutation = useGenerateCertificate(organizationId ?? '', courseId ?? '');
 
   // Check auth and set organizationId
   useEffect(() => {
@@ -135,32 +100,8 @@ export default function StudentCourseProgressPage() {
     setOrganizationId(orgId);
   }, [user, userLoading]);
 
-  async function handleGenerateCertificate() {
-    if (!organizationId || !courseId) return;
-    
-    try {
-      const result = await generateCertificateMutation.mutateAsync();
-      // Always redirect to the certificate detail page
-      // The result should always have certificateId if generation succeeds
-      if (result?.certificateId) {
-        window.location.href = `/dashboard/student/certificates/${result.certificateId}`;
-      } else {
-        // Fallback: redirect to list and let user find their certificate
-        window.location.href = '/dashboard/student/certificates';
-      }
-    } catch (error) {
-      // If certificate already exists, redirect to certificates list where they can see it
-      if (error instanceof Error && error.message === 'CERTIFICATE_EXISTS') {
-        window.location.href = '/dashboard/student/certificates';
-        return;
-      }
-      // Other errors are handled by mutation error state
-      console.error('Certificate generation error:', error);
-    }
-  }
-
   const isLoading = userLoading || progressLoading;
-  const error = progressError?.message || (generateCertificateMutation.error instanceof Error ? generateCertificateMutation.error.message : null);
+  const error = progressError?.message;
 
   if (isLoading) {
     return (
@@ -208,7 +149,6 @@ export default function StudentCourseProgressPage() {
                   ? {
                       label: 'Retry',
                       onClick: () => {
-                        // Manually trigger a refetch by updating state
                         setOrganizationId(null);
                         setTimeout(() => setOrganizationId(organizationId), 0);
                       },
@@ -249,39 +189,11 @@ export default function StudentCourseProgressPage() {
               )}
 
               {progress.courseComplete && (
-                <div className="mt-5">
-                  <div className="flex flex-wrap items-center gap-3">
-                    <Button
-                      size="md"
-                      variant="primary"
-                      disabled={generateCertificateMutation.isPending}
-                      onClick={handleGenerateCertificate}
-                      className="bg-success-600 hover:bg-success-700"
-                    >
-                      {generateCertificateMutation.isPending ? 'Generating...' : 'Generate Certificate'}
-                    </Button>
-                    <Link
-                      href="/dashboard/student/certificates"
-                      className="inline-flex items-center gap-2 rounded-lg border-2 border-primary-600 px-4 py-2 text-sm font-medium text-primary-600 transition-colors hover:bg-primary-50"
-                    >
-                      View Certificates
-                    </Link>
-                  </div>
-                  {generateCertificateMutation.error && (
-                    <div className="mt-3 rounded-lg border border-error-200 bg-error-50 p-3">
-                      <p className="text-sm text-error-700">
-                        {generateCertificateMutation.error instanceof Error 
-                          ? generateCertificateMutation.error.message 
-                          : 'Failed to generate certificate'}
-                      </p>
-                      <button
-                        onClick={() => generateCertificateMutation.reset()}
-                        className="mt-2 text-sm text-error-600 hover:text-error-700"
-                      >
-                        Dismiss
-                      </button>
-                    </div>
-                  )}
+                <div className="mt-6 rounded-lg border-2 border-success-200 bg-success-50 p-4">
+                  <h3 className="text-lg font-semibold text-success-900">🎉 Congratulations!</h3>
+                  <p className="mt-1 text-sm text-success-700">
+                    You have successfully completed all lessons in this course.
+                  </p>
                 </div>
               )}
             </div>
