@@ -7,7 +7,7 @@ export interface SubmitButtonProps extends Omit<ButtonProps, 'type'> {
 }
 
 export const SubmitButton = React.forwardRef<HTMLButtonElement, SubmitButtonProps>(
-  ({ loading, loadingText, children, disabled, variant = 'secondary', ...rest }, ref) => {
+  ({ loading, loadingText, children, disabled, variant = 'primary', ...rest }, ref) => {
     return (
       <Button
         ref={ref}
