@@ -48,7 +48,7 @@ export default function StudentCertificatesPage() {
 
   async function loadCertificates(orgId: string) {
     try {
-      const apiBase = process.env.NEXT_PUBLIC_API_URL || '';
+      const apiBase = process.env.NEXT_PUBLIC_BACKEND_URL || '';
       const res = await fetch(`${apiBase}/api/v1/organizations/${orgId}/student/certificates`, {
         credentials: 'include',
       });

@@ -357,7 +357,7 @@ export default function OrganizationsPage() {
     setError(null);
     setLoading(true);
     try {
-      const apiBase = process.env.NEXT_PUBLIC_API_URL || '';
+      const apiBase = process.env.NEXT_PUBLIC_BACKEND_URL || '';
       const res = await fetch(`${apiBase}/api/v1/organizations`, { credentials: 'include' });
       if (!res.ok) {
         setError(`Failed to load organizations (HTTP ${res.status})`);
@@ -421,7 +421,7 @@ export default function OrganizationsPage() {
 
     (async () => {
       try {
-        const apiBase = process.env.NEXT_PUBLIC_API_URL || '';
+        const apiBase = process.env.NEXT_PUBLIC_BACKEND_URL || '';
         const res = await fetch(`${apiBase}/api/v1/organizations/${org.id}/members`, {
           credentials: 'include',
         });
@@ -510,7 +510,7 @@ export default function OrganizationsPage() {
 
     setAssigning(true);
     try {
-      const apiBase = process.env.NEXT_PUBLIC_API_URL || '';
+      const apiBase = process.env.NEXT_PUBLIC_BACKEND_URL || '';
       const body =
         assignMode === 'new'
           ? { name: adminName.trim() || undefined, email: trimmedEmail, password: adminPassword }
@@ -560,7 +560,7 @@ export default function OrganizationsPage() {
 
     setStatusUpdating(true);
     try {
-      const apiBase = process.env.NEXT_PUBLIC_API_URL || '';
+      const apiBase = process.env.NEXT_PUBLIC_BACKEND_URL || '';
       const res = await fetch(`${apiBase}/api/v1/organizations/${org.id}/status`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
@@ -610,7 +610,7 @@ export default function OrganizationsPage() {
 
     setCreating(true);
     try {
-      const apiBase = process.env.NEXT_PUBLIC_API_URL || '';
+      const apiBase = process.env.NEXT_PUBLIC_BACKEND_URL || '';
       const res = await fetch(`${apiBase}/api/v1/organizations`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -656,7 +656,7 @@ export default function OrganizationsPage() {
 
     setSaving(true);
     try {
-      const apiBase = process.env.NEXT_PUBLIC_API_URL || '';
+      const apiBase = process.env.NEXT_PUBLIC_BACKEND_URL || '';
       const res = await fetch(`${apiBase}/api/v1/organizations/${editingOrg.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },

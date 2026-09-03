@@ -13,7 +13,7 @@ export interface AuthSwitchProps {
   initialMode?: AuthMode;
 }
 
-const apiBase = process.env.NEXT_PUBLIC_API_URL || '';
+const apiBase = process.env.NEXT_PUBLIC_BACKEND_URL || '';
 
 export const AuthSwitch: React.FC<AuthSwitchProps> = ({ initialMode = 'login' }) => {
   const [mode, setMode] = useState<AuthMode>(initialMode);

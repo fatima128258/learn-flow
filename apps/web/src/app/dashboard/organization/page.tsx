@@ -120,7 +120,7 @@ export default function OrganizationDashboardPage() {
     setError(null);
     setLoading(true);
     try {
-      const apiBase = process.env.NEXT_PUBLIC_API_URL || '';
+      const apiBase = process.env.NEXT_PUBLIC_BACKEND_URL || '';
 
       // Start all four requests in parallel
       const coursesPromise = effectiveOrgId
@@ -254,7 +254,7 @@ export default function OrganizationDashboardPage() {
 
     setCreatingInstructor(true);
     try {
-      const apiBase = process.env.NEXT_PUBLIC_API_URL || '';
+      const apiBase = process.env.NEXT_PUBLIC_BACKEND_URL || '';
       const res = await fetch(`${apiBase}/api/v1/org/instructors`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', ...orgHeaders },

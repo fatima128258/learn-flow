@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
@@ -131,7 +131,7 @@ export default function QuizQuestionsPage() {
     async function load() {
       setLoading(true);
       try {
-        const apiBase = process.env.NEXT_PUBLIC_API_URL || '';
+        const apiBase = process.env.NEXT_PUBLIC_BACKEND_URL || '';
         const res = await fetch(
           `${apiBase}/api/v1/organizations/${organizationId}/courses/${courseId}/modules/${moduleId}/quizzes/${quizId}/questions`,
           { credentials: 'include' }
@@ -167,7 +167,7 @@ export default function QuizQuestionsPage() {
     if (!organizationId || !courseId || !moduleId || !quizId) return;
     setLoading(true);
     try {
-      const apiBase = process.env.NEXT_PUBLIC_API_URL || '';
+      const apiBase = process.env.NEXT_PUBLIC_BACKEND_URL || '';
       const res = await fetch(
         `${apiBase}/api/v1/organizations/${organizationId}/courses/${courseId}/modules/${moduleId}/quizzes/${quizId}/questions`,
         { credentials: 'include' }
@@ -184,7 +184,7 @@ export default function QuizQuestionsPage() {
   async function reloadOptions(questionId: string) {
     if (!organizationId || !courseId || !moduleId || !quizId) return;
     try {
-      const apiBase = process.env.NEXT_PUBLIC_API_URL || '';
+      const apiBase = process.env.NEXT_PUBLIC_BACKEND_URL || '';
       const res = await fetch(
         `${apiBase}/api/v1/organizations/${organizationId}/courses/${courseId}/modules/${moduleId}/quizzes/${quizId}/questions/${questionId}/options`,
         { credentials: 'include' }
@@ -298,7 +298,7 @@ export default function QuizQuestionsPage() {
 
     setCreating(true);
     try {
-      const apiBase = process.env.NEXT_PUBLIC_API_URL || '';
+      const apiBase = process.env.NEXT_PUBLIC_BACKEND_URL || '';
       const body: Record<string, unknown> = {
         questionText: questionText.trim(),
         order: parseInt(order, 10),
@@ -344,7 +344,7 @@ export default function QuizQuestionsPage() {
     if (!organizationId || !courseId || !moduleId || !quizId) return;
 
     try {
-      const apiBase = process.env.NEXT_PUBLIC_API_URL || '';
+      const apiBase = process.env.NEXT_PUBLIC_BACKEND_URL || '';
       const res = await fetch(
         `${apiBase}/api/v1/organizations/${organizationId}/courses/${courseId}/modules/${moduleId}/quizzes/${quizId}/questions/${question.id}`,
         { credentials: 'include' }
@@ -383,7 +383,7 @@ export default function QuizQuestionsPage() {
 
     setUpdating(true);
     try {
-      const apiBase = process.env.NEXT_PUBLIC_API_URL || '';
+      const apiBase = process.env.NEXT_PUBLIC_BACKEND_URL || '';
       const body: Record<string, unknown> = {
         questionText: questionText.trim(),
         order: parseInt(order, 10),
@@ -430,7 +430,7 @@ export default function QuizQuestionsPage() {
     if (!organizationId || !courseId || !moduleId || !quizId) return;
 
     try {
-      const apiBase = process.env.NEXT_PUBLIC_API_URL || '';
+      const apiBase = process.env.NEXT_PUBLIC_BACKEND_URL || '';
       const res = await fetch(
         `${apiBase}/api/v1/organizations/${organizationId}/courses/${courseId}/modules/${moduleId}/quizzes/${quizId}/questions/${questionId}`,
         { method: 'DELETE', credentials: 'include' }
@@ -469,7 +469,7 @@ export default function QuizQuestionsPage() {
 
     setLoadingOptions(questionId);
     try {
-      const apiBase = process.env.NEXT_PUBLIC_API_URL || '';
+      const apiBase = process.env.NEXT_PUBLIC_BACKEND_URL || '';
       const res = await fetch(
         `${apiBase}/api/v1/organizations/${organizationId}/courses/${courseId}/modules/${moduleId}/quizzes/${quizId}/questions/${questionId}/options`,
         { credentials: 'include' }
@@ -509,7 +509,7 @@ export default function QuizQuestionsPage() {
 
     setCreatingOption(true);
     try {
-      const apiBase = process.env.NEXT_PUBLIC_API_URL || '';
+      const apiBase = process.env.NEXT_PUBLIC_BACKEND_URL || '';
       const body: Record<string, unknown> = {
         text: optionText.trim(),
         order: parseInt(optionOrder, 10),
@@ -570,7 +570,7 @@ export default function QuizQuestionsPage() {
 
     setUpdatingOption(true);
     try {
-      const apiBase = process.env.NEXT_PUBLIC_API_URL || '';
+      const apiBase = process.env.NEXT_PUBLIC_BACKEND_URL || '';
       const body: Record<string, unknown> = {
         text: optionText.trim(),
         order: parseInt(optionOrder, 10),
@@ -617,7 +617,7 @@ export default function QuizQuestionsPage() {
     if (!organizationId || !courseId || !moduleId || !quizId) return;
 
     try {
-      const apiBase = process.env.NEXT_PUBLIC_API_URL || '';
+      const apiBase = process.env.NEXT_PUBLIC_BACKEND_URL || '';
       const res = await fetch(
         `${apiBase}/api/v1/organizations/${organizationId}/courses/${courseId}/modules/${moduleId}/quizzes/${quizId}/questions/${questionId}/options/${optionId}`,
         { method: 'DELETE', credentials: 'include' }

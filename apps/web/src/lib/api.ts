@@ -2,8 +2,8 @@
 
 // Use relative same-origin API paths by default for browser-side requests
 // This routes through Vercel proxy (/api/v1/...) which forwards to Render backend
-// Only use NEXT_PUBLIC_API_URL if explicitly set (e.g., for local dev cross-origin)
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || '';
+// Only use NEXT_PUBLIC_BACKEND_URL if explicitly set (e.g., for local dev cross-origin)
+const API_BASE = process.env.NEXT_PUBLIC_BACKEND_URL || '';
 
 export class ApiError extends Error {
   status: number;

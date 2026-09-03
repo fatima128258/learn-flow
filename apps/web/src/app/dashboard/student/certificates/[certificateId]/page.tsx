@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
@@ -54,7 +54,7 @@ export default function StudentCertificateViewPage() {
 
   async function loadCertificate(orgId: string, certId: string) {
     try {
-      const apiBase = process.env.NEXT_PUBLIC_API_URL || '';
+      const apiBase = process.env.NEXT_PUBLIC_BACKEND_URL || '';
       const res = await fetch(`${apiBase}/api/v1/organizations/${orgId}/student/certificates/${certId}`, {
         credentials: 'include',
       });

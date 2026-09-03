@@ -20,7 +20,6 @@ export default function OrgAuditLogsPage() {
       <PageHeader
         subtitle="Organization Admin"
         title="Audit Logs"
-        description="A record of security-relevant events inside your organization, including logins, publishing, enrollments, and certificates."
       />
       <AuditLogTable apiPath="/api/v1/org/audit-logs" />
     </div>

@@ -78,7 +78,7 @@ const StudentsIcon = (
   </svg>
 );
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || '';
+const API_BASE = process.env.NEXT_PUBLIC_BACKEND_URL || '';
 
 export default function OrgUsersPage() {
   const { data: user, isLoading: userLoading } = useCurrentUser();
@@ -221,7 +221,7 @@ export default function OrgUsersPage() {
           description="Add and manage the members of your organization."
           actions={
             <>
-              <Button size="sm" variant="outline" onClick={() => openAdd('STUDENT')}>
+              <Button size="sm" className="bg-gray-600 hover:bg-gray-700 text-white border-none" onClick={() => openAdd('STUDENT')}>
                 Add Student
               </Button>
               <Button size="sm" onClick={() => openAdd('INSTRUCTOR')}>

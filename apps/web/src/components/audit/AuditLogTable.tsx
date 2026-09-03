@@ -24,7 +24,7 @@ export type AuditLogItem = {
 
 type Meta = { page: number; limit: number; total: number };
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || '';
+const API_BASE = process.env.NEXT_PUBLIC_BACKEND_URL || '';
 
 function actorLabel(item: AuditLogItem) {
   return item.actor.name ?? item.actor.email ?? item.actor.role ?? item.actor.userId;
@@ -251,16 +251,6 @@ export const AuditLogTable: React.FC<AuditLogTableProps> = ({
 
   return (
     <div>
-      <div className="mb-4 max-w-md">
-        <Input
-          variant="line"
-          label="Search logs"
-          placeholder="Search by action, actor name, or email"
-          value={searchInput}
-          onChange={(e) => handleSearchChange(e.target.value)}
-        />
-      </div>
-
       <div className="overflow-hidden rounded-2xl border border-neutral-200 bg-white shadow-sm">
         {loading && logs === null ? (
           <div className="flex items-center gap-3 p-8 text-neutral-700">

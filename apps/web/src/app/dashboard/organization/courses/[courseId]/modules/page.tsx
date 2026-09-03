@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useEffect, useState, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
@@ -171,7 +171,7 @@ export default function CourseModulesPage() {
     async function load() {
       setLoading(true);
       try {
-        const apiBase = process.env.NEXT_PUBLIC_API_URL || '';
+        const apiBase = process.env.NEXT_PUBLIC_BACKEND_URL || '';
         const res = await fetch(
           `${apiBase}/api/v1/organizations/${organizationId}/courses/${courseId}/modules`,
           { credentials: 'include' }
@@ -252,7 +252,7 @@ export default function CourseModulesPage() {
 
     setCreating(true);
     try {
-      const apiBase = process.env.NEXT_PUBLIC_API_URL || '';
+      const apiBase = process.env.NEXT_PUBLIC_BACKEND_URL || '';
       const res = await fetch(
         `${apiBase}/api/v1/organizations/${organizationId}/courses/${courseId}/modules`,
         {
@@ -310,7 +310,7 @@ export default function CourseModulesPage() {
 
     setUpdating(true);
     try {
-      const apiBase = process.env.NEXT_PUBLIC_API_URL || '';
+      const apiBase = process.env.NEXT_PUBLIC_BACKEND_URL || '';
       const res = await fetch(
         `${apiBase}/api/v1/organizations/${organizationId}/courses/${courseId}/modules/${editingModule.id}`,
         {
@@ -356,7 +356,7 @@ export default function CourseModulesPage() {
 
     setDeleting(true);
     try {
-      const apiBase = process.env.NEXT_PUBLIC_API_URL || '';
+      const apiBase = process.env.NEXT_PUBLIC_BACKEND_URL || '';
       const res = await fetch(
         `${apiBase}/api/v1/organizations/${organizationId}/courses/${courseId}/modules/${moduleId}`,
         {

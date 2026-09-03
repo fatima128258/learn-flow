@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
@@ -99,7 +99,7 @@ export default function StudentCourseProgressPage() {
 
   async function loadProgress(orgId: string, cid: string) {
     try {
-      const apiBase = process.env.NEXT_PUBLIC_API_URL || '';
+      const apiBase = process.env.NEXT_PUBLIC_BACKEND_URL || '';
       const res = await fetch(`${apiBase}/api/v1/organizations/${orgId}/student/courses/${cid}/progress`, {
         credentials: 'include',
       });
@@ -130,7 +130,7 @@ export default function StudentCourseProgressPage() {
     setGenerating(true);
     setGenerateError(null);
     try {
-      const apiBase = process.env.NEXT_PUBLIC_API_URL || '';
+      const apiBase = process.env.NEXT_PUBLIC_BACKEND_URL || '';
       const url = `${apiBase}/api/v1/organizations/${orgId}/student/courses/${cid}/certificate`;
       console.log('Certificate API URL:', url);
       

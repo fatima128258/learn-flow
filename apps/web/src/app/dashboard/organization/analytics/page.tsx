@@ -36,7 +36,7 @@ type OrgAnalytics = {
   roles?: RoleBreakdown[];
 };
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || '';
+const API_BASE = process.env.NEXT_PUBLIC_BACKEND_URL || '';
 const statusBarTone = (status: string): BarDatum['tone'] => {
   if (status === 'PUBLISHED') return 'success';
   if (status === 'ARCHIVED') return 'neutral';

@@ -3,7 +3,6 @@
 import { useEffect } from 'react';
 import { useCurrentUser } from '@/features/auth/useCurrentUser';
 import { AuditLogTable } from '@/components/audit/AuditLogTable';
-import { PageHeader } from '@/components/dashboard';
 
 export default function PlatformAuditLogsPage() {
   const { data: user, isLoading: userLoading } = useCurrentUser();
@@ -21,11 +20,6 @@ export default function PlatformAuditLogsPage() {
 
   return (
     <div className="mx-auto max-w-6xl">
-      <PageHeader
-        subtitle="Platform Admin"
-        title="Audit Logs"
-        description="Platform-wide security events across all organizations."
-      />
       <AuditLogTable apiPath="/api/v1/admin/audit-logs" showOrganization pageSize={50} />
     </div>
   );

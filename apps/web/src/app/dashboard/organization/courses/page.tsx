@@ -74,7 +74,7 @@ function ChangeStatusModal({ course, organizationId, onClose, onSuccess }: Chang
     if (!isDirty) return;
     setSaving(true);
     try {
-      const apiBase = process.env.NEXT_PUBLIC_API_URL ?? '';
+      const apiBase = process.env.NEXT_PUBLIC_BACKEND_URL ?? '';
       const res = await fetch(
         `${apiBase}/api/v1/organizations/${organizationId}/courses/${course.id}/status`,
         {
@@ -243,7 +243,7 @@ export default function MyCoursesPage() {
     async function load() {
       setCoursesLoading(true);
       try {
-        const apiBase = process.env.NEXT_PUBLIC_API_URL ?? '';
+        const apiBase = process.env.NEXT_PUBLIC_BACKEND_URL ?? '';
         const res = await fetch(
           `${apiBase}/api/v1/organizations/${organizationId}/courses`,
           { credentials: 'include' },
@@ -304,11 +304,6 @@ export default function MyCoursesPage() {
             subtitle="My Courses"
             title="Courses"
             description="Courses belonging to your organization."
-            breadcrumbs={
-              <LinkButton href="/dashboard/organization" variant="ghost" size="sm">
-                Back to dashboard
-              </LinkButton>
-            }
             actions={
               <LinkButton
                 href={`/dashboard/organization/courses/new${organizationId ? `?organization=${organizationId}` : ''}`}

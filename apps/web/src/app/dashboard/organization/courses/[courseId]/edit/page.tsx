@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
@@ -110,7 +110,7 @@ export default function EditCoursePage() {
     async function load() {
       setLoadingCourse(true);
       try {
-        const apiBase = process.env.NEXT_PUBLIC_API_URL || '';
+        const apiBase = process.env.NEXT_PUBLIC_BACKEND_URL || '';
         const res = await fetch(
           `${apiBase}/api/v1/organizations/${organizationId}/courses/${courseId}`,
           { credentials: 'include' }
@@ -265,7 +265,7 @@ export default function EditCoursePage() {
 
     setSubmitting(true);
     try {
-      const apiBase = process.env.NEXT_PUBLIC_API_URL || '';
+      const apiBase = process.env.NEXT_PUBLIC_BACKEND_URL || '';
       const res = await fetch(
         `${apiBase}/api/v1/organizations/${organizationId}/courses/${courseId}`,
         {
