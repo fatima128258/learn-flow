@@ -40,6 +40,8 @@ export default function StudentLessonPage() {
   const [markError, setMarkError] = useState<string | null>(null);
 
   async function loadLesson(orgId: string, cid: string, mid: string, lid: string) {
+    setLoading(true);
+    setError(null);
     try {
       const apiBase = '';
       const res = await fetch(
@@ -68,6 +70,8 @@ export default function StudentLessonPage() {
       setData(body.data ?? null);
     } catch {
       setError('Could not reach the server. Please try again.');
+    } finally {
+      setLoading(false);
     }
   }
 
