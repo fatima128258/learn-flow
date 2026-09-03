@@ -25,6 +25,7 @@ import { useCurrentUser } from '../../../features/auth/useCurrentUser';
 import {
   StatCard,
   TableCard,
+  PageHeader,
   tableHeadClass,
   tableCellClass,
   tableRowHoverClass,
@@ -125,14 +126,12 @@ function OrgActionsMenu({
   onAssignAdmin,
   onEdit,
   onStatusChange,
-  onOpen,
 }: {
   org: OrganizationItem;
   onMembers: () => void;
   onAssignAdmin: () => void;
   onEdit: () => void;
   onStatusChange: () => void;
-  onOpen: () => void;
 }) {
   const [open, setOpen] = useState(false);
   const wrapRef = useRef<HTMLDivElement>(null);
@@ -217,18 +216,6 @@ function OrgActionsMenu({
       role="menu"
       aria-label="Organization actions menu"
     >
-      <button
-        type="button"
-        role="menuitem"
-        className="flex w-full items-center gap-2.5 px-4 py-2.5 text-sm text-neutral-700 hover:bg-neutral-50 hover:text-neutral-900"
-        onClick={() => action(onOpen)}
-      >
-        <svg className="h-4 w-4 text-neutral-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
-          <path strokeLinecap="round" strokeLinejoin="round" d="M5 12h14m-7-7l7 7-7 7" />
-        </svg>
-        Open
-      </button>
-      <div className="my-1 border-t border-neutral-100" />
       <button
         type="button"
         role="menuitem"
@@ -581,7 +568,14 @@ export default function OrganizationsPage() {
       }
 
       setStatusAction(null);
-      await load();
+      
+      // Optimized: Update org in list immediately instead of full reload
+      setOrganizations((prev) =>
+        prev
+          ? prev.map((o) => (o.id === org.id ? { ...o, status: next } : o))
+          : null
+      );
+      
       toast.success(
         next === 'SUSPENDED'
           ? `Organization "${body.data.name}" was suspended.`
@@ -632,7 +626,10 @@ export default function OrganizationsPage() {
       setShowCreateModal(false);
       setNewName('');
       setNameError('');
-      await load();
+      
+      // Optimized: Add new org to list instead of full reload
+      setOrganizations((prev) => prev ? [body.data as OrganizationItem, ...prev] : [body.data as OrganizationItem]);
+      
       toast.success(`Organization "${body.data.name}" was created.`);
     } catch {
       toast.error('Could not reach the API. Please try again.');
@@ -679,7 +676,14 @@ export default function OrganizationsPage() {
       setEditingOrg(null);
       setEditName('');
       setEditNameError('');
-      await load();
+      
+      // Optimized: Update org in list immediately
+      setOrganizations((prev) =>
+        prev
+          ? prev.map((o) => (o.id === editingOrg.id ? body.data as OrganizationItem : o))
+          : null
+      );
+      
       toast.success(`Organization "${updatedName}" was updated.`);
     } catch {
       toast.error('Could not reach the API. Please try again.');
@@ -717,6 +721,7 @@ export default function OrganizationsPage() {
 
   return (
     <>
+    <PageHeader title="Organizations" />
     <div className="mx-auto max-w-5xl">
         <div className="mb-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
           <div className="max-w-sm">
@@ -807,7 +812,6 @@ export default function OrganizationsPage() {
                         <td className={`${tableCellClass} text-right`}>
                           <OrgActionsMenu
                             org={org}
-                            onOpen={() => openOrganization(org)}
                             onMembers={() => openMembersModal(org)}
                             onAssignAdmin={() => openAssignModal(org)}
                             onEdit={() => openEditModal(org)}
@@ -837,7 +841,6 @@ export default function OrganizationsPage() {
                     <div className="shrink-0">
                       <OrgActionsMenu
                         org={org}
-                        onOpen={() => openOrganization(org)}
                         onMembers={() => openMembersModal(org)}
                         onAssignAdmin={() => openAssignModal(org)}
                         onEdit={() => openEditModal(org)}
