@@ -243,7 +243,7 @@ export default function StudentCourseProgressPage() {
               {progress.courseComplete && (
                 <div className="mt-5 flex flex-wrap items-center gap-3">
                   <Button
-                    size="sm"
+                    size="md"
                     variant="primary"
                     disabled={generateCertificateMutation.isPending}
                     onClick={handleGenerateCertificate}
