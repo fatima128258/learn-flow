@@ -30,18 +30,6 @@ const OrgIcon = (
   </svg>
 );
 
-const UsersIcon = (
-  <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
-    <path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-  </svg>
-);
-
-const AdminsIcon = (
-  <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
-    <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197" />
-  </svg>
-);
-
 export default function DashboardPage() {
   const router = useRouter();
   const { data: user, isLoading: userLoading } = useCurrentUser();
@@ -91,9 +79,7 @@ export default function DashboardPage() {
     return (
       <div className="mx-auto max-w-6xl">
         <PageHeader title="Platform Overview" />
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
-          <StatCardSkeleton />
-          <StatCardSkeleton />
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
           <StatCardSkeleton />
           <StatCardSkeleton />
           <StatCardSkeleton />
@@ -126,9 +112,7 @@ export default function DashboardPage() {
         />
 
         {busy ? (
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
-            <StatCardSkeleton />
-            <StatCardSkeleton />
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
             <StatCardSkeleton />
             <StatCardSkeleton />
             <StatCardSkeleton />
@@ -143,12 +127,10 @@ export default function DashboardPage() {
           </div>
         ) : (
           <>
-            <div className="mb-8 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
+            <div className="mb-8 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
               <StatCard label="Total organizations" value={summary.organizations.total} icon={OrgIcon} tone="primary" hint="All registered" />
               <StatCard label="Active organizations" value={summary.organizations.active} icon={OrgIcon} tone="success" hint="Currently active" />
               <StatCard label="Suspended organizations" value={summary.organizations.suspended} icon={OrgIcon} tone="danger" hint="Currently suspended" />
-              <StatCard label="Total users" value={summary.users.total} icon={UsersIcon} tone="info" hint="Across all orgs" />
-              <StatCard label="Organization admins" value={summary.organizationAdmins.total} icon={AdminsIcon} tone="neutral" hint="Org-level admins" />
             </div>
 
             <div className="mb-8">
