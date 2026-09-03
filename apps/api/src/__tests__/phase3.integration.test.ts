@@ -154,19 +154,6 @@ async function raceReq(
 }
 
 beforeAll(async () => {
-  // TEST-ENVIRONMENT SHIM (documented finding S-1, not an app change): the
-  // installed Cloudinary SDK routes uploader.upload_stream through a legacy
-  // v1 adapter whose signature is (options, callback), but apps/api storage's
-  // cloudinaryProvider calls upload_stream(callback, options). That mismatch
-  // makes the SDK throw 'callback is not a function' asynchronously and the
-  // provider's putObject promise never settles (uploads hang forever). This
-  // shim translates the app's call into the SDK's expected argument order so
-  // the REAL endpoints resolve; the app-side defect remains recorded.
-  const uploader = cloudinary.uploader;
-  const originalStream = uploader.upload_stream.bind(uploader) as unknown as (opts: Record<string, unknown>, cb: (error: Error | null, result?: unknown) => void) => unknown;
-  uploader.upload_stream = ((cb: unknown, opts: unknown) =>
-    originalStream({ ...((opts ?? {}) as Record<string, unknown>), disable_promises: true }, cb as (error: Error | null) => void)) as typeof uploader.upload_stream;
-
   await prisma.$queryRaw`SELECT 1`;
   const ping = await fetch(`${MAILPIT_API}/messages?limit=1`).catch(() => null);
   if (!ping || !ping.ok) throw new Error('DB/Redis/Mailpit infra unreachable — suite BLOCKED');

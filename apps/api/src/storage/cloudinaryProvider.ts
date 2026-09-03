@@ -104,6 +104,7 @@ export class CloudinaryStorageProvider implements StorageProvider {
   private uploadBuffer(input: PutObjectInput): Promise<unknown> {
     return new Promise((resolve, reject) => {
       const stream = cloudinary.uploader.upload_stream(
+        uploadOptions(input) as never,
         ((error: Error | null, result?: unknown) => {
           if (error) {
             reject(error);
@@ -111,7 +112,6 @@ export class CloudinaryStorageProvider implements StorageProvider {
           }
           resolve(result);
         }) as never,
-        uploadOptions(input) as never,
       );
       stream.end(input.data);
     });
