@@ -23,7 +23,6 @@ import { PasswordInput } from '../../../components/forms/PasswordInput';
 import { useToast } from '../../../components/ui/ToastProvider';
 import { useCurrentUser } from '../../../features/auth/useCurrentUser';
 import {
-  PageHeader,
   StatCard,
   TableCard,
   tableHeadClass,
@@ -719,24 +718,18 @@ export default function OrganizationsPage() {
   return (
     <>
     <div className="mx-auto max-w-5xl">
-        <PageHeader
-          subtitle="Platform Admin"
-          title="Organizations"
-          description="Create and manage the organizations on your platform."
-          actions={
-            <Button size="sm" onClick={() => setShowCreateModal(true)}>
-              Create Organization
-            </Button>
-          }
-        />
-
-        <div className="mb-4 max-w-sm">
-          <Input
-            variant="line"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            placeholder="Search by name, slug, or admin email"
-          />
+        <div className="mb-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+          <div className="max-w-sm">
+            <Input
+              variant="line"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              placeholder="Search by name, slug, or admin email"
+            />
+          </div>
+          <Button size="sm" onClick={() => setShowCreateModal(true)}>
+            Create Organization
+          </Button>
         </div>
 
         {error ? (

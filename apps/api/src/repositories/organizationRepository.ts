@@ -27,7 +27,11 @@ export const SYSTEM_ORGANIZATION_SLUG = 'platform';
 const organizationListInclude = {
   ...organizationAdminInclude,
   _count: {
-    select: { users: true },
+    select: { 
+      users: {
+        where: { role: { in: ['STUDENT', 'INSTRUCTOR'] as const } }
+      }
+    },
   },
 };
 
