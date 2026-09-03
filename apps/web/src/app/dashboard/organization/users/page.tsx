@@ -235,12 +235,8 @@ export default function OrgUsersPage() {
   return (
     <>
       <div className="mx-auto max-w-5xl">
-        <PageHeader
-          title="Users"
-          actions={null}
-        />
 
-        <div className="mb-4 flex items-center justify-between gap-3">
+        <div className="mb-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
           <Input
             variant="line"
             placeholder="Search by name, email, or role"
@@ -248,11 +244,11 @@ export default function OrgUsersPage() {
             onChange={(e) => handleSearch(e.target.value)}
             className="max-w-md"
           />
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 whitespace-nowrap">
             <Button size="sm" className="bg-gray-600 hover:bg-gray-700 text-white border-none" onClick={() => openAdd('STUDENT')}>
               Add Student
             </Button>
-            <Button size="sm" onClick={() => openAdd('INSTRUCTOR')}>
+            <Button size="sm" variant="primary" onClick={() => openAdd('INSTRUCTOR')}>
               Add Instructor
             </Button>
           </div>
@@ -273,7 +269,7 @@ export default function OrgUsersPage() {
           </div>
         ) : (
           <>
-            <div className="mb-8 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            <div className="mb-8 hidden">
               <StatCard
                 label="Total members"
                 value={total ?? memberCount}

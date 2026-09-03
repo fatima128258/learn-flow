@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { Badge, Button, EmptyState, EmptyStateIcons, Spinner } from '../../../../../../components/ui';
+import { Badge, Button, EmptyState, EmptyStateIcons, Spinner, Drawer } from '../../../../../../components/ui';
 import { Input } from '../../../../../../components/ui/Input';
 import { LinkButton } from '../../../../../../components/ui/LinkButton';
 import { Modal } from '../../../../../../components/ui/Modal';
@@ -87,6 +87,54 @@ function ModuleActionsMenu({ module, courseId, organizationId, onEdit, onDelete 
   );
 }
 
+// Module Details Drawer component
+function ModuleDetailsDrawer({ module, isOpen, onClose }: {
+  module: ModuleListItem | null;
+  isOpen: boolean;
+  onClose: () => void;
+}) {
+  if (!module) return null;
+
+  return (
+    <Drawer
+      isOpen={isOpen}
+      onClose={onClose}
+      title={module.title}
+    >
+      <div className="space-y-5">
+        <div>
+          <p className="text-xs font-medium uppercase tracking-wide text-neutral-400">Order</p>
+          <div className="mt-1">
+            <Badge variant="default" size="sm">{module.order}</Badge>
+          </div>
+        </div>
+
+        <div>
+          <p className="text-xs font-medium uppercase tracking-wide text-neutral-400">Title</p>
+          <p className="mt-1 text-sm font-medium text-neutral-900">{module.title}</p>
+        </div>
+
+        {module.description && (
+          <div>
+            <p className="text-xs font-medium uppercase tracking-wide text-neutral-400">Description</p>
+            <p className="mt-1 text-sm text-neutral-700 whitespace-pre-wrap break-words">{module.description}</p>
+          </div>
+        )}
+
+        <div>
+          <p className="text-xs font-medium uppercase tracking-wide text-neutral-400">Created</p>
+          <p className="mt-1 text-sm text-neutral-700">{new Date(module.createdAt).toLocaleString()}</p>
+        </div>
+
+        <div>
+          <p className="text-xs font-medium uppercase tracking-wide text-neutral-400">Last Updated</p>
+          <p className="mt-1 text-sm text-neutral-700">{new Date(module.updatedAt).toLocaleString()}</p>
+        </div>
+      </div>
+    </Drawer>
+  );
+}
+
 type ModuleListItem = {
   id: string;
   title: string;
@@ -134,6 +182,7 @@ export default function CourseModulesPage() {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [editingModule, setEditingModule] = useState<ModuleListItem | null>(null);
+  const [selectedModule, setSelectedModule] = useState<ModuleListItem | null>(null);
   const [creating, setCreating] = useState(false);
   const [updating, setUpdating] = useState(false);
   const [deleting, setDeleting] = useState(false);
@@ -282,6 +331,11 @@ export default function CourseModulesPage() {
         return;
       }
 
+      const body: CreateModuleResponse = await res.json();
+      if (body.data) {
+        setModules((prev) => prev ? [...prev, body.data!] : [body.data!]);
+      }
+
       toast.success('Module created.');
       closeCreateModal();
       router.refresh();
@@ -340,6 +394,13 @@ export default function CourseModulesPage() {
         return;
       }
 
+      const body: UpdateModuleResponse = await res.json();
+      if (body.data) {
+        setModules((prev) =>
+          prev ? prev.map((m) => (m.id === editingModule.id ? body.data! : m)) : null
+        );
+      }
+
       toast.success('Module updated.');
       closeEditModal();
       router.refresh();
@@ -376,6 +437,7 @@ export default function CourseModulesPage() {
         return;
       }
 
+      setModules((prev) => prev ? prev.filter((m) => m.id !== moduleId) : null);
       toast.success('Module deleted.');
       router.refresh();
     } catch {
@@ -448,18 +510,18 @@ export default function CourseModulesPage() {
                       <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-neutral-500 w-16">Order</th>
                       <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-neutral-500">Title</th>
                       <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-neutral-500">Description</th>
-                      <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-neutral-500 w-10"></th>
+                      <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-neutral-500 w-20">Actions</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-neutral-200 bg-white">
                     {modules.map((module) => (
-                      <tr key={module.id} className="hover:bg-neutral-50">
+                      <tr key={module.id} className="hover:bg-neutral-50 cursor-pointer" onClick={() => setSelectedModule(module)}>
                         <td className="px-6 py-4 text-sm font-medium text-neutral-900">
                           <Badge variant="default" size="sm">{module.order}</Badge>
                         </td>
                         <td className="px-6 py-4 text-sm font-medium text-primary-600 hover:text-primary-700">{module.title}</td>
-                        <td className="px-6 py-4 text-sm text-neutral-700 max-w-md truncate">{module.description ?? '—'}</td>
-                        <td className="px-6 py-4 relative">
+                        <td className="px-6 py-4 text-sm text-neutral-700 max-w-xs truncate" title={module.description ?? ''}>{module.description ?? '—'}</td>
+                        <td className="px-6 py-4 relative pl-2" onClick={(e) => e.stopPropagation()}>
                           <ModuleActionsMenu
                             module={module}
                             courseId={courseId!}
@@ -603,6 +665,12 @@ export default function CourseModulesPage() {
           </div>
         </div>
       </Modal>
+
+      <ModuleDetailsDrawer
+        module={selectedModule}
+        isOpen={selectedModule !== null}
+        onClose={() => setSelectedModule(null)}
+      />
     </div>
   );
 }

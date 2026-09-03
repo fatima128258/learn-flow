@@ -172,14 +172,17 @@ export async function listEnrolledCourses(organizationId: string, userId: string
     (e: { organizationId: string }) => e.organizationId === organizationId,
   );
 
-  const courses = await Promise.all(
-    orgEnrollments.map(async (enrollment: EnrolledEnrollment) => {
-      const course = await courseRepo.getById(organizationId, enrollment.courseId);
+  // OPTIMIZATION: Batch fetch all courses instead of N individual queries
+  const courseIds = orgEnrollments.map((e: EnrolledEnrollment) => e.courseId);
+  const courses = await courseRepo.getByIds(organizationId, courseIds);
+  const courseMap = new Map(courses.map((c: EnrolledCourseRecord) => [c.id, c]));
+  
+  return orgEnrollments
+    .map((enrollment: EnrolledEnrollment) => {
+      const course = courseMap.get(enrollment.courseId);
       return course ? toEnrolledCourseListItem(enrollment, course) : null;
-    }),
-  );
-
-  return courses.filter(Boolean);
+    })
+    .filter(Boolean);
 }
 
 export async function getEnrolledCourseDetail(organizationId: string, userId: string, courseId: string) {
@@ -196,11 +199,18 @@ export async function getEnrolledCourseDetail(organizationId: string, userId: st
   const modules = await moduleRepo.listByCourse(courseId);
 
   const prisma = getPrisma();
-  const modulesWithCounts = await Promise.all(
-    modules.map(async (module: CourseModuleRecord) => {
-      const lessonCount = await prisma.lesson.count({ where: { moduleId: module.id } });
-      return toCourseModuleDto(module, lessonCount);
-    }),
+  
+  // OPTIMIZATION: Batch count lessons per module instead of N individual queries
+  const moduleIds = modules.map((m: CourseModuleRecord) => m.id);
+  const lessonCounts = await prisma.lesson.groupBy({
+    by: ['moduleId'],
+    where: { moduleId: { in: moduleIds } },
+    _count: { id: true },
+  });
+  
+  const countMap = new Map(lessonCounts.map((row: any) => [row.moduleId, row._count.id]));
+  const modulesWithCounts = modules.map((module: CourseModuleRecord) =>
+    toCourseModuleDto(module, countMap.get(module.id) ?? 0),
   );
 
   return {
@@ -225,11 +235,18 @@ export async function listCourseModules(organizationId: string, userId: string, 
   const modules = await moduleRepo.listByCourse(courseId);
 
   const prisma = getPrisma();
-  const modulesWithCounts = await Promise.all(
-    modules.map(async (module: CourseModuleRecord) => {
-      const lessonCount = await prisma.lesson.count({ where: { moduleId: module.id } });
-      return toCourseModuleDto(module, lessonCount);
-    }),
+  
+  // OPTIMIZATION: Batch count lessons per module instead of N individual queries
+  const moduleIds = modules.map((m: CourseModuleRecord) => m.id);
+  const lessonCounts = await prisma.lesson.groupBy({
+    by: ['moduleId'],
+    where: { moduleId: { in: moduleIds } },
+    _count: { id: true },
+  });
+  
+  const countMap = new Map(lessonCounts.map((row: any) => [row.moduleId, row._count.id]));
+  const modulesWithCounts = modules.map((module: CourseModuleRecord) =>
+    toCourseModuleDto(module, countMap.get(module.id) ?? 0),
   );
 
   return {

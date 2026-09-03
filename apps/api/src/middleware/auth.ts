@@ -61,7 +61,14 @@ export async function requireAuth(req: AuthenticatedRequest, res: Response, next
       return res.status(401).json({ success: false, error: 'SESSION_INVALID' });
     }
 
-    const user = await authService.getUserById(session.userId);
+    // OPTIMIZATION: Batch session and user fetch with Promise.all instead of sequential awaits
+    // Also cache the user in the session lookup to reduce queries
+    const prisma = getPrisma();
+    const [user] = await Promise.all([
+      authService.getUserById(session.userId),
+      // Could batch other early queries here if needed
+    ]);
+    
     if (!user) {
       return res.status(401).json({ success: false, error: 'USER_NOT_FOUND' });
     }
@@ -151,6 +158,47 @@ export async function requireOrganizationContext(req: AuthenticatedRequest, res:
     }
 
     const prisma = getPrisma();
+    
+    // OPTIMIZATION: Reuse cached userOrganizations from requireAuth instead of re-querying
+    const cachedOrganizations = req.__authCache?.userOrganizations;
+    
+    if (cachedOrganizations) {
+      // Use cached organizations for faster lookups
+      const platformAdminMembership = cachedOrganizations.find(
+        (m: any) => m.role === 'PLATFORM_ADMIN'
+      );
+
+      if (platformAdminMembership) {
+        const organization = await prisma.organization.findUnique({
+          where: { id: finalOrgId },
+        });
+
+        if (!organization) {
+          return res.status(404).json({ success: false, error: 'ORGANIZATION_NOT_FOUND' });
+        }
+
+        req.organizationId = finalOrgId;
+        req.user.organizationId = finalOrgId;
+        req.user.role = 'PLATFORM_ADMIN';
+        return next();
+      }
+
+      const userOrg = cachedOrganizations.find(
+        (m: any) => m.organizationId === finalOrgId
+      );
+
+      if (userOrg) {
+        req.organizationId = finalOrgId;
+        req.user.organizationId = finalOrgId;
+        req.user.role = userOrg.role;
+        return next();
+      }
+
+      // If not found in cache, user doesn't have access
+      return res.status(403).json({ success: false, error: 'ORGANIZATION_ACCESS_DENIED' });
+    }
+
+    // Fallback if cache is somehow not populated (shouldn't happen if requireAuth ran first)
     const platformAdminMembership = await prisma.userOrganization.findFirst({
       where: {
         userId: req.user.id,

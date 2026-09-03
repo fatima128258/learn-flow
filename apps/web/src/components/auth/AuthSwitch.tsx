@@ -1,12 +1,15 @@
 'use client';
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { useQueryClient } from '@tanstack/react-query';
 import { AuthCard } from './AuthCard';
 import { LoginForm, LoginFormData } from './LoginForm';
 import { RegisterForm, RegisterFormData } from './RegisterForm';
 import { getPostLoginRedirect } from '../../features/auth/postLoginRedirect';
 import { getLoginErrorMessage, getRegisterErrorMessage } from '../../features/auth/authErrors';
+import { meKey } from '../../features/auth/useCurrentUser';
 import { useToast } from '../ui/ToastProvider';
+import { PageLoader } from '../ui/Spinner';
 
 export type AuthMode = 'login' | 'register';
 
@@ -19,8 +22,10 @@ const apiBase = '';
 export const AuthSwitch: React.FC<AuthSwitchProps> = ({ initialMode = 'login' }) => {
   const [mode, setMode] = useState<AuthMode>(initialMode);
   const [success, setSuccess] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const toast = useToast();
   const router = useRouter();
+  const queryClient = useQueryClient();
 
   const switchMode = (next: AuthMode) => {
     if (next === mode) return;
@@ -30,6 +35,7 @@ export const AuthSwitch: React.FC<AuthSwitchProps> = ({ initialMode = 'login' })
 
   const handleLogin = async (data: LoginFormData) => {
     try {
+      setIsSubmitting(true);
       const res = await fetch(`${apiBase}/api/v1/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -41,20 +47,30 @@ export const AuthSwitch: React.FC<AuthSwitchProps> = ({ initialMode = 'login' })
 
       if (!res.ok) {
         toast.error(getLoginErrorMessage(responseData?.error));
+        setIsSubmitting(false);
         return;
       }
 
       toast.success('Signed in successfully. Redirecting...');
+      
+      // OPTIMIZATION: Invalidate auth cache to ensure fresh /auth/me data after login
+      // This populates the React Query cache before navigation, eliminating the need for
+      // redundant /auth/me calls when landing on dashboard or other authenticated pages
+      await queryClient.invalidateQueries({ queryKey: meKey });
+      await queryClient.refetchQueries({ queryKey: meKey });
+      
       // Use Next.js client-side navigation instead of full-page reload
       // This preserves React Query cache and eliminates redundant /auth/me calls
       router.push(getPostLoginRedirect(responseData?.user));
     } catch {
       toast.error('Unable to sign in. Please try again.');
+      setIsSubmitting(false);
     }
   };
 
   const handleRegister = async (data: RegisterFormData) => {
     try {
+      setIsSubmitting(true);
       const res = await fetch(`${apiBase}/api/v1/auth/register`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -66,11 +82,15 @@ export const AuthSwitch: React.FC<AuthSwitchProps> = ({ initialMode = 'login' })
 
       if (!res.ok) {
         toast.error(getRegisterErrorMessage(responseData?.error));
+        setIsSubmitting(false);
         return;
       }
 
       setSuccess(true);
       toast.success('Account created successfully!');
+      
+      // OPTIMIZATION: Invalidate auth cache to ensure fresh /auth/me data after registration
+      await queryClient.invalidateQueries({ queryKey: meKey });
       
       // Redirect to welcome page with user details using client-side navigation
       const params = new URLSearchParams({
@@ -80,10 +100,20 @@ export const AuthSwitch: React.FC<AuthSwitchProps> = ({ initialMode = 'login' })
       router.push(`/welcome?${params.toString()}`);
     } catch {
       toast.error('Unable to create your account. Please try again.');
+      setIsSubmitting(false);
     }
   };
 
   const isLogin = mode === 'login';
+
+  // Show full-page loading overlay when submitting
+  if (isSubmitting) {
+    return (
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+        <PageLoader label={isLogin ? 'Signing in...' : 'Creating account...'} />
+      </div>
+    );
+  }
 
   return (
     <AuthCard

@@ -1,9 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import Link from 'next/link';
 import { Badge, EmptyState, EmptyStateIcons, ErrorState, Spinner } from '@/components/ui';
-import { PageHeader } from '@/components/dashboard';
 import { useCurrentUser } from '@/features/auth/useCurrentUser';
 
 type NotificationDto = {
@@ -168,30 +166,7 @@ export default function StudentNotificationsPage() {
 
   return (
     <div className="mx-auto max-w-6xl">
-      <PageHeader
-        subtitle="Inbox"
-        title="Notifications"
-          description={unreadCount > 0 ? `${unreadCount} unread` : undefined}
-          breadcrumbs={
-            <div className="flex items-center gap-2 text-sm">
-              <Link href="/dashboard/student" className="text-primary-600 hover:text-primary-700">My Courses</Link>
-              <span className="text-neutral-400">/</span>
-              <span className="text-neutral-600">Notifications</span>
-            </div>
-          }
-          actions={
-            hasUnread ? (
-              <button
-                onClick={markAllAsRead}
-                className="rounded-lg border border-neutral-300 bg-white px-4 py-2 text-sm font-medium text-neutral-700 transition-colors hover:bg-neutral-100"
-              >
-                Mark all as read
-              </button>
-            ) : undefined
-          }
-        />
-
-        {error ? (
+      {error ? (
           <div className="rounded-2xl border border-neutral-200 bg-white shadow-sm">
             <ErrorState
               title="Unable to load notifications"

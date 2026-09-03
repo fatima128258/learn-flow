@@ -79,7 +79,7 @@ export const Drawer: React.FC<DrawerProps> = ({
           <button
             type="button"
             onClick={onClose}
-            className="ml-3 shrink-0 rounded-md text-neutral-400 hover:text-neutral-600 focus:outline-none focus:ring-2 focus:ring-primary-500"
+            className="ml-3 shrink-0 rounded-md text-neutral-400 hover:text-neutral-600 focus:outline-none focus:ring-0 p-0"
             aria-label="Close"
           >
             <svg className="h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">

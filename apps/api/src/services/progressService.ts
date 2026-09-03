@@ -78,14 +78,18 @@ async function computeCourseProgress(
   const prisma = getPrisma();
   const completedLessonIds = new Set(completedRows.map((row: { lessonId: string }) => row.lessonId));
 
+  // OPTIMIZATION: Batch query all lessons instead of N+1 loop
+  const moduleIds = modules.map((m: { id: string }) => m.id);
+  const allLessons = await prisma.lesson.findMany({
+    where: { moduleId: { in: moduleIds } },
+    select: { id: true, title: true, order: true, moduleId: true },
+    orderBy: { order: 'asc' },
+  });
+
   const lessonsByModule = new Map<string, { id: string }[]>();
   let totalLessons = 0;
   for (const module of modules) {
-    const lessons = await prisma.lesson.findMany({
-      where: { moduleId: module.id },
-      select: { id: true, title: true, order: true },
-      orderBy: { order: 'asc' },
-    });
+    const lessons = allLessons.filter((l: { moduleId: string }) => l.moduleId === module.id);
     lessonsByModule.set(module.id, lessons);
     totalLessons += lessons.length;
   }

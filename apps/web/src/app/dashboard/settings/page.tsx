@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation';
 import { useQueryClient } from '@tanstack/react-query';
 import { Button, Card, ErrorState, Input, Skeleton } from '@/components/ui';
 import { PasswordInput } from '@/components/forms/PasswordInput';
-import { PageHeader, SectionHeader } from '@/components/dashboard';
+import { SectionHeader } from '@/components/dashboard';
 import { useCurrentUser, meKey } from '@/features/auth/useCurrentUser';
 import { ApiError, patchJson } from '@/lib/api';
 import { getUpdateEmailErrorMessage, getChangePasswordErrorMessage } from '@/features/auth/settingsErrors';
@@ -156,10 +156,6 @@ export default function SettingsPage() {
 
   return (
     <div className="mx-auto max-w-3xl">
-      <PageHeader
-        title="Settings"
-      />
-
       {/* ── Email address ─────────────────────────────────────────────── */}
       <div className="rounded-2xl border border-neutral-200 bg-white shadow-sm">
         <div className="border-b border-neutral-200 px-6 py-4">

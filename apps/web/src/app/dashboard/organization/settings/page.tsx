@@ -4,7 +4,7 @@ import { Suspense, useEffect, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { Badge, Card, ErrorState, Skeleton } from '@/components/ui';
 import { useCurrentUser } from '@/features/auth/useCurrentUser';
-import { PageHeader, SectionHeader } from '@/components/dashboard';
+import { SectionHeader } from '@/components/dashboard';
 
 export const dynamic = 'force-dynamic';
 
@@ -58,22 +58,6 @@ function OrgSettingsContent() {
 
   return (
     <div className="mx-auto max-w-4xl">
-      <PageHeader
-        subtitle="Organization Admin"
-          title="Settings"
-          description="Organization administration and preferences."
-          badges={
-            organization
-              ? [
-                  {
-                    label: organization.status,
-                    variant: organization.status === 'ACTIVE' ? 'success' : 'error',
-                  },
-                ]
-              : undefined
-          }
-      />
-
         {loading ? (
           <Card>
             <div className="space-y-4">

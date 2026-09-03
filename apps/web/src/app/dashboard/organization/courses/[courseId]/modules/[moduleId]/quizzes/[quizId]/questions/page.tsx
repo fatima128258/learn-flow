@@ -739,7 +739,7 @@ export default function QuizQuestionsPage() {
                           Answer Options
                         </p>
                         <Button
-                          variant="ghost"
+                          variant="primary"
                           size="sm"
                           onClick={() => openCreateOptionModal(question.id)}
                         >

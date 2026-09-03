@@ -1,7 +1,6 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import Link from 'next/link';
 import {
   Badge,
   EmptyState,
@@ -9,7 +8,6 @@ import {
   ErrorState,
   Spinner,
 } from '@/components/ui';
-import { PageHeader } from '@/components/dashboard';
 
 import { useCurrentUser } from '@/features/auth/useCurrentUser';
 
@@ -120,19 +118,7 @@ export default function StudentCertificatesPage() {
 
   return (
     <div className="mx-auto max-w-6xl">
-      <PageHeader
-          subtitle="Credentials"
-          title="My Certificates"
-          breadcrumbs={
-            <div className="flex items-center gap-2 text-sm">
-              <Link href="/dashboard/student" className="text-primary-600 hover:text-primary-700">My Courses</Link>
-              <span className="text-neutral-400">/</span>
-              <span className="text-neutral-600">Certificates</span>
-            </div>
-          }
-        />
-
-        {error ? (
+      {error ? (
           <div className="rounded-2xl border border-neutral-200 bg-white shadow-sm">
             <ErrorState
               title="Unable to load certificates"

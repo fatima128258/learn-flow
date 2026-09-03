@@ -5,7 +5,6 @@ import { Input } from '../ui/Input';
 import { PasswordInput } from '../forms/PasswordInput';
 import { SubmitButton } from '../forms/SubmitButton';
 import { Stack } from '../ui/layout/Stack';
-import { useSubmitState } from '../../lib/useSubmitState';
 import { useToast } from '../ui/ToastProvider';
 
 export interface LoginFormProps {
@@ -22,7 +21,7 @@ const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 export const LoginForm: React.FC<LoginFormProps> = ({ onSubmit }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const { isSubmitting, submit } = useSubmitState();
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const toast = useToast();
 
   const [emailError, setEmailError] = useState<string>('');
@@ -58,9 +57,12 @@ export const LoginForm: React.FC<LoginFormProps> = ({ onSubmit }) => {
       return;
     }
 
-    await submit(async () => {
+    setIsSubmitting(true);
+    try {
       await onSubmit({ email, password });
-    });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (

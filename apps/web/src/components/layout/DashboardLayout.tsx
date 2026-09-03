@@ -145,8 +145,14 @@ export const NavIcons = {
 };
 
 function getActiveItem(pathname: string, items: NavItem[]): string | null {
+  // Remove query parameters from pathname
+  const cleanPath = pathname.split('?')[0];
   const matches = items.filter(
-    (item) => pathname === item.href || pathname.startsWith(`${item.href}/`),
+    (item) => {
+      // Also remove query params from item.href for comparison
+      const itemCleanHref = item.href.split('?')[0];
+      return cleanPath === itemCleanHref || cleanPath.startsWith(`${itemCleanHref}/`);
+    }
   );
   if (matches.length === 0) return null;
   return matches.reduce((best, item) => (item.href.length > best.href.length ? item : best)).href;
@@ -267,7 +273,11 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
     return () => document.removeEventListener('keydown', onKeyDown);
   }, [mobileOpen]);
 
-  const pageLabel = items.find((item) => item.href === activeHref)?.label ?? 'Dashboard';
+  const pageLabel = items.find((item) => {
+    const itemCleanHref = item.href.split('?')[0];
+    const activeCleanHref = activeHref?.split('?')[0];
+    return itemCleanHref === activeCleanHref;
+  })?.label || 'Dashboard';
   const { data: currentUser } = useCurrentUser();
 
   // ── Desktop nav ────────────────────────────────────────────────────────────
@@ -459,7 +469,7 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
             >
               <PanelCollapseIcon collapsed={collapsed} />
             </button>
-            <span className="text-base font-semibold text-neutral-900">{pageLabel}</span>
+            <span className="text-base font-semibold text-neutral-900">{pageLabel || 'Dashboard'}</span>
           </div>
           {currentUser?.name && (
             <p className="text-sm font-medium text-neutral-500">

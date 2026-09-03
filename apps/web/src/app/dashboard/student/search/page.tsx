@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import Link from 'next/link';
 import {
   Badge,
   Button,
@@ -11,7 +10,6 @@ import {
   ErrorState,
   Input,
 } from '@/components/ui';
-import { PageHeader } from '@/components/dashboard';
 import { useCurrentUser } from '@/features/auth/useCurrentUser';
 
 type CourseHit = {
@@ -111,31 +109,19 @@ export default function StudentSearchPage() {
 
   return (
     <div className="mx-auto max-w-6xl">
-      <PageHeader
-        subtitle="Course Catalog"
-        title="Available Courses"
-          breadcrumbs={
-            <div className="flex items-center gap-2 text-sm">
-              <Link href="/dashboard/student" className="text-primary-600 hover:text-primary-700">My Courses</Link>
-              <span className="text-neutral-400">/</span>
-              <span className="text-neutral-600">Available Courses</span>
-            </div>
-          }
+      <div className="mb-8 max-w-md">
+        <Input
+          variant="line"
+          placeholder="e.g. React, JavaScript, data science..."
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') {
+              runSearch();
+            }
+          }}
         />
-
-        <form onSubmit={runSearch} className="mb-8 flex flex-col gap-3 sm:flex-row sm:items-end">
-          <div className="flex-1">
-            <Input
-              label="Search by title or description (optional)"
-              placeholder="e.g. React, JavaScript, data science..."
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-            />
-          </div>
-          <Button type="submit" loading={loading} className="sm:w-auto">
-            {loading ? 'Searching...' : 'Search'}
-          </Button>
-        </form>
+      </div>
 
         {searchError ? (
           <div className="rounded-2xl border border-neutral-200 bg-white shadow-sm">

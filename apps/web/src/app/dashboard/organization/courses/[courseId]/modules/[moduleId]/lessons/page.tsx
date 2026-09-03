@@ -1,6 +1,6 @@
 ﻿'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { Badge, Button, EmptyState, EmptyStateIcons, Spinner } from '../../../../../../../../components/ui';
 import { Input } from '../../../../../../../../components/ui/Input';
@@ -11,6 +11,66 @@ import { getLessonErrorMessage } from '../../../../../../../../features/course/l
 import { useToast } from '../../../../../../../../components/ui/ToastProvider';
 
 import { useCurrentUser } from '../../../../../../../../features/auth/useCurrentUser';
+
+// 3-dot menu component for lessons
+function LessonActionsMenu({ lesson, onEdit, onDelete }: {
+  lesson: { id: string; title: string };
+  onEdit: () => void;
+  onDelete: () => void;
+}) {
+  const [isOpen, setIsOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+        setIsOpen(false);
+      }
+    }
+
+    if (isOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+      return () => document.removeEventListener('mousedown', handleClickOutside);
+    }
+  }, [isOpen]);
+
+  return (
+    <div ref={menuRef} className="relative">
+      <button
+        onClick={() => setIsOpen(!isOpen)}
+        className="p-1 hover:bg-neutral-100 rounded-md transition-colors"
+        aria-label="Lesson actions"
+      >
+        <svg className="w-5 h-5 text-neutral-500" fill="currentColor" viewBox="0 0 24 24">
+          <path d="M12 8c1.1 0 2-0.9 2-2s-0.9-2-2-2-2 0.9-2 2 0.9 2 2 2zm0 2c-1.1 0-2 0.9-2 2s0.9 2 2 2 2-0.9 2-2-0.9-2-2-2zm0 6c-1.1 0-2 0.9-2 2s0.9 2 2 2 2-0.9 2-2-0.9-2-2-2z" />
+        </svg>
+      </button>
+
+      {isOpen && (
+        <div className="fixed bg-white rounded-lg border border-neutral-200 shadow-lg z-50 w-48">
+          <button
+            onClick={() => {
+              onEdit();
+              setIsOpen(false);
+            }}
+            className="w-full text-left px-4 py-2 text-sm text-neutral-700 hover:bg-neutral-50 border-b border-neutral-100 first:rounded-t-lg"
+          >
+            ✏️ Edit
+          </button>
+          <button
+            onClick={() => {
+              onDelete();
+              setIsOpen(false);
+            }}
+            className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 rounded-b-lg"
+          >
+            🗑️ Delete
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
 
 type LessonListItem = {
   id: string;
@@ -479,15 +539,12 @@ export default function ModuleLessonsPage() {
                           <span className="text-sm text-neutral-400">No</span>
                         )}
                       </td>
-                      <td className="px-6 py-4">
-                        <div className="flex items-center gap-2">
-                          <Button variant="ghost" size="sm" onClick={() => openEditModal(lesson)}>
-                            Edit
-                          </Button>
-                          <Button variant="danger" size="sm" onClick={() => handleDelete(lesson.id)}>
-                            Delete
-                          </Button>
-                        </div>
+                      <td className="px-6 py-4 relative pl-2">
+                        <LessonActionsMenu
+                          lesson={lesson}
+                          onEdit={() => openEditModal(lesson)}
+                          onDelete={() => handleDelete(lesson.id)}
+                        />
                       </td>
                     </tr>
                   ))}
