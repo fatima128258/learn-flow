@@ -13,7 +13,7 @@ import {
 } from '@/components/ui';
 import { PageHeader } from '@/components/dashboard';
 import { useCurrentUser } from '@/features/auth/useCurrentUser';
-import { useProgress, useRecordProgress } from '@/features/student/useProgress';
+import { useProgress, useRecordProgress, useGenerateCertificate } from '@/features/student/useProgress';
 
 type LessonItem = {
   id: string;
@@ -73,6 +73,7 @@ type LessonRowProps = {
   onMarkingChange: (lessonId: string | null) => void;
   markingLessonId: string | null;
   onError: (error: string | null) => void;
+  onMarkedSuccess?: (lessonId: string) => void;
 };
 
 function LessonRow({
@@ -85,6 +86,7 @@ function LessonRow({
   onMarkingChange,
   markingLessonId,
   onError,
+  onMarkedSuccess,
 }: LessonRowProps) {
   const recordProgress = useRecordProgress(organizationId, courseId, moduleId, lesson.id);
   const isMarking = markingLessonId === lesson.id;
@@ -101,6 +103,8 @@ function LessonRow({
     
     try {
       await recordProgress.mutateAsync(true);
+      // Mark as completed locally and call success callback
+      onMarkedSuccess?.(lesson.id);
       // Success - cache is automatically invalidated by the mutation
     } catch (error) {
       const errorMessage = error instanceof Error 
@@ -188,6 +192,7 @@ export default function StudentModuleLessonsPage() {
   const [organizationId, setOrganizationId] = useState<string | null>(null);
   const [markingLessonId, setMarkingLessonId] = useState<string | null>(null);
   const [markingError, setMarkingError] = useState<string | null>(null);
+  const [completedLessonIds, setCompletedLessonIds] = useState<Set<string>>(new Set());
 
   // Use progress hook to get lesson completion status
   const { 
@@ -195,6 +200,9 @@ export default function StudentModuleLessonsPage() {
     isLoading: progressLoading, 
     error: progressError 
   } = useProgress(organizationId ?? '', courseId ?? '');
+
+  // Generate certificate mutation
+  const generateCertificate = useGenerateCertificate(organizationId ?? '', courseId ?? '');
 
   // Check auth and set organizationId
   useEffect(() => {
@@ -253,25 +261,38 @@ export default function StudentModuleLessonsPage() {
   // Helper to find module progress data
   const currentModule = progress?.modules.find(m => m.id === moduleId);
 
-  // Create a map of lesson IDs to completion status
-  const getLessonProgress = () => {
-    // If progress hasn't loaded yet, we can't determine completion status
-    // The backend doesn't provide individual lesson completion status in the module listing API,
-    // so we rely on the progress query which includes all completed lessons
-    if (!progress) return new Map();
+  // Check if course is 100% complete
+  const isCourseComplete = progress?.coursePercentage === 100;
+
+  // Get lesson completion status from progress data
+  // We need to fetch the full progress to know which lessons are completed
+  const getLessonCompletionStatus = (lessonId: string): boolean => {
+    if (!progress) return false;
     
-    // For now, we'll show Mark Viewed for all lessons since individual status isn't in the data
-    // This will be populated when we integrate with the progress API more deeply
-    return new Map();
+    // Get all completed lesson IDs from the progress data
+    // This is inferred from the module progress (completedLessons count)
+    // For a more accurate check, we'd need the backend to return individual lesson IDs
+    // For now, we'll check if this lesson appears to be completed by comparing counts
+    
+    // The backend API doesn't return individual lesson completion status,
+    // so we rely on the UI state being updated after mutation success
+    // The mutation invalidates the progress query, which will refetch
+    return false; // Will be updated when progress query refetches
   };
 
   const isLoading = userLoading || progressLoading;
 
   if (isLoading) {
     return (
-      <div className="mx-auto flex max-w-5xl items-center gap-3 text-neutral-700">
-        <Spinner size="lg" label="Loading lessons..." />
-        <span>Loading lessons...</span>
+      <div className="mx-auto max-w-6xl">
+        <PageHeader
+          subtitle="Student"
+          title="Module Lessons"
+        />
+        <div className="flex items-center justify-center gap-3 rounded-2xl border border-neutral-200 bg-white p-12 shadow-sm text-neutral-700">
+          <Spinner size="lg" label="Loading lessons..." />
+          <span className="text-lg font-medium">Loading lessons...</span>
+        </div>
       </div>
     );
   }
@@ -338,10 +359,13 @@ export default function StudentModuleLessonsPage() {
                     courseId={courseId!}
                     moduleId={moduleId!}
                     organizationId={organizationId!}
-                    isCompleted={false}
+                    isCompleted={completedLessonIds.has(lesson.id)}
                     onMarkingChange={setMarkingLessonId}
                     markingLessonId={markingLessonId}
                     onError={setMarkingError}
+                    onMarkedSuccess={(lessonId) => {
+                      setCompletedLessonIds(prev => new Set(prev).add(lessonId));
+                    }}
                   />
                 ))}
               </div>
@@ -356,6 +380,37 @@ export default function StudentModuleLessonsPage() {
                 >
                   Dismiss
                 </button>
+              </div>
+            )}
+
+            {isCourseComplete && (
+              <div className="mt-8 rounded-2xl border border-success-200 bg-success-50 p-6 shadow-sm">
+                <div className="flex items-start justify-between">
+                  <div>
+                    <h2 className="text-lg font-semibold text-success-900">Course Completed!</h2>
+                    <p className="mt-1 text-sm text-success-700">
+                      You have successfully completed all lessons. Generate your certificate to recognize your achievement.
+                    </p>
+                  </div>
+                  <Button
+                    size="md"
+                    variant="primary"
+                    disabled={generateCertificate.isPending}
+                    onClick={async () => {
+                      try {
+                        await generateCertificate.mutateAsync();
+                      } catch (error) {
+                        const errorMessage = error instanceof Error 
+                          ? error.message 
+                          : 'Failed to generate certificate. Please try again.';
+                        setMarkingError(errorMessage);
+                      }
+                    }}
+                    title="Generate your certificate for completing this course"
+                  >
+                    {generateCertificate.isPending ? 'Generating...' : 'Generate Certificate'}
+                  </Button>
+                </div>
               </div>
             )}
           </>
