@@ -90,7 +90,15 @@ function formatMetadata(metadata: Record<string, unknown> | null) {
 function formatTimestamp(iso: string) {
   const date = new Date(iso);
   if (Number.isNaN(date.getTime())) return iso;
-  return date.toLocaleString();
+  return date.toLocaleString('en-US', {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: false,
+  });
 }
 
 function DetailRow({
@@ -327,7 +335,15 @@ export const AuditLogTable: React.FC<AuditLogTableProps> = ({
                         </td>
                       )}
                       <td className="px-6 py-4 text-sm text-neutral-700">
-                        {new Date(log.createdAt).toLocaleString()}
+                        {new Date(log.createdAt).toLocaleString('en-US', {
+                          year: 'numeric',
+                          month: '2-digit',
+                          day: '2-digit',
+                          hour: '2-digit',
+                          minute: '2-digit',
+                          second: '2-digit',
+                          hour12: false,
+                        })}
                       </td>
                     </tr>
                   ))}
@@ -352,7 +368,15 @@ export const AuditLogTable: React.FC<AuditLogTableProps> = ({
                 >
                   <div className="flex items-start justify-between gap-2">
                     <Badge variant="info" size="sm">{log.action}</Badge>
-                    <span className="text-xs text-neutral-400">{new Date(log.createdAt).toLocaleString()}</span>
+                    <span className="text-xs text-neutral-400">{new Date(log.createdAt).toLocaleString('en-US', {
+                      year: 'numeric',
+                      month: '2-digit',
+                      day: '2-digit',
+                      hour: '2-digit',
+                      minute: '2-digit',
+                      second: '2-digit',
+                      hour12: false,
+                    })}</span>
                   </div>
                   <div className="mt-3 space-y-2 border-t border-neutral-100 pt-3">
                     <div>
