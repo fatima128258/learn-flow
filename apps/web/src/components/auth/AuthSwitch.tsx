@@ -85,6 +85,12 @@ export const AuthSwitch: React.FC<AuthSwitchProps> = ({ initialMode = 'login' })
         return;
       }
 
+      // DO NOT invalidate auth cache or trigger /auth/me after signup.
+      // The user should remain on the signup page and see the Welcome screen.
+      // Keep the cache empty — no automatic redirect will occur because
+      // the useCurrentUser hook will not have fresh data, which is the desired behavior.
+      // The user can explicitly navigate after seeing the Welcome message.
+      
       setSuccess(true);
       toast.success('Account created successfully!');
     } catch {

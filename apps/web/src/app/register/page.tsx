@@ -12,6 +12,8 @@ export default function RegisterPage() {
     if (isLoading) return;
     // Only redirect if user is FULLY PROVISIONED (has role and organizationId).
     // Unauthenticated users and unprovisioned users stay on the register page.
+    // NOTE: After successful signup, the cache is NOT invalidated, so this redirect
+    // will not trigger. The user will see the Welcome screen until they manually navigate.
     if (user?.role && user?.organizationId) {
       window.location.href = getPostLoginRedirect(user);
     }

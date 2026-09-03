@@ -201,6 +201,8 @@ describe('Student purchase journey (register → verify → login → browse →
         emailVerified: false,
         createdAt: now,
         updatedAt: now,
+        role: 'STUDENT',
+        organizationId: 'org-1',
       },
       token: 'verify-token',
       expiresAt: new Date(Date.now() + 3600000),

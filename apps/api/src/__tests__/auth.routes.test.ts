@@ -45,6 +45,8 @@ describe('Auth routes', () => {
           emailVerified: false,
           createdAt: new Date(),
           updatedAt: new Date(),
+          role: 'STUDENT',
+          organizationId: 'org-1',
         },
         token: 'token-123',
         expiresAt,

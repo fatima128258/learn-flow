@@ -88,7 +88,7 @@ export async function listOrganizationMembers(params: {
   const where = {
     organizationId: params.organizationId,
     // Exclude ORG_ADMIN from members list
-    role: params.role ? params.role : { not: 'ORG_ADMIN' },
+    role: params.role ? params.role : { not: 'ORG_ADMIN' as const },
   };
 
   const [items, total] = await Promise.all([

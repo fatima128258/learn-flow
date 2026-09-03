@@ -1,4 +1,6 @@
 import * as repo from '../repositories/authRepository';
+import * as orgRepo from '../repositories/organizationRepository';
+import getPrisma from '../prisma';
 import { generateToken, hashToken } from '../utils/tokens';
 import { getRedis } from '../utils/redis';
 import { sendVerificationEmail, sendPasswordResetEmail } from '../utils/email';
@@ -55,12 +57,15 @@ export async function registerUser({ name, email, password, sendEmail = true, ip
   const user = await repo.createUser({ name: name ?? null, email: normalizedEmail, passwordHash });
 
   // Assign new user to a default organization (use existing "Default" org or create one)
-  const defaultOrg = await repo.findOrganizationBySlug('default');
+  const defaultOrg = await orgRepo.findOrganizationBySlug('default');
   if (defaultOrg) {
-    await repo.createUserOrganization({
-      userId: user.id,
-      organizationId: defaultOrg.id,
-      role: 'STUDENT',
+    const prisma = getPrisma();
+    await prisma.userOrganization.create({
+      data: {
+        userId: user.id,
+        organizationId: defaultOrg.id,
+        role: 'STUDENT',
+      },
     });
   }
 
@@ -80,7 +85,25 @@ export async function registerUser({ name, email, password, sendEmail = true, ip
   const tokenHash = hashToken(token);
   const sessionExpiresAt = new Date(Date.now() + SESSION_TTL_SECONDS * 1000);
   await repo.createSession({ userId: user.id, tokenHash, expiresAt: sessionExpiresAt });
-  return { user, token, expiresAt: sessionExpiresAt, needsVerification: !sendEmail };
+
+  // Enrich response with role and organizationId (same logic as loginUser)
+  // This ensures signup response matches login response structure
+  const memberships: Array<{ role?: string; organizationId?: string }> = await repo.findUserOrganizationsByUserId(user.id);
+  const primaryMembership = memberships.find((membership) => membership.role === 'PLATFORM_ADMIN')
+    ?? memberships.find((membership) => membership.role === 'ORG_ADMIN')
+    ?? memberships.find((membership) => membership.role === 'INSTRUCTOR')
+    ?? memberships[0];
+
+  return {
+    user: {
+      ...user,
+      role: primaryMembership?.role,
+      organizationId: primaryMembership?.organizationId,
+    },
+    token,
+    expiresAt: sessionExpiresAt,
+    needsVerification: !sendEmail,
+  };
 }
 
 export async function loginUser({ email, password, ip = '127.0.0.1' }: { email: string; password: string; ip?: string }) {
