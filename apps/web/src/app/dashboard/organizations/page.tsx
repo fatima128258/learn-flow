@@ -538,8 +538,8 @@ export default function OrganizationsPage() {
 
       const adminEmailAssigned = resBody.data.user.email;
       setAssignOrg(null);
-      toast.success(`Organization admin ${adminEmailAssigned} assigned to "${assignOrg.name}".`);
       await load();
+      toast.success(`Organization admin ${adminEmailAssigned} assigned to "${assignOrg.name}".`);
     } catch {
       clearAdminCredentials();
       toast.error('Could not reach the API. Please try again.');
@@ -581,12 +581,12 @@ export default function OrganizationsPage() {
       }
 
       setStatusAction(null);
+      await load();
       toast.success(
         next === 'SUSPENDED'
           ? `Organization "${body.data.name}" was suspended.`
           : `Organization "${body.data.name}" was activated.`
       );
-      await load();
     } catch {
       toast.error('Could not reach the API. Please try again.');
       setStatusAction(null);
@@ -632,8 +632,8 @@ export default function OrganizationsPage() {
       setShowCreateModal(false);
       setNewName('');
       setNameError('');
-      toast.success(`Organization "${body.data.name}" was created.`);
       await load();
+      toast.success(`Organization "${body.data.name}" was created.`);
     } catch {
       toast.error('Could not reach the API. Please try again.');
     } finally {
@@ -679,8 +679,8 @@ export default function OrganizationsPage() {
       setEditingOrg(null);
       setEditName('');
       setEditNameError('');
-      toast.success(`Organization "${updatedName}" was updated.`);
       await load();
+      toast.success(`Organization "${updatedName}" was updated.`);
     } catch {
       toast.error('Could not reach the API. Please try again.');
     } finally {
@@ -771,9 +771,7 @@ export default function OrganizationsPage() {
                       <th className={tableHeadClass}>Email</th>
                       <th className={tableHeadClass}>Members</th>
                       <th className={tableHeadClass}>Created</th>
-                      <th className={tableHeadClass}>
-                        <span className="sr-only">Actions</span>
-                      </th>
+                      <th className={tableHeadClass}>Action</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-neutral-200">
