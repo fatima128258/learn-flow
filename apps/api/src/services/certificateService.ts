@@ -117,38 +117,48 @@ export async function generateCertificate(organizationId: string, userId: string
     completionDate: issued,
   });
 
-  await recordAudit({
-    action: 'CERTIFICATE_GENERATED',
-    organizationId,
-    actorUserId: userId,
-    actorName: student?.name ?? null,
-    actorRole: 'STUDENT',
-    resourceType: 'CERTIFICATE',
-    resourceId: certificate.id,
-    metadata: {
-      certificateId: certificate.certificateId,
-      courseId,
-      courseTitle: course.title,
-    },
-  });
+  try {
+    await recordAudit({
+      action: 'CERTIFICATE_GENERATED',
+      organizationId,
+      actorUserId: userId,
+      actorName: student?.name ?? null,
+      actorRole: 'STUDENT',
+      resourceType: 'CERTIFICATE',
+      resourceId: certificate.id,
+      metadata: {
+        certificateId: certificate.certificateId,
+        courseId,
+        courseTitle: course.title,
+      },
+    });
+  } catch (auditErr) {
+    console.error('Audit logging error:', auditErr);
+    // Continue even if audit fails
+  }
 
-  await dispatchNotification({
-    type: 'CERTIFICATE_GENERATED',
-    title: `Certificate for ${course.title}`,
-    body: `Your certificate for ${course.title} has been generated.`,
-    data: {
-      certificateId: certificate.certificateId,
-      courseId,
-      courseTitle: course.title,
-      verificationUrl: verificationUrl(certificate.verificationToken),
-    },
-    userId,
-    organizationId,
-    email: {
-      courseTitle: course.title,
-      certificateUrl: verificationUrl(certificate.verificationToken),
-    },
-  });
+  try {
+    await dispatchNotification({
+      type: 'CERTIFICATE_GENERATED',
+      title: `Certificate for ${course.title}`,
+      body: `Your certificate for ${course.title} has been generated.`,
+      data: {
+        certificateId: certificate.certificateId,
+        courseId,
+        courseTitle: course.title,
+        verificationUrl: verificationUrl(certificate.verificationToken),
+      },
+      userId,
+      organizationId,
+      email: {
+        courseTitle: course.title,
+        certificateUrl: verificationUrl(certificate.verificationToken),
+      },
+    });
+  } catch (notifErr) {
+    console.error('Notification error:', notifErr);
+    // Continue even if notification fails
+  }
 
   const pdfUrl = await createCertificatePdf(certificate, organizationId);
   if (pdfUrl) {
