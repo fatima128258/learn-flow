@@ -32,6 +32,9 @@ export async function listByUser(
   organizationId: string,
   options: { unreadOnly?: boolean; limit?: number } = {},
 ) {
+  // Enforce maximum limit of 100 to prevent unbounded data loading
+  const limit = options.limit ? Math.min(options.limit, 100) : 100;
+  
   return prisma().notification.findMany({
     where: {
       userId,
@@ -39,7 +42,7 @@ export async function listByUser(
       ...(options.unreadOnly ? { readAt: null } : {}),
     },
     orderBy: { createdAt: 'desc' },
-    take: options.limit,
+    take: limit,
   });
 }
 

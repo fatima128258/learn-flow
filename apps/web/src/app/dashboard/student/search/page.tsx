@@ -12,16 +12,7 @@ import {
   Input,
 } from '@/components/ui';
 import { PageHeader } from '@/components/dashboard';
-
-type MeResponse = {
-  user?: {
-    id?: string;
-    name?: string | null;
-    email?: string;
-    role?: string | null;
-    organizationId?: string | null;
-  };
-};
+import { useCurrentUser } from '@/features/auth/useCurrentUser';
 
 type CourseHit = {
   id: string;
@@ -49,6 +40,7 @@ function formatPrice(value: number | null) {
 }
 
 export default function StudentSearchPage() {
+  const { data: user, isLoading: userLoading } = useCurrentUser();
   const [organizationId, setOrganizationId] = useState<string | null>(null);
   const [query, setQuery] = useState('');
   const [submittedQuery, setSubmittedQuery] = useState('');
@@ -58,40 +50,28 @@ export default function StudentSearchPage() {
   const [navigatingCourseId, setNavigatingCourseId] = useState<string | null>(null);
   const router = useRouter();
 
+  // Check auth and set organizationId
   useEffect(() => {
-    let active = true;
-
-    async function guard() {
-      try {
-        const apiBase = process.env.NEXT_PUBLIC_API_URL || '';
-        const meRes = await fetch(`${apiBase}/api/v1/auth/me`, { credentials: 'include' });
-        if (!active) return;
-        if (!meRes.ok) {
-          window.location.href = '/login';
-          return;
-        }
-        const meData: MeResponse = await meRes.json();
-        if (!active) return;
-        if (meData.user?.role !== 'STUDENT') {
-          window.location.href = '/login';
-          return;
-        }
-        const orgId = meData.user?.organizationId ?? null;
-        if (!orgId) {
-          window.location.href = '/login';
-          return;
-        }
-        setOrganizationId(orgId);
-      } catch {
-        if (active) window.location.href = '/login';
-      }
+    if (userLoading) return;
+    
+    if (!user) {
+      window.location.href = '/login';
+      return;
     }
-
-    guard();
-    return () => {
-      active = false;
-    };
-  }, []);
+    
+    if (user.role !== 'STUDENT') {
+      window.location.href = '/login';
+      return;
+    }
+    
+    const orgId = user.organizationId ?? null;
+    if (!orgId) {
+      window.location.href = '/login';
+      return;
+    }
+    
+    setOrganizationId(orgId);
+  }, [user, userLoading]);
 
   async function runSearch(e?: React.FormEvent) {
     if (e) e.preventDefault();

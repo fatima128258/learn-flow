@@ -11,16 +11,7 @@ import {
   Spinner,
 } from '@/components/ui';
 import { PageHeader } from '@/components/dashboard';
-
-type MeResponse = {
-  user?: {
-    id?: string;
-    name?: string | null;
-    email?: string;
-    role?: string | null;
-    organizationId?: string | null;
-  };
-};
+import { useCurrentUser } from '@/features/auth/useCurrentUser';
 
 type Certificate = {
   certificateId: string;
@@ -53,11 +44,13 @@ function formatDate(value: string) {
 export default function StudentCertificateViewPage() {
   const params = useParams();
   const certificateId = typeof params.certificateId === 'string' ? params.certificateId : null;
+  const { data: user, isLoading: userLoading } = useCurrentUser();
 
   const [certificate, setCertificate] = useState<Certificate | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+  const [organizationId, setOrganizationId] = useState<string | null>(null);
 
   async function loadCertificate(orgId: string, certId: string) {
     try {
@@ -82,42 +75,51 @@ export default function StudentCertificateViewPage() {
     }
   }
 
+  // Check auth and set organizationId
   useEffect(() => {
+    if (userLoading) return;
+    
+    if (!user) {
+      window.location.href = '/login';
+      return;
+    }
+    
+    if (user.role !== 'STUDENT') {
+      window.location.href = '/login';
+      return;
+    }
+    
+    const orgId = user.organizationId ?? null;
+    if (!orgId) {
+      window.location.href = '/login';
+      return;
+    }
+    
+    setOrganizationId(orgId);
+    if (certificateId) loadCertificate(orgId, certificateId);
+  }, [user, userLoading, certificateId]);
+
+  // Load certificate data
+  useEffect(() => {
+    if (!organizationId || !certificateId) {
+      setLoading(false);
+      return;
+    }
     let active = true;
 
-    async function guard() {
+    async function load() {
       try {
-        const apiBase = process.env.NEXT_PUBLIC_API_URL || '';
-        const meRes = await fetch(`${apiBase}/api/v1/auth/me`, { credentials: 'include' });
-        if (!active) return;
-        if (!meRes.ok) {
-          window.location.href = '/login';
-          return;
-        }
-        const meData: MeResponse = await meRes.json();
-        if (!active) return;
-        if (meData.user?.role !== 'STUDENT') {
-          window.location.href = '/login';
-          return;
-        }
-        const orgId = meData.user?.organizationId ?? null;
-        if (!orgId) {
-          window.location.href = '/login';
-          return;
-        }
-        if (certificateId) await loadCertificate(orgId, certificateId);
-      } catch {
-        if (active) window.location.href = '/login';
+        await loadCertificate(organizationId ?? '', certificateId ?? '');
       } finally {
         if (active) setLoading(false);
       }
     }
 
-    guard();
+    load();
     return () => {
       active = false;
     };
-  }, [certificateId]);
+  }, [organizationId, certificateId]);
 
   async function copyUrl() {
     if (!certificate) return;

@@ -12,16 +12,7 @@ import {
   Spinner,
 } from '@/components/ui';
 import { PageHeader } from '@/components/dashboard';
-
-type MeResponse = {
-  user?: {
-    id?: string;
-    name?: string | null;
-    email?: string;
-    role?: string | null;
-    organizationId?: string | null;
-  };
-};
+import { useCurrentUser } from '@/features/auth/useCurrentUser';
 
 type CourseModule = {
   id: string;
@@ -51,6 +42,7 @@ export default function StudentCoursePage() {
   const params = useParams();
   const router = useRouter();
   const courseId = typeof params.courseId === 'string' ? params.courseId : null;
+  const { data: user, isLoading: userLoading } = useCurrentUser();
 
   const [course, setCourse] = useState<CourseDetail | null>(null);
   const [loading, setLoading] = useState(true);
@@ -58,43 +50,76 @@ export default function StudentCoursePage() {
   const [organizationId, setOrganizationId] = useState<string | null>(null);
   const [progressLoading, setProgressLoading] = useState(false);
 
+  // Check auth and set organizationId
   useEffect(() => {
+    if (userLoading) return;
+    
+    if (!user) {
+      window.location.href = '/login';
+      return;
+    }
+    
+    if (user.role !== 'STUDENT') {
+      window.location.href = '/login';
+      return;
+    }
+    
+    const orgId = user.organizationId ?? null;
+    if (!orgId) {
+      window.location.href = '/login';
+      return;
+    }
+    
+    setOrganizationId(orgId);
+    if (courseId) loadCourse(orgId, courseId);
+  }, [user, userLoading, courseId]);
+
+  // Load course data once organizationId is set
+  useEffect(() => {
+    if (!organizationId || !courseId) {
+      setLoading(false);
+      return;
+    }
     let active = true;
 
-    async function guard() {
+    async function load() {
       try {
         const apiBase = process.env.NEXT_PUBLIC_API_URL || '';
-        const meRes = await fetch(`${apiBase}/api/v1/auth/me`, { credentials: 'include' });
+        const res = await fetch(`${apiBase}/api/v1/organizations/${organizationId}/student/courses/${courseId}`, {
+          credentials: 'include',
+        });
         if (!active) return;
-        if (!meRes.ok) {
-          window.location.href = '/login';
+        if (!res.ok) {
+          let code: unknown = null;
+          try {
+            code = (await res.json())?.error;
+          } catch {
+            code = null;
+          }
+          if (code === 'STUDENT_NOT_ENROLLED') {
+            setError('You are not enrolled in this course.');
+          } else if (code === 'COURSE_NOT_FOUND') {
+            setError('Course not found.');
+          } else {
+            setError('Could not load course details. Please try again.');
+          }
           return;
         }
-        const meData: MeResponse = await meRes.json();
+        const body = await res.json();
         if (!active) return;
-        if (meData.user?.role !== 'STUDENT') {
-          window.location.href = '/login';
-          return;
-        }
-        const orgId = meData.user?.organizationId ?? null;
-        if (!orgId) {
-          window.location.href = '/login';
-          return;
-        }
-        setOrganizationId(orgId);
-        if (courseId) await loadCourse(orgId, courseId);
+        setCourse(body.data ?? null);
       } catch {
-        if (active) window.location.href = '/login';
+        if (active) setError('Could not reach the server. Please try again.');
       } finally {
         if (active) setLoading(false);
       }
     }
 
-    guard();
+    load();
     return () => {
       active = false;
     };
-  }, [courseId]);
+  }, [organizationId, courseId]);
 
   // Redirect to overview if course is still loading (overview handles non-enrolled users)
   useEffect(() => {

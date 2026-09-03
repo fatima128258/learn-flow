@@ -149,6 +149,8 @@ model Course {
 
   @@unique([organizationId, slug])
   @@index([organizationId, status])
+  @@index([instructorUserId])
+  @@index([organizationId, status, publishedAt])
 }
 
 model Module {

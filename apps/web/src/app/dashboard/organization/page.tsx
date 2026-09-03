@@ -22,6 +22,7 @@ import {
   ChartCard,
   LineChart,
 } from '../../../components/dashboard';
+import { useCurrentUser } from '../../../features/auth/useCurrentUser';
 
 type OrganizationInfo = {
   id: string;
@@ -55,16 +56,6 @@ type UsersResponse = {
   data?: MemberItem[];
   meta?: { page: number; limit: number; total: number };
   error?: string;
-};
-
-type MeResponse = {
-  user?: {
-    id?: string;
-    name?: string | null;
-    email?: string;
-    role?: string | null;
-    organizationId?: string | null;
-  };
 };
 
 type GrowthPoint = { month: string; members: number };
@@ -102,8 +93,8 @@ export default function OrganizationDashboardPage() {
   const toast = useToast();
   const searchParams = useSearchParams();
   const orgId = searchParams.get('organization');
+  const { data: user, isLoading: userLoading } = useCurrentUser();
 
-  const [user, setUser] = useState<{ name?: string | null; email?: string; organizationId?: string | null } | null>(null);
   const [summary, setSummary] = useState<DashboardSummary | null>(null);
   const [courseCount, setCourseCount] = useState<number | null>(null);
   const [members, setMembers] = useState<MemberItem[] | null>(null);
@@ -131,23 +122,26 @@ export default function OrganizationDashboardPage() {
     try {
       const apiBase = process.env.NEXT_PUBLIC_API_URL || '';
 
-      const [dashRes, usersRes, analyticsRes] = await Promise.all([
+      // Start all four requests in parallel
+      const coursesPromise = effectiveOrgId
+        ? fetch(
+            `${apiBase}/api/v1/organizations/${effectiveOrgId}/courses`,
+            { credentials: 'include' }
+          )
+        : Promise.resolve(null);
+
+      const [dashRes, usersRes, analyticsRes, coursesRes] = await Promise.all([
         fetch(`${apiBase}/api/v1/org/dashboard`, { credentials: 'include', headers: orgHeaders }),
         fetch(`${apiBase}/api/v1/org/users?page=1&limit=20`, { credentials: 'include', headers: orgHeaders }),
         fetch(`${apiBase}/api/v1/org/analytics`, { credentials: 'include', headers: orgHeaders }),
+        coursesPromise,
       ]);
 
       let courseCountValue: number | null = null;
-      if (effectiveOrgId) {
+      if (coursesRes && coursesRes.ok) {
         try {
-          const coursesRes = await fetch(
-            `${apiBase}/api/v1/organizations/${effectiveOrgId}/courses`,
-            { credentials: 'include' }
-          );
-          if (coursesRes.ok) {
-            const coursesBody: { success?: boolean; data?: unknown[] } = await coursesRes.json();
-            courseCountValue = Array.isArray(coursesBody.data) ? coursesBody.data.length : null;
-          }
+          const coursesBody: { success?: boolean; data?: unknown[] } = await coursesRes.json();
+          courseCountValue = Array.isArray(coursesBody.data) ? coursesBody.data.length : null;
         } catch {
           courseCountValue = null;
         }
@@ -197,6 +191,23 @@ export default function OrganizationDashboardPage() {
       setLoading(false);
     }
   }
+
+  // Perform role check and trigger initial load
+  useEffect(() => {
+    if (userLoading) return;
+    
+    if (!user) {
+      window.location.href = '/login';
+      return;
+    }
+    
+    if (user.role !== 'ORG_ADMIN' && user.role !== 'PLATFORM_ADMIN') {
+      window.location.href = '/login';
+      return;
+    }
+    
+    void load();
+  }, [user, userLoading]);
 
   function closeInstructorModal() {
     if (creatingInstructor) return;
@@ -280,41 +291,6 @@ export default function OrganizationDashboardPage() {
       setCreatingInstructor(false);
     }
   }
-
-  useEffect(() => {
-    let active = true;
-
-    async function guard() {
-      try {
-        const apiBase = process.env.NEXT_PUBLIC_API_URL || '';
-        const meRes = await fetch(`${apiBase}/api/v1/auth/me`, { credentials: 'include' });
-        if (!active) return;
-        if (!meRes.ok) {
-          window.location.href = '/login';
-          return;
-        }
-        const meData: MeResponse = await meRes.json();
-        if (!active) return;
-        if (meData.user?.role !== 'ORG_ADMIN' && meData.user?.role !== 'PLATFORM_ADMIN') {
-          window.location.href = '/login';
-          return;
-        }
-        setUser({
-          name: meData.user?.name ?? 'Organization Admin',
-          email: meData.user?.email ?? '',
-          organizationId: meData.user?.organizationId ?? null,
-        });
-        await load();
-      } catch {
-        if (active) window.location.href = '/login';
-      }
-    }
-
-    guard();
-    return () => {
-      active = false;
-    };
-  }, []);
 
   if (loading && summary === null && !error) {
     return (

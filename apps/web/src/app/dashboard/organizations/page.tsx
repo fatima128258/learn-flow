@@ -21,6 +21,7 @@ import { getOrganizationMembersErrorMessage } from '../../../features/admin/orga
 import { getAssignAdminErrorMessage } from '../../../features/admin/assignAdminError';
 import { PasswordInput } from '../../../components/forms/PasswordInput';
 import { useToast } from '../../../components/ui/ToastProvider';
+import { useCurrentUser } from '../../../features/auth/useCurrentUser';
 import {
   PageHeader,
   StatCard,
@@ -110,9 +111,7 @@ type AssignAdminResponse = {
   error?: string;
 };
 
-type MeResponse = {
-  user?: { role?: string | null };
-};
+// MeResponse removed - using useCurrentUser() hook instead
 
 const OrgIcon = (
   <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
@@ -320,6 +319,7 @@ function OrgActionsMenu({
 export default function OrganizationsPage() {
   const toast = useToast();
   const router = useRouter();
+  const { data: user, isLoading: userLoading } = useCurrentUser();
 
   const [organizations, setOrganizations] = useState<OrganizationItem[] | null>(null);
   const [meta, setMeta] = useState<OrganizationsResponse['meta'] | null>(null);
@@ -373,35 +373,17 @@ export default function OrganizationsPage() {
     }
   }
 
+  // Check auth and load organizations
   useEffect(() => {
-    let active = true;
+    if (userLoading) return;
 
-    async function guard() {
-      try {
-        const apiBase = process.env.NEXT_PUBLIC_API_URL || '';
-        const meRes = await fetch(`${apiBase}/api/v1/auth/me`, { credentials: 'include' });
-        if (!active) return;
-        if (!meRes.ok) {
-          window.location.href = '/login';
-          return;
-        }
-        const meData: MeResponse = await meRes.json();
-        if (!active) return;
-        if (meData.user?.role !== 'PLATFORM_ADMIN') {
-          window.location.href = '/login';
-          return;
-        }
-        await load();
-      } catch {
-        if (active) window.location.href = '/login';
-      }
+    if (user?.role !== 'PLATFORM_ADMIN') {
+      window.location.href = '/login';
+      return;
     }
 
-    guard();
-    return () => {
-      active = false;
-    };
-  }, []);
+    load();
+  }, [user, userLoading]);
 
   function closeCreateModal() {
     if (creating) return;

@@ -11,16 +11,7 @@ import Link from 'next/link';
 import { getQuizErrorMessage } from '../../../../../../../../features/course/quizErrors';
 import { useToast } from '../../../../../../../../components/ui/ToastProvider';
 
-type MeResponse = {
-  user?: {
-    id?: string;
-    name?: string | null;
-    email?: string;
-    emailVerified?: boolean;
-    role?: string | null;
-    organizationId?: string | null;
-  };
-};
+import { useCurrentUser } from '../../../../../../../../features/auth/useCurrentUser';
 
 type QuizListItem = {
   id: string;
@@ -61,6 +52,7 @@ export default function ModuleQuizzesPage() {
   const moduleId = typeof params.moduleId === 'string' ? params.moduleId : null;
   const router = useRouter();
   const toast = useToast();
+  const { data: user, isLoading: userLoading } = useCurrentUser();
 
   const [checkingAuth, setCheckingAuth] = useState(true);
   const [organizationId, setOrganizationId] = useState<string | null>(null);
@@ -85,43 +77,25 @@ export default function ModuleQuizzesPage() {
   const [passingPercentageError, setPassingPercentageError] = useState('');
   const [maxAttemptsError, setMaxAttemptsError] = useState('');
 
+  // Check auth and set organizationId
   useEffect(() => {
-    let active = true;
+    if (userLoading) return;
 
-    async function guard() {
-      try {
-        const apiBase = process.env.NEXT_PUBLIC_API_URL || '';
-        const meRes = await fetch(`${apiBase}/api/v1/auth/me`, { credentials: 'include' });
-        if (!active) return;
-        if (!meRes.ok) {
-          window.location.href = '/login';
-          return;
-        }
-        const meData: MeResponse = await meRes.json();
-        if (!active) return;
-        const role = meData.user?.role;
-        if (role !== 'ORG_ADMIN' && role !== 'INSTRUCTOR') {
-          window.location.href = '/login';
-          return;
-        }
-        const orgId = meData.user?.organizationId ?? null;
-        if (!orgId) {
-          window.location.href = '/login';
-          return;
-        }
-        setOrganizationId(orgId);
-      } catch {
-        if (active) window.location.href = '/login';
-      } finally {
-        if (active) setCheckingAuth(false);
-      }
+    const role = user?.role;
+    if (role !== 'ORG_ADMIN' && role !== 'INSTRUCTOR') {
+      window.location.href = '/login';
+      return;
     }
 
-    guard();
-    return () => {
-      active = false;
-    };
-  }, []);
+    const orgId = user?.organizationId ?? null;
+    if (!orgId) {
+      window.location.href = '/login';
+      return;
+    }
+
+    setOrganizationId(orgId);
+    setCheckingAuth(false);
+  }, [user, userLoading]);
 
   useEffect(() => {
     if (!organizationId || !courseId || !moduleId) return;

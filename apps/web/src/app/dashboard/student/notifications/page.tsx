@@ -4,16 +4,7 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { Badge, EmptyState, EmptyStateIcons, ErrorState, Spinner } from '@/components/ui';
 import { PageHeader } from '@/components/dashboard';
-
-type MeResponse = {
-  user?: {
-    id?: string;
-    name?: string | null;
-    email?: string;
-    role?: string | null;
-    organizationId?: string | null;
-  };
-};
+import { useCurrentUser } from '@/features/auth/useCurrentUser';
 
 type NotificationDto = {
   id: string;
@@ -41,51 +32,15 @@ function formatDate(value: string) {
 }
 
 export default function StudentNotificationsPage() {
+  const { data: user, isLoading: userLoading } = useCurrentUser();
   const [notifications, setNotifications] = useState<NotificationDto[] | null>(null);
   const [unreadCount, setUnreadCount] = useState(0);
-  const [loading, setLoading] = useState(true);
+  const [notificationsLoading, setNotificationsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [organizationId, setOrganizationId] = useState<string | null>(null);
 
-  useEffect(() => {
-    let active = true;
-
-    async function init() {
-      try {
-        const apiBase = process.env.NEXT_PUBLIC_API_URL || '';
-        const meRes = await fetch(`${apiBase}/api/v1/auth/me`, { credentials: 'include' });
-        if (!active) return;
-        if (!meRes.ok) {
-          window.location.href = '/login';
-          return;
-        }
-        const meData: MeResponse = await meRes.json();
-        if (!active) return;
-        if (meData.user?.role !== 'STUDENT') {
-          window.location.href = '/login';
-          return;
-        }
-        const orgId = meData.user?.organizationId ?? null;
-        if (!orgId) {
-          window.location.href = '/login';
-          return;
-        }
-        setOrganizationId(orgId);
-        await loadNotifications(orgId);
-      } catch {
-        if (active) window.location.href = '/login';
-      } finally {
-        if (active) setLoading(false);
-      }
-    }
-
-    init();
-    return () => {
-      active = false;
-    };
-  }, []);
-
   async function loadNotifications(orgId: string) {
+    setNotificationsLoading(true);
     try {
       const apiBase = process.env.NEXT_PUBLIC_API_URL || '';
       const res = await fetch(`${apiBase}/api/v1/organizations/${orgId}/student/notifications`, {
@@ -100,8 +55,67 @@ export default function StudentNotificationsPage() {
       setUnreadCount(body.data?.unreadCount ?? 0);
     } catch {
       setError('Could not reach the server. Please try again.');
+    } finally {
+      setNotificationsLoading(false);
     }
   }
+
+  // Check auth and set organizationId
+  useEffect(() => {
+    if (userLoading) return;
+    
+    if (!user) {
+      window.location.href = '/login';
+      return;
+    }
+    
+    if (user.role !== 'STUDENT') {
+      window.location.href = '/login';
+      return;
+    }
+    
+    const orgId = user.organizationId ?? null;
+    if (!orgId) {
+      window.location.href = '/login';
+      return;
+    }
+    
+    setOrganizationId(orgId);
+  }, [user, userLoading]);
+
+  // Load notifications once organizationId is set
+  useEffect(() => {
+    if (!organizationId) return;
+    let active = true;
+
+    const load = async () => {
+      setNotificationsLoading(true);
+      try {
+        const apiBase = process.env.NEXT_PUBLIC_API_URL || '';
+        const res = await fetch(`${apiBase}/api/v1/organizations/${organizationId}/student/notifications`, {
+          credentials: 'include',
+        });
+        if (!active) return;
+        if (!res.ok) {
+          setError('Could not load your notifications. Please try again.');
+          return;
+        }
+        const body = await res.json();
+        if (!active) return;
+        setNotifications(body.data?.notifications ?? []);
+        setUnreadCount(body.data?.unreadCount ?? 0);
+      } catch {
+        if (active) setError('Could not reach the server. Please try again.');
+      } finally {
+        if (active) setNotificationsLoading(false);
+      }
+    };
+
+    load();
+    return () => {
+      active = false;
+    };
+  }, [organizationId]);
 
   async function markAsRead(id: string) {
     if (!organizationId) return;
@@ -141,7 +155,7 @@ export default function StudentNotificationsPage() {
     }
   }
 
-  if (loading) {
+  if (userLoading || notificationsLoading) {
     return (
       <div className="mx-auto flex max-w-3xl items-center gap-3 text-neutral-700">
         <Spinner size="lg" label="Loading notifications..." />

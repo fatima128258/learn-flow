@@ -107,39 +107,33 @@ function monthLabel(key: string) {
   return date.toLocaleString('en-US', { month: 'short', timeZone: 'UTC' });
 }
 
-function buildMemberGrowth(history: Array<{ createdAt: Date }>) {
-  if (history.length === 0) return [];
+function buildMemberGrowth(monthlyData: Array<{ yearMonth: string; count: number }>) {
+  if (monthlyData.length === 0) return [];
 
+  // Generate the last 12 months
   const now = new Date();
-  const buckets: string[] = [];
-  const cursor = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
-  for (let i = 0; i < 12; i++) {
-    buckets.unshift(monthKey(cursor));
-    cursor.setUTCMonth(cursor.getUTCMonth() - 1);
-  }
-  const firstBucket = buckets[0];
-  const earliest = monthKey(history[0].createdAt);
-  const start = earliest < firstBucket ? earliest : firstBucket;
-
-  const endKey = buckets[buckets.length - 1];
   const months: string[] = [];
-  const walked = new Date(`${start}-01T00:00:00.000Z`);
-  const endDate = new Date(`${endKey}-01T00:00:00.000Z`);
-  while (walked <= endDate) {
-    months.push(monthKey(walked));
-    walked.setUTCMonth(walked.getUTCMonth() + 1);
+  for (let i = 11; i >= 0; i--) {
+    const date = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - i, 1));
+    const key = date.toISOString().slice(0, 7); // YYYY-MM format
+    months.push(key);
   }
 
-  const membershipsByMonth = history.reduce<Record<string, number>>((acc, m) => {
-    const key = monthKey(m.createdAt);
-    acc[key] = (acc[key] ?? 0) + 1;
-    return acc;
-  }, {});
+  // Build a map of year-month -> count from aggregated data
+  const countsByMonth = new Map<string, number>();
+  for (const row of monthlyData) {
+    countsByMonth.set(row.yearMonth, row.count);
+  }
 
+  // Build cumulative growth chart
   let running = 0;
-  return months.map((key) => {
-    running += membershipsByMonth[key] ?? 0;
-    return { month: monthLabel(key), members: running };
+  return months.map((yearMonth) => {
+    running += countsByMonth.get(yearMonth) ?? 0;
+    const date = new Date(`${yearMonth}-01T00:00:00.000Z`);
+    return {
+      month: monthLabel(yearMonth),
+      members: running
+    };
   });
 }
 

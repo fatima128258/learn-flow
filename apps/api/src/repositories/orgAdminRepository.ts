@@ -15,14 +15,29 @@ const memberUserSelect = {
 };
 
 export async function getOrganizationMemberCounts(organizationId: string) {
-  const [total, instructors, students, orgAdmins] = await Promise.all([
-    prisma().userOrganization.count({ where: { organizationId } }),
-    prisma().userOrganization.count({ where: { organizationId, role: 'INSTRUCTOR' } }),
-    prisma().userOrganization.count({ where: { organizationId, role: 'STUDENT' } }),
-    prisma().userOrganization.count({ where: { organizationId, role: 'ORG_ADMIN' } }),
-  ]);
+  // Use a single groupBy query instead of 4 separate count queries
+  const rows = await prisma().userOrganization.groupBy({
+    by: ['role'],
+    where: { organizationId },
+    _count: { _all: true },
+  });
 
-  return { total, instructors, students, orgAdmins };
+  // Build a map of role → count
+  const counts: Record<string, number> = {};
+  let total = 0;
+  
+  for (const row of rows) {
+    const count = row._count._all;
+    counts[row.role] = count;
+    total += count;
+  }
+
+  return {
+    total,
+    instructors: counts.INSTRUCTOR ?? 0,
+    students: counts.STUDENT ?? 0,
+    orgAdmins: counts.ORG_ADMIN ?? 0,
+  };
 }
 
 export async function getOrganizationMemberCountByRole(organizationId: string) {
@@ -36,11 +51,29 @@ export async function getOrganizationMemberCountByRole(organizationId: string) {
 }
 
 export async function getOrganizationMembershipHistory(organizationId: string) {
-  return prisma().userOrganization.findMany({
-    where: { organizationId },
-    select: { createdAt: true, role: true },
-    orderBy: { createdAt: 'asc' },
-  });
+  // Aggregate membership growth by month directly in PostgreSQL using groupBy with date bucketing.
+  // This avoids loading thousands/millions of rows into Node.js memory.
+  const now = new Date();
+  const twelveMonthsAgo = new Date(now);
+  twelveMonthsAgo.setUTCMonth(twelveMonthsAgo.getUTCMonth() - 12);
+
+  // Use raw SQL to aggregate memberships by month
+  const results = await prisma().$queryRaw<Array<{ year_month: string; count: bigint }>>`
+    SELECT 
+      TO_CHAR(DATE_TRUNC('month', "createdAt"), 'YYYY-MM') AS year_month,
+      COUNT(*) as count
+    FROM "UserOrganization"
+    WHERE "organizationId" = ${organizationId}
+      AND "createdAt" >= ${twelveMonthsAgo}
+    GROUP BY DATE_TRUNC('month', "createdAt")
+    ORDER BY DATE_TRUNC('month', "createdAt") ASC
+  `;
+
+  // Convert BigInt counts to numbers and format as the service expects
+  return results.map(row => ({
+    yearMonth: row.year_month,
+    count: Number(row.count)
+  }));
 }
 
 export async function listOrganizationMembers(params: {

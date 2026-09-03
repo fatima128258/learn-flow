@@ -15,19 +15,9 @@ import {
   tableRowHoverClass,
   CourseActionsMenu,
 } from '../../../../components/dashboard';
+import { useCurrentUser } from '../../../../features/auth/useCurrentUser';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
-
-type MeResponse = {
-  user?: {
-    id?: string;
-    name?: string | null;
-    email?: string;
-    emailVerified?: boolean;
-    role?: string | null;
-    organizationId?: string | null;
-  };
-};
 
 type CourseListItem = {
   id: string;
@@ -214,49 +204,44 @@ export default function MyCoursesPage() {
   const toast = useToast();
   const searchParams = useSearchParams();
   const orgIdParam = searchParams.get('organization');
+  const { data: user, isLoading: userLoading } = useCurrentUser();
 
-  const [checkingAuth, setCheckingAuth] = useState(true);
   const [organizationId, setOrganizationId] = useState<string | null>(null);
   const [courses, setCourses] = useState<CourseListItem[] | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [coursesLoading, setCoursesLoading] = useState(false);
   const [statusModalCourseId, setStatusModalCourseId] = useState<string | null>(null);
 
+  // Extract organizationId from URL param or user context, perform role check
   useEffect(() => {
-    let active = true;
-
-    async function guard() {
-      try {
-        const apiBase = process.env.NEXT_PUBLIC_API_URL ?? '';
-        const meRes = await fetch(`${apiBase}/api/v1/auth/me`, { credentials: 'include' });
-        if (!active) return;
-        if (!meRes.ok) { window.location.href = '/login'; return; }
-        const meData: MeResponse = await meRes.json();
-        if (!active) return;
-        const role = meData.user?.role;
-        if (role !== 'ORG_ADMIN' && role !== 'INSTRUCTOR' && role !== 'PLATFORM_ADMIN') {
-          window.location.href = '/login';
-          return;
-        }
-        const orgId = orgIdParam ?? meData.user?.organizationId ?? null;
-        if (!orgId) { window.location.href = '/login'; return; }
-        setOrganizationId(orgId);
-      } catch {
-        if (active) window.location.href = '/login';
-      } finally {
-        if (active) setCheckingAuth(false);
-      }
+    if (userLoading) return;
+    
+    if (!user) {
+      window.location.href = '/login';
+      return;
     }
+    
+    const role = user.role;
+    if (role !== 'ORG_ADMIN' && role !== 'INSTRUCTOR' && role !== 'PLATFORM_ADMIN') {
+      window.location.href = '/login';
+      return;
+    }
+    
+    const orgId = orgIdParam ?? user.organizationId ?? null;
+    if (!orgId) {
+      window.location.href = '/login';
+      return;
+    }
+    
+    setOrganizationId(orgId);
+  }, [user, userLoading, orgIdParam]);
 
-    guard();
-    return () => { active = false; };
-  }, [orgIdParam]);
-
+  // Load courses once organizationId is set
   useEffect(() => {
     if (!organizationId) return;
     let active = true;
 
     async function load() {
-      setLoading(true);
+      setCoursesLoading(true);
       try {
         const apiBase = process.env.NEXT_PUBLIC_API_URL ?? '';
         const res = await fetch(
@@ -276,7 +261,7 @@ export default function MyCoursesPage() {
       } catch {
         if (active) toast.error(getListCoursesErrorMessage(null));
       } finally {
-        if (active) setLoading(false);
+        if (active) setCoursesLoading(false);
       }
     }
 
@@ -293,7 +278,7 @@ export default function MyCoursesPage() {
 
   const activeModal = courses?.find((c) => c.id === statusModalCourseId) ?? null;
 
-  if (checkingAuth) {
+  if (userLoading) {
     return (
       <div className="mx-auto flex max-w-3xl items-center gap-3 text-neutral-700">
         <Spinner size="lg" label="Loading..." />
@@ -334,7 +319,7 @@ export default function MyCoursesPage() {
             }
           />
 
-          {loading ? (
+          {coursesLoading ? (
             <div className="flex items-center gap-3 text-neutral-700">
               <Spinner size="md" label="Loading courses..." />
               <span>Loading courses...</span>

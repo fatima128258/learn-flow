@@ -11,15 +11,7 @@ import {
 } from '@/components/ui';
 import { PageHeader } from '@/components/dashboard';
 
-type MeResponse = {
-  user?: {
-    id?: string;
-    name?: string | null;
-    email?: string;
-    role?: string | null;
-    organizationId?: string | null;
-  };
-};
+import { useCurrentUser } from '@/features/auth/useCurrentUser';
 
 type Certificate = {
   certificateId: string;
@@ -48,48 +40,11 @@ function formatDate(value: string) {
 }
 
 export default function StudentCertificatesPage() {
+  const { data: user, isLoading: userLoading } = useCurrentUser();
   const [certificates, setCertificates] = useState<Certificate[] | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [organizationId, setOrganizationId] = useState<string | null>(null);
-
-  useEffect(() => {
-    let active = true;
-
-    async function guard() {
-      try {
-        const apiBase = process.env.NEXT_PUBLIC_API_URL || '';
-        const meRes = await fetch(`${apiBase}/api/v1/auth/me`, { credentials: 'include' });
-        if (!active) return;
-        if (!meRes.ok) {
-          window.location.href = '/login';
-          return;
-        }
-        const meData: MeResponse = await meRes.json();
-        if (!active) return;
-        if (meData.user?.role !== 'STUDENT') {
-          window.location.href = '/login';
-          return;
-        }
-        const orgId = meData.user?.organizationId ?? null;
-        if (!orgId) {
-          window.location.href = '/login';
-          return;
-        }
-        setOrganizationId(orgId);
-        await loadCertificates(orgId);
-      } catch {
-        if (active) window.location.href = '/login';
-      } finally {
-        if (active) setLoading(false);
-      }
-    }
-
-    guard();
-    return () => {
-      active = false;
-    };
-  }, []);
 
   async function loadCertificates(orgId: string) {
     try {
@@ -107,6 +62,52 @@ export default function StudentCertificatesPage() {
       setError('Could not reach the server. Please try again.');
     }
   }
+
+  // Check auth and set organizationId
+  useEffect(() => {
+    if (userLoading) return;
+    
+    if (!user) {
+      window.location.href = '/login';
+      return;
+    }
+    
+    if (user.role !== 'STUDENT') {
+      window.location.href = '/login';
+      return;
+    }
+    
+    const orgId = user.organizationId ?? null;
+    if (!orgId) {
+      window.location.href = '/login';
+      return;
+    }
+    
+    setOrganizationId(orgId);
+    loadCertificates(orgId);
+  }, [user, userLoading]);
+
+  // Load certificates data
+  useEffect(() => {
+    if (!organizationId) {
+      setLoading(false);
+      return;
+    }
+    let active = true;
+
+    async function load() {
+      try {
+        await loadCertificates(organizationId ?? '');
+      } finally {
+        if (active) setLoading(false);
+      }
+    }
+
+    load();
+    return () => {
+      active = false;
+    };
+  }, [organizationId]);
 
   if (loading) {
     return (

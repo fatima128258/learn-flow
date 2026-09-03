@@ -5,16 +5,7 @@ import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import { Badge, Button, ErrorState, Spinner } from '@/components/ui';
 import { PageHeader } from '@/components/dashboard';
-
-type MeResponse = {
-  user?: {
-    id?: string;
-    name?: string | null;
-    email?: string;
-    role?: string | null;
-    organizationId?: string | null;
-  };
-};
+import { useCurrentUser } from '@/features/auth/useCurrentUser';
 
 type LessonContent = {
   id: string;
@@ -40,6 +31,7 @@ export default function StudentLessonPage() {
   const courseId = typeof params.courseId === 'string' ? params.courseId : null;
   const moduleId = typeof params.moduleId === 'string' ? params.moduleId : null;
   const lessonId = typeof params.lessonId === 'string' ? params.lessonId : null;
+  const { data: user, isLoading: userLoading } = useCurrentUser();
 
   const [data, setData] = useState<LessonData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -80,45 +72,51 @@ export default function StudentLessonPage() {
     }
   }
 
+  // Check auth and set organizationId
   useEffect(() => {
+    if (userLoading) return;
+    
+    if (!user) {
+      window.location.href = '/login';
+      return;
+    }
+    
+    if (user.role !== 'STUDENT') {
+      window.location.href = '/login';
+      return;
+    }
+    
+    const orgId = user.organizationId ?? null;
+    if (!orgId) {
+      window.location.href = '/login';
+      return;
+    }
+    
+    setOrganizationId(orgId);
+    if (courseId && moduleId && lessonId) loadLesson(orgId, courseId, moduleId, lessonId);
+  }, [user, userLoading, courseId, moduleId, lessonId]);
+
+  // Load lesson data
+  useEffect(() => {
+    if (!organizationId || !courseId || !moduleId || !lessonId) {
+      setLoading(false);
+      return;
+    }
     let active = true;
 
-    async function guard() {
+    async function load() {
       try {
-        const apiBase = process.env.NEXT_PUBLIC_API_URL || '';
-        const meRes = await fetch(`${apiBase}/api/v1/auth/me`, { credentials: 'include' });
-        if (!active) return;
-        if (!meRes.ok) {
-          window.location.href = '/login';
-          return;
-        }
-        const meData: MeResponse = await meRes.json();
-        if (!active) return;
-        if (meData.user?.role !== 'STUDENT') {
-          window.location.href = '/login';
-          return;
-        }
-        const orgId = meData.user?.organizationId ?? null;
-        if (!orgId) {
-          window.location.href = '/login';
-          return;
-        }
-        setOrganizationId(orgId);
-        if (courseId && moduleId && lessonId) {
-          await loadLesson(orgId, courseId, moduleId, lessonId);
-        }
-      } catch {
-        if (active) window.location.href = '/login';
+        await loadLesson(organizationId ?? '', courseId ?? '', moduleId ?? '', lessonId ?? '');
       } finally {
         if (active) setLoading(false);
       }
     }
 
-    guard();
+    load();
     return () => {
       active = false;
     };
-  }, [courseId, moduleId, lessonId]);
+  }, [organizationId, courseId, moduleId, lessonId]);
 
   async function markComplete(completed: boolean) {
     if (!organizationId || !courseId || !moduleId || !lessonId) return;

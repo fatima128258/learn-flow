@@ -12,16 +12,7 @@ import {
 import { PageHeader } from '@/components/dashboard';
 import { getQuizErrorMessage } from '@/features/course/quizErrors';
 import { useToast } from '@/components/ui/ToastProvider';
-
-type MeResponse = {
-  user?: {
-    id?: string;
-    name?: string | null;
-    email?: string;
-    role?: string | null;
-    organizationId?: string | null;
-  };
-};
+import { useCurrentUser } from '@/features/auth/useCurrentUser';
 
 type QuizOption = {
   id: string;
@@ -72,6 +63,7 @@ export default function StudentQuizTakingPage() {
   const moduleId = typeof params.moduleId === 'string' ? params.moduleId : null;
   const quizId = typeof params.quizId === 'string' ? params.quizId : null;
   const toast = useToast();
+  const { data: user, isLoading: userLoading } = useCurrentUser();
 
   const [quiz, setQuiz] = useState<QuizForTaking | null>(null);
   const [result, setResult] = useState<AttemptResult | null>(null);
@@ -105,45 +97,51 @@ export default function StudentQuizTakingPage() {
     }
   }
 
+  // Check auth and set organizationId
   useEffect(() => {
+    if (userLoading) return;
+    
+    if (!user) {
+      window.location.href = '/login';
+      return;
+    }
+    
+    if (user.role !== 'STUDENT') {
+      window.location.href = '/login';
+      return;
+    }
+    
+    const orgId = user.organizationId ?? null;
+    if (!orgId) {
+      window.location.href = '/login';
+      return;
+    }
+    
+    setOrganizationId(orgId);
+    if (courseId && moduleId && quizId) loadQuiz(orgId, courseId, moduleId, quizId);
+  }, [user, userLoading, courseId, moduleId, quizId]);
+
+  // Load quiz data
+  useEffect(() => {
+    if (!organizationId || !courseId || !moduleId || !quizId) {
+      setLoading(false);
+      return;
+    }
     let active = true;
 
-    async function guard() {
+    async function load() {
       try {
-        const apiBase = process.env.NEXT_PUBLIC_API_URL || '';
-        const meRes = await fetch(`${apiBase}/api/v1/auth/me`, { credentials: 'include' });
-        if (!active) return;
-        if (!meRes.ok) {
-          window.location.href = '/login';
-          return;
-        }
-        const meData: MeResponse = await meRes.json();
-        if (!active) return;
-        if (meData.user?.role !== 'STUDENT') {
-          window.location.href = '/login';
-          return;
-        }
-        const orgId = meData.user?.organizationId ?? null;
-        if (!orgId) {
-          window.location.href = '/login';
-          return;
-        }
-        setOrganizationId(orgId);
-        if (courseId && moduleId && quizId) {
-          await loadQuiz(orgId, courseId, moduleId, quizId);
-        }
-      } catch {
-        if (active) window.location.href = '/login';
+        await loadQuiz(organizationId ?? '', courseId ?? '', moduleId ?? '', quizId ?? '');
       } finally {
         if (active) setLoading(false);
       }
     }
 
-    guard();
+    load();
     return () => {
       active = false;
     };
-  }, [courseId, moduleId, quizId]);
+  }, [organizationId, courseId, moduleId, quizId]);
 
   function selectOption(questionId: string, optionId: string) {
     if (result) return;

@@ -9,16 +9,7 @@ import {
   ErrorState,
   Spinner,
 } from '@/components/ui';
-
-type MeResponse = {
-  user?: {
-    id?: string;
-    name?: string | null;
-    email?: string;
-    role?: string | null;
-    organizationId?: string | null;
-  };
-};
+import { useCurrentUser } from '@/features/auth/useCurrentUser';
 
 type StatsResponse = {
   availableCourses: number;
@@ -94,83 +85,81 @@ const categoryFallback = (title: string) => {
 };
 
 export default function StudentDashboardPage() {
-  const [user, setUser] = useState<{ name?: string | null; email?: string } | null>(null);
+  const { data: user, isLoading: userLoading, error: userError } = useCurrentUser();
   const [courses, setCourses] = useState<EnrolledCourse[] | null>(null);
   const [stats, setStats] = useState<StatsResponse | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [coursesLoading, setCoursesLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [organizationId, setOrganizationId] = useState<string | null>(null);
 
+  // Extract organizationId from user and perform role check
   useEffect(() => {
+    if (userLoading) return;
+    
+    if (!user) {
+      window.location.href = '/login';
+      return;
+    }
+    
+    if (user.role !== 'STUDENT') {
+      window.location.href = '/login';
+      return;
+    }
+    
+    const orgId = user.organizationId ?? null;
+    if (!orgId) {
+      window.location.href = '/login';
+      return;
+    }
+    
+    setOrganizationId(orgId);
+  }, [user, userLoading]);
+
+  // Load courses once organizationId is set
+  useEffect(() => {
+    if (!organizationId) return;
     let active = true;
 
-    async function guard() {
+    async function loadCourses() {
+      setCoursesLoading(true);
       try {
         const apiBase = process.env.NEXT_PUBLIC_API_URL || '';
-        const meRes = await fetch(`${apiBase}/api/v1/auth/me`, { credentials: 'include' });
+        const [coursesRes, statsRes] = await Promise.all([
+          fetch(`${apiBase}/api/v1/organizations/${organizationId}/student/courses`, {
+            credentials: 'include',
+          }),
+          fetch(`${apiBase}/api/v1/organizations/${organizationId}/student/stats`, {
+            credentials: 'include',
+          }),
+        ]);
+
         if (!active) return;
-        if (!meRes.ok) {
-          window.location.href = '/login';
+
+        if (!coursesRes.ok) {
+          setError('Could not load your courses. Please try again.');
           return;
         }
-        const meData: MeResponse = await meRes.json();
+
+        const coursesBody = await coursesRes.json();
         if (!active) return;
-        if (meData.user?.role !== 'STUDENT') {
-          window.location.href = '/login';
-          return;
+        setCourses(coursesBody.data ?? []);
+
+        if (statsRes.ok) {
+          const statsBody = await statsRes.json();
+          if (active) setStats(statsBody.data ?? null);
         }
-        const orgId = meData.user?.organizationId ?? null;
-        if (!orgId) {
-          window.location.href = '/login';
-          return;
-        }
-        setUser({
-          name: meData.user?.name ?? 'Student',
-          email: meData.user?.email ?? '',
-        });
-        setOrganizationId(orgId);
-        await loadCourses(orgId);
       } catch {
-        if (active) window.location.href = '/login';
+        if (active) setError('Could not reach the server. Please try again.');
       } finally {
-        if (active) setLoading(false);
+        if (active) setCoursesLoading(false);
       }
     }
 
-    guard();
+    loadCourses();
     return () => {
       active = false;
     };
-  }, []);
-
-  async function loadCourses(orgId: string) {
-    try {
-      const apiBase = process.env.NEXT_PUBLIC_API_URL || '';
-      const [coursesRes, statsRes] = await Promise.all([
-        fetch(`${apiBase}/api/v1/organizations/${orgId}/student/courses`, {
-          credentials: 'include',
-        }),
-        fetch(`${apiBase}/api/v1/organizations/${orgId}/student/stats`, {
-          credentials: 'include',
-        }),
-      ]);
-
-      if (!coursesRes.ok) {
-        setError('Could not load your courses. Please try again.');
-        return;
-      }
-
-      const coursesBody = await coursesRes.json();
-      setCourses(coursesBody.data ?? []);
-
-      if (statsRes.ok) {
-        const statsBody = await statsRes.json();
-        setStats(statsBody.data ?? null);
-      }
-    } catch {
-      setError('Could not reach the server. Please try again.');
-    }
-  }
+  }, [organizationId]);
 
   const enrolled = courses ?? [];
   const categoryCount = new Set(enrolled.map((c) => c.category).filter(Boolean)).size;
@@ -180,7 +169,42 @@ export default function StudentDashboardPage() {
   );
   const estHours = totalMinutes > 0 ? `${Math.round(totalMinutes / 60)}h` : '0h';
 
-  if (loading) {
+  const handleRetryCourses = async () => {
+    if (organizationId) {
+      setCoursesLoading(true);
+      setError(null);
+      try {
+        const apiBase = process.env.NEXT_PUBLIC_API_URL || '';
+        const [coursesRes, statsRes] = await Promise.all([
+          fetch(`${apiBase}/api/v1/organizations/${organizationId}/student/courses`, {
+            credentials: 'include',
+          }),
+          fetch(`${apiBase}/api/v1/organizations/${organizationId}/student/stats`, {
+            credentials: 'include',
+          }),
+        ]);
+
+        if (!coursesRes.ok) {
+          setError('Could not load your courses. Please try again.');
+          return;
+        }
+
+        const coursesBody = await coursesRes.json();
+        setCourses(coursesBody.data ?? []);
+
+        if (statsRes.ok) {
+          const statsBody = await statsRes.json();
+          setStats(statsBody.data ?? null);
+        }
+      } catch {
+        setError('Could not reach the server. Please try again.');
+      } finally {
+        setCoursesLoading(false);
+      }
+    }
+  };
+
+  if (userLoading || (courses === null && coursesLoading)) {
     return (
       <div className="flex min-h-[50vh] items-center justify-center">
         <div className="flex items-center gap-3 text-neutral-700">
@@ -199,7 +223,7 @@ export default function StudentDashboardPage() {
           <ErrorState
             title="Unable to load courses"
             message={error}
-            action={{ label: 'Retry', onClick: () => organizationId && loadCourses(organizationId) }}
+            action={{ label: 'Retry', onClick: handleRetryCourses }}
           />
         </div>
       ) : courses !== null && courses.length === 0 ? (

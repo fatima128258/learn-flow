@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { getJson, postJson, deleteJson } from '../../lib/api';
 import type { Enrollment } from '../../lib/types';
+import { courseOverviewKey } from './useCourseStore';
 
 export function useEnrollments(organizationId: string) {
   return useQuery({
@@ -41,7 +42,7 @@ export function useEnroll(organizationId: string, courseId: string) {
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ['enrollment', organizationId, courseId] });
       void queryClient.invalidateQueries({ queryKey: ['enrollments', organizationId] });
-      void queryClient.invalidateQueries({ queryKey: ['courseOverview', organizationId, courseId] });
+      void queryClient.invalidateQueries({ queryKey: courseOverviewKey(organizationId, courseId) });
       void queryClient.invalidateQueries({ queryKey: ['courseSearch', organizationId] });
     },
   });
@@ -60,7 +61,7 @@ export function usePurchase(organizationId: string, courseId: string) {
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ['enrollment', organizationId, courseId] });
       void queryClient.invalidateQueries({ queryKey: ['enrollments', organizationId] });
-      void queryClient.invalidateQueries({ queryKey: ['courseOverview', organizationId, courseId] });
+      void queryClient.invalidateQueries({ queryKey: courseOverviewKey(organizationId, courseId) });
       void queryClient.invalidateQueries({ queryKey: ['courseSearch', organizationId] });
     },
   });
@@ -78,7 +79,7 @@ export function useUnenroll(organizationId: string, courseId: string) {
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ['enrollment', organizationId, courseId] });
       void queryClient.invalidateQueries({ queryKey: ['enrollments', organizationId] });
-      void queryClient.invalidateQueries({ queryKey: ['courseOverview', organizationId, courseId] });
+      void queryClient.invalidateQueries({ queryKey: courseOverviewKey(organizationId, courseId) });
       void queryClient.invalidateQueries({ queryKey: ['courseSearch', organizationId] });
     },
   });

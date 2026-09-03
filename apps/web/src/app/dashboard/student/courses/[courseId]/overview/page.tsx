@@ -15,16 +15,7 @@ import { PageHeader } from '@/components/dashboard';
 import { useToast } from '@/components/ui/ToastProvider';
 import { useEnroll, usePurchase } from '@/features/student/useEnrollment';
 import { getPurchaseErrorMessage } from '@/features/student/courseErrors';
-
-type MeResponse = {
-  user?: {
-    id?: string;
-    name?: string | null;
-    email?: string;
-    role?: string | null;
-    organizationId?: string | null;
-  };
-};
+import { useCurrentUser } from '@/features/auth/useCurrentUser';
 
 type CourseOverview = {
   id: string;
@@ -68,6 +59,7 @@ export default function StudentCourseOverviewPage() {
   const courseId = typeof params.courseId === 'string' ? params.courseId : null;
   const router = useRouter();
   const toast = useToast();
+  const { data: user, isLoading: userLoading } = useCurrentUser();
 
   const [course, setCourse] = useState<CourseOverview | null>(null);
   const [loading, setLoading] = useState(true);
@@ -78,43 +70,29 @@ export default function StudentCourseOverviewPage() {
   const enrollMutation = useEnroll(organizationId || '', courseId || '');
   const purchaseMutation = usePurchase(organizationId || '', courseId || '');
 
+  // Check auth and set organizationId
   useEffect(() => {
-    let active = true;
-
-    async function guard() {
-      try {
-        const apiBase = process.env.NEXT_PUBLIC_API_URL || '';
-        const meRes = await fetch(`${apiBase}/api/v1/auth/me`, { credentials: 'include' });
-        if (!active) return;
-        if (!meRes.ok) {
-          window.location.href = '/login';
-          return;
-        }
-        const meData: MeResponse = await meRes.json();
-        if (!active) return;
-        if (meData.user?.role !== 'STUDENT') {
-          window.location.href = '/login';
-          return;
-        }
-        const orgId = meData.user?.organizationId ?? null;
-        if (!orgId) {
-          window.location.href = '/login';
-          return;
-        }
-        setOrganizationId(orgId);
-        if (courseId) await loadCourse(orgId, courseId);
-      } catch {
-        if (active) window.location.href = '/login';
-      } finally {
-        if (active) setLoading(false);
-      }
+    if (userLoading) return;
+    
+    if (!user) {
+      window.location.href = '/login';
+      return;
     }
-
-    guard();
-    return () => {
-      active = false;
-    };
-  }, [courseId]);
+    
+    if (user.role !== 'STUDENT') {
+      window.location.href = '/login';
+      return;
+    }
+    
+    const orgId = user.organizationId ?? null;
+    if (!orgId) {
+      window.location.href = '/login';
+      return;
+    }
+    
+    setOrganizationId(orgId);
+    if (courseId) loadCourse(orgId, courseId);
+  }, [user, userLoading, courseId]);
 
   async function loadCourse(orgId: string, cid: string) {
     try {

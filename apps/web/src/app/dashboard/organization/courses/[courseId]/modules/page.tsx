@@ -9,6 +9,7 @@ import { Modal } from '../../../../../../components/ui/Modal';
 import Link from 'next/link';
 import { getModuleErrorMessage } from '../../../../../../features/course/moduleErrors';
 import { useToast } from '../../../../../../components/ui/ToastProvider';
+import { useCurrentUser } from '../../../../../../features/auth/useCurrentUser';
 
 // 3-dot menu component
 function ModuleActionsMenu({ module, courseId, organizationId, onEdit, onDelete }: {
@@ -86,17 +87,6 @@ function ModuleActionsMenu({ module, courseId, organizationId, onEdit, onDelete 
   );
 }
 
-type MeResponse = {
-  user?: {
-    id?: string;
-    name?: string | null;
-    email?: string;
-    emailVerified?: boolean;
-    role?: string | null;
-    organizationId?: string | null;
-  };
-};
-
 type ModuleListItem = {
   id: string;
   title: string;
@@ -134,6 +124,7 @@ export default function CourseModulesPage() {
   const courseId = typeof params.courseId === 'string' ? params.courseId : null;
   const router = useRouter();
   const toast = useToast();
+  const { data: user, isLoading: userLoading } = useCurrentUser();
 
   const [checkingAuth, setCheckingAuth] = useState(true);
   const [organizationId, setOrganizationId] = useState<string | null>(null);
@@ -153,43 +144,25 @@ export default function CourseModulesPage() {
   const [titleError, setTitleError] = useState('');
   const [orderError, setOrderError] = useState('');
 
+  // Check auth and set organizationId
   useEffect(() => {
-    let active = true;
+    if (userLoading) return;
 
-    async function guard() {
-      try {
-        const apiBase = process.env.NEXT_PUBLIC_API_URL || '';
-        const meRes = await fetch(`${apiBase}/api/v1/auth/me`, { credentials: 'include' });
-        if (!active) return;
-        if (!meRes.ok) {
-          window.location.href = '/login';
-          return;
-        }
-        const meData: MeResponse = await meRes.json();
-        if (!active) return;
-        const role = meData.user?.role;
-        if (role !== 'ORG_ADMIN' && role !== 'INSTRUCTOR') {
-          window.location.href = '/login';
-          return;
-        }
-        const orgId = meData.user?.organizationId ?? null;
-        if (!orgId) {
-          window.location.href = '/login';
-          return;
-        }
-        setOrganizationId(orgId);
-      } catch {
-        if (active) window.location.href = '/login';
-      } finally {
-        if (active) setCheckingAuth(false);
-      }
+    const role = user?.role;
+    if (role !== 'ORG_ADMIN' && role !== 'INSTRUCTOR') {
+      window.location.href = '/login';
+      return;
     }
 
-    guard();
-    return () => {
-      active = false;
-    };
-  }, []);
+    const orgId = user?.organizationId ?? null;
+    if (!orgId) {
+      window.location.href = '/login';
+      return;
+    }
+
+    setOrganizationId(orgId);
+    setCheckingAuth(false);
+  }, [user, userLoading]);
 
   useEffect(() => {
     if (!organizationId || !courseId) return;
