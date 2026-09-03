@@ -71,10 +71,9 @@ export default function StudentCoursePage() {
     }
     
     setOrganizationId(orgId);
-    if (courseId) loadCourse(orgId, courseId);
-  }, [user, userLoading, courseId]);
+  }, [user, userLoading]);
 
-  // Load course data once organizationId is set
+  // Load course data once organizationId and courseId are set
   useEffect(() => {
     if (!organizationId || !courseId) {
       setLoading(false);
@@ -82,7 +81,8 @@ export default function StudentCoursePage() {
     }
     let active = true;
 
-    async function load() {
+    async function loadCourse() {
+      setLoading(true);
       try {
         const apiBase = '';
         const res = await fetch(`${apiBase}/api/v1/organizations/${organizationId}/student/courses/${courseId}`, {
@@ -97,66 +97,35 @@ export default function StudentCoursePage() {
             code = null;
           }
           if (code === 'STUDENT_NOT_ENROLLED') {
-            setError('You are not enrolled in this course.');
+            // Student is not enrolled - redirect to overview to show enrollment/purchase flow
+            setError(null);
+            router.replace(`/dashboard/student/courses/${courseId}/overview`);
+            return;
           } else if (code === 'COURSE_NOT_FOUND') {
             setError('Course not found.');
           } else {
             setError('Could not load course details. Please try again.');
           }
+          setLoading(false);
           return;
         }
         const body = await res.json();
         if (!active) return;
         setCourse(body.data ?? null);
+        setLoading(false);
       } catch {
-        if (active) setError('Could not reach the server. Please try again.');
-      } finally {
-        if (active) setLoading(false);
+        if (active) {
+          setError('Could not reach the server. Please try again.');
+          setLoading(false);
+        }
       }
     }
 
-    load();
+    loadCourse();
     return () => {
       active = false;
     };
-  }, [organizationId, courseId]);
-
-  // Redirect to overview if course is still loading (overview handles non-enrolled users)
-  useEffect(() => {
-    if (!loading && !course && !error && organizationId && courseId) {
-      // If not enrolled, redirect to overview
-      router.replace(`/dashboard/student/courses/${courseId}/overview`);
-    }
-  }, [loading, course, error, organizationId, courseId, router]);
-
-  async function loadCourse(orgId: string, cid: string) {
-    try {
-      const apiBase = '';
-      const res = await fetch(`${apiBase}/api/v1/organizations/${orgId}/student/courses/${cid}`, {
-        credentials: 'include',
-      });
-      if (!res.ok) {
-        let code: unknown = null;
-        try {
-          code = (await res.json())?.error;
-        } catch {
-          code = null;
-        }
-        if (code === 'STUDENT_NOT_ENROLLED') {
-          setError('You are not enrolled in this course.');
-        } else if (code === 'COURSE_NOT_FOUND') {
-          setError('Course not found.');
-        } else {
-          setError('Could not load course details. Please try again.');
-        }
-        return;
-      }
-      const body = await res.json();
-      setCourse(body.data ?? null);
-    } catch {
-      setError('Could not reach the server. Please try again.');
-    }
-  }
+  }, [organizationId, courseId, router]);
 
   async function handleViewProgress() {
     if (!courseId || progressLoading) return;
@@ -195,7 +164,17 @@ export default function StudentCoursePage() {
             <ErrorState
               title="Unable to load course"
               message={error}
-              action={organizationId && courseId ? { label: 'Retry', onClick: () => loadCourse(organizationId, courseId) } : undefined}
+              action={
+                organizationId && courseId
+                  ? {
+                      label: 'Retry',
+                      onClick: () => {
+                        setError(null);
+                        setLoading(true);
+                      },
+                    }
+                  : undefined
+              }
             />
           </div>
         ) : course ? (
