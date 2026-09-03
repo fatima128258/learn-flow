@@ -26,37 +26,58 @@ const OUT = resolve(
   '../../web/e2e/.local/seed.json',
 );
 
-function uniqueEmail(name) {
-  return `${name}-${Date.now()}@learnflow.test`;
-}
-
 async function main() {
   const passwordHash = await hash(PASSWORD);
 
-  const org = await prisma.organization.create({
-    data: { name: 'LearnFlow E2E Org', slug: `e2e-org-${Date.now()}`, status: 'ACTIVE' },
+  // Use consistent slug for upsert - fixes duplicate org issue
+  const E2E_ORG_SLUG = 'e2e-org-fixture';
+  const org = await prisma.organization.upsert({
+    where: { slug: E2E_ORG_SLUG },
+    update: { status: 'ACTIVE' },
+    create: { name: 'LearnFlow E2E Org', slug: E2E_ORG_SLUG, status: 'ACTIVE' },
   });
 
-  const platformAdmin = await prisma.user.create({
-    data: { name: 'E2E Platform Admin', email: uniqueEmail('platformadmin'), passwordHash, emailVerified: true },
+  // Use deterministic emails for upsert instead of timestamp-based
+  const platformAdminEmail = 'e2e-platformadmin@learnflow.test';
+  const orgAdminEmail = 'e2e-orgadmin@learnflow.test';
+  const instructorEmail = 'e2e-instructor@learnflow.test';
+  const studentEmail = 'e2e-student@learnflow.test';
+  const buyerEmail = 'e2e-buyer@learnflow.test';
+
+  const platformAdmin = await prisma.user.upsert({
+    where: { email: platformAdminEmail },
+    update: { name: 'E2E Platform Admin', passwordHash, emailVerified: true },
+    create: { name: 'E2E Platform Admin', email: platformAdminEmail, passwordHash, emailVerified: true },
   });
-  const orgAdmin = await prisma.user.create({
-    data: { name: 'E2E Org Admin', email: uniqueEmail('orgadmin'), passwordHash, emailVerified: true },
+  const orgAdmin = await prisma.user.upsert({
+    where: { email: orgAdminEmail },
+    update: { name: 'E2E Org Admin', passwordHash, emailVerified: true },
+    create: { name: 'E2E Org Admin', email: orgAdminEmail, passwordHash, emailVerified: true },
   });
-  const instructor = await prisma.user.create({
-    data: { name: 'E2E Instructor', email: uniqueEmail('instructor'), passwordHash, emailVerified: true },
+  const instructor = await prisma.user.upsert({
+    where: { email: instructorEmail },
+    update: { name: 'E2E Instructor', passwordHash, emailVerified: true },
+    create: { name: 'E2E Instructor', email: instructorEmail, passwordHash, emailVerified: true },
   });
-  const student = await prisma.user.create({
-    data: { name: 'E2E Student', email: uniqueEmail('student'), passwordHash, emailVerified: true },
+  const student = await prisma.user.upsert({
+    where: { email: studentEmail },
+    update: { name: 'E2E Student', passwordHash, emailVerified: true },
+    create: { name: 'E2E Student', email: studentEmail, passwordHash, emailVerified: true },
   });
   // A second student reserved for the purchase spec so it never collides with
   // a fixture student who may already be enrolled from a prior run.
-  const buyer = await prisma.user.create({
-    data: { name: 'E2E Buyer', email: uniqueEmail('buyer'), passwordHash, emailVerified: true },
+  const buyer = await prisma.user.upsert({
+    where: { email: buyerEmail },
+    update: { name: 'E2E Buyer', passwordHash, emailVerified: true },
+    create: { name: 'E2E Buyer', email: buyerEmail, passwordHash, emailVerified: true },
   });
 
-  const role = (userId, role) =>
-    prisma.userOrganization.create({ data: { userId, organizationId: org.id, role } });
+  const role = (userId, roleType) =>
+    prisma.userOrganization.upsert({
+      where: { userId_organizationId: { userId, organizationId: org.id } },
+      update: { role: roleType },
+      create: { userId, organizationId: org.id, role: roleType },
+    });
 
   await Promise.all([
     role(platformAdmin.id, 'PLATFORM_ADMIN'),
@@ -66,12 +87,16 @@ async function main() {
     role(buyer.id, 'STUDENT'),
   ]);
 
-  const category = await prisma.category.create({
-    data: { organizationId: org.id, name: 'Development', slug: 'development' },
+  const category = await prisma.category.upsert({
+    where: { organizationId_slug: { organizationId: org.id, slug: 'development' } },
+    update: { name: 'Development' },
+    create: { organizationId: org.id, name: 'Development', slug: 'development' },
   });
 
-  const published = await prisma.course.create({
-    data: {
+  const published = await prisma.course.upsert({
+    where: { organizationId_slug: { organizationId: org.id, slug: 'e2e-react-fundamentals' } },
+    update: { status: 'PUBLISHED', publishedAt: new Date() },
+    create: {
       organizationId: org.id,
       instructorUserId: instructor.id,
       title: 'E2E React Fundamentals',
@@ -88,8 +113,10 @@ async function main() {
     },
   });
 
-  const draft = await prisma.course.create({
-    data: {
+  const draft = await prisma.course.upsert({
+    where: { organizationId_slug: { organizationId: org.id, slug: 'e2e-draft-course' } },
+    update: { status: 'DRAFT' },
+    create: {
       organizationId: org.id,
       instructorUserId: instructor.id,
       title: 'E2E Draft Course',
@@ -103,9 +130,17 @@ async function main() {
     },
   });
 
-  const module = await prisma.module.create({
-    data: { courseId: published.id, title: 'Getting Started', order: 1 },
+  const module = await prisma.module.upsert({
+    where: { courseId_order: { courseId: published.id, order: 1 } },
+    update: { title: 'Getting Started' },
+    create: { courseId: published.id, title: 'Getting Started', order: 1 },
   });
+  // Delete existing lessons and quiz to ensure clean state
+  await prisma.quizAttempt.deleteMany({ where: { quiz: { moduleId: module.id } } });
+  await prisma.quiz.deleteMany({ where: { moduleId: module.id } });
+  await prisma.lessonProgress.deleteMany({ where: { lesson: { moduleId: module.id } } });
+  await prisma.lesson.deleteMany({ where: { moduleId: module.id } });
+
   await prisma.lesson.createMany({
     data: [
       { moduleId: module.id, title: 'Introduction', content: 'Welcome to the course.', type: 'Article', order: 1, isPreview: true },
@@ -131,11 +166,11 @@ async function main() {
     moduleId: module.id,
     credentials: {
       password: PASSWORD,
-      platformAdmin: { email: platformAdmin.email },
-      orgAdmin: { email: orgAdmin.email },
-      instructor: { email: instructor.email },
-      student: { email: student.email },
-      buyer: { email: buyer.email },
+      platformAdmin: { email: platformAdminEmail },
+      orgAdmin: { email: orgAdminEmail },
+      instructor: { email: instructorEmail },
+      student: { email: studentEmail },
+      buyer: { email: buyerEmail },
     },
   }, null, 2));
 
