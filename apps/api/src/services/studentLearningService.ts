@@ -169,17 +169,13 @@ export async function getCourseOverview(
 export async function listEnrolledCourses(organizationId: string, userId: string) {
   const enrollments = await enrollmentRepo.listByUser(userId);
   const orgEnrollments = enrollments.filter(
-    (e: { organizationId: string }) => e.organizationId === organizationId,
+    (e: { organizationId: string; course?: unknown }) => e.organizationId === organizationId,
   );
 
-  // OPTIMIZATION: Batch fetch all courses instead of N individual queries
-  const courseIds = orgEnrollments.map((e: EnrolledEnrollment) => e.courseId);
-  const courses = await courseRepo.getByIds(organizationId, courseIds);
-  const courseMap = new Map(courses.map((c: EnrolledCourseRecord) => [c.id, c]));
-  
+  // The course data is already included in the enrollment query, so no additional DB query needed
   return orgEnrollments
-    .map((enrollment: EnrolledEnrollment) => {
-      const course = courseMap.get(enrollment.courseId);
+    .map((enrollment: any) => {
+      const course = enrollment.course;
       return course ? toEnrolledCourseListItem(enrollment, course) : null;
     })
     .filter(Boolean);

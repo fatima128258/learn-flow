@@ -29,7 +29,7 @@ const organizationListInclude = {
   _count: {
     select: { 
       users: {
-        where: { role: { in: ['STUDENT', 'INSTRUCTOR'] as const } }
+        where: { role: { in: ['STUDENT' as const, 'INSTRUCTOR' as const] } }
       }
     },
   },
