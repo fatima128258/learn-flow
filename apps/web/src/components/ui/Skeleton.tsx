@@ -32,7 +32,7 @@ export const Skeleton = React.forwardRef<HTMLDivElement, SkeletonProps>(
     return (
       <div
         ref={ref}
-        className={`animate-pulse bg-neutral-200 ${variantStyles[variant]} ${className}`.trim()}
+        className={`bg-gradient-to-r from-neutral-200 via-neutral-100 to-neutral-200 animate-shimmer bg-[length:200%_100%] ${variantStyles[variant]} ${className}`.trim()}
         style={style}
         {...rest}
       />
