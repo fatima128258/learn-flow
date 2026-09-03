@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { useQuery } from '@tanstack/react-query';
 import { LinkButton } from '../../components/ui/LinkButton';
 import { useCurrentUser } from '../../features/auth/useCurrentUser';
@@ -42,6 +43,7 @@ const AdminsIcon = (
 );
 
 export default function DashboardPage() {
+  const router = useRouter();
   const { data: user, isLoading: userLoading } = useCurrentUser();
 
   const {
@@ -72,15 +74,15 @@ export default function DashboardPage() {
             : user.role === 'STUDENT'
               ? '/dashboard/student'
               : '/';
-      window.location.href = target;
+      router.push(target);
       return;
     }
     
     // If auth check completed but no user found, redirect to login
     if (!userLoading && !user) {
-      window.location.href = '/login';
+      router.push('/login');
     }
-  }, [user, userLoading]);
+  }, [user, userLoading, router]);
 
   const busy = userLoading || summaryLoading;
 

@@ -64,6 +64,7 @@ model UserOrganization {
   @@index([userId])
   @@index([organizationId])
   @@index([organizationId, role])
+  @@index([organizationId, createdAt])
 }
 
 model Session {

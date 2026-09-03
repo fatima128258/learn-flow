@@ -1,5 +1,6 @@
 'use client';
 import React, { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { AuthCard } from './AuthCard';
 import { LoginForm, LoginFormData } from './LoginForm';
 import { RegisterForm, RegisterFormData } from './RegisterForm';
@@ -13,12 +14,13 @@ export interface AuthSwitchProps {
   initialMode?: AuthMode;
 }
 
-const apiBase = process.env.NEXT_PUBLIC_BACKEND_URL || '';
+const apiBase = '';
 
 export const AuthSwitch: React.FC<AuthSwitchProps> = ({ initialMode = 'login' }) => {
   const [mode, setMode] = useState<AuthMode>(initialMode);
   const [success, setSuccess] = useState(false);
   const toast = useToast();
+  const router = useRouter();
 
   const switchMode = (next: AuthMode) => {
     if (next === mode) return;
@@ -43,7 +45,9 @@ export const AuthSwitch: React.FC<AuthSwitchProps> = ({ initialMode = 'login' })
       }
 
       toast.success('Signed in successfully. Redirecting...');
-      window.location.href = getPostLoginRedirect(responseData?.user);
+      // Use Next.js client-side navigation instead of full-page reload
+      // This preserves React Query cache and eliminates redundant /auth/me calls
+      router.push(getPostLoginRedirect(responseData?.user));
     } catch {
       toast.error('Unable to sign in. Please try again.');
     }
@@ -68,12 +72,12 @@ export const AuthSwitch: React.FC<AuthSwitchProps> = ({ initialMode = 'login' })
       setSuccess(true);
       toast.success('Account created successfully!');
       
-      // Redirect to welcome page with user details
+      // Redirect to welcome page with user details using client-side navigation
       const params = new URLSearchParams({
         email: data.email,
         name: data.name,
       });
-      window.location.href = `/welcome?${params.toString()}`;
+      router.push(`/welcome?${params.toString()}`);
     } catch {
       toast.error('Unable to create your account. Please try again.');
     }

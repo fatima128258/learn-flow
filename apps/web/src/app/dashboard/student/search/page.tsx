@@ -55,18 +55,18 @@ export default function StudentSearchPage() {
     if (userLoading) return;
     
     if (!user) {
-      window.location.href = '/login';
+      router.push('/login');
       return;
     }
     
     if (user.role !== 'STUDENT') {
-      window.location.href = '/login';
+      router.push('/login');
       return;
     }
     
     const orgId = user.organizationId ?? null;
     if (!orgId) {
-      window.location.href = '/login';
+      router.push('/login');
       return;
     }
     

@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useSearchParams } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import {
   Button,
   EmptyState,
@@ -91,6 +91,7 @@ const CoursesIcon = (
 
 export default function OrganizationDashboardPage() {
   const toast = useToast();
+  const router = useRouter();
   const searchParams = useSearchParams();
   const orgId = searchParams.get('organization');
   const { data: user, isLoading: userLoading } = useCurrentUser();
@@ -197,12 +198,12 @@ export default function OrganizationDashboardPage() {
     if (userLoading) return;
     
     if (!user) {
-      window.location.href = '/login';
+      router.push('/login');
       return;
     }
     
     if (user.role !== 'ORG_ADMIN' && user.role !== 'PLATFORM_ADMIN') {
-      window.location.href = '/login';
+      router.push('/login');
       return;
     }
     

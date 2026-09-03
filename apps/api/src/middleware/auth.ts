@@ -22,6 +22,20 @@ export interface AuthenticatedRequest extends Request {
     role?: string;
     organizationId?: string;
   };
+  // Cache auth context within single request lifecycle to avoid duplicate queries
+  __authCache?: {
+    userOrganizations?: Array<{
+      id: string;
+      userId: string;
+      organizationId: string;
+      role: string;
+      organization: {
+        id: string;
+        slug: string;
+        name: string;
+      };
+    }>;
+  };
 }
 
 export function hasRequiredRole(userRole: string | undefined, allowedRoles: string[]) {
@@ -55,13 +69,23 @@ export async function requireAuth(req: AuthenticatedRequest, res: Response, next
     req.userId = user.id;
     
     // Get user's organization memberships with organization details
+    // Use request-level cache to avoid duplicate queries within same request
     const prisma = getPrisma();
-    const userOrganizations = await prisma.userOrganization.findMany({
-      where: { userId: user.id },
-      include: {
-        organization: true,
-      },
-    });
+    let userOrganizations = req.__authCache?.userOrganizations;
+    
+    if (!userOrganizations) {
+      userOrganizations = await prisma.userOrganization.findMany({
+        where: { userId: user.id },
+        include: {
+          organization: true,
+        },
+      });
+      // Cache for reuse in other middleware (requireOrgAdmin, etc.) within same request
+      if (!req.__authCache) {
+        req.__authCache = {};
+      }
+      req.__authCache.userOrganizations = userOrganizations;
+    }
     
     // Filter out platform organizations for non-platform-admin users
     const validMemberships = userOrganizations.filter((membership) => {
@@ -193,12 +217,22 @@ export async function requirePlatformAdmin(req: AuthenticatedRequest, res: Respo
 
   try {
     const prisma = getPrisma();
-    const adminRole = await prisma.userOrganization.findFirst({
-      where: {
-        userId: req.user.id,
-        role: 'PLATFORM_ADMIN',
-      },
-    });
+    
+    // Use cached user organizations from requireAuth middleware to avoid duplicate query
+    const userOrganizations = req.__authCache?.userOrganizations;
+    let adminRole;
+    
+    if (userOrganizations) {
+      adminRole = userOrganizations.find((m) => m.role === 'PLATFORM_ADMIN');
+    } else {
+      // Fallback: query if cache not available
+      adminRole = await prisma.userOrganization.findFirst({
+        where: {
+          userId: req.user.id,
+          role: 'PLATFORM_ADMIN',
+        },
+      });
+    }
 
     if (!adminRole) {
       return res.status(403).json({ success: false, error: 'PLATFORM_ADMIN_REQUIRED' });
@@ -235,7 +269,56 @@ export async function requireOrgAdmin(req: AuthenticatedRequest, res: Response, 
       return res.status(400).json({ success: false, error: 'ORGANIZATION_REQUIRED' });
     }
 
-    // Check if user is platform admin
+    // Use cached user organizations from requireAuth middleware to avoid duplicate query
+    const userOrganizations = req.__authCache?.userOrganizations;
+    
+    if (userOrganizations) {
+      // Check platform admin from cache
+      const platformAdminMembership = userOrganizations.find(
+        (m) => m.role === 'PLATFORM_ADMIN'
+      );
+
+      if (platformAdminMembership) {
+        const organization = await prisma.organization.findUnique({
+          where: { id: finalOrgId },
+        });
+
+        if (!organization) {
+          return res.status(404).json({ success: false, error: 'ORGANIZATION_NOT_FOUND' });
+        }
+
+        req.user.role = 'PLATFORM_ADMIN';
+        req.user.organizationId = finalOrgId;
+        req.organizationId = finalOrgId;
+        return next();
+      }
+
+      // Check org admin from cache
+      const membership = userOrganizations.find(
+        (m) => m.organizationId === finalOrgId && m.role === 'ORG_ADMIN'
+      );
+
+      if (membership) {
+        req.user.role = 'ORG_ADMIN';
+        req.user.organizationId = finalOrgId;
+        req.organizationId = finalOrgId;
+        return next();
+      }
+
+      // Check if they have any role in this org but not admin
+      const hasOrgMembership = userOrganizations.find(
+        (m) => m.organizationId === finalOrgId
+      );
+
+      if (hasOrgMembership && hasOrgMembership.role !== 'ORG_ADMIN') {
+        return res.status(403).json({ success: false, error: 'ORG_ADMIN_REQUIRED' });
+      }
+
+      // No membership in this org
+      return res.status(403).json({ success: false, error: 'ORG_ADMIN_REQUIRED' });
+    }
+
+    // Fallback: query if cache not available (shouldn't happen if requireAuth ran first)
     const platformAdminMembership = await prisma.userOrganization.findFirst({
       where: {
         userId: req.user.id,
