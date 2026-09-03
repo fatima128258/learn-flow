@@ -9,7 +9,6 @@ import { getPostLoginRedirect } from '../../features/auth/postLoginRedirect';
 import { getLoginErrorMessage, getRegisterErrorMessage } from '../../features/auth/authErrors';
 import { meKey } from '../../features/auth/useCurrentUser';
 import { useToast } from '../ui/ToastProvider';
-import { PageLoader } from '../ui/Spinner';
 
 export type AuthMode = 'login' | 'register';
 
@@ -105,15 +104,6 @@ export const AuthSwitch: React.FC<AuthSwitchProps> = ({ initialMode = 'login' })
   };
 
   const isLogin = mode === 'login';
-
-  // Show full-page loading overlay when submitting
-  if (isSubmitting) {
-    return (
-      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
-        <PageLoader label={isLogin ? 'Signing in...' : 'Creating account...'} />
-      </div>
-    );
-  }
 
   return (
     <AuthCard
