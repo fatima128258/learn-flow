@@ -731,7 +731,7 @@ export default function OrganizationsPage() {
               onChange={(e) => setSearchTerm(e.target.value)}
               placeholder="Search by name, admin email"
             />
-          </div>
+          </div> 
           <Button size="sm" onClick={() => setShowCreateModal(true)}>
             Create Organization
           </Button>
