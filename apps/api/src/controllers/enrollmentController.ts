@@ -24,6 +24,8 @@ function handleError(res: Response, err: unknown) {
       return fail(res, 404, 'COURSE_NOT_FOUND');
     case 'COURSE_NOT_PUBLISHED':
       return fail(res, 400, 'COURSE_NOT_PUBLISHED');
+    case 'COURSE_REQUIRES_PAYMENT':
+      return fail(res, 400, 'COURSE_REQUIRES_PAYMENT');
     case 'ENROLLMENT_NOT_FOUND':
       return fail(res, 404, 'ENROLLMENT_NOT_FOUND');
     case 'ALREADY_ENROLLED':

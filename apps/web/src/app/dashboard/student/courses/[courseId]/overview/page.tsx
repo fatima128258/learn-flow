@@ -95,6 +95,7 @@ export default function StudentCourseOverviewPage() {
   }, [user, userLoading, courseId]);
 
   async function loadCourse(orgId: string, cid: string) {
+    setLoading(true);
     try {
       const apiBase = '';
       const res = await fetch(
@@ -113,12 +114,15 @@ export default function StudentCourseOverviewPage() {
         } else {
           setError('Could not load course details. Please try again.');
         }
+        setLoading(false);
         return;
       }
       const body = await res.json();
       setCourse(body.data ?? null);
+      setLoading(false);
     } catch {
       setError('Could not reach the server. Please try again.');
+      setLoading(false);
     }
   }
 

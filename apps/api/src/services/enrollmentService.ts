@@ -66,6 +66,13 @@ export async function enroll(organizationId: string, userId: string, courseId: s
     throw new Error('COURSE_NOT_PUBLISHED');
   }
 
+  // Prevent free enrollment of paid courses
+  const coursePrice = course.discountPrice != null ? course.discountPrice : course.price;
+  const unitPrice = coursePrice == null ? 0 : Number(coursePrice);
+  if (unitPrice > 0) {
+    throw new Error('COURSE_REQUIRES_PAYMENT');
+  }
+
   const existing = await enrollmentRepo.findByUserAndCourse(userId, courseId);
   if (existing) {
     throw new Error('ALREADY_ENROLLED');

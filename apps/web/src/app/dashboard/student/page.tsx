@@ -161,12 +161,11 @@ export default function StudentDashboardPage() {
     };
   }, [organizationId]);
 
-  const enrolled = courses ?? [];
-  const categoryCount = new Set(enrolled.map((c) => c.category).filter(Boolean)).size;
-  const totalMinutes = enrolled.reduce<number>(
+  const categoryCount = new Set(courses ? courses.map((c) => c.category).filter(Boolean) : []).size;
+  const totalMinutes = courses ? courses.reduce<number>(
     (sum, c) => sum + (c.estimatedMinutes ?? 0),
     0,
-  );
+  ) : 0;
   const estHours = totalMinutes > 0 ? `${Math.round(totalMinutes / 60)}h` : '0h';
 
   const handleRetryCourses = async () => {
@@ -204,7 +203,8 @@ export default function StudentDashboardPage() {
     }
   };
 
-  if (userLoading || (courses === null && coursesLoading)) {
+  // Show loading only if user data is still loading and we don't have error/courses yet
+  if (userLoading) {
     return (
       <div className="flex min-h-[50vh] items-center justify-center">
         <div className="flex items-center gap-3 text-neutral-700">
@@ -215,10 +215,22 @@ export default function StudentDashboardPage() {
     );
   }
 
+  // After user is loaded, ensure courses always has a value (never null)
+  // This prevents infinite loading state
+  const finalCourses = courses ?? [];
+  const isLoadingCourses = courses === null && coursesLoading;
+
   return (
     <div className="mx-auto max-w-6xl">
 
-      {error ? (
+      {isLoadingCourses ? (
+        <div className="flex min-h-[50vh] items-center justify-center">
+          <div className="flex items-center gap-3 text-neutral-700">
+            <Spinner size="lg" label="Loading courses..." />
+            <span>Loading courses...</span>
+          </div>
+        </div>
+      ) : error ? (
         <div className="rounded-2xl border border-neutral-200 bg-white shadow-sm">
           <ErrorState
             title="Unable to load courses"
@@ -226,7 +238,7 @@ export default function StudentDashboardPage() {
             action={{ label: 'Retry', onClick: handleRetryCourses }}
           />
         </div>
-      ) : courses !== null && courses.length === 0 ? (
+      ) : finalCourses.length === 0 ? (
         <div className="rounded-2xl border border-neutral-200 bg-white shadow-sm">
           <EmptyState
             icon={EmptyStateIcons.NoCourses}
@@ -238,10 +250,10 @@ export default function StudentDashboardPage() {
             }}
           />
         </div>
-      ) : courses !== null ? (
+      ) : (
         <>
           <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-3">
-            {enrolled.map((course) => (
+            {finalCourses.map((course) => (
               <Link key={course.courseId} href={`/dashboard/student/courses/${course.courseId}`}>
                 <div className="group h-full overflow-hidden rounded-2xl border border-neutral-200 bg-white shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-primary-200 hover:shadow-md">
                   {course.thumbnailUrl ? (
@@ -285,7 +297,7 @@ export default function StudentDashboardPage() {
             ))}
           </div>
         </>
-      ) : null}
+      )}
     </div>
   );
 }
