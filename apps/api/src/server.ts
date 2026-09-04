@@ -1,6 +1,7 @@
 import express, { Request, Response, NextFunction } from 'express';
 import cors from 'cors';
 import cookieParser from 'cookie-parser';
+import compression from 'compression';
 import authRoutes from './routes/authRoutes';
 import { adminRouter, organizationRouter } from './routes/organizationRoutes';
 import orgAdminRouter from './routes/orgAdminRoutes';
@@ -29,6 +30,7 @@ import { collectHealthReport } from './services/healthService';
 export const app = express();
 
 app.use(securityHeaders);
+app.use(compression());  // Enable gzip/brotli compression for all responses
 
 // CSRF defense-in-depth: reject state-changing requests whose Origin is not allowlisted.
 app.use('/api/v1', csrfOriginCheck);

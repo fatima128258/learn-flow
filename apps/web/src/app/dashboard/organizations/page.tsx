@@ -227,17 +227,19 @@ function OrgActionsMenu({
         </svg>
         Members
       </button>
-      <button
-        type="button"
-        role="menuitem"
-        className="flex w-full items-center gap-2.5 px-4 py-2.5 text-sm text-neutral-700 hover:bg-neutral-50 hover:text-neutral-900"
-        onClick={() => action(onAssignAdmin)}
-      >
-        <svg className="h-4 w-4 text-neutral-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
-          <path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-        </svg>
-        Assign Admin
-      </button>
+      {(!org.admins || org.admins.length === 0) && (
+        <button
+          type="button"
+          role="menuitem"
+          className="flex w-full items-center gap-2.5 px-4 py-2.5 text-sm text-neutral-700 hover:bg-neutral-50 hover:text-neutral-900"
+          onClick={() => action(onAssignAdmin)}
+        >
+          <svg className="h-4 w-4 text-neutral-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+          </svg>
+          Assign Admin
+        </button>
+      )}
       <button
         type="button"
         role="menuitem"

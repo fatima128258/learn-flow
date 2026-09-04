@@ -57,7 +57,12 @@ function toEnrollmentWithCourseDto(enrollment: EnrollmentWithCourse) {
 }
 
 export async function enroll(organizationId: string, userId: string, courseId: string) {
-  const course = await courseRepo.getById(organizationId, courseId);
+  // Parallel queries: fetch course and user together
+  const [course, user] = await Promise.all([
+    courseRepo.getById(organizationId, courseId),
+    authService.getUserById(userId),
+  ]);
+
   if (!course) {
     throw new Error('COURSE_NOT_FOUND');
   }
@@ -84,11 +89,12 @@ export async function enroll(organizationId: string, userId: string, courseId: s
     organizationId,
   });
 
+  // Use cached user data instead of fetching again
   await recordAudit({
     action: 'ENROLLMENT_CREATED',
     organizationId,
     actorUserId: userId,
-    actorName: (await authService.getUserById(userId))?.name ?? null,
+    actorName: user?.name ?? null,
     actorRole: 'STUDENT',
     resourceType: 'ENROLLMENT',
     resourceId: enrollment.id,

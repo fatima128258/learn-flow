@@ -50,7 +50,32 @@ export async function createCourse(data: CreateCourseData) {
       difficulty: data.difficulty,
       learningObjectives: data.learningObjectives,
     },
-    include: courseCategoryInclude,
+    select: {
+      id: true,
+      organizationId: true,
+      instructorUserId: true,
+      title: true,
+      slug: true,
+      description: true,
+      thumbnailUrl: true,
+      categoryId: true,
+      category: {
+        select: {
+          id: true,
+          name: true,
+          slug: true,
+        },
+      },
+      price: true,
+      discountPrice: true,
+      status: true,
+      publishedAt: true,
+      estimatedMinutes: true,
+      difficulty: true,
+      learningObjectives: true,
+      createdAt: true,
+      updatedAt: true,
+    },
   });
 }
 
@@ -101,14 +126,64 @@ export async function countByOrganization(organizationId: string, status?: strin
 export async function getById(organizationId: string, courseId: string) {
   return prisma().course.findFirst({
     where: { id: courseId, organizationId },
-    include: courseCategoryInclude,
+    select: {
+      id: true,
+      organizationId: true,
+      instructorUserId: true,
+      title: true,
+      slug: true,
+      description: true,
+      thumbnailUrl: true,
+      categoryId: true,
+      category: {
+        select: {
+          id: true,
+          name: true,
+          slug: true,
+        },
+      },
+      price: true,
+      discountPrice: true,
+      status: true,
+      publishedAt: true,
+      estimatedMinutes: true,
+      difficulty: true,
+      learningObjectives: true,
+      createdAt: true,
+      updatedAt: true,
+    },
   });
 }
 
 export async function getByIds(organizationId: string, courseIds: string[]) {
   return prisma().course.findMany({
     where: { id: { in: courseIds }, organizationId },
-    include: courseCategoryInclude,
+    select: {
+      id: true,
+      organizationId: true,
+      instructorUserId: true,
+      title: true,
+      slug: true,
+      description: true,
+      thumbnailUrl: true,
+      categoryId: true,
+      category: {
+        select: {
+          id: true,
+          name: true,
+          slug: true,
+        },
+      },
+      price: true,
+      discountPrice: true,
+      status: true,
+      publishedAt: true,
+      estimatedMinutes: true,
+      difficulty: true,
+      learningObjectives: true,
+      createdAt: true,
+      updatedAt: true,
+    },
   });
 }
 
@@ -129,7 +204,32 @@ export async function updateCourseStatus(
   }
   return prisma().course.findFirst({
     where: { id: courseId, organizationId },
-    include: courseCategoryInclude,
+    select: {
+      id: true,
+      organizationId: true,
+      instructorUserId: true,
+      title: true,
+      slug: true,
+      description: true,
+      thumbnailUrl: true,
+      categoryId: true,
+      category: {
+        select: {
+          id: true,
+          name: true,
+          slug: true,
+        },
+      },
+      price: true,
+      discountPrice: true,
+      status: true,
+      publishedAt: true,
+      estimatedMinutes: true,
+      difficulty: true,
+      learningObjectives: true,
+      createdAt: true,
+      updatedAt: true,
+    },
   });
 }
 
@@ -147,7 +247,32 @@ export async function updateThumbnail(
   }
   return prisma().course.findFirst({
     where: { id: courseId, organizationId },
-    include: courseCategoryInclude,
+    select: {
+      id: true,
+      organizationId: true,
+      instructorUserId: true,
+      title: true,
+      slug: true,
+      description: true,
+      thumbnailUrl: true,
+      categoryId: true,
+      category: {
+        select: {
+          id: true,
+          name: true,
+          slug: true,
+        },
+      },
+      price: true,
+      discountPrice: true,
+      status: true,
+      publishedAt: true,
+      estimatedMinutes: true,
+      difficulty: true,
+      learningObjectives: true,
+      createdAt: true,
+      updatedAt: true,
+    },
   });
 }
 
@@ -191,6 +316,31 @@ export async function updateCourse(
   }
   return prisma().course.findFirst({
     where: { id: courseId, organizationId },
-    include: courseCategoryInclude,
+    select: {
+      id: true,
+      organizationId: true,
+      instructorUserId: true,
+      title: true,
+      slug: true,
+      description: true,
+      thumbnailUrl: true,
+      categoryId: true,
+      category: {
+        select: {
+          id: true,
+          name: true,
+          slug: true,
+        },
+      },
+      price: true,
+      discountPrice: true,
+      status: true,
+      publishedAt: true,
+      estimatedMinutes: true,
+      difficulty: true,
+      learningObjectives: true,
+      createdAt: true,
+      updatedAt: true,
+    },
   });
 }

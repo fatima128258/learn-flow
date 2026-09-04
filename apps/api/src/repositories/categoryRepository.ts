@@ -37,6 +37,7 @@ export async function create(data: CreateCategoryData) {
       slug: data.slug,
       description: data.description ?? null,
     },
+    select: selectCategory(),
   });
 }
 
@@ -46,19 +47,22 @@ export async function findByName(organizationId: string, name: string) {
       organizationId,
       name: { equals: name, mode: 'insensitive' },
     },
+    select: selectCategory(),
   });
 }
 
 export async function findByIdAndOrganization(organizationId: string, categoryId: string) {
   return prisma().category.findFirst({
     where: { id: categoryId, organizationId },
+    select: selectCategory(),
   });
 }
 
 export async function listByOrganization(organizationId: string) {
   return prisma().category.findMany({
     where: { organizationId },
-    include: {
+    select: {
+      ...selectCategory(),
       _count: {
         select: { courses: true },
       },
@@ -81,6 +85,7 @@ export async function update(
   }
   return prisma().category.findFirst({
     where: { id: categoryId, organizationId },
+    select: selectCategory(),
   });
 }
 

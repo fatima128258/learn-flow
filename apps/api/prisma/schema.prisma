@@ -149,6 +149,7 @@ model Course {
   orderItems         OrderItem[]
 
   @@unique([organizationId, slug])
+  @@index([organizationId])
   @@index([organizationId, status])
   @@index([instructorUserId])
   @@index([organizationId, status, publishedAt])
