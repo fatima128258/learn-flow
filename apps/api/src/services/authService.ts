@@ -123,7 +123,7 @@ export async function registerUser({ name, email, password, sendEmail = true, ip
         });
     } else {
       // Fallback: send email without blocking (with .catch to prevent unhandled rejection)
-      sendPasswordResetEmail(normalizedEmail, verificationToken).catch((err) => {
+      sendVerificationEmail(normalizedEmail, verificationToken).catch((err) => {
         console.error('Failed to send verification email:', err);
       });
     }
