@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   Badge,
@@ -48,6 +48,7 @@ export default function StudentSearchPage() {
   const [searchError, setSearchError] = useState<string | null>(null);
   const [navigatingCourseId, setNavigatingCourseId] = useState<string | null>(null);
   const router = useRouter();
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Check auth and set organizationId
   useEffect(() => {
@@ -108,21 +109,73 @@ export default function StudentSearchPage() {
     runSearch();
   }, [organizationId]);
 
+  // Cleanup debounce timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+    };
+  }, []);
+
+  // Handle search input with debouncing
+  const handleSearchInput = (value: string) => {
+    setQuery(value);
+    setSearchError(null);
+    
+    // Clear existing timeout
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    
+    // Set new timeout to trigger search after 500ms of no typing
+    debounceRef.current = setTimeout(() => {
+      if (organizationId) {
+        runSearch();
+      }
+    }, 500);
+  };
+
+  // Clear search and reset to all courses
+  const handleClearSearch = () => {
+    setQuery('');
+    setSearchError(null);
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    if (organizationId) {
+      setLoading(true);
+      runSearch();
+    }
+  };
+
   return (
     <div className="mx-auto max-w-6xl">
       <PageHeader title="Available Courses" />
       <div className="mb-8 max-w-md">
-        <Input
-          variant="line"
-          placeholder="e.g. React, JavaScript, data science..."
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter') {
-              runSearch();
-            }
-          }}
-        />
+        <div className="relative">
+          <Input
+            variant="line"
+            placeholder="e.g. React, JavaScript, data science..."
+            value={query}
+            onChange={(e) => handleSearchInput(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                if (debounceRef.current) clearTimeout(debounceRef.current);
+                runSearch();
+              }
+            }}
+          />
+          {query && (
+            <button
+              type="button"
+              onClick={handleClearSearch}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-neutral-600 transition-colors"
+              aria-label="Clear search"
+            >
+              <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          )}
+        </div>
+        <p className="mt-2 text-xs text-neutral-500">
+          Search updates automatically as you type, or press Enter to search immediately
+        </p>
       </div>
 
         {searchError ? (

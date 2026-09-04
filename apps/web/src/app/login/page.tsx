@@ -10,10 +10,14 @@ export default function LoginPage() {
 
   useEffect(() => {
     if (isLoading) return;
-    // Only redirect if user is FULLY PROVISIONED (has role and organizationId).
-    // Unauthenticated users and unprovisioned users stay on the login page.
-    if (user?.role && user?.organizationId) {
-      window.location.href = getPostLoginRedirect(user);
+    // Redirect if user has a role. PLATFORM_ADMIN doesn't require organizationId.
+    // For other roles, getPostLoginRedirect handles the organizationId requirement.
+    if (user?.role) {
+      const redirectUrl = getPostLoginRedirect(user);
+      // Only redirect if not going to landing page (which means user is provisioned)
+      if (redirectUrl !== '/') {
+        window.location.href = redirectUrl;
+      }
     }
   }, [user, isLoading]);
 
