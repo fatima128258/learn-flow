@@ -1,6 +1,5 @@
 'use client';
 import React, { useState } from 'react';
-import { useRouter } from 'next/navigation';
 import { useQueryClient } from '@tanstack/react-query';
 import { AuthCard } from './AuthCard';
 import { LoginForm, LoginFormData } from './LoginForm';
@@ -23,7 +22,6 @@ export const AuthSwitch: React.FC<AuthSwitchProps> = ({ initialMode = 'login' })
   const [success, setSuccess] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const toast = useToast();
-  const router = useRouter();
   const queryClient = useQueryClient();
 
   const switchMode = (next: AuthMode) => {
@@ -52,15 +50,28 @@ export const AuthSwitch: React.FC<AuthSwitchProps> = ({ initialMode = 'login' })
 
       toast.success('Signed in successfully. Redirecting...');
       
+      // Log the response data for debugging
+      if (process.env.NODE_ENV === 'development') {
+        console.debug('[AuthSwitch] Login response data:', responseData);
+        console.debug('[AuthSwitch] User object from response:', responseData?.user);
+      }
+      
       // OPTIMIZATION: Invalidate auth cache to ensure fresh /auth/me data after login
       // This populates the React Query cache before navigation, eliminating the need for
       // redundant /auth/me calls when landing on dashboard or other authenticated pages
       await queryClient.invalidateQueries({ queryKey: meKey });
       await queryClient.refetchQueries({ queryKey: meKey });
       
-      // Use Next.js client-side navigation instead of full-page reload
-      // This preserves React Query cache and eliminates redundant /auth/me calls
-      router.push(getPostLoginRedirect(responseData?.user));
+      // Small delay to ensure cookies are properly set before redirect
+      await new Promise(resolve => setTimeout(resolve, 100));
+      
+      // Use window.location.href for a full page reload to ensure proper session/cookie handling
+      // This is consistent with how the login page handles redirects
+      const redirectUrl = getPostLoginRedirect(responseData?.user);
+      if (process.env.NODE_ENV === 'development') {
+        console.debug('[AuthSwitch] Redirecting to:', redirectUrl);
+      }
+      window.location.href = redirectUrl;
     } catch {
       toast.error('Unable to sign in. Please try again.');
       setIsSubmitting(false);

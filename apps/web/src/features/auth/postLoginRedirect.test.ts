@@ -7,15 +7,19 @@ describe('getPostLoginRedirect', () => {
   });
 
   it('redirects organization admins to their organization dashboard', () => {
-    expect(getPostLoginRedirect({ role: 'ORG_ADMIN' })).toBe('/dashboard/organization');
+    expect(getPostLoginRedirect({ role: 'ORG_ADMIN', organizationId: 'org-123' })).toBe('/dashboard/organization');
   });
 
-  it('redirects students to their learning dashboard', () => {
-    expect(getPostLoginRedirect({ role: 'STUDENT' })).toBe('/dashboard/student');
+  it('redirects students to their course search page', () => {
+    expect(getPostLoginRedirect({ role: 'STUDENT', organizationId: 'org-123' })).toBe('/dashboard/student/search');
   });
 
   it('redirects instructors to their instructor dashboard', () => {
-    expect(getPostLoginRedirect({ role: 'INSTRUCTOR' })).toBe('/dashboard/instructor');
+    expect(getPostLoginRedirect({ role: 'INSTRUCTOR', organizationId: 'org-123' })).toBe('/dashboard/instructor');
+  });
+
+  it('redirects organization admins without organization to home page', () => {
+    expect(getPostLoginRedirect({ role: 'ORG_ADMIN' })).toBe('/');
   });
 
   it('redirects all other users to the home page', () => {
