@@ -18,8 +18,6 @@ import { getCreateInstructorErrorMessage } from '@/features/orgAdmin/createInstr
 import { PasswordInput } from '@/components/forms/PasswordInput';
 import { useToast } from '@/components/ui/ToastProvider';
 import {
-  PageHeader,
-  StatCard,
   TableCard,
   UserAvatar,
   tableHeadClass,
@@ -53,30 +51,6 @@ function roleBadgeVariant(role: MemberRole) {
   if (role === 'INSTRUCTOR') return 'warning' as const;
   return 'default' as const;
 }
-
-const MembersIcon = (
-  <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
-    <path strokeLinecap="round" strokeLinejoin="round" d="M17 20h5v-2a3 3 0 00-4.974-2.337M14 20H2v-2a4 4 0 018-2.87M11 4a4 4 0 000 8M15.5 12a3.5 3.5 0 000-7M15 20h7v-2a3 3 0 00-2.97-3" />
-  </svg>
-);
-
-const AdminsIcon = (
-  <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
-    <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197" />
-  </svg>
-);
-
-const InstructorsIcon = (
-  <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
-    <path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-  </svg>
-);
-
-const StudentsIcon = (
-  <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
-    <path strokeLinecap="round" strokeLinejoin="round" d="M12 14l9-5-9-5-9 5 9 5zm0 0l9-5v6m-9 5l-6-3.333V10m12 0v6" />
-  </svg>
-);
 
 const API_BASE = '';
 
@@ -227,15 +201,9 @@ export default function OrgUsersPage() {
     }
   }
 
-  const memberCount = (members ?? []).length;
-  const adminCount = (members ?? []).filter((m) => m.role === 'ORG_ADMIN').length;
-  const instructorCount = (members ?? []).filter((m) => m.role === 'INSTRUCTOR').length;
-  const studentCount = (members ?? []).filter((m) => m.role === 'STUDENT').length;
-
   return (
     <>
       <div className="mx-auto max-w-5xl">
-
         <div className="mb-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
           <Input
             variant="line"
@@ -269,37 +237,6 @@ export default function OrgUsersPage() {
           </div>
         ) : (
           <>
-            <div className="mb-8 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-              <StatCard
-                label="Total members"
-                value={total ?? memberCount}
-                icon={MembersIcon}
-                tone="primary"
-                hint="Everyone in your organization"
-              />
-              <StatCard
-                label="Organization admins"
-                value={adminCount}
-                icon={AdminsIcon}
-                tone="neutral"
-                hint="Tenant-level administrators"
-              />
-              <StatCard
-                label="Instructors"
-                value={instructorCount}
-                icon={InstructorsIcon}
-                tone="warning"
-                hint="Course creators"
-              />
-              <StatCard
-                label="Students"
-                value={studentCount}
-                icon={StudentsIcon}
-                tone="success"
-                hint="Active learners"
-              />
-            </div>
-
             <TableCard
               title="Members"
               description={total !== null ? `${total} member${total === 1 ? '' : 's'}` : undefined}
@@ -398,7 +335,6 @@ export default function OrgUsersPage() {
               error={passwordError}
               placeholder="At least 8 characters"
               autoComplete="new-password"
-              // helperText="Use at least 8 characters"
               disabled={saving}
               required
             />

@@ -67,6 +67,15 @@ export async function getEnrolledCourseDetail(req: AuthenticatedRequest, res: Re
     if (!req.user) {
       return fail(res, 401, 'NOT_AUTHENTICATED');
     }
+    
+    // Add detailed logging for debugging
+    console.log('[getEnrolledCourseDetail] Request params:', {
+      organizationId: req.organizationId,
+      userId: req.user.id,
+      courseId: req.params.courseId,
+      userRole: req.user.role,
+    });
+    
     const data = await service.getEnrolledCourseDetail(
       tenantOrganizationId(req),
       req.user.id,
@@ -74,6 +83,7 @@ export async function getEnrolledCourseDetail(req: AuthenticatedRequest, res: Re
     );
     return res.status(200).json({ success: true, data });
   } catch (err) {
+    console.error('[getEnrolledCourseDetail] Error:', err);
     return handleError(res, err);
   }
 }

@@ -124,12 +124,12 @@ export default function StudentSearchPage() {
     // Clear existing timeout
     if (debounceRef.current) clearTimeout(debounceRef.current);
     
-    // Set new timeout to trigger search after 500ms of no typing
+    // Set new timeout to trigger search after 100ms of no typing
     debounceRef.current = setTimeout(() => {
       if (organizationId) {
         runSearch();
       }
-    }, 500);
+    }, 100);
   };
 
   // Clear search and reset to all courses
@@ -174,7 +174,7 @@ export default function StudentSearchPage() {
           )}
         </div>
         <p className="mt-2 text-xs text-neutral-500">
-          Search updates automatically as you type, or press Enter to search immediately
+          Results update instantly as you type, or press Enter to search immediately
         </p>
       </div>
 
