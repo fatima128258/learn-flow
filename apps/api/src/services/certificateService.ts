@@ -186,8 +186,9 @@ export async function generateCertificate(organizationId: string, userId: string
       });
       console.log('[CERTIFICATE] ✓ Notification dispatched');
     } catch (notifErr) {
-      console.error('[CERTIFICATE] ✗ Notification error:', notifErr);
-      // Continue even if notification fails
+      console.error('[CERTIFICATE] ✗ Notification error (non-critical, continuing):', notifErr);
+      // IMPORTANT: Continue even if notification fails - certificate is still valid
+      // This prevents Redis/queue issues from blocking certificate generation
     }
 
     console.log('[CERTIFICATE] Step 7: Generating PDF...');

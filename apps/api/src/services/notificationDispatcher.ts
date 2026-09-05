@@ -61,17 +61,34 @@ export async function processNotificationJob(job: NotificationJobData) {
 }
 
 export async function dispatchNotification(job: NotificationJobData) {
+  // Try to use queue if enabled and available
   if (isNotificationQueueEnabled()) {
     try {
-      await getNotificationQueue().add(NOTIFICATION_JOB_NAME, job);
+      const queue = getNotificationQueue();
+      
+      // Add timeout to prevent hanging on Redis connection issues
+      const addPromise = queue.add(NOTIFICATION_JOB_NAME, job);
+      const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('Queue add timeout')), 5000)
+      );
+      
+      await Promise.race([addPromise, timeoutPromise]);
       return true;
     } catch (err) {
-      console.error('Notification queue unavailable, processing inline:', err);
+      console.error('[NOTIFICATION] Queue add failed (Redis issue or timeout):', err);
+      // IMPORTANT: Continue to inline processing instead of failing
     }
   }
 
-  await processNotificationJob(job);
-  return false;
+  // Fallback: process notification inline (without queue)
+  try {
+    await processNotificationJob(job);
+    return false;
+  } catch (err) {
+    console.error('[NOTIFICATION] Inline notification processing failed:', err);
+    // Don't throw - notification failure should not block the main operation
+    return false;
+  }
 }
 
 export const NOTIFICATION_JOB_NAME = 'notification';
