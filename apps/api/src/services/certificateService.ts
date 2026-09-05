@@ -84,91 +84,137 @@ async function verifyStudentEligibility(organizationId: string, userId: string, 
 }
 
 export async function generateCertificate(organizationId: string, userId: string, courseId: string) {
-  const { course, courseProgress } = await verifyStudentEligibility(
+  console.log('[CERTIFICATE] === CERTIFICATE GENERATION STARTED ===');
+  console.log('[CERTIFICATE] Request params:', {
     organizationId,
-    userId,
+    userId: userId ? '***' + userId.slice(-4) : 'undefined',
     courseId,
-  );
-
-  const existing = await certificateRepo.findByUserAndCourse(userId, courseId);
-  if (existing) {
-    throw new Error('CERTIFICATE_EXISTS');
-  }
-
-  const [student, organization, instructor] = await Promise.all([
-    authService.getUserById(userId),
-    organizationRepo.findOrganizationById(organizationId),
-    authService.getUserById(course.instructorUserId),
-  ]);
-
-  const issued = courseProgress.completedAt ?? new Date();
-
-  const certificate = await certificateRepo.createCertificate({
-    certificateId: generateCertificateId(),
-    verificationToken: generateVerificationToken(),
-    userId,
-    courseId,
-    organizationId,
-    organizationName: organization?.name ?? 'Unknown Organization',
-    instructorUserId: course.instructorUserId,
-    instructorName: instructor?.name ?? 'Unknown Instructor',
-    studentName: student?.name ?? student?.email ?? 'Student',
-    courseTitle: course.title,
-    completionDate: issued,
+    timestamp: new Date().toISOString(),
   });
 
   try {
-    await recordAudit({
-      action: 'CERTIFICATE_GENERATED',
+    console.log('[CERTIFICATE] Step 1: Verifying student eligibility...');
+    const { course, courseProgress } = await verifyStudentEligibility(
       organizationId,
-      actorUserId: userId,
-      actorName: student?.name ?? null,
-      actorRole: 'STUDENT',
-      resourceType: 'CERTIFICATE',
-      resourceId: certificate.id,
-      metadata: {
-        certificateId: certificate.certificateId,
-        courseId,
-        courseTitle: course.title,
-      },
-    });
-  } catch (auditErr) {
-    console.error('Audit logging error:', auditErr);
-    // Continue even if audit fails
-  }
-
-  try {
-    await dispatchNotification({
-      type: 'CERTIFICATE_GENERATED',
-      title: `Certificate for ${course.title}`,
-      body: `Your certificate for ${course.title} has been generated.`,
-      data: {
-        certificateId: certificate.certificateId,
-        courseId,
-        courseTitle: course.title,
-        verificationUrl: verificationUrl(certificate.verificationToken),
-      },
       userId,
-      organizationId,
-      email: {
-        courseTitle: course.title,
-        certificateUrl: verificationUrl(certificate.verificationToken),
-      },
+      courseId,
+    );
+    console.log('[CERTIFICATE] ✓ Eligibility verified:', {
+      courseTitle: course.title,
+      completionPercentage: courseProgress.completionPercentage,
+      completed: courseProgress.completed,
     });
-  } catch (notifErr) {
-    console.error('Notification error:', notifErr);
-    // Continue even if notification fails
-  }
 
-  const pdfUrl = await createCertificatePdf(certificate, organizationId);
-  if (pdfUrl) {
-    certificate.pdfUrl = pdfUrl;
-  }
+    console.log('[CERTIFICATE] Step 2: Checking for existing certificate...');
+    const existing = await certificateRepo.findByUserAndCourse(userId, courseId);
+    if (existing) {
+      console.log('[CERTIFICATE] ✗ Certificate already exists:', existing.certificateId);
+      throw new Error('CERTIFICATE_EXISTS');
+    }
+    console.log('[CERTIFICATE] ✓ No existing certificate found');
 
-  return toCertificateDto(certificate);
+    console.log('[CERTIFICATE] Step 3: Fetching user and organization data...');
+    const [student, organization, instructor] = await Promise.all([
+      authService.getUserById(userId),
+      organizationRepo.findOrganizationById(organizationId),
+      authService.getUserById(course.instructorUserId),
+    ]);
+    console.log('[CERTIFICATE] ✓ Data fetched:', {
+      studentName: student?.name,
+      organizationName: organization?.name,
+      instructorName: instructor?.name,
+    });
+
+    const issued = courseProgress.completedAt ?? new Date();
+
+    console.log('[CERTIFICATE] Step 4: Creating certificate record...');
+    const certificate = await certificateRepo.createCertificate({
+      certificateId: generateCertificateId(),
+      verificationToken: generateVerificationToken(),
+      userId,
+      courseId,
+      organizationId,
+      organizationName: organization?.name ?? 'Unknown Organization',
+      instructorUserId: course.instructorUserId,
+      instructorName: instructor?.name ?? 'Unknown Instructor',
+      studentName: student?.name ?? student?.email ?? 'Student',
+      courseTitle: course.title,
+      completionDate: issued,
+    });
+    console.log('[CERTIFICATE] ✓ Certificate record created:', certificate.certificateId);
+
+    console.log('[CERTIFICATE] Step 5: Recording audit log...');
+    try {
+      await recordAudit({
+        action: 'CERTIFICATE_GENERATED',
+        organizationId,
+        actorUserId: userId,
+        actorName: student?.name ?? null,
+        actorRole: 'STUDENT',
+        resourceType: 'CERTIFICATE',
+        resourceId: certificate.id,
+        metadata: {
+          certificateId: certificate.certificateId,
+          courseId,
+          courseTitle: course.title,
+        },
+      });
+      console.log('[CERTIFICATE] ✓ Audit log recorded');
+    } catch (auditErr) {
+      console.error('[CERTIFICATE] ✗ Audit logging error:', auditErr);
+      // Continue even if audit fails
+    }
+
+    console.log('[CERTIFICATE] Step 6: Dispatching notification...');
+    try {
+      await dispatchNotification({
+        type: 'CERTIFICATE_GENERATED',
+        title: `Certificate for ${course.title}`,
+        body: `Your certificate for ${course.title} has been generated.`,
+        data: {
+          certificateId: certificate.certificateId,
+          courseId,
+          courseTitle: course.title,
+          verificationUrl: verificationUrl(certificate.verificationToken),
+        },
+        userId,
+        organizationId,
+        email: {
+          courseTitle: course.title,
+          certificateUrl: verificationUrl(certificate.verificationToken),
+        },
+      });
+      console.log('[CERTIFICATE] ✓ Notification dispatched');
+    } catch (notifErr) {
+      console.error('[CERTIFICATE] ✗ Notification error:', notifErr);
+      // Continue even if notification fails
+    }
+
+    console.log('[CERTIFICATE] Step 7: Generating PDF...');
+    const pdfUrl = await createCertificatePdf(certificate, organizationId);
+    if (pdfUrl) {
+      certificate.pdfUrl = pdfUrl;
+      console.log('[CERTIFICATE] ✓ PDF generated and uploaded:', pdfUrl);
+    } else {
+      console.log('[CERTIFICATE] ⚠ PDF generation skipped or failed');
+    }
+
+    console.log('[CERTIFICATE] === CERTIFICATE GENERATION COMPLETED ===');
+    return toCertificateDto(certificate);
+  } catch (error) {
+    console.error('[CERTIFICATE] === CERTIFICATE GENERATION FAILED ===');
+    console.error('[CERTIFICATE] Error details:', {
+      message: error instanceof Error ? error.message : 'Unknown error',
+      stack: error instanceof Error ? error.stack : undefined,
+      organizationId,
+      courseId,
+    });
+    throw error;
+  }
 }
 
 async function createCertificatePdf(certificate: CertificateRecord, organizationId: string) {
+  console.log('[CERTIFICATE-PDF] Starting PDF generation...');
   try {
     const pdfUrl = await certificatePdfService.uploadCertificatePdf(
       organizationId,
@@ -183,9 +229,14 @@ async function createCertificatePdf(certificate: CertificateRecord, organization
         completionDate: certificate.completionDate,
       },
     );
+    console.log('[CERTIFICATE-PDF] PDF uploaded successfully:', pdfUrl);
+    
     await certificateRepo.updatePdfUrl(certificate.id, pdfUrl);
+    console.log('[CERTIFICATE-PDF] PDF URL updated in database');
+    
     return pdfUrl;
-  } catch {
+  } catch (error) {
+    console.error('[CERTIFICATE-PDF] PDF generation/upload failed:', error);
     // Best-effort: certificate still issued without a stored PDF file.
     return null;
   }

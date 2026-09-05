@@ -38,17 +38,40 @@ function handleError(res: Response, err: unknown) {
 }
 
 export async function generateCertificate(req: AuthenticatedRequest, res: Response) {
+  console.log('[CONTROLLER] Certificate generation request received');
+  console.log('[CONTROLLER] Request params:', {
+    organizationId: req.params.organizationId,
+    courseId: req.params.courseId,
+    method: req.method,
+    path: req.path,
+  });
+  
   try {
     if (!req.user) {
+      console.error('[CONTROLLER] ✗ User not authenticated');
       return fail(res, 401, 'NOT_AUTHENTICATED');
     }
+    
+    console.log('[CONTROLLER] ✓ User authenticated:', {
+      userId: req.user.id ? '***' + req.user.id.slice(-4) : 'undefined',
+      role: req.user.role,
+      email: req.user.email,
+    });
+    
+    const orgId = tenantOrganizationId(req);
+    console.log('[CONTROLLER] Organization ID from middleware:', orgId);
+    
+    console.log('[CONTROLLER] Calling certificate service...');
     const data = await service.generateCertificate(
-      tenantOrganizationId(req),
+      orgId,
       req.user.id,
       req.params.courseId,
     );
+    
+    console.log('[CONTROLLER] ✓ Certificate service completed successfully');
     return res.status(201).json({ success: true, data });
   } catch (err) {
+    console.error('[CONTROLLER] ✗ Certificate generation failed:', err);
     return handleError(res, err);
   }
 }

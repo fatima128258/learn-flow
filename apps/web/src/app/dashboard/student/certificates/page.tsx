@@ -101,40 +101,85 @@ function CompletedCoursesSection({
   }, [courses, certificates, organizationId]);
 
   const handleGenerateCertificate = async (courseId: string) => {
+    console.log('[FRONTEND-CERT] === Certificate Generation Started ===');
+    console.log('[FRONTEND-CERT] Button clicked for course:', courseId);
+    console.log('[FRONTEND-CERT] organizationId:', organizationId || 'NOT SET');
+    
+    // **FIX: Check if organizationId is available**
+    if (!organizationId) {
+      console.error('[FRONTEND-CERT] ✗ organizationId is not available yet!');
+      alert('Organization ID not loaded. Please wait a moment and try again.');
+      return;
+    }
+    
     setGeneratingCourseId(courseId);
     
     try {
+      const apiUrl = `/api/v1/organizations/${organizationId}/student/courses/${courseId}/certificate`;
+      console.log('[FRONTEND-CERT] Making POST request to:', apiUrl);
+      console.log('[FRONTEND-CERT] Request time:', new Date().toISOString());
+      
       // Make direct API call instead of using hook
-      const res = await fetch(
-        `/api/v1/organizations/${organizationId}/student/courses/${courseId}/certificate`,
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          credentials: 'include',
-          body: JSON.stringify({}),
-        }
-      );
+      const res = await fetch(apiUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({}),
+      });
+      
+      console.log('[FRONTEND-CERT] Response status:', res.status, res.statusText);
       
       if (!res.ok) {
         const errorData = await res.json().catch(() => ({}));
+        console.error('[FRONTEND-CERT] ✗ API Error:', errorData);
+        
+        // Handle specific error cases
         if (errorData.error === 'CERTIFICATE_EXISTS') {
+          console.log('[FRONTEND-CERT] Certificate already exists, refreshing list...');
           // Certificate already exists, just refresh
           setCompletedCourses(prev => prev.filter(c => c.courseId !== courseId));
           onCertificateGenerated();
           return;
         }
-        throw new Error(errorData.error || 'Failed to generate certificate');
+        
+        // Map error codes to user-friendly messages
+        const errorMessages: Record<string, string> = {
+          'COURSE_NOT_COMPLETED': 'Course is not yet completed. Please finish all lessons first.',
+          'STUDENT_NOT_ENROLLED': 'You are not enrolled in this course.',
+          'COURSE_NOT_FOUND': 'Course not found.',
+          'FORBIDDEN': 'You do not have permission to generate this certificate.',
+          'SERVER_ERROR': 'Server error. Please try again later.',
+        };
+        
+        const message = errorMessages[errorData.error] || `Failed to generate certificate: ${errorData.error || 'Unknown error'}`;
+        throw new Error(message);
       }
+      
+      const responseData = await res.json();
+      console.log('[FRONTEND-CERT] ✓ Certificate generated successfully:', responseData);
       
       // Success - remove from completed list and refresh certificates
       setCompletedCourses(prev => prev.filter(c => c.courseId !== courseId));
       onCertificateGenerated();
+      console.log('[FRONTEND-CERT] === Certificate Generation Completed ===');
     } catch (error) {
-      console.error('Failed to generate certificate:', error);
-      // Show error to user
-      alert(error instanceof Error ? error.message : 'Failed to generate certificate. Please try again.');
+      console.error('[FRONTEND-CERT] === Certificate Generation Failed ===');
+      console.error('[FRONTEND-CERT] Error:', error);
+      
+      // Show error to user with better messages
+      let errorMessage = 'Failed to generate certificate. Please try again.';
+      
+      if (error instanceof TypeError && error.message.includes('fetch')) {
+        errorMessage = 'Cannot connect to server. Please make sure the API server is running.';
+        console.error('[FRONTEND-CERT] Network error - API server may be down');
+      } else if (error instanceof Error) {
+        errorMessage = error.message;
+      }
+      
+      alert(errorMessage);
     } finally {
       setGeneratingCourseId(null);
+      console.log('[FRONTEND-CERT] Button state reset');
     }
   };
 
