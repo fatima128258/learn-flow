@@ -13,7 +13,7 @@ import {
 } from '@/components/ui';
 import { PageHeader } from '@/components/dashboard';
 import { useCurrentUser } from '@/features/auth/useCurrentUser';
-import { useProgress, useRecordProgress, useGenerateCertificate } from '@/features/student/useProgress';
+import { useProgress, useRecordProgress } from '@/features/student/useProgress';
 
 type LessonItem = {
   id: string;
@@ -201,9 +201,6 @@ export default function StudentModuleLessonsPage() {
     isLoading: progressLoading, 
     error: progressError 
   } = useProgress(organizationId ?? '', courseId ?? '');
-
-  // Generate certificate mutation
-  const generateCertificate = useGenerateCertificate(organizationId ?? '', courseId ?? '');
 
   // Check auth and set organizationId
   useEffect(() => {
@@ -416,43 +413,7 @@ export default function StudentModuleLessonsPage() {
               </div>
             )}
 
-            {isCourseComplete && (
-              <div className="mt-8 rounded-2xl border border-success-200 bg-success-50 p-6 shadow-sm">
-                <div className="flex items-start justify-between">
-                  <div>
-                    <h2 className="text-lg font-semibold text-success-900">Course Completed!</h2>
-                    <p className="mt-1 text-sm text-success-700">
-                      You have successfully completed all lessons. Generate your certificate to recognize your achievement.
-                    </p>
-                  </div>
-                  <Button
-                    size="md"
-                    variant="primary"
-                    disabled={generateCertificate.isPending}
-                    onClick={async () => {
-                      try {
-                        await generateCertificate.mutateAsync();
-                        // Success - redirect to certificate
-                        window.location.href = '/dashboard/student/certificates';
-                      } catch (error) {
-                        // If certificate already exists, redirect to certificates page
-                        if (error instanceof Error && error.message === 'CERTIFICATE_EXISTS') {
-                          window.location.href = '/dashboard/student/certificates';
-                          return;
-                        }
-                        const errorMessage = error instanceof Error 
-                          ? error.message 
-                          : 'Failed to generate certificate. Please try again.';
-                        setMarkingError(errorMessage);
-                      }
-                    }}
-                    title="Generate your certificate for completing this course"
-                  >
-                    {generateCertificate.isPending ? 'Generating...' : 'Generate Certificate'}
-                  </Button>
-                </div>
-              </div>
-            )}
+
           </>
         ) : null}
       </div>
