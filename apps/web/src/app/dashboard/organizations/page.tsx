@@ -702,11 +702,11 @@ export default function OrganizationsPage() {
   const filteredOrganizations = organizations
     ? organizations.filter((org) => {
         if (!normalizedSearch) return true;
-        const adminMatch = org.admins?.some((admin) => admin.email.toLowerCase() === normalizedSearch) ?? false;
+        const adminMatch = org.admins?.some((admin) => admin.email.toLowerCase().includes(normalizedSearch)) ?? false;
         return (
-          org.name.toLowerCase() === normalizedSearch ||
-          org.slug.toLowerCase() === normalizedSearch ||
-          org.status.toLowerCase() === normalizedSearch ||
+          org.name.toLowerCase().includes(normalizedSearch) ||
+          org.slug.toLowerCase().includes(normalizedSearch) ||
+          org.status.toLowerCase().includes(normalizedSearch) ||
           adminMatch
         );
       })

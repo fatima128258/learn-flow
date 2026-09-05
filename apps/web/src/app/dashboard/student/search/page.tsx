@@ -116,7 +116,7 @@ export default function StudentSearchPage() {
     };
   }, []);
 
-  // Handle search input with debouncing
+  // Handle search input with minimal debouncing for instant feel
   const handleSearchInput = (value: string) => {
     setQuery(value);
     setSearchError(null);
@@ -124,12 +124,12 @@ export default function StudentSearchPage() {
     // Clear existing timeout
     if (debounceRef.current) clearTimeout(debounceRef.current);
     
-    // Set new timeout to trigger search after 100ms of no typing
+    // Minimal debounce (50ms) to prevent excessive API calls while maintaining instant feel
     debounceRef.current = setTimeout(() => {
       if (organizationId) {
         runSearch();
       }
-    }, 100);
+    }, 50);
   };
 
   // Clear search and reset to all courses
@@ -174,7 +174,7 @@ export default function StudentSearchPage() {
           )}
         </div>
         <p className="mt-2 text-xs text-neutral-500">
-          Results update instantly as you type, or press Enter to search immediately
+          Results update instantly as you type
         </p>
       </div>
 

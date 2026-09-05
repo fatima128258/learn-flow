@@ -247,7 +247,7 @@ export const AuditLogTable: React.FC<AuditLogTableProps> = ({
       setSearch(value.trim());
       setPage(1);
       setLoading(true);
-    }, 100);
+    }, 50);
   };
 
   useEffect(() => () => {
