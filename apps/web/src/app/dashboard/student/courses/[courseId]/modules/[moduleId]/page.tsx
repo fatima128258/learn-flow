@@ -13,7 +13,7 @@ import {
 } from '@/components/ui';
 import { PageHeader } from '@/components/dashboard';
 import { useCurrentUser } from '@/features/auth/useCurrentUser';
-import { useProgress, useRecordProgress } from '@/features/student/useProgress';
+import { useProgress, useRecordProgress, useModuleLessons } from '@/features/student/useProgress';
 
 type LessonItem = {
   id: string;
@@ -23,6 +23,7 @@ type LessonItem = {
   duration: number | null;
   order: number;
   isPreview: boolean;
+  isCompleted?: boolean;
 };
 
 type ModuleLessonsResponse = {
@@ -187,13 +188,10 @@ export default function StudentModuleLessonsPage() {
   const moduleId = typeof params.moduleId === 'string' ? params.moduleId : null;
   const { data: user, isLoading: userLoading } = useCurrentUser();
 
-  const [data, setData] = useState<ModuleLessonsResponse | null>(null);
   const [lessonError, setLessonError] = useState<string | null>(null);
   const [organizationId, setOrganizationId] = useState<string | null>(null);
   const [markingLessonId, setMarkingLessonId] = useState<string | null>(null);
   const [markingError, setMarkingError] = useState<string | null>(null);
-  const [completedLessonIds, setCompletedLessonIds] = useState<Set<string>>(new Set());
-  const [lessonsLoading, setLessonsLoading] = useState(false);
 
   // Use progress hook to get lesson completion status
   const { 
@@ -201,6 +199,13 @@ export default function StudentModuleLessonsPage() {
     isLoading: progressLoading, 
     error: progressError 
   } = useProgress(organizationId ?? '', courseId ?? '');
+
+  // Use new hook to fetch lessons with completion status
+  const {
+    data: lessonsData,
+    isLoading: lessonsLoading,
+    error: lessonsApiError
+  } = useModuleLessons(organizationId ?? '', courseId ?? '', moduleId ?? '');
 
   // Check auth and set organizationId
   useEffect(() => {
@@ -223,41 +228,23 @@ export default function StudentModuleLessonsPage() {
     }
     
     setOrganizationId(orgId);
-    if (courseId && moduleId) loadLessons(orgId, courseId, moduleId);
-  }, [user, userLoading, courseId, moduleId]);
+  }, [user, userLoading]);
 
-  async function loadLessons(orgId: string, cid: string, mid: string) {
-    setLessonsLoading(true);
-    try {
-      const apiBase = '';
-      const res = await fetch(
-        `${apiBase}/api/v1/organizations/${orgId}/student/courses/${cid}/modules/${mid}/lessons`,
-        { credentials: 'include' }
-      );
-      if (!res.ok) {
-        let code: unknown = null;
-        try {
-          code = (await res.json())?.error;
-        } catch {
-          code = null;
-        }
-        if (code === 'STUDENT_NOT_ENROLLED') {
-          setLessonError('You are not enrolled in this course.');
-        } else if (code === 'MODULE_NOT_FOUND') {
-          setLessonError('Module not found.');
-        } else {
-          setLessonError('Could not load lessons. Please try again.');
-        }
-        return;
+  // Handle API errors from React Query
+  useEffect(() => {
+    if (lessonsApiError) {
+      const error = lessonsApiError as any;
+      if (error?.message?.includes('STUDENT_NOT_ENROLLED')) {
+        setLessonError('You are not enrolled in this course.');
+      } else if (error?.message?.includes('MODULE_NOT_FOUND')) {
+        setLessonError('Module not found.');
+      } else {
+        setLessonError('Could not load lessons. Please try again.');
       }
-      const body = await res.json();
-      setData(body.data ?? null);
-    } catch {
-      setLessonError('Could not reach the server. Please try again.');
-    } finally {
-      setLessonsLoading(false);
+    } else {
+      setLessonError(null);
     }
-  }
+  }, [lessonsApiError]);
 
   // Helper to find module progress data
   const currentModule = progress?.modules.find(m => m.id === moduleId);
@@ -266,19 +253,11 @@ export default function StudentModuleLessonsPage() {
   const isCourseComplete = progress?.coursePercentage === 100;
 
   // Get lesson completion status from progress data
-  // We need to fetch the full progress to know which lessons are completed
   const getLessonCompletionStatus = (lessonId: string): boolean => {
     if (!progress) return false;
     
-    // Get all completed lesson IDs from the progress data
-    // This is inferred from the module progress (completedLessons count)
-    // For a more accurate check, we'd need the backend to return individual lesson IDs
-    // For now, we'll check if this lesson appears to be completed by comparing counts
-    
-    // The backend API doesn't return individual lesson completion status,
-    // so we rely on the UI state being updated after mutation success
-    // The mutation invalidates the progress query, which will refetch
-    return false; // Will be updated when progress query refetches
+    // Use the completed lesson IDs from the progress data
+    return progress.completedLessonIds?.includes(lessonId) ?? false;
   };
 
   const isLoading = userLoading || lessonsLoading;
@@ -329,15 +308,15 @@ export default function StudentModuleLessonsPage() {
             <div className="flex items-center gap-2 text-sm">
               <Link href="/dashboard/student" className="text-primary-600 hover:text-primary-700">My Courses</Link>
               <span className="text-neutral-400">/</span>
-              {data && (
+              {lessonsData && (
                 <>
                   <Link href={`/dashboard/student/courses/${courseId}`} className="text-primary-600 hover:text-primary-700">
-                    {data.courseName}
+                    {lessonsData.courseName}
                   </Link>
                   <span className="text-neutral-400">/</span>
                 </>
               )}
-              <span className="text-neutral-600">{data?.moduleTitle ?? 'Module'}</span>
+              <span className="text-neutral-600">{lessonsData?.moduleTitle ?? 'Module'}</span>
             </div>
           }
           actions={
@@ -354,24 +333,23 @@ export default function StudentModuleLessonsPage() {
             <ErrorState
               title="Unable to load lessons"
               message={lessonError}
-              action={organizationId && courseId && moduleId ? { label: 'Retry', onClick: () => loadLessons(organizationId, courseId!, moduleId!) } : undefined}
             />
           </div>
-        ) : data ? (
+        ) : lessonsData ? (
           <>
             <div className="mb-6 rounded-2xl border border-neutral-200 bg-white p-6 shadow-sm">
-              <h1 className="text-2xl font-bold text-neutral-900">{data.moduleTitle}</h1>
+              <h1 className="text-2xl font-bold text-neutral-900">{lessonsData.moduleTitle}</h1>
               {currentModule && (
                 <p className="mt-1 text-sm text-neutral-500">
                   {currentModule.completedLessons} of {currentModule.lessonCount} lessons completed ({currentModule.percentage}%)
                 </p>
               )}
               <p className="mt-1 text-sm text-neutral-500">
-                {data.lessons.length} lesson{data.lessons.length !== 1 ? 's' : ''} in this module
+                {lessonsData.lessons.length} lesson{lessonsData.lessons.length !== 1 ? 's' : ''} in this module
               </p>
             </div>
 
-            {data.lessons.length === 0 ? (
+            {lessonsData.lessons.length === 0 ? (
               <div className="rounded-2xl border border-neutral-200 bg-white shadow-sm">
                 <EmptyState
                   icon={EmptyStateIcons.NoData}
@@ -381,7 +359,7 @@ export default function StudentModuleLessonsPage() {
               </div>
             ) : (
               <div className="space-y-2">
-                {data.lessons.map((lesson, index) => (
+                {lessonsData.lessons.map((lesson: LessonItem, index: number) => (
                   <LessonRow
                     key={lesson.id}
                     lesson={lesson}
@@ -389,12 +367,12 @@ export default function StudentModuleLessonsPage() {
                     courseId={courseId!}
                     moduleId={moduleId!}
                     organizationId={organizationId!}
-                    isCompleted={completedLessonIds.has(lesson.id)}
+                    isCompleted={lesson.isCompleted ?? getLessonCompletionStatus(lesson.id)}
                     onMarkingChange={setMarkingLessonId}
                     markingLessonId={markingLessonId}
                     onError={setMarkingError}
                     onMarkedSuccess={(lessonId) => {
-                      setCompletedLessonIds(prev => new Set(prev).add(lessonId));
+                      // No need to update local state anymore - React Query will refetch
                     }}
                   />
                 ))}

@@ -9,6 +9,7 @@ import { dispatchNotification } from './notificationDispatcher';
 import * as certificatePdfService from './certificatePdfService';
 import * as storage from '../storage';
 import { record as recordAudit } from './auditLogService';
+import { initializeServices } from './serviceInitializer';
 
 const API_BASE_URL = process.env.API_BASE_URL ?? 'http://localhost:4000';
 
@@ -93,6 +94,16 @@ export async function generateCertificate(organizationId: string, userId: string
   });
 
   try {
+    // Pre-initialize critical services to prevent cold start 502 errors
+    console.log('[CERTIFICATE] Step 0: Pre-initializing services...');
+    try {
+      await initializeServices();
+      console.log('[CERTIFICATE] ✓ Services pre-initialized');
+    } catch (initError) {
+      console.warn('[CERTIFICATE] ⚠ Service initialization warning (continuing):', initError instanceof Error ? initError.message : String(initError));
+      // Continue even if initialization has issues - we'll handle failures gracefully
+    }
+
     console.log('[CERTIFICATE] Step 1: Verifying student eligibility...');
     const { course, courseProgress } = await verifyStudentEligibility(
       organizationId,
@@ -236,7 +247,7 @@ async function createCertificatePdf(certificate: CertificateRecord, organization
     
     return pdfUrl;
   } catch (error) {
-    console.error('[CERTIFICATE-PDF] PDF generation/upload failed:', error);
+    console.error('[CERTIFICATE-PDF] PDF generation/upload failed after retries:', error);
     // Best-effort: certificate still issued without a stored PDF file.
     return null;
   }

@@ -26,6 +26,7 @@ import { securityHeaders } from './middleware/security';
 import { csrfOriginCheck } from './middleware/csrf';
 import { isAllowedOrigin, getAllowedOrigins } from './config/origins';
 import { collectHealthReport } from './services/healthService';
+import { initializeServices } from './services/serviceInitializer';
 
 export const app = express();
 
@@ -159,6 +160,12 @@ app.use((err: unknown, req: Request, res: Response, next: NextFunction) => {
 
 export const start = (port: number | string = process.env.PORT ?? 4000) => {
   const p = typeof port === 'string' ? Number(port) : port;
+  
+  // Pre-initialize critical services to prevent cold start issues
+  console.log('[SERVER] Pre-initializing critical services...');
+  initializeServices().catch(err => {
+    console.warn('[SERVER] Service initialization warning (non-critical):', err.message);
+  });
   
   // Start background workers
   startNotificationWorker();

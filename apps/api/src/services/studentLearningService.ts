@@ -2,6 +2,7 @@ import * as enrollmentRepo from '../repositories/enrollmentRepository';
 import * as courseRepo from '../repositories/courseRepository';
 import * as moduleRepo from '../repositories/moduleRepository';
 import * as lessonRepo from '../repositories/lessonRepository';
+import * as progressRepo from '../repositories/progressRepository';
 import * as searchRepo from '../repositories/searchRepository';
 import * as certificateRepo from '../repositories/certificateRepository';
 import { categoryLabel } from '../utils/categoryLabel';
@@ -270,14 +271,22 @@ export async function listModuleLessons(
     throw new Error('MODULE_NOT_FOUND');
   }
 
-  const lessons = await lessonRepo.listByModule(moduleId);
+  const [lessons, completedLessons] = await Promise.all([
+    lessonRepo.listByModule(moduleId),
+    progressRepo.listLessonProgressForCourse(userId, courseId),
+  ]);
+
+  const completedLessonIds = new Set(completedLessons.map(row => row.lessonId));
 
   return {
     moduleId: module.id,
     moduleTitle: module.title,
     courseId: course.id,
     courseName: course.title,
-    lessons: lessons.map(toModuleLessonDto),
+    lessons: lessons.map(lesson => ({
+      ...toModuleLessonDto(lesson),
+      isCompleted: completedLessonIds.has(lesson.id),
+    })),
   };
 }
 

@@ -137,12 +137,39 @@ export async function uploadCertificatePdf(
   certificateId: string,
   data: CertificatePdfData,
 ): Promise<string> {
-  const buffer = await buildCertificatePdf(data);
-  const key = storage.certificatePdfKey(organizationId, certificateId);
-  const stored = await storage.putObject({
-    key,
-    data: buffer,
-    contentType: 'application/pdf',
-  });
-  return stored.publicUrl;
+  const maxRetries = 2;
+  const retryDelay = 1000; // 1 second
+  
+  for (let attempt = 1; attempt <= maxRetries + 1; attempt++) {
+    try {
+      if (attempt > 1) {
+        console.log(`[CERTIFICATE-PDF] Retry attempt ${attempt}/${maxRetries}...`);
+        await new Promise(resolve => setTimeout(resolve, retryDelay * (attempt - 1)));
+      }
+      
+      const buffer = await buildCertificatePdf(data);
+      const key = storage.certificatePdfKey(organizationId, certificateId);
+      const stored = await storage.putObject({
+        key,
+        data: buffer,
+        contentType: 'application/pdf',
+      });
+      
+      console.log(`[CERTIFICATE-PDF] PDF uploaded successfully (attempt ${attempt}):`, stored.publicUrl);
+      return stored.publicUrl;
+    } catch (error) {
+      console.error(`[CERTIFICATE-PDF] PDF upload failed on attempt ${attempt}:`, error instanceof Error ? error.message : String(error));
+      
+      if (attempt <= maxRetries) {
+        console.log(`[CERTIFICATE-PDF] Retrying in ${retryDelay * attempt}ms...`);
+        continue;
+      }
+      
+      // Last attempt failed, throw the error
+      throw error;
+    }
+  }
+  
+  // This should never be reached due to the throw above, but TypeScript needs it
+  throw new Error('PDF upload failed after all retries');
 }

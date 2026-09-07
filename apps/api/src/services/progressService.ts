@@ -158,6 +158,7 @@ async function computeCourseProgress(
     coursePercentage: round0(coursePercentage),
     courseComplete,
     enrollmentStatus: 'ACTIVE',
+    completedLessonIds: Array.from(completedLessonIds),
     lastVisited: courseProgress
       ? {
           moduleId: courseProgress.lastVisitedModuleId,

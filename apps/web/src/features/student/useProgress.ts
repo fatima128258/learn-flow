@@ -32,6 +32,7 @@ export type CourseProgress = {
   coursePercentage: number;
   courseComplete: boolean;
   enrollmentStatus: string;
+  completedLessonIds: string[];
   lastVisited: {
     moduleId: string | null;
     lessonId: string | null;
@@ -92,6 +93,26 @@ export function useProgress(organizationId: string, courseId: string) {
 }
 
 /**
+ * Query hook for fetching lessons in a module with completion status.
+ */
+export function useModuleLessons(organizationId: string, courseId: string, moduleId: string) {
+  return useQuery({
+    queryKey: ['student', 'lessons', organizationId, courseId, moduleId],
+    queryFn: async () => {
+      const body = await getJson<{ data?: any }>(
+        `/api/v1/organizations/${organizationId}/student/courses/${courseId}/modules/${moduleId}/lessons`,
+      );
+      return body.data ?? null;
+    },
+    enabled: Boolean(organizationId && courseId && moduleId),
+    staleTime: 30 * 1000,
+    gcTime: 5 * 60 * 1000,
+    retry: 3,
+    retryDelay: attemptIndex => Math.min(1000 * 2 ** attemptIndex, 30000),
+  });
+}
+
+/**
  * Mutation hook for recording lesson progress.
  * Marks a lesson as viewed/completed and updates course progress.
  */
@@ -110,6 +131,10 @@ export function useRecordProgress(organizationId: string, courseId: string, modu
       // Invalidate progress query to refetch updated data
       void queryClient.invalidateQueries({ 
         queryKey: ['student', 'progress', organizationId, courseId] 
+      });
+      // Also invalidate lessons query to get updated completion status
+      void queryClient.invalidateQueries({ 
+        queryKey: ['student', 'lessons', organizationId, courseId, moduleId] 
       });
     },
   });
