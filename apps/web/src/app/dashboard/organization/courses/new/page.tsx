@@ -11,10 +11,6 @@ import { useToast } from '../../../../../components/ui/ToastProvider';
 
 import { useCurrentUser } from '../../../../../features/auth/useCurrentUser';
 
-const SLUG_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
-const MIN_SLUG_LENGTH = 2;
-const MAX_SLUG_LENGTH = 50;
-
 function splitObjectives(raw: string): string[] {
   return raw
     .split(/\r?\n/)
@@ -35,7 +31,6 @@ export default function CreateCoursePage() {
   const [organizationId, setOrganizationId] = useState<string | null>(null);
 
   const [title, setTitle] = useState('');
-  const [slug, setSlug] = useState('');
   const [description, setDescription] = useState('');
   const [thumbnailUrl, setThumbnailUrl] = useState('');
   const [category, setCategory] = useState('');
@@ -46,7 +41,6 @@ export default function CreateCoursePage() {
   const [learningObjectives, setLearningObjectives] = useState('');
 
   const [titleError, setTitleError] = useState('');
-  const [slugError, setSlugError] = useState('');
   const [thumbnailUrlError, setThumbnailUrlError] = useState('');
   const [priceError, setPriceError] = useState('');
   const [discountPriceError, setDiscountPriceError] = useState('');
@@ -76,7 +70,6 @@ export default function CreateCoursePage() {
 
   function resetForm() {
     setTitle('');
-    setSlug('');
     setDescription('');
     setThumbnailUrl('');
     setCategory('');
@@ -89,7 +82,6 @@ export default function CreateCoursePage() {
 
   function clearFieldErrors() {
     setTitleError('');
-    setSlugError('');
     setThumbnailUrlError('');
     setPriceError('');
     setDiscountPriceError('');
@@ -104,18 +96,9 @@ export default function CreateCoursePage() {
       return 'Title is required';
     }
 
-    const trimmedSlug = slug.trim();
-    if (trimmedSlug) {
-      if (
-        !SLUG_PATTERN.test(trimmedSlug) ||
-        trimmedSlug.length < MIN_SLUG_LENGTH ||
-        trimmedSlug.length > MAX_SLUG_LENGTH
-      ) {
-        setSlugError(
-          'Use lowercase letters, numbers and hyphens only (2-50 characters), e.g. intro-to-programming'
-        );
-        return 'Slug is invalid. Use lowercase letters, numbers and hyphens only (2-50 characters).';
-      }
+    if (title.trim().length < 2) {
+      setTitleError('Title must be at least 2 characters long');
+      return 'Title must be at least 2 characters long';
     }
 
     const trimmedThumbnailUrl = thumbnailUrl.trim();
@@ -175,8 +158,6 @@ export default function CreateCoursePage() {
     const payload: Record<string, unknown> = {
       title: title.trim(),
     };
-
-    if (slug.trim()) payload.slug = slug.trim().toLowerCase();
     if (description.trim()) payload.description = description.trim();
     if (thumbnailUrl.trim()) payload.thumbnailUrl = thumbnailUrl.trim();
     if (category.trim()) payload.category = category.trim();

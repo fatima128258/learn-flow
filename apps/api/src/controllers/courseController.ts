@@ -18,12 +18,10 @@ function handleError(res: Response, err: unknown) {
   switch (message) {
     case 'MISSING_FIELDS':
       return fail(res, 400, 'MISSING_FIELDS');
-    case 'INVALID_SLUG':
-      return fail(res, 400, 'INVALID_SLUG');
+    case 'TITLE_TOO_SHORT':
+      return fail(res, 400, 'TITLE_TOO_SHORT');
     case 'ORGANIZATION_REQUIRED':
       return fail(res, 400, 'ORGANIZATION_REQUIRED');
-    case 'COURSE_SLUG_TAKEN':
-      return fail(res, 409, 'COURSE_SLUG_TAKEN');
     case 'INVALID_STATUS':
       return fail(res, 400, 'INVALID_STATUS');
     case 'MISSING_FILE':
@@ -40,6 +38,11 @@ function handleError(res: Response, err: unknown) {
       return fail(res, 400, 'INVALID_PRICE');
     case 'INVALID_DISCOUNT_PRICE':
       return fail(res, 400, 'INVALID_DISCOUNT_PRICE');
+    // Keep slug errors for manual slug updates in updateCourse
+    case 'INVALID_SLUG':
+      return fail(res, 400, 'INVALID_SLUG');
+    case 'COURSE_SLUG_TAKEN':
+      return fail(res, 409, 'COURSE_SLUG_TAKEN');
     default:
       return fail(res, 500, 'SERVER_ERROR');
   }

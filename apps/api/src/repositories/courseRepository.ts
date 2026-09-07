@@ -155,6 +155,13 @@ export async function getById(organizationId: string, courseId: string) {
   });
 }
 
+export async function findBySlug(organizationId: string, slug: string) {
+  return prisma().course.findFirst({
+    where: { organizationId, slug },
+    select: { id: true, slug: true },
+  });
+}
+
 export async function getByIds(organizationId: string, courseIds: string[]) {
   return prisma().course.findMany({
     where: { id: { in: courseIds }, organizationId },

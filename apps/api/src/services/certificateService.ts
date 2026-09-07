@@ -101,7 +101,6 @@ export async function generateCertificate(organizationId: string, userId: string
     );
     console.log('[CERTIFICATE] ✓ Eligibility verified:', {
       courseTitle: course.title,
-      completionPercentage: courseProgress.completionPercentage,
       completed: courseProgress.completed,
     });
 

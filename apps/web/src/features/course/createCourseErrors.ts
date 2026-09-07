@@ -1,8 +1,7 @@
 const ERROR_MESSAGES: Record<string, string> = {
   MISSING_FIELDS: 'Please check the highlighted fields and try again.',
-  INVALID_SLUG: 'Slug may only contain lowercase letters, numbers and hyphens (2-50 characters).',
+  TITLE_TOO_SHORT: 'Course title must be at least 2 characters long.',
   ORGANIZATION_REQUIRED: 'Your organization could not be determined. Please try again.',
-  COURSE_SLUG_TAKEN: 'A course with this slug already exists in your organization. Please choose another slug.',
   COURSE_NOT_FOUND: 'This course was not found in your organization.',
   INVALID_PRICE: 'Price must be a number greater than or equal to 0.',
   INVALID_DISCOUNT_PRICE: 'Discount price must be a number greater than or equal to 0.',

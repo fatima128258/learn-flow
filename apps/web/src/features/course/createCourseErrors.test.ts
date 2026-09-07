@@ -6,14 +6,8 @@ describe('getCreateCourseErrorMessage', () => {
     expect(getCreateCourseErrorMessage('MISSING_FIELDS')).toBe(
       'Please check the highlighted fields and try again.'
     );
-    expect(getCreateCourseErrorMessage('INVALID_SLUG')).toBe(
-      'Slug may only contain lowercase letters, numbers and hyphens (2-50 characters).'
-    );
     expect(getCreateCourseErrorMessage('ORGANIZATION_REQUIRED')).toBe(
       'Your organization could not be determined. Please try again.'
-    );
-    expect(getCreateCourseErrorMessage('COURSE_SLUG_TAKEN')).toBe(
-      'A course with this slug already exists in your organization. Please choose another slug.'
     );
     expect(getCreateCourseErrorMessage('COURSE_NOT_FOUND')).toBe(
       'This course was not found in your organization.'

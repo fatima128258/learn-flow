@@ -27,25 +27,77 @@ function slugify(text: string) {
     .toLowerCase()
     .replace(/[^\w\s-]/g, '')
     .replace(/[\s_-]+/g, '-')
-    .replace(/^-+|-+$/g, '');
+    .replace(/^-+|-+$/g, '')
+    .substring(0, MAX_SLUG_LENGTH);
+}
+
+async function generateUniqueSlug(organizationId: string, baseSlug: string): Promise<string> {
+  // First, try the base slug
+  const existingCourse = await courseRepo.findBySlug(organizationId, baseSlug);
+  if (!existingCourse) {
+    return baseSlug;
+  }
+  
+  // If base slug exists, try with numbers
+  let counter = 1;
+  let candidateSlug: string;
+  
+  do {
+    candidateSlug = `${baseSlug}-${counter}`;
+    // Ensure the slug doesn't exceed max length
+    if (candidateSlug.length > MAX_SLUG_LENGTH) {
+      // Truncate base slug to make room for the counter
+      const maxBaseLength = MAX_SLUG_LENGTH - `-${counter}`.length;
+      candidateSlug = `${baseSlug.substring(0, maxBaseLength)}-${counter}`;
+    }
+    
+    const existing = await courseRepo.findBySlug(organizationId, candidateSlug);
+    if (!existing) {
+      return candidateSlug;
+    }
+    
+    counter++;
+    // Safety check to prevent infinite loops
+  } while (counter <= 1000);
+  
+  // If we somehow can't find a unique slug after 1000 attempts, 
+  // append timestamp as last resort
+  const timestamp = Date.now().toString(36);
+  candidateSlug = `${baseSlug.substring(0, MAX_SLUG_LENGTH - timestamp.length - 1)}-${timestamp}`;
+  return candidateSlug;
+}
+
+async function resolveSlug(rawSlug: unknown, title: string, organizationId: string) {
+  let baseSlug: string;
+  
+  if (typeof rawSlug === 'string' && rawSlug.trim()) {
+    baseSlug = rawSlug.trim().toLowerCase();
+  } else {
+    baseSlug = slugify(title);
+  }
+  
+  // Ensure the base slug is valid format
+  if (!isValidSlug(baseSlug)) {
+    // If still invalid, create a fallback
+    baseSlug = slugify(title) || 'course';
+    if (!isValidSlug(baseSlug)) {
+      baseSlug = `course-${Date.now().toString(36)}`;
+    }
+  }
+  
+  // Generate a unique slug
+  return await generateUniqueSlug(organizationId, baseSlug);
 }
 
 function requireTitle(value: unknown) {
   if (typeof value !== 'string' || !value.trim()) {
     throw new Error('MISSING_FIELDS');
   }
-  return value.trim();
-}
-
-function resolveSlug(rawSlug: unknown, title: string) {
-  const slug =
-    typeof rawSlug === 'string' && rawSlug.trim()
-      ? rawSlug.trim().toLowerCase()
-      : slugify(title);
-  if (!isValidSlug(slug)) {
-    throw new Error('INVALID_SLUG');
+  const title = value.trim();
+  if (title.length < 2) {
+    throw new Error('TITLE_TOO_SHORT');
   }
-  return slug;
+  return title;
 }
 
 function optionalString(value: unknown) {
@@ -199,7 +251,7 @@ export async function createCourse(
   const input = (rawInput ?? {}) as Record<string, unknown>;
 
   const title = requireTitle(input.title);
-  const slug = resolveSlug(input.slug, title);
+  const slug = await resolveSlug(input.slug, title, organizationId);
 
   const category = optionalString(input.category);
   const categoryId = category
@@ -274,6 +326,11 @@ export async function updateCourse(
     const slug = String(input.slug).trim().toLowerCase();
     if (!isValidSlug(slug)) {
       throw new Error('INVALID_SLUG');
+    }
+    // Check if slug is available (not taken by another course)
+    const existingCourse = await courseRepo.findBySlug(organizationId, slug);
+    if (existingCourse && existingCourse.id !== courseId) {
+      throw new Error('COURSE_SLUG_TAKEN');
     }
     update.slug = slug;
   }
