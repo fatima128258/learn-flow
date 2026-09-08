@@ -119,7 +119,9 @@ export async function registerUser({ name, email, password, sendEmail = true, ip
         })
         .catch((err) => {
           console.error('Failed to queue verification email:', err);
-          // Silently fail - email can be resent later by user
+          sendVerificationEmail(normalizedEmail, verificationToken).catch((fallbackErr) => {
+            console.error('Failed to send verification email:', fallbackErr);
+          });
         });
     } else {
       // Fallback: send email without blocking (with .catch to prevent unhandled rejection)

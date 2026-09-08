@@ -196,7 +196,6 @@ describe('Certificate Generation First-Attempt Fix Integration Test', () => {
         organizationId: ctx.organizationId,
         completed: true,
         completedAt: new Date(),
-        percentage: 100,
       },
     });
     
