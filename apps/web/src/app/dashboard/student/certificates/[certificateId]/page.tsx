@@ -214,7 +214,7 @@ export default function StudentCertificateViewPage() {
                 <Badge variant="success" size="sm">Verified</Badge>
               </div>
 
-              <div className="mt-4 rounded-lg border border-neutral-200 bg-neutral-50 p-3">
+              {/* <div className="mt-4 rounded-lg border border-neutral-200 bg-neutral-50 p-3">
                 <p className="text-xs uppercase tracking-wide text-neutral-400">Verification URL</p>
                 <div className="mt-1 flex items-center justify-between gap-3">
                   <code className="truncate text-xs text-neutral-700">{certificate.verificationUrl}</code>
@@ -226,7 +226,7 @@ export default function StudentCertificateViewPage() {
                     {copied ? 'Copied' : 'Copy'}
                   </button>
                 </div>
-              </div>
+              </div> */}
 
               <div className="mt-4 flex flex-wrap gap-3">
                 {certificate.pdfUrl && certificate.pdfDownloadUrl ? (
