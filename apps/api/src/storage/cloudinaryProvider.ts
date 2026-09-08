@@ -61,8 +61,8 @@ export class CloudinaryStorageProvider implements StorageProvider {
   }
 
   async putObject(input: PutObjectInput): Promise<StoredObject> {
-    await this.uploadBuffer(input);
-    return { key: input.key, publicUrl: this.getPublicUrl(input.key) };
+    const uploaded = await this.uploadBuffer(input);
+    return { key: input.key, publicUrl: uploaded.secure_url };
   }
 
   getPublicUrl(key: string): string {
@@ -122,19 +122,8 @@ export class CloudinaryStorageProvider implements StorageProvider {
     return cloudinary.url(publicIdForKey(key), options);
   }
 
-  private uploadBuffer(input: PutObjectInput): Promise<unknown> {
-    return new Promise((resolve, reject) => {
-      const stream = cloudinary.uploader.upload_stream(
-        uploadOptions(input) as never,
-        ((error: Error | null, result?: unknown) => {
-          if (error) {
-            reject(error);
-            return;
-          }
-          resolve(result);
-        }) as never,
-      );
-      stream.end(input.data);
-    });
+  private uploadBuffer(input: PutObjectInput): Promise<{ secure_url: string }> {
+    const dataUri = `data:${input.contentType};base64,${input.data.toString('base64')}`;
+    return cloudinary.uploader.upload(dataUri, uploadOptions(input)) as Promise<{ secure_url: string }>;
   }
 }
