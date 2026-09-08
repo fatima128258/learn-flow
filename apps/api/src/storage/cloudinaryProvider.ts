@@ -70,7 +70,28 @@ export class CloudinaryStorageProvider implements StorageProvider {
   }
 
   async getPresignedUrl(key: string): Promise<string> {
-    return this.buildUrl(key, true);
+    const publicId = publicIdForKey(key);
+    const resource = await new Promise<{ version: string }>((resolve, reject) => {
+      cloudinary.api.resource(
+        publicId,
+        { resource_type: resourceTypeForKey(key), type: 'upload' },
+        (error, result) => {
+          if (error) {
+            reject(error);
+            return;
+          }
+          resolve(result as { version: string });
+        },
+      );
+    });
+
+    return cloudinary.url(publicId, {
+      resource_type: resourceTypeForKey(key),
+      type: 'upload',
+      version: resource.version,
+      sign_url: true,
+      secure: true,
+    });
   }
 
   async deleteObjects(keys: string[]): Promise<void> {

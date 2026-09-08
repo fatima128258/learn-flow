@@ -12,6 +12,7 @@ import { record as recordAudit } from './auditLogService';
 import { initializeServices } from './serviceInitializer';
 
 const API_BASE_URL = process.env.API_BASE_URL ?? 'http://localhost:4000';
+const APP_BASE_URL = process.env.APP_URL ?? 'http://localhost:3000';
 
 function generateCertificateId() {
   const random = crypto.randomBytes(6).toString('hex').toUpperCase();
@@ -23,7 +24,7 @@ function generateVerificationToken() {
 }
 
 function verificationUrl(verificationToken: string) {
-  return `${API_BASE_URL}/api/v1/certificates/verify/${verificationToken}`;
+  return `${APP_BASE_URL}/verify/${verificationToken}`;
 }
 
 function certificatePdfDownloadUrl(organizationId: string, certificateId: string) {

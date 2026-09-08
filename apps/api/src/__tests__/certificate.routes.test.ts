@@ -175,7 +175,7 @@ async function authenticateAs(
   });
 
   prismaMock.userOrganization.findMany.mockResolvedValue([
-    { role, organizationId, userId },
+    { role, organizationId, userId, organization: { slug: 'learnflow' } },
   ]);
 
   prismaMock.userOrganization.findFirst.mockImplementation(async ({ where }: { where?: { role?: string; organizationId?: string; userId?: string; id?: string; courseId?: string; moduleId?: string; quizId?: string; status?: string } }) => {
@@ -350,9 +350,7 @@ describe('POST /api/v1/organizations/:organizationId/student/courses/:courseId/c
     expect(data.instructorName).toBe('Instructor One');
     expect(data.completionDate).toBeTruthy();
     expect(data.certificateId).toBe('CRT-ABC123');
-    expect(data.verificationUrl).toContain(
-      `/api/v1/certificates/verify/${data.verificationToken}`,
-    );
+    expect(data.verificationUrl).toContain(`/verify/${data.verificationToken}`);
     expect(data.pdfUrl).toContain('certificate.pdf');
     expect(data.pdfDownloadUrl).toContain('/certificates/CRT-ABC123/download');
     expect(prismaMock.certificate.create).toHaveBeenCalledTimes(1);
@@ -505,11 +503,19 @@ describe('GET /api/v1/organizations/:organizationId/certificates/:certificateId/
     prismaMock.certificate.findFirst.mockResolvedValue(
       certificateRecord({ pdfUrl: 'http://localhost:9000/learnflow/orgs/org-a/certificates/cert-1/certificate.pdf' }),
     );
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue(
+        { ok: true, arrayBuffer: async () => Buffer.from('%PDF-local') },
+      ),
+    );
 
     const res = await request(app).get(DOWNLOAD_PATH).set('Cookie', cookie());
 
-    expect(res.status).toBe(302);
-    expect(res.headers.location).toBe('http://localhost:9000/signed/certificate.pdf');
+    expect(res.status).toBe(200);
+    expect(res.headers['content-type']).toContain('application/pdf');
+    expect(res.headers['content-disposition']).toContain('CRT-ABC123.pdf');
+    expect(res.body.toString()).toBe('%PDF-local');
   });
 
   it('allows org staff to download a certificate PDF', async () => {
@@ -517,11 +523,18 @@ describe('GET /api/v1/organizations/:organizationId/certificates/:certificateId/
     prismaMock.certificate.findFirst.mockResolvedValue(
       certificateRecord({ pdfUrl: 'http://localhost:9000/learnflow/orgs/org-a/certificates/cert-1/certificate.pdf' }),
     );
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue(
+        { ok: true, arrayBuffer: async () => Buffer.from('%PDF-staff') },
+      ),
+    );
 
     const res = await request(app).get(DOWNLOAD_PATH).set('Cookie', cookie());
 
-    expect(res.status).toBe(302);
-    expect(res.headers.location).toBe('http://localhost:9000/signed/certificate.pdf');
+    expect(res.status).toBe(200);
+    expect(res.headers['content-type']).toContain('application/pdf');
+    expect(res.body.toString()).toBe('%PDF-staff');
   });
 
   it('forbids a student downloading another student certificate', async () => {

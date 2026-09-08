@@ -24,6 +24,8 @@ function handleError(res: Response, err: unknown) {
       return fail(res, 404, 'CERTIFICATE_NOT_FOUND');
     case 'CERTIFICATE_PDF_NOT_FOUND':
       return fail(res, 404, 'CERTIFICATE_PDF_NOT_FOUND');
+    case 'CERTIFICATE_PDF_UNAVAILABLE':
+      return fail(res, 502, 'CERTIFICATE_PDF_UNAVAILABLE');
     case 'FORBIDDEN':
       return fail(res, 403, 'FORBIDDEN');
     case 'STUDENT_NOT_ENROLLED':
@@ -124,7 +126,18 @@ export async function downloadCertificate(req: AuthenticatedRequest, res: Respon
       req.user.role,
       req.params.certificateId,
     );
-    return res.redirect(url);
+    const pdfResponse = await fetch(url);
+    if (!pdfResponse.ok) {
+      return fail(res, 502, 'CERTIFICATE_PDF_UNAVAILABLE');
+    }
+
+    const pdf = Buffer.from(await pdfResponse.arrayBuffer());
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader(
+      'Content-Disposition',
+      `attachment; filename="${req.params.certificateId}.pdf"`,
+    );
+    return res.status(200).send(pdf);
   } catch (err) {
     return handleError(res, err);
   }
