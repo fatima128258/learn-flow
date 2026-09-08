@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { Badge, Button, ErrorState, Spinner } from '@/components/ui';
 import { PageHeader } from '@/components/dashboard';
 import { useCurrentUser } from '@/features/auth/useCurrentUser';
+import { useProgress } from '@/features/student/useProgress';
 
 type LessonContent = {
   id: string;
@@ -32,12 +33,15 @@ export default function StudentLessonPage() {
   const moduleId = typeof params.moduleId === 'string' ? params.moduleId : null;
   const lessonId = typeof params.lessonId === 'string' ? params.lessonId : null;
   const { data: user, isLoading: userLoading } = useCurrentUser();
+  const organizationId = user?.organizationId ?? '';
+  const { data: progress, isLoading: progressLoading } = useProgress(organizationId, courseId ?? '');
 
   const [data, setData] = useState<LessonData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [marking, setMarking] = useState(false);
   const [markError, setMarkError] = useState<string | null>(null);
+  const isCompleted = Boolean(lessonId && progress?.completedLessonIds.includes(lessonId));
 
   async function loadLesson(orgId: string, cid: string, mid: string, lid: string) {
     setLoading(true);
@@ -240,7 +244,7 @@ export default function StudentLessonPage() {
                   <Button
                     size="sm"
                     variant="primary"
-                    disabled={marking}
+                    disabled={marking || progressLoading || isCompleted}
                     onClick={() => markComplete(true)}
                   >
                     {marking ? 'Saving...' : 'Mark as Complete'}
@@ -248,7 +252,7 @@ export default function StudentLessonPage() {
                   <Button
                     size="sm"
                     variant="outline"
-                    disabled={marking}
+                    disabled={marking || progressLoading || !isCompleted}
                     onClick={() => markComplete(false)}
                   >
                     Mark as Incomplete

@@ -173,9 +173,7 @@ export default function StudentSearchPage() {
             </button>
           )}
         </div>
-        <p className="mt-2 text-xs text-neutral-500">
-          Results update instantly as you type
-        </p>
+        
       </div>
 
         {searchError ? (
