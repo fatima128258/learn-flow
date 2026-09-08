@@ -4,8 +4,8 @@ import * as service from '../services/auditLogService';
 
 function fail(res: Response, status: number, error: string) {
   return res.status(status).json({ success: false, error });
-}
-
+} 
+ 
 function handleError(res: Response, err: unknown) {
   const message = err instanceof Error ? err.message : undefined;
   switch (message) {

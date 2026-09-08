@@ -6,7 +6,7 @@ const API_BASE: string = '';
 
 export class ApiError extends Error {
   status: number;
-  code: string;
+  code: string; 
 
   constructor(status: number, code: string) {
     super(code);

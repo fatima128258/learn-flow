@@ -4,7 +4,7 @@ import * as service from '../services/certificateService';
 
 function fail(res: Response, status: number, error: string) {
   return res.status(status).json({ success: false, error });
-}
+} 
 
 function tenantOrganizationId(req: AuthenticatedRequest) {
   if (!req.organizationId) {

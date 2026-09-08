@@ -8,7 +8,7 @@ export interface CurrentUser {
   createdAt: string;
   role: UserRole | null;
   organizationId: string | null;
-}
+} 
 
 export interface MeResponse {
   user: CurrentUser | null;
