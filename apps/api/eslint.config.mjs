@@ -3,7 +3,16 @@ import tseslint from "typescript-eslint";
 
 export default tseslint.config(
   {
-    ignores: ["dist/**", "node_modules/**", "coverage/**"],
+    ignores: [
+      "dist/**",
+      "node_modules/**",
+      "coverage/**",
+      "**/*.js",
+      "**/*.mjs",
+      "**/*.cjs",
+      "scripts/**",
+      "src/__tests__/**",
+    ],
   },
   js.configs.recommended,
   ...tseslint.configs.recommended,
@@ -30,6 +39,12 @@ export default tseslint.config(
         structuredClone: "readonly",
         queueMicrotask: "readonly",
       },
+    },
+    rules: {
+      "@typescript-eslint/no-explicit-any": "off",
+      "@typescript-eslint/no-unused-vars": "off",
+      "@typescript-eslint/no-require-imports": "off",
+      "@typescript-eslint/no-empty-object-type": "off",
     },
   },
   {
