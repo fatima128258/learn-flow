@@ -36,6 +36,9 @@ function handleError(res: Response, err: unknown) {
       return fail(res, 404, 'ORGANIZATION_NOT_FOUND');
     case 'USER_NOT_FOUND':
       return fail(res, 404, 'USER_NOT_FOUND');
+    case 'ACCOUNT_ALREADY_SUSPENDED':
+    case 'ACCOUNT_ALREADY_ACTIVE':
+      return fail(res, 400, message);
     default:
       return fail(res, 500, 'SERVER_ERROR');
   }
@@ -143,4 +146,22 @@ export async function updateUser(req: AuthenticatedRequest, res: Response) {
   } catch (err) {
     return handleError(res, err);
   }
+}
+
+async function setUserStatus(req: AuthenticatedRequest, res: Response, status: 'ACTIVE' | 'SUSPENDED') {
+  try {
+    if (!req.user) return fail(res, 401, 'NOT_AUTHENTICATED');
+    const data = await service.setManagedUserStatus(tenantOrganizationId(req), req.params.userId, status, req.user);
+    return res.json({ success: true, data });
+  } catch (err) {
+    return handleError(res, err);
+  }
+}
+
+export function suspendUser(req: AuthenticatedRequest, res: Response) {
+  return setUserStatus(req, res, 'SUSPENDED');
+}
+
+export function unsuspendUser(req: AuthenticatedRequest, res: Response) {
+  return setUserStatus(req, res, 'ACTIVE');
 }

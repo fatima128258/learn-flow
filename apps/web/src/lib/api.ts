@@ -59,6 +59,11 @@ export async function apiRequest<T>(
     } catch {
       // non-JSON error body
     }
+    if (code === 'ACCOUNT_SUSPENDED' && typeof window !== 'undefined') {
+      // The server has revoked the session. Clear client-side query state by
+      // leaving the protected application immediately as well.
+      window.location.assign('/login?reason=suspended');
+    }
     console.warn(`[API] ${res.status} ${code}: ${options.method || 'GET'} ${path}`);
     throw new ApiError(res.status, code);
   }

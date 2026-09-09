@@ -16,12 +16,14 @@ function isValidPassword(password: string) {
   return password.length >= 8;
 }
 import * as authRepo from '../repositories/authRepository';
+import { record as recordAudit } from './auditLogService';
 
 const MANAGED_ROLES: UserRole[] = ['INSTRUCTOR', 'STUDENT'];
 
 function toMemberDto(membership: {
   role: string;
   organizationId: string;
+  status: 'ACTIVE' | 'SUSPENDED';
   user: {
     id: string;
     name: string | null;
@@ -36,6 +38,7 @@ function toMemberDto(membership: {
     name: membership.user.name,
     email: membership.user.email,
     emailVerified: membership.user.emailVerified,
+    status: membership.status,
     role: membership.role,
     organizationId: membership.organizationId,
     createdAt: membership.user.createdAt,
@@ -372,4 +375,36 @@ export async function updateManagedUser(organizationId: string, userId: string, 
     throw new Error('USER_NOT_FOUND');
   }
   return toMemberDto(refreshed);
+}
+
+export async function setManagedUserStatus(
+  organizationId: string,
+  userId: string,
+  status: 'ACTIVE' | 'SUSPENDED',
+  actor: { id: string; name: string | null; email: string; role?: string },
+) {
+  const membership = await orgAdminRepo.findOrganizationMember(organizationId, userId);
+  if (!membership) throw new Error('USER_NOT_FOUND');
+  if (!MANAGED_ROLES.includes(membership.role)) throw new Error('ROLE_NOT_ALLOWED');
+  if (membership.status === status) {
+    throw new Error(status === 'SUSPENDED' ? 'ACCOUNT_ALREADY_SUSPENDED' : 'ACCOUNT_ALREADY_ACTIVE');
+  }
+
+  const updated = await orgAdminRepo.updateOrganizationMembershipStatus(organizationId, userId, status);
+  if (status === 'SUSPENDED') {
+    await authRepo.revokeAllSessionsByUserId(userId);
+  }
+
+  await recordAudit({
+    action: status === 'SUSPENDED' ? 'SUSPEND_USER' : 'UNSUSPEND_USER',
+    organizationId,
+    actorUserId: actor.id,
+    actorName: actor.name,
+    actorEmail: actor.email,
+    actorRole: actor.role ?? 'ORG_ADMIN',
+    resourceType: 'USER',
+    resourceId: userId,
+    metadata: { targetRole: membership.role, status },
+  });
+  return toMemberDto(updated);
 }

@@ -55,6 +55,7 @@ model UserOrganization {
   userId         String
   organizationId String
   role           UserRole     @default(STUDENT)
+  status         UserAccountStatus @default(ACTIVE)
   createdAt      DateTime     @default(now())
   updatedAt      DateTime     @updatedAt
   organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
@@ -497,6 +498,11 @@ enum EnrollmentStatus {
   ACTIVE
   COMPLETED
   DROPPED
+}
+
+enum UserAccountStatus {
+  ACTIVE
+  SUSPENDED
 }
 
 enum OrderStatus {

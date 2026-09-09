@@ -161,6 +161,7 @@ temp/
 *.bat
 *.sh
 *.sql
+!apps/api/prisma/migrations/20260909_user_organization_status/migration.sql
 *.py
 temp*.js
 temp*.ps1

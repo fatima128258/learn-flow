@@ -1,6 +1,7 @@
 const LOGIN_ERROR_MESSAGES: Record<string, string> = {
   MISSING_FIELDS: 'Please enter your email and password.',
   INVALID_CREDENTIALS: 'Invalid email or password.',
+  ACCOUNT_SUSPENDED: 'Your account has been suspended. Please contact your organization administrator.',
   TOO_MANY_ATTEMPTS: 'Too many attempts. Please try again later.',
   SERVER_ERROR: 'Something went wrong while signing you in. Please try again.',
 };

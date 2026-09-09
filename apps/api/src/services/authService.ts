@@ -156,18 +156,19 @@ export async function loginUser({ email, password, ip = '127.0.0.1' }: { email: 
   const ok = await argon2.verify(user.passwordHash, password);
   if (!ok) throw new Error('INVALID_CREDENTIALS');
 
+  const memberships: Array<{ role?: string; organizationId?: string; status?: string }> = await repo.findUserOrganizationsByUserId(user.id);
+  const primaryMembership = memberships.find((membership) => membership.role === 'PLATFORM_ADMIN')
+    ?? memberships.find((membership) => membership.role === 'ORG_ADMIN')
+    ?? memberships.find((membership) => membership.role === 'INSTRUCTOR')
+    ?? memberships[0];
+  if (primaryMembership?.status === 'SUSPENDED') throw new Error('ACCOUNT_SUSPENDED');
+
   const token = generateToken();
   const tokenHash = hashToken(token);
   const expiresAt = new Date(Date.now() + SESSION_TTL_SECONDS * 1000);
   const session = await repo.createSession({ userId: user.id, tokenHash, expiresAt });
   const redis = getRedis();
   await redis.del(`rl:login:ip:${ip}`);
-
-  const memberships: Array<{ role?: string; organizationId?: string }> = await repo.findUserOrganizationsByUserId(user.id);
-  const primaryMembership = memberships.find((membership) => membership.role === 'PLATFORM_ADMIN')
-    ?? memberships.find((membership) => membership.role === 'ORG_ADMIN')
-    ?? memberships.find((membership) => membership.role === 'INSTRUCTOR')
-    ?? memberships[0];
 
   await recordAudit({
     action: 'LOGIN',

@@ -206,9 +206,7 @@ export async function findOrganizationMember(organizationId: string, userId: str
     where: {
       userId_organizationId: { userId, organizationId },
     },
-    include: {
-      user: { select: memberUserSelect },
-    },
+    select: { status: true, role: true, organizationId: true, user: { select: memberUserSelect } },
   });
 }
 
@@ -219,9 +217,7 @@ export async function createOrganizationMembership(data: {
 }) {
   return prisma().userOrganization.create({
     data,
-    include: {
-      user: { select: memberUserSelect },
-    },
+    select: { status: true, role: true, organizationId: true, user: { select: memberUserSelect } },
   });
 }
 
@@ -235,8 +231,18 @@ export async function updateOrganizationMembershipRole(
       userId_organizationId: { userId, organizationId },
     },
     data: { role },
-    include: {
-      user: { select: memberUserSelect },
-    },
+    select: { status: true, role: true, organizationId: true, user: { select: memberUserSelect } },
+  });
+}
+
+export async function updateOrganizationMembershipStatus(
+  organizationId: string,
+  userId: string,
+  status: 'ACTIVE' | 'SUSPENDED',
+) {
+  return prisma().userOrganization.update({
+    where: { userId_organizationId: { userId, organizationId } },
+    data: { status },
+    select: { status: true, role: true, organizationId: true, user: { select: memberUserSelect } },
   });
 }

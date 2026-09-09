@@ -204,6 +204,17 @@ describe('Auth routes', () => {
       expect(res.body.error).toBe('INVALID_CREDENTIALS');
     });
 
+    it('returns a clear error when a suspended account attempts login', async () => {
+      vi.mocked(authService.loginUser).mockRejectedValue(new Error('ACCOUNT_SUSPENDED'));
+
+      const res = await request(app)
+        .post('/api/v1/auth/login')
+        .send({ email: 'suspended@example.com', password: 'password123' });
+
+      expect(res.status).toBe(403);
+      expect(res.body.error).toBe('ACCOUNT_SUSPENDED');
+    });
+
     it('returns rate limit error', async () => {
       vi.mocked(authService.loginUser).mockRejectedValue(new Error('TOO_MANY_ATTEMPTS'));
 

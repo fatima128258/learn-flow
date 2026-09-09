@@ -98,6 +98,7 @@ export async function login(req: Request, res: Response) {
   } catch (err) {
     const message = err instanceof Error ? err.message : undefined;
     if (message === 'INVALID_CREDENTIALS') return res.status(401).json({ error: 'INVALID_CREDENTIALS' });
+    if (message === 'ACCOUNT_SUSPENDED') return res.status(403).json({ error: 'ACCOUNT_SUSPENDED' });
     if (message === 'TOO_MANY_ATTEMPTS') return res.status(429).json({ error: 'TOO_MANY_ATTEMPTS' });
     return res.status(500).json({ success: false, error: 'SERVER_ERROR' });
   }

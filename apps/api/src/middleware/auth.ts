@@ -29,6 +29,7 @@ export interface AuthenticatedRequest extends Request {
       userId: string;
       organizationId: string;
       role: string;
+      status: 'ACTIVE' | 'SUSPENDED';
       organization: {
         id: string;
         slug: string;
@@ -118,6 +119,19 @@ export async function requireAuth(req: AuthenticatedRequest, res: Response, next
       organizationId: primaryMembership?.organizationId,
     };
 
+    // Session tokens contain no role or organization claims. Check the current
+    // membership state on every protected request so a suspension takes effect
+    // immediately even when a browser still holds an old session cookie.
+    if (primaryMembership?.status === 'SUSPENDED') {
+      await authService.logoutSessionByToken(token);
+      res.clearCookie(COOKIE_NAME, {
+        path: '/',
+        sameSite: process.env.NODE_ENV === 'production' || String(process.env.SESSION_COOKIE_SECURE).toLowerCase() === 'true' ? 'none' : 'lax',
+        secure: process.env.NODE_ENV === 'production' || String(process.env.SESSION_COOKIE_SECURE).toLowerCase() === 'true',
+      });
+      return res.status(403).json({ success: false, error: 'ACCOUNT_SUSPENDED' });
+    }
+
     next();
   } catch {
     return res.status(500).json({ success: false, error: 'SERVER_ERROR' });
@@ -187,6 +201,9 @@ export async function requireOrganizationContext(req: AuthenticatedRequest, res:
       );
 
       if (userOrg) {
+        if (userOrg.status === 'SUSPENDED') {
+          return res.status(403).json({ success: false, error: 'ACCOUNT_SUSPENDED' });
+        }
         req.organizationId = finalOrgId;
         req.user.organizationId = finalOrgId;
         req.user.role = userOrg.role;
@@ -231,6 +248,10 @@ export async function requireOrganizationContext(req: AuthenticatedRequest, res:
 
     if (!userOrg) {
       return res.status(403).json({ success: false, error: 'ORGANIZATION_ACCESS_DENIED' });
+    }
+
+    if (userOrg.status === 'SUSPENDED') {
+      return res.status(403).json({ success: false, error: 'ACCOUNT_SUSPENDED' });
     }
 
     req.organizationId = finalOrgId;

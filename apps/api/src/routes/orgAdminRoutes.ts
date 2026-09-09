@@ -10,6 +10,8 @@ import {
   createInstructor,
   createStudent,
   updateUser,
+  suspendUser,
+  unsuspendUser,
 } from '../controllers/orgAdminController';
 
 const orgAdminRouter = Router();
@@ -23,5 +25,7 @@ orgAdminRouter.post('/instructors', createInstructor);
 orgAdminRouter.post('/students', createStudent);
 orgAdminRouter.get('/users/:userId', getUser);
 orgAdminRouter.patch('/users/:userId', updateUser);
+orgAdminRouter.patch('/users/:userId/suspend', suspendUser);
+orgAdminRouter.patch('/users/:userId/unsuspend', unsuspendUser);
 
 export default orgAdminRouter;

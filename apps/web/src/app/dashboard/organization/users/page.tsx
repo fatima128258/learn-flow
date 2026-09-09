@@ -10,6 +10,7 @@ import {
   ErrorState,
   Input,
   Modal,
+  ConfirmModal,
   Spinner,
 } from '@/components/ui';
 import { useCurrentUser } from '@/features/auth/useCurrentUser';
@@ -33,6 +34,7 @@ type MemberItem = {
   email: string;
   emailVerified: boolean;
   role: MemberRole;
+  status: 'ACTIVE' | 'SUSPENDED';
   organizationId: string;
   createdAt: string;
   updatedAt: string;
@@ -75,6 +77,8 @@ export default function OrgUsersPage() {
   const [emailError, setEmailError] = useState('');
   const [passwordError, setPasswordError] = useState('');
   const [saving, setSaving] = useState(false);
+  const [statusTarget, setStatusTarget] = useState<MemberItem | null>(null);
+  const [updatingStatus, setUpdatingStatus] = useState(false);
 
   const orgHeaders: Record<string, string> = orgId ? { 'X-Organization-Id': orgId } : {};
 
@@ -201,6 +205,38 @@ export default function OrgUsersPage() {
     }
   }
 
+  async function updateAccountStatus() {
+    if (!statusTarget || updatingStatus) return;
+    const suspending = statusTarget.status === 'ACTIVE';
+    setUpdatingStatus(true);
+    try {
+      const res = await fetch(`${API_BASE}/api/v1/org/users/${statusTarget.id}/${suspending ? 'suspend' : 'unsuspend'}`, {
+        method: 'PATCH',
+        credentials: 'include',
+        headers: orgHeaders,
+      });
+      const body: { error?: string } = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        const messages: Record<string, string> = {
+          ACCOUNT_ALREADY_SUSPENDED: 'This account is already suspended.',
+          ACCOUNT_ALREADY_ACTIVE: 'This account is already active.',
+          ROLE_NOT_ALLOWED: 'This account cannot be managed from this organization.',
+          USER_NOT_FOUND: 'The user could not be found in this organization.',
+        };
+        toast.error(messages[body.error ?? ''] ?? 'Could not update the account status. Please try again.');
+        return;
+      }
+      toast.success(suspending ? 'Account suspended successfully.' : 'Account unsuspended successfully.');
+      setStatusTarget(null);
+      setLoading(true);
+      await load();
+    } catch {
+      toast.error('Could not reach the API. Please try again.');
+    } finally {
+      setUpdatingStatus(false);
+    }
+  }
+
   return (
     <>
       <div className="mx-auto max-w-5xl">
@@ -257,7 +293,9 @@ export default function OrgUsersPage() {
                           <th className={tableHeadClass}>Name</th>
                           <th className={tableHeadClass}>Email</th>
                           <th className={tableHeadClass}>Role</th>
+                          <th className={tableHeadClass}>Status</th>
                           <th className={tableHeadClass}>Created</th>
+                          <th className={tableHeadClass}>Action</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-neutral-100">
@@ -273,8 +311,16 @@ export default function OrgUsersPage() {
                             <td className={tableCellClass}>
                               <Badge variant={roleBadgeVariant(member.role)} size="sm">{member.role}</Badge>
                             </td>
+                            <td className={tableCellClass}>
+                              <Badge variant={member.status === 'ACTIVE' ? 'success' : 'warning'} size="sm">{member.status === 'ACTIVE' ? 'Active' : 'Suspended'}</Badge>
+                            </td>
                             <td className={`${tableCellClass} text-neutral-700`}>
                               {new Date(member.createdAt).toLocaleDateString()}
+                            </td>
+                            <td className={tableCellClass}>
+                              <Button size="sm" variant={member.status === 'ACTIVE' ? 'danger' : 'outline'} onClick={() => setStatusTarget(member)}>
+                                {member.status === 'ACTIVE' ? 'Suspend' : 'Unsuspend'}
+                              </Button>
                             </td>
                           </tr>
                         ))}
@@ -294,6 +340,7 @@ export default function OrgUsersPage() {
                         </div>
                         <div className="mt-3 space-y-1 border-t border-neutral-100 pt-3">
                           <p className="text-sm text-neutral-700 break-all">{member.email}</p>
+                          <div className="flex items-center justify-between gap-3 pt-1"><Badge variant={member.status === 'ACTIVE' ? 'success' : 'warning'} size="sm">{member.status === 'ACTIVE' ? 'Active' : 'Suspended'}</Badge><Button size="sm" variant={member.status === 'ACTIVE' ? 'danger' : 'outline'} onClick={() => setStatusTarget(member)}>{member.status === 'ACTIVE' ? 'Suspend' : 'Unsuspend'}</Button></div>
                           <p className="text-xs text-neutral-400">{new Date(member.createdAt).toLocaleDateString()}</p>
                         </div>
                       </div>
@@ -349,6 +396,18 @@ export default function OrgUsersPage() {
           </div>
         </form>
       </Modal>
+      <ConfirmModal
+        isOpen={!!statusTarget}
+        onClose={() => { if (!updatingStatus) setStatusTarget(null); }}
+        onConfirm={() => void updateAccountStatus()}
+        title={statusTarget?.status === 'ACTIVE' ? 'Suspend account' : 'Unsuspend account'}
+        message={statusTarget?.status === 'ACTIVE'
+          ? 'Are you sure you want to suspend this account? The user will no longer be able to access LearnFlow until the account is unsuspended.'
+          : 'Are you sure you want to unsuspend this account? The user will be able to log in and access LearnFlow again.'}
+        confirmLabel={statusTarget?.status === 'ACTIVE' ? 'Suspend account' : 'Unsuspend account'}
+        variant={statusTarget?.status === 'ACTIVE' ? 'danger' : 'primary'}
+        loading={updatingStatus}
+      />
     </>
   );
 }
