@@ -277,6 +277,7 @@ export default function CreateCoursePage() {
                 organizationId={organizationId}
                 value={categoryId}
                 onChange={setCategoryId}
+                allowPrivateCreate={user?.role === 'INSTRUCTOR'}
                 disabled={submitting}
               />
 

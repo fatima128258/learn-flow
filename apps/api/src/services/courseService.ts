@@ -297,6 +297,7 @@ export async function createCourse(
   organizationId: string,
   instructorUserId: string,
   rawInput: unknown,
+  actorRole?: string | null,
 ) {
   const input = (rawInput ?? {}) as Record<string, unknown>;
 
@@ -305,7 +306,7 @@ export async function createCourse(
 
   const requestedCategoryId = optionalString(input.categoryId);
   const categoryId = requestedCategoryId
-    ? await categoryService.assertAssignableCategory(organizationId, requestedCategoryId)
+    ? await categoryService.assertAssignableCategory(organizationId, requestedCategoryId, { id: instructorUserId, role: actorRole ?? undefined })
     : null;
 
   try {
@@ -396,7 +397,7 @@ export async function updateCourse(
   if (input.categoryId !== undefined) {
     const requestedCategoryId = optionalString(input.categoryId);
     update.categoryId = requestedCategoryId
-      ? await categoryService.assertAssignableCategory(organizationId, requestedCategoryId)
+      ? await categoryService.assertAssignableCategory(organizationId, requestedCategoryId, actor ? { id: actor.userId, role: actor.role ?? undefined } : undefined)
       : null;
   }
 

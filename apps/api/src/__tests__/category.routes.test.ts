@@ -38,6 +38,7 @@ function categoryRecord(overrides: Record<string, unknown> = {}) {
     name: 'Web Development',
     slug: 'web-development',
     status: 'ACTIVE',
+    ownerUserId: null,
     description: 'Web-focused courses',
     createdAt: now,
     updatedAt: now,
@@ -155,7 +156,7 @@ describe('Org-admin category endpoints', () => {
       expect(res.status).toBe(200);
       expect(res.body.success).toBe(true);
       expect(prismaMock.category.findMany).toHaveBeenCalledWith(expect.objectContaining({
-        where: { organizationId: 'org-a' },
+        where: { organizationId: 'org-a', ownerUserId: null },
         orderBy: [{ name: 'asc' }],
         skip: 0,
         take: 20,
@@ -167,6 +168,7 @@ describe('Org-admin category endpoints', () => {
         name: 'Web Development',
         slug: 'web-development',
         status: 'ACTIVE',
+        ownerUserId: null,
         description: 'Web-focused courses',
         courseCount: 3,
         createdAt: now.toISOString(),
@@ -246,6 +248,7 @@ describe('Org-admin category endpoints', () => {
         name: 'Web Development',
         slug: 'web-development',
         status: 'ACTIVE',
+        ownerUserId: null,
         description: 'Web-focused courses',
         courseCount: 0,
         createdAt: now.toISOString(),
@@ -319,7 +322,7 @@ describe('Org-admin category endpoints', () => {
         expect(res.status).toBe(200);
         expect(res.body.data.id).toBe('cat-1');
         expect(prismaMock.category.findFirst).toHaveBeenCalledWith(expect.objectContaining({
-          where: { id: 'cat-1', organizationId: 'org-a' },
+          where: { id: 'cat-1', organizationId: 'org-a', ownerUserId: null },
         }));
       });
     });
@@ -343,7 +346,7 @@ describe('Org-admin category endpoints', () => {
       expect(res.body.data.name).toBe('Frontend');
       expect(res.body.data.slug).toBe('frontend');
       expect(prismaMock.category.updateMany).toHaveBeenCalledWith({
-        where: { id: 'cat-1', organizationId: 'org-a' },
+        where: { id: 'cat-1', organizationId: 'org-a', ownerUserId: null },
         data: { name: 'Frontend', slug: 'frontend', description: 'Web-focused courses', status: 'ACTIVE' },
       });
     });
@@ -379,6 +382,65 @@ describe('Org-admin category endpoints', () => {
     });
   });
 
+  describe('Instructor private category endpoints', () => {
+    it('returns organization categories and only the current instructor private categories', async () => {
+      await authenticateAs('INSTRUCTOR', { userId: 'instructor-1' });
+      prismaMock.category.findMany.mockResolvedValue([
+        categoryRecord({ id: 'org-category' }),
+        categoryRecord({ id: 'private-category', ownerUserId: 'instructor-1' }),
+      ]);
+
+      const res = await request(app)
+        .get('/api/v1/organizations/org-a/categories')
+        .set('Cookie', cookie());
+
+      expect(res.status).toBe(200);
+      expect(prismaMock.category.findMany).toHaveBeenCalledWith(expect.objectContaining({
+        where: {
+          organizationId: 'org-a',
+          status: 'ACTIVE',
+          OR: [{ ownerUserId: null }, { ownerUserId: 'instructor-1' }],
+        },
+      }));
+      expect(res.body.data).toHaveLength(2);
+    });
+
+    it('creates a private category owned by the authenticated instructor', async () => {
+      await authenticateAs('INSTRUCTOR', { userId: 'instructor-1' });
+      prismaMock.category.findFirst.mockResolvedValue(null);
+      prismaMock.category.create.mockResolvedValue(
+        categoryRecord({ id: 'private-category', ownerUserId: 'instructor-1', name: 'My private category' }),
+      );
+
+      const res = await request(app)
+        .post('/api/v1/organizations/org-a/categories')
+        .set('Cookie', cookie())
+        .send({ name: 'My private category' });
+
+      expect(res.status).toBe(201);
+      expect(prismaMock.category.create).toHaveBeenCalledWith(expect.objectContaining({
+        data: expect.objectContaining({
+          organizationId: 'org-a',
+          ownerUserId: 'instructor-1',
+          name: 'My private category',
+        }),
+      }));
+    });
+
+    it('does not let an organization admin create an instructor-private category', async () => {
+      await authenticateAs('ORG_ADMIN');
+
+      const res = await request(app)
+        .post('/api/v1/organizations/org-a/categories')
+        .set('Cookie', cookie())
+        .send({ name: 'Private category' });
+
+      expect(res.status).toBe(403);
+      expect(res.body.error).toBe('ROLE_NOT_ALLOWED');
+      expect(prismaMock.category.create).not.toHaveBeenCalled();
+    });
+  });
+
   describe('DELETE /api/v1/org/categories/:categoryId', () => {
     it('deletes a category in the admin tenant', async () => {
       await authenticateAs('ORG_ADMIN');
@@ -395,10 +457,10 @@ describe('Org-admin category endpoints', () => {
       expect(res.status).toBe(200);
       expect(res.body).toEqual({ success: true, deleted: true });
       expect(prismaMock.category.findFirst).toHaveBeenCalledWith(expect.objectContaining({
-        where: { id: 'cat-1', organizationId: 'org-a' },
+        where: { id: 'cat-1', organizationId: 'org-a', ownerUserId: null },
       }));
       expect(prismaMock.category.deleteMany).toHaveBeenCalledWith({
-        where: { id: 'cat-1', organizationId: 'org-a' },
+        where: { id: 'cat-1', organizationId: 'org-a', ownerUserId: null },
       });
     });
 
@@ -414,7 +476,7 @@ describe('Org-admin category endpoints', () => {
       expect(res.status).toBe(404);
       expect(res.body.error).toBe('CATEGORY_NOT_FOUND');
       expect(prismaMock.category.findFirst).toHaveBeenCalledWith(expect.objectContaining({
-        where: { id: 'cat-1', organizationId: 'org-b' },
+        where: { id: 'cat-1', organizationId: 'org-b', ownerUserId: null },
       }));
     });
 

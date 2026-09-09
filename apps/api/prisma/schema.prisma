@@ -48,6 +48,7 @@ model User {
   quizAttempts   QuizAttempt[]
   sessions       Session[]
   organizations  UserOrganization[]
+  privateCategories Category[] @relation("PrivateCategoryOwner")
 }
 
 model UserOrganization {
@@ -112,14 +113,15 @@ model Category {
   slug           String
   description    String?
   status         CategoryStatus @default(ACTIVE)
+  ownerUserId    String?
   createdAt      DateTime     @default(now())
   updatedAt      DateTime     @updatedAt
   organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  ownerUser      User?        @relation("PrivateCategoryOwner", fields: [ownerUserId], references: [id], onDelete: Cascade)
   courses        Course[]
 
-  @@unique([organizationId, name])
-  @@unique([organizationId, slug])
   @@index([organizationId])
+  @@index([organizationId, ownerUserId])
 }
 
 enum CategoryStatus {

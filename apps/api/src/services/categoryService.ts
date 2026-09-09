@@ -16,6 +16,7 @@ function toCategoryDto(category: {
   slug: string;
   description: string | null;
   status?: 'ACTIVE' | 'INACTIVE';
+  ownerUserId?: string | null;
   createdAt: Date;
   updatedAt: Date;
   _count?: { courses?: number };
@@ -34,6 +35,7 @@ function toCategoryDto(category: {
     slug: category.slug,
     description: category.description ?? null,
     status: category.status ?? 'ACTIVE',
+    ownerUserId: category.ownerUserId ?? null,
     courseCount: category._count?.courses ?? 0,
     instructors,
     createdAt: category.createdAt,
@@ -129,19 +131,38 @@ export async function getCategory(organizationId: string, categoryId: string) {
   return toCategoryDto(category);
 }
 
-export async function listAssignableCategories(organizationId: string) {
-  const categories = await categoryRepo.listActiveByOrganization(organizationId);
+export async function listAssignableCategories(organizationId: string, actor?: { id: string; role?: string }) {
+  const categories = await categoryRepo.listActiveAssignable(organizationId, actor?.id, actor?.role === 'INSTRUCTOR');
   return categories.map(toCategoryDto);
 }
 
 export async function assertAssignableCategory(
   organizationId: string,
   categoryId: string,
+  actor?: { id: string; role?: string },
 ) {
-  const category = await categoryRepo.findByIdAndOrganization(organizationId, categoryId);
+  const category = await categoryRepo.findAssignable(organizationId, categoryId, actor?.id ?? '', actor?.role === 'INSTRUCTOR');
   if (!category) throw new Error('CATEGORY_NOT_FOUND');
   if (category.status !== 'ACTIVE') throw new Error('CATEGORY_INACTIVE');
   return category.id;
+}
+
+export async function createPrivateCategory(organizationId: string, userId: string, rawInput: unknown) {
+  const input = (rawInput ?? {}) as Record<string, unknown>;
+  const name = validateText(input.name, MAX_NAME_LENGTH, true);
+  const description = input.description === undefined || input.description === null || input.description === ''
+    ? null
+    : validateText(input.description, MAX_DESCRIPTION_LENGTH, false) || null;
+  await assertPrivateNameAvailable(organizationId, userId, name);
+  try {
+    const category = await categoryRepo.create({
+      organizationId, ownerUserId: userId, name, slug: slugify(name) || 'category', description, status: 'ACTIVE',
+    });
+    return toCategoryDto(category);
+  } catch (err) {
+    if (isUniqueViolation(err)) throw new Error('CATEGORY_NAME_TAKEN');
+    throw err;
+  }
 }
 
 export async function updateCategory(
@@ -232,4 +253,8 @@ export async function resolveOrCreateCategoryId(
     }
     throw err;
   }
+}
+
+async function assertPrivateNameAvailable(organizationId: string, userId: string, name: string) {
+  if (await categoryRepo.findByName(organizationId, name, userId)) throw new Error('CATEGORY_NAME_TAKEN');
 }

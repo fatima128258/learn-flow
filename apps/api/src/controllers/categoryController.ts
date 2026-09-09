@@ -58,7 +58,7 @@ export async function getCategory(req: AuthenticatedRequest, res: Response) {
 
 export async function listAssignableCategories(req: AuthenticatedRequest, res: Response) {
   try {
-    const data = await service.listAssignableCategories(tenantOrganizationId(req));
+    const data = await service.listAssignableCategories(tenantOrganizationId(req), req.user ? { id: req.user.id, role: req.user.role } : undefined);
     return res.status(200).json({ success: true, data });
   } catch (err) {
     return handleError(res, err);
@@ -94,6 +94,16 @@ export async function deleteCategory(req: AuthenticatedRequest, res: Response) {
       req.params.categoryId,
     );
     return res.status(200).json({ success: true, ...result });
+  } catch (err) {
+    return handleError(res, err);
+  }
+}
+
+export async function createPrivateCategory(req: AuthenticatedRequest, res: Response) {
+  try {
+    if (!req.user || req.user.role !== 'INSTRUCTOR') return fail(res, 403, 'ROLE_NOT_ALLOWED');
+    const data = await service.createPrivateCategory(tenantOrganizationId(req), req.user.id, req.body);
+    return res.status(201).json({ success: true, data });
   } catch (err) {
     return handleError(res, err);
   }

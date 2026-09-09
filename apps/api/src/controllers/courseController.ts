@@ -115,6 +115,7 @@ export async function createCourse(req: AuthenticatedRequest, res: Response) {
       tenantOrganizationId(req),
       req.user.id,
       req.body,
+      req.user.role,
     );
     return res.status(201).json({ success: true, data });
   } catch (err) {
