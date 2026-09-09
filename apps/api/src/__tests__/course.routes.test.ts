@@ -13,6 +13,7 @@ const prismaMock = {
   },
   course: {
     create: vi.fn(),
+    findFirst: vi.fn(),
     findMany: vi.fn(),
     count: vi.fn(),
   },
@@ -125,6 +126,7 @@ function resetMocks() {
   prismaMock.userOrganization.findUnique.mockReset();
   prismaMock.organization.findUnique.mockReset();
   prismaMock.course.create.mockReset();
+  prismaMock.course.findFirst.mockReset();
   prismaMock.course.findMany.mockReset();
   prismaMock.course.count.mockReset();
   prismaMock.category.findFirst.mockReset();
@@ -375,18 +377,21 @@ describe('POST /api/v1/organizations/:organizationId/courses', () => {
     expect(prismaMock.course.create).not.toHaveBeenCalled();
   });
 
-  it('returns 400 for an explicitly invalid slug', async () => {
+  it('falls back to a valid slug for an explicitly invalid slug', async () => {
     await authenticateAs('INSTRUCTOR');
     prismaMock.userOrganization.findUnique.mockResolvedValue(membershipRecord());
+    prismaMock.course.create.mockImplementation(async ({ data }: { data?: Record<string, unknown> }) =>
+      courseRecord({ ...data, createdAt: now, updatedAt: now }),
+    );
 
     const res = await request(app)
       .post('/api/v1/organizations/org-a/courses')
       .set('Cookie', cookie())
       .send({ title: 'Bad Slug Course', slug: 'Invalid Slug!!' });
 
-    expect(res.status).toBe(400);
-    expect(res.body.error).toBe('INVALID_SLUG');
-    expect(prismaMock.course.create).not.toHaveBeenCalled();
+    expect(res.status).toBe(201);
+    expect(res.body.data.slug).toBe('bad-slug-course');
+    expect(prismaMock.course.create).toHaveBeenCalled();
   });
 
   it('derives a valid slug from the title when none is supplied', async () => {
@@ -443,6 +448,12 @@ describe('POST /api/v1/organizations/:organizationId/courses', () => {
         organizationId: 'org-a',
         name: { equals: 'Dev Tools', mode: 'insensitive' },
       },
+      select: expect.objectContaining({
+        id: true,
+        organizationId: true,
+        name: true,
+        status: true,
+      }),
     });
     expect(prismaMock.category.create).toHaveBeenCalledWith({
       data: {
@@ -450,7 +461,14 @@ describe('POST /api/v1/organizations/:organizationId/courses', () => {
         name: 'Dev Tools',
         slug: 'dev-tools',
         description: null,
+        status: 'ACTIVE',
       },
+      select: expect.objectContaining({
+        id: true,
+        organizationId: true,
+        name: true,
+        status: true,
+      }),
     });
     expect(prismaMock.course.create).toHaveBeenCalledWith(expect.objectContaining({
       data: expect.objectContaining({ categoryId: 'cat-1' }),
@@ -561,7 +579,7 @@ describe('GET /api/v1/organizations/:organizationId/courses', () => {
       status: 'PUBLISHED',
     });
     expect(prismaMock.course.findMany).toHaveBeenCalledWith({
-      where: { organizationId: 'org-a' },
+      where: { organizationId: 'org-a', instructorUserId: 'user-1' },
       select: expect.objectContaining({
         id: true,
         title: true,
@@ -638,7 +656,7 @@ describe('GET /api/v1/organizations/:organizationId/courses', () => {
     expect(res.body.success).toBe(true);
     expect(res.body.data).toEqual([]);
     expect(prismaMock.course.findMany).toHaveBeenCalledWith({
-      where: { organizationId: 'org-a' },
+      where: { organizationId: 'org-a', instructorUserId: 'user-1' },
       select: expect.objectContaining({
         id: true,
         title: true,
@@ -671,7 +689,7 @@ describe('GET /api/v1/organizations/:organizationId/courses', () => {
     expect(res.body.data[0].organizationId).toBeUndefined();
     expect(res.body.data[0].title).toBe('Org A Course');
     expect(prismaMock.course.findMany).toHaveBeenCalledWith({
-      where: { organizationId: 'org-a' },
+      where: { organizationId: 'org-a', instructorUserId: 'user-1' },
       select: expect.objectContaining({
         id: true,
         title: true,
@@ -707,7 +725,7 @@ describe('GET /api/v1/organizations/:organizationId/courses', () => {
       expect.objectContaining({ skip: 1, take: 1 }),
     );
     expect(prismaMock.course.count).toHaveBeenCalledWith({
-      where: { organizationId: 'org-a' },
+      where: { organizationId: 'org-a', instructorUserId: 'user-1' },
     });
   });
 
@@ -744,10 +762,57 @@ describe('GET /api/v1/organizations/:organizationId/courses', () => {
     expect(res.status).toBe(200);
     expect(res.body.meta).toEqual({ page: 1, limit: 20, total: 1 });
     expect(prismaMock.course.findMany).toHaveBeenCalledWith(
-      expect.objectContaining({ where: { organizationId: 'org-a', status: 'PUBLISHED' } }),
+      expect.objectContaining({
+        where: { organizationId: 'org-a', status: 'PUBLISHED', instructorUserId: 'user-1' },
+      }),
     );
     expect(prismaMock.course.count).toHaveBeenCalledWith({
-      where: { organizationId: 'org-a', status: 'PUBLISHED' },
+      where: { organizationId: 'org-a', status: 'PUBLISHED', instructorUserId: 'user-1' },
+    });
+  });
+
+  it('filters courses by category within the authenticated organization', async () => {
+    await authenticateAs('INSTRUCTOR');
+    prismaMock.userOrganization.findUnique.mockResolvedValue(membershipRecord());
+    prismaMock.course.findMany.mockResolvedValue([
+      courseRecord({
+        id: 'course-category-1',
+        title: 'Category Course',
+        categoryId: 'cat-web',
+        instructorUser: { id: 'user-1', name: 'Test User' },
+      }),
+    ]);
+    prismaMock.course.count.mockResolvedValue(1);
+
+    const res = await request(app)
+      .get('/api/v1/organizations/org-a/courses?categoryId=cat-web')
+      .set('Cookie', cookie());
+
+    expect(res.status).toBe(200);
+    expect(res.body.data).toHaveLength(1);
+    expect(res.body.data[0]).toMatchObject({
+      id: 'course-category-1',
+      title: 'Category Course',
+      instructor: { id: 'user-1', name: 'Test User' },
+    });
+    expect(prismaMock.course.findMany).toHaveBeenCalledWith(expect.objectContaining({
+      where: {
+        organizationId: 'org-a',
+        instructorUserId: 'user-1',
+        categoryId: 'cat-web',
+      },
+      select: expect.objectContaining({
+        price: true,
+        discountPrice: true,
+        instructorUser: { select: { id: true, name: true } },
+      }),
+    }));
+    expect(prismaMock.course.count).toHaveBeenCalledWith({
+      where: {
+        organizationId: 'org-a',
+        instructorUserId: 'user-1',
+        categoryId: 'cat-web',
+      },
     });
   });
 

@@ -15,17 +15,27 @@ function toCategoryDto(category: {
   name: string;
   slug: string;
   description: string | null;
+  status?: 'ACTIVE' | 'INACTIVE';
   createdAt: Date;
   updatedAt: Date;
   _count?: { courses?: number };
+  courses?: Array<{ instructorUser: { id: string; name: string | null; email: string } }>;
 }) {
+  const instructors = Array.from(new Map(
+    (category.courses ?? []).map((course) => [course.instructorUser.id, {
+      id: course.instructorUser.id,
+      name: course.instructorUser.name?.trim() || course.instructorUser.email,
+    }]),
+  ).values());
   return {
     id: category.id,
     organizationId: category.organizationId,
     name: category.name,
     slug: category.slug,
     description: category.description ?? null,
+    status: category.status ?? 'ACTIVE',
     courseCount: category._count?.courses ?? 0,
+    instructors,
     createdAt: category.createdAt,
     updatedAt: category.updatedAt,
   };
@@ -45,19 +55,36 @@ function isUniqueViolation(err: unknown) {
   );
 }
 
+const MAX_NAME_LENGTH = 100;
+const MAX_DESCRIPTION_LENGTH = 1000;
+const CATEGORY_STATUSES = ['ACTIVE', 'INACTIVE'] as const;
+type CategoryStatus = (typeof CATEGORY_STATUSES)[number];
+
+function validateText(value: unknown, maxLength: number, required: boolean) {
+  if (typeof value !== 'string') throw new Error('INVALID_INPUT');
+  const trimmed = value.trim();
+  if (required && !trimmed) throw new Error('INVALID_INPUT');
+  if (trimmed.length > maxLength) throw new Error('INVALID_INPUT');
+  return trimmed;
+}
+
+function validateStatus(value: unknown): CategoryStatus {
+  if (typeof value !== 'string' || !CATEGORY_STATUSES.includes(value as CategoryStatus)) {
+    throw new Error('INVALID_INPUT');
+  }
+  return value as CategoryStatus;
+}
+
 export async function createCategory(organizationId: string, rawInput: unknown) {
   const input = (rawInput ?? {}) as Record<string, unknown>;
 
-  if (typeof input.name !== 'string' || !input.name.trim()) {
-    throw new Error('MISSING_FIELDS');
-  }
-  const name = input.name.trim();
+  const name = validateText(input.name, MAX_NAME_LENGTH, true);
 
   let description: string | null = null;
   if (input.description !== undefined && input.description !== null && input.description !== '') {
-    if (typeof input.description !== 'string') throw new Error('MISSING_FIELDS');
-    description = input.description.trim();
+    description = validateText(input.description, MAX_DESCRIPTION_LENGTH, false) || null;
   }
+  const status = input.status === undefined ? 'ACTIVE' : validateStatus(input.status);
 
   await assertNameAvailable(organizationId, name);
 
@@ -67,6 +94,7 @@ export async function createCategory(organizationId: string, rawInput: unknown) 
       name,
       slug: slugify(name) || 'category',
       description,
+      status,
     });
     return toCategoryDto(category);
   } catch (err) {
@@ -77,9 +105,43 @@ export async function createCategory(organizationId: string, rawInput: unknown) 
   }
 }
 
-export async function listCategories(organizationId: string) {
-  const categories = await categoryRepo.listByOrganization(organizationId);
+export async function listCategories(
+  organizationId: string,
+  options?: { search?: string; page?: number; limit?: number },
+) {
+  const search = options?.search?.trim() || undefined;
+  const limit = Math.min(Math.max(options?.limit ?? 20, 1), 100);
+  const page = Math.max(options?.page ?? 1, 1);
+  const [categories, total] = await Promise.all([
+    categoryRepo.listByOrganization(organizationId, {
+      search,
+      skip: (page - 1) * limit,
+      take: limit,
+    }),
+    categoryRepo.countByOrganization(organizationId, search),
+  ]);
+  return { items: categories.map(toCategoryDto), page, limit, total, totalPages: Math.ceil(total / limit) };
+}
+
+export async function getCategory(organizationId: string, categoryId: string) {
+  const category = await categoryRepo.findByIdAndOrganization(organizationId, categoryId);
+  if (!category) throw new Error('CATEGORY_NOT_FOUND');
+  return toCategoryDto(category);
+}
+
+export async function listAssignableCategories(organizationId: string) {
+  const categories = await categoryRepo.listActiveByOrganization(organizationId);
   return categories.map(toCategoryDto);
+}
+
+export async function assertAssignableCategory(
+  organizationId: string,
+  categoryId: string,
+) {
+  const category = await categoryRepo.findByIdAndOrganization(organizationId, categoryId);
+  if (!category) throw new Error('CATEGORY_NOT_FOUND');
+  if (category.status !== 'ACTIVE') throw new Error('CATEGORY_INACTIVE');
+  return category.id;
 }
 
 export async function updateCategory(
@@ -96,8 +158,7 @@ export async function updateCategory(
 
   let name = existing.name;
   if (input.name !== undefined && input.name !== null && input.name !== '') {
-    if (typeof input.name !== 'string') throw new Error('MISSING_FIELDS');
-    name = input.name.trim();
+    name = validateText(input.name, MAX_NAME_LENGTH, true);
   }
 
   let description: string | null = existing.description ?? null;
@@ -105,10 +166,10 @@ export async function updateCategory(
     if (input.description === null || input.description === '') {
       description = null;
     } else {
-      if (typeof input.description !== 'string') throw new Error('MISSING_FIELDS');
-      description = input.description.trim();
+      description = validateText(input.description, MAX_DESCRIPTION_LENGTH, false) || null;
     }
   }
+  const status = input.status === undefined ? existing.status : validateStatus(input.status);
 
   if (name !== existing.name) {
     await assertNameAvailable(organizationId, name, existing.id);
@@ -119,6 +180,7 @@ export async function updateCategory(
       name,
       slug: name !== existing.name ? slugify(name) || 'category' : existing.slug,
       description,
+      status,
     });
     if (!updated) {
       throw new Error('CATEGORY_NOT_FOUND');
@@ -133,8 +195,9 @@ export async function updateCategory(
 }
 
 export async function deleteCategory(organizationId: string, categoryId: string) {
-  const removed = await categoryRepo.remove(organizationId, categoryId);
-  if (!removed) {
+  const result = await categoryRepo.remove(organizationId, categoryId);
+  if (result.inUse) throw new Error('CATEGORY_IN_USE');
+  if (!result.removed) {
     throw new Error('CATEGORY_NOT_FOUND');
   }
   return { deleted: true };

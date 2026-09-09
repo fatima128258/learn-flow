@@ -6,6 +6,7 @@ import authRoutes from './routes/authRoutes';
 import { adminRouter, organizationRouter } from './routes/organizationRoutes';
 import orgAdminRouter from './routes/orgAdminRoutes';
 import categoryRouter from './routes/categoryRoutes';
+import instructorRouter from './routes/instructorRoutes';
 import courseRouter from './routes/courseRoutes';
 import moduleRouter from './routes/moduleRoutes';
 import lessonRouter from './routes/lessonRoutes';
@@ -120,6 +121,7 @@ app.get('/api/ready', async (req, res) => {
 app.use('/api/v1/auth', authRoutes);
 app.use('/api/v1/admin', adminRouter);
 app.use('/api/v1/organizations', courseRouter);
+app.use('/api/v1/instructor', instructorRouter);
 app.use('/api/v1/organizations', moduleRouter);
 app.use('/api/v1/organizations', lessonRouter);
 app.use('/api/v1/organizations', quizRouter);

@@ -100,7 +100,7 @@ export async function requireAuth(req: AuthenticatedRequest, res: Response, next
         return true;
       }
       // Non-platform-admin users should not have platform organization as their context
-      return membership.organization.slug !== 'platform';
+      return membership.organization?.slug !== 'platform';
     });
     
     const primaryMembership = validMemberships.find((membership) => membership.role === 'PLATFORM_ADMIN')
@@ -238,7 +238,8 @@ export async function requireOrganizationContext(req: AuthenticatedRequest, res:
     req.user.role = userOrg.role;
 
     next();
-  } catch {
+  } catch (error) {
+    console.error('[organization context]', error);
     return res.status(500).json({ success: false, error: 'SERVER_ERROR' });
   }
 }

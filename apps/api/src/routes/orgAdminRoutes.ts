@@ -3,6 +3,7 @@ import { requireAuth, requireOrgAdmin } from '../middleware/auth';
 import {
   dashboard,
   analytics,
+  listEnrollments,
   getOrganization,
   listUsers,
   getUser,
@@ -15,6 +16,7 @@ const orgAdminRouter = Router();
 orgAdminRouter.use(requireAuth, requireOrgAdmin);
 orgAdminRouter.get('/dashboard', dashboard);
 orgAdminRouter.get('/analytics', analytics);
+orgAdminRouter.get('/enrollments', listEnrollments);
 orgAdminRouter.get('/organization', getOrganization);
 orgAdminRouter.get('/users', listUsers);
 orgAdminRouter.post('/instructors', createInstructor);

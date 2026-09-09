@@ -13,9 +13,19 @@ import {
   updateCourseStatus,
   updateCourseThumbnail,
 } from '../controllers/courseController';
+import { listAssignableCategories } from '../controllers/categoryController';
 import { uploadSingle } from '../middleware/multipart';
 
 const courseRouter = Router();
+
+courseRouter.get(
+  '/:organizationId/categories',
+  requireAuth,
+  requireVerifiedEmail,
+  requireOrganizationContext,
+  requireRole('ORG_ADMIN', 'INSTRUCTOR'),
+  listAssignableCategories,
+);
 
 courseRouter.get(
   '/:organizationId/courses/:courseId',

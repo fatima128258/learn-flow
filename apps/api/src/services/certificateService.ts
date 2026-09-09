@@ -147,7 +147,10 @@ export async function generateCertificate(organizationId: string, userId: string
       organizationId,
       organizationName: organization?.name ?? 'Unknown Organization',
       instructorUserId: course.instructorUserId,
-      instructorName: instructor?.name ?? 'Unknown Instructor',
+      // Organization admins may be created without a personal name. In that
+      // case, certificates use their organization's name instead of an
+      // unhelpful "Unknown Instructor" label.
+      instructorName: instructor?.name?.trim() || organization?.name || 'Organization Instructor',
       studentName: student?.name ?? student?.email ?? 'Student',
       courseTitle: course.title,
       completionDate: issued,

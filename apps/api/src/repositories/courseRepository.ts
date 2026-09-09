@@ -86,6 +86,8 @@ export interface ListCoursesOptions {
   orderBy?: Record<string, 'asc' | 'desc'>;
   /** When set, restricts results to courses owned by this instructor. */
   instructorId?: string;
+  categoryId?: string;
+  includeDetails?: boolean;
 }
 
 export async function listByOrganization(organizationId: string, options: ListCoursesOptions = {}) {
@@ -96,6 +98,9 @@ export async function listByOrganization(organizationId: string, options: ListCo
   if (options.instructorId) {
     where.instructorUserId = options.instructorId;
   }
+  if (options.categoryId) {
+    where.categoryId = options.categoryId;
+  }
   return prisma().course.findMany({
     where,
     select: {
@@ -104,6 +109,18 @@ export async function listByOrganization(organizationId: string, options: ListCo
       slug: true,
       status: true,
       difficulty: true,
+      ...(options.includeDetails
+        ? {
+            price: true,
+            discountPrice: true,
+            instructorUser: {
+              select: {
+                id: true,
+                name: true,
+              },
+            },
+          }
+        : {}),
       createdAt: true,
     },
     orderBy: options.orderBy ?? { createdAt: 'desc' },
@@ -112,7 +129,12 @@ export async function listByOrganization(organizationId: string, options: ListCo
   });
 }
 
-export async function countByOrganization(organizationId: string, status?: string, instructorId?: string) {
+export async function countByOrganization(
+  organizationId: string,
+  status?: string,
+  instructorId?: string,
+  categoryId?: string,
+) {
   const where: Prisma.CourseWhereInput = { organizationId };
   if (status) {
     where.status = status as Prisma.CourseWhereInput['status'];
@@ -120,7 +142,51 @@ export async function countByOrganization(organizationId: string, status?: strin
   if (instructorId) {
     where.instructorUserId = instructorId;
   }
+  if (categoryId) {
+    where.categoryId = categoryId;
+  }
   return prisma().course.count({ where });
+}
+
+type DailyEnrollmentRow = { date: string; count: bigint };
+
+/**
+ * Dashboard data is scoped by both the course owner and organization. The
+ * enrollment join repeats the organization predicate so malformed rows cannot
+ * expose purchases from a different tenant.
+ */
+export async function getInstructorDashboard(
+  organizationId: string,
+  instructorUserId: string,
+  start: Date,
+  end: Date,
+) {
+  const courseWhere = { organizationId, instructorUserId };
+  const [totalCourses, publishedCourses, draftCourses, enrollmentRows] = await Promise.all([
+    prisma().course.count({ where: courseWhere }),
+    prisma().course.count({ where: { ...courseWhere, status: 'PUBLISHED' } }),
+    prisma().course.count({ where: { ...courseWhere, status: 'DRAFT' } }),
+    prisma().$queryRaw<DailyEnrollmentRow[]>`
+      SELECT TO_CHAR(DATE_TRUNC('day', e."enrolledAt" AT TIME ZONE 'UTC'), 'YYYY-MM-DD') AS date,
+        COUNT(DISTINCT e."userId") AS count
+      FROM "Enrollment" e
+      INNER JOIN "Course" c ON c.id = e."courseId"
+        AND c."organizationId" = ${organizationId}
+        AND c."instructorUserId" = ${instructorUserId}
+      WHERE e."organizationId" = ${organizationId}
+        AND e."enrolledAt" >= ${start}
+        AND e."enrolledAt" < ${end}
+      GROUP BY DATE_TRUNC('day', e."enrolledAt" AT TIME ZONE 'UTC')
+      ORDER BY DATE_TRUNC('day', e."enrolledAt" AT TIME ZONE 'UTC') ASC
+    `,
+  ]);
+
+  return {
+    totalCourses,
+    publishedCourses,
+    draftCourses,
+    enrollmentTrend: enrollmentRows.map((row) => ({ date: row.date, count: Number(row.count) })),
+  };
 }
 
 export async function getById(organizationId: string, courseId: string) {

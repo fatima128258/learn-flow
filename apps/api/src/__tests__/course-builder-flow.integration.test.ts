@@ -156,20 +156,11 @@ describe('Course Builder Flow Integration Test', () => {
       .send({
         name: 'Test Student',
         email: ctx.studentEmail,
+        password: ctx.studentPassword,
       });
     
     expect(res.status, res.body?.error).toBe(201);
     expect(res.body.data.role).toBe('STUDENT');
-    
-    // Set password for student
-    const user = await prisma.user.findUnique({ where: { email: ctx.studentEmail } });
-    expect(user).toBeTruthy();
-    
-    const hash = await argon2.hash(ctx.studentPassword);
-    await prisma.user.update({
-      where: { id: user!.id },
-      data: { passwordHash: hash, emailVerified: true },
-    });
     
     ctx.studentCookie = await loginUser(ctx.studentEmail, ctx.studentPassword);
     expect(ctx.studentCookie).toBeTruthy();

@@ -6,7 +6,9 @@ export async function GET(
 ) {
   const { params } = context;
   try {
-    const backendUrl = process.env.BACKEND_URL || process.env.NEXT_PUBLIC_BACKEND_URL;
+    const backendUrl = process.env.BACKEND_URL
+      || process.env.NEXT_PUBLIC_BACKEND_URL
+      || 'https://learn-flow-1-1gl3.onrender.com';
     const { path: pathArray = [] } = await params;
     
     if (!backendUrl) {
@@ -54,7 +56,9 @@ export async function POST(
 ) {
   const { params } = context;
   try {
-    const backendUrl = process.env.BACKEND_URL || process.env.NEXT_PUBLIC_BACKEND_URL;
+    const backendUrl = process.env.BACKEND_URL
+      || process.env.NEXT_PUBLIC_BACKEND_URL
+      || 'https://learn-flow-1-1gl3.onrender.com';
     const { path: pathArray = [] } = await params;
     
     if (!backendUrl) {
@@ -105,7 +109,9 @@ export async function PATCH(
 ) {
   const { params } = context;
   try {
-    const backendUrl = process.env.BACKEND_URL || process.env.NEXT_PUBLIC_BACKEND_URL;
+    const backendUrl = process.env.BACKEND_URL
+      || process.env.NEXT_PUBLIC_BACKEND_URL
+      || 'https://learn-flow-1-1gl3.onrender.com';
     const { path: pathArray = [] } = await params;
     
     if (!backendUrl) {
@@ -156,7 +162,9 @@ export async function DELETE(
 ) {
   const { params } = context;
   try {
-    const backendUrl = process.env.BACKEND_URL || process.env.NEXT_PUBLIC_BACKEND_URL;
+    const backendUrl = process.env.BACKEND_URL
+      || process.env.NEXT_PUBLIC_BACKEND_URL
+      || 'https://learn-flow-1-1gl3.onrender.com';
     const { path: pathArray = [] } = await params;
     
     if (!backendUrl) {

@@ -10,6 +10,7 @@ import { getCreateCourseErrorMessage } from '../../../../../features/course/crea
 import { useToast } from '../../../../../components/ui/ToastProvider';
 
 import { useCurrentUser } from '../../../../../features/auth/useCurrentUser';
+import { CategorySelect } from '../../../../../components/forms/CategorySelect';
 
 function splitObjectives(raw: string): string[] {
   return raw
@@ -33,7 +34,7 @@ export default function CreateCoursePage() {
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [thumbnailUrl, setThumbnailUrl] = useState('');
-  const [category, setCategory] = useState('');
+  const [categoryId, setCategoryId] = useState('');
   const [price, setPrice] = useState('');
   const [discountPrice, setDiscountPrice] = useState('');
   const [estimatedMinutes, setEstimatedMinutes] = useState('');
@@ -72,7 +73,7 @@ export default function CreateCoursePage() {
     setTitle('');
     setDescription('');
     setThumbnailUrl('');
-    setCategory('');
+    setCategoryId('');
     setPrice('');
     setDiscountPrice('');
     setEstimatedMinutes('');
@@ -160,7 +161,7 @@ export default function CreateCoursePage() {
     };
     if (description.trim()) payload.description = description.trim();
     if (thumbnailUrl.trim()) payload.thumbnailUrl = thumbnailUrl.trim();
-    if (category.trim()) payload.category = category.trim();
+    if (categoryId) payload.categoryId = categoryId;
 
     const parsedPrice = parseOptionalNumber(price);
     if (parsedPrice !== undefined) payload.price = parsedPrice;
@@ -272,12 +273,10 @@ export default function CreateCoursePage() {
                 disabled={submitting}
               />
 
-              <Input
-                label="Category"
-                value={category}
-                onChange={(e) => setCategory(e.target.value)}
-                placeholder="e.g. Development"
-                autoComplete="off"
+              <CategorySelect
+                organizationId={organizationId}
+                value={categoryId}
+                onChange={setCategoryId}
                 disabled={submitting}
               />
 

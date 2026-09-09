@@ -1,5 +1,6 @@
 import { Prisma } from '@prisma/client';
 import * as courseRepo from '../repositories/courseRepository';
+import * as organizationRepo from '../repositories/organizationRepository';
 import * as categoryService from './categoryService';
 import { categoryLabel } from '../utils/categoryLabel';
 import { dispatchNotification } from './notificationDispatcher';
@@ -181,6 +182,9 @@ function toCourseListItemDto(course: {
   slug: string;
   status: string;
   difficulty: string | null;
+  price?: unknown;
+  discountPrice?: unknown;
+  instructorUser?: { id: string; name: string | null };
   createdAt: Date;
 }) {
   return {
@@ -189,6 +193,13 @@ function toCourseListItemDto(course: {
     slug: course.slug,
     status: course.status,
     difficulty: course.difficulty,
+    ...(course.instructorUser
+      ? {
+          price: course.price,
+          discountPrice: course.discountPrice,
+          instructor: course.instructorUser,
+        }
+      : {}),
     createdAt: course.createdAt,
   };
 }
@@ -208,7 +219,14 @@ export async function getCourse(organizationId: string, courseId: string) {
 
 export async function listCourses(
   organizationId: string,
-  input: { page?: unknown; limit?: unknown; status?: unknown; sort?: unknown; order?: unknown } = {},
+  input: {
+    page?: unknown;
+    limit?: unknown;
+    status?: unknown;
+    categoryId?: unknown;
+    sort?: unknown;
+    order?: unknown;
+  } = {},
   actor?: CourseActor | null,
 ) {
   let status: string | undefined;
@@ -231,16 +249,48 @@ export async function listCourses(
   // ORG_ADMIN and PLATFORM_ADMIN see all courses in the organization.
   const instructorId =
     actor?.role === 'INSTRUCTOR' && actor.userId ? actor.userId : undefined;
+  const categoryId =
+    input.categoryId !== undefined && input.categoryId !== null && input.categoryId !== ''
+      ? String(input.categoryId)
+      : undefined;
+  const listOptions = {
+    skip,
+    take,
+    status,
+    orderBy,
+    instructorId,
+    ...(categoryId ? { categoryId } : {}),
+    ...(categoryId ? { includeDetails: true } : {}),
+  };
 
   const [courses, total] = await Promise.all([
-    courseRepo.listByOrganization(organizationId, { skip, take, status, orderBy, instructorId }),
-    courseRepo.countByOrganization(organizationId, status, instructorId),
+    courseRepo.listByOrganization(organizationId, listOptions),
+    categoryId
+      ? courseRepo.countByOrganization(organizationId, status, instructorId, categoryId)
+      : courseRepo.countByOrganization(organizationId, status, instructorId),
   ]);
 
   return {
     items: courses.map(toCourseListItemDto),
     meta: buildMeta(page, limit, total),
   };
+}
+
+export async function getInstructorDashboard(organizationId: string, instructorUserId: string) {
+  const now = new Date();
+  const start = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
+  const end = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 1));
+  const result = await courseRepo.getInstructorDashboard(organizationId, instructorUserId, start, end);
+
+  const trendByDate = new Map(result.enrollmentTrend.map((point) => [point.date, point.count]));
+  const daysInMonth = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 0)).getUTCDate();
+  const trend = Array.from({ length: daysInMonth }, (_, index) => {
+    const date = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), index + 1));
+    const key = date.toISOString().slice(0, 10);
+    return { date: key, count: trendByDate.get(key) ?? 0 };
+  });
+
+  return { ...result, trend };
 }
 
 export async function createCourse(
@@ -253,9 +303,9 @@ export async function createCourse(
   const title = requireTitle(input.title);
   const slug = await resolveSlug(input.slug, title, organizationId);
 
-  const category = optionalString(input.category);
-  const categoryId = category
-    ? await categoryService.resolveOrCreateCategoryId(organizationId, category)
+  const requestedCategoryId = optionalString(input.categoryId);
+  const categoryId = requestedCategoryId
+    ? await categoryService.assertAssignableCategory(organizationId, requestedCategoryId)
     : null;
 
   try {
@@ -307,7 +357,7 @@ export async function updateCourse(
 
   const input = (rawInput ?? {}) as Record<string, unknown>;
   const hasAnyField = [
-    'title', 'slug', 'description', 'thumbnailUrl', 'category', 'price',
+    'title', 'slug', 'description', 'thumbnailUrl', 'category', 'categoryId', 'price',
     'discountPrice', 'estimatedMinutes', 'difficulty', 'learningObjectives',
     'instructorUserId',
   ].some((key) => input[key] !== undefined);
@@ -343,10 +393,10 @@ export async function updateCourse(
     update.thumbnailUrl = optionalString(input.thumbnailUrl);
   }
 
-  if (input.category !== undefined) {
-    const category = optionalString(input.category);
-    update.categoryId = category
-      ? await categoryService.resolveOrCreateCategoryId(organizationId, category)
+  if (input.categoryId !== undefined) {
+    const requestedCategoryId = optionalString(input.categoryId);
+    update.categoryId = requestedCategoryId
+      ? await categoryService.assertAssignableCategory(organizationId, requestedCategoryId)
       : null;
   }
 
@@ -379,7 +429,18 @@ export async function updateCourse(
     if (typeof input.instructorUserId !== 'string' || !input.instructorUserId.trim()) {
       throw new Error('MISSING_FIELDS');
     }
-    update.instructorUserId = input.instructorUserId;
+    const instructorUserId = input.instructorUserId.trim();
+    // A User ID is global, so it is not sufficient to trust it just because
+    // the caller is an organization administrator. The replacement owner must
+    // be a staff member of this same tenant.
+    const membership = await organizationRepo.findMembership(
+      instructorUserId,
+      organizationId,
+    );
+    if (!membership || !['INSTRUCTOR', 'ORG_ADMIN'].includes(membership.role)) {
+      throw new Error('INVALID_INSTRUCTOR');
+    }
+    update.instructorUserId = instructorUserId;
   }
 
   let course;
@@ -469,6 +530,7 @@ export async function updateCourseThumbnail(
   organizationId: string,
   courseId: string,
   file: { originalname: string; mimetype: string; size: number; buffer: Buffer } | undefined,
+  actor?: CourseActor | null,
 ) {
   if (!file || !file.buffer || file.buffer.length === 0) {
     throw new Error('MISSING_FILE');
@@ -487,6 +549,7 @@ export async function updateCourseThumbnail(
   if (!course) {
     throw new Error('COURSE_NOT_FOUND');
   }
+  assertCanManage(actor, course);
 
   const extension = storage.extensionForContentType(file.mimetype);
   if (!extension) {

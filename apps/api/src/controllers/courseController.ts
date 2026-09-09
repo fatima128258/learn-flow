@@ -43,6 +43,12 @@ function handleError(res: Response, err: unknown) {
       return fail(res, 400, 'INVALID_SLUG');
     case 'COURSE_SLUG_TAKEN':
       return fail(res, 409, 'COURSE_SLUG_TAKEN');
+    case 'CATEGORY_NOT_FOUND':
+      return fail(res, 400, 'CATEGORY_NOT_FOUND');
+    case 'CATEGORY_INACTIVE':
+      return fail(res, 400, 'CATEGORY_INACTIVE');
+    case 'INVALID_INSTRUCTOR':
+      return fail(res, 400, 'INVALID_INSTRUCTOR');
     default:
       return fail(res, 500, 'SERVER_ERROR');
   }
@@ -74,6 +80,7 @@ export async function listCourses(req: AuthenticatedRequest, res: Response) {
         page: req.query.page,
         limit: req.query.limit,
         status: req.query.status,
+        categoryId: req.query.categoryId,
         sort: req.query.sort,
         order: req.query.order,
       },
@@ -82,6 +89,18 @@ export async function listCourses(req: AuthenticatedRequest, res: Response) {
       { userId: req.user.id, role: req.user.role },
     );
     return res.status(200).json({ success: true, data: result.items, meta: result.meta });
+  } catch (err) {
+    return handleError(res, err);
+  }
+}
+
+export async function instructorDashboard(req: AuthenticatedRequest, res: Response) {
+  try {
+    if (!req.user) {
+      return fail(res, 401, 'NOT_AUTHENTICATED');
+    }
+    const data = await service.getInstructorDashboard(tenantOrganizationId(req), req.user.id);
+    return res.status(200).json({ success: true, data });
   } catch (err) {
     return handleError(res, err);
   }
@@ -155,6 +174,7 @@ export async function updateCourseThumbnail(req: MulterRequest, res: Response) {
       tenantOrganizationId(req),
       req.params.courseId,
       req.file,
+      { userId: req.user.id, role: req.user.role },
     );
     return res.status(200).json({ success: true, data });
   } catch (err) {

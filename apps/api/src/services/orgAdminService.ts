@@ -146,15 +146,38 @@ function buildRoleDistribution(roleCounts: Array<{ role: string; count: number }
   }));
 }
 
-export async function getAnalytics(organizationId: string) {
+function enrollmentRange(days: number) {
+  const today = new Date();
+  today.setUTCHours(0, 0, 0, 0);
+  const start = new Date(today);
+  start.setUTCDate(start.getUTCDate() - (days - 1));
+  const end = new Date(today);
+  end.setUTCDate(end.getUTCDate() + 1);
+  return { start, end };
+}
+
+function fillDailyTrend(start: Date, days: number, rows: Array<{ date: string; count: number }>) {
+  const counts = new Map(rows.map((row) => [row.date, row.count]));
+  return Array.from({ length: days }, (_, index) => {
+    const date = new Date(start);
+    date.setUTCDate(date.getUTCDate() + index);
+    const key = date.toISOString().slice(0, 10);
+    return { date: key, count: counts.get(key) ?? 0 };
+  });
+}
+
+export async function getAnalytics(organizationId: string, rangeDays = 30) {
   const organization = await orgRepo.findOrganizationById(organizationId);
   if (!organization) {
     throw new Error('ORGANIZATION_NOT_FOUND');
   }
 
-  const [roleCounts, history] = await Promise.all([
+  const range = [7, 30, 90, 365].includes(rangeDays) ? rangeDays : 30;
+  const { start, end } = enrollmentRange(range);
+  const [roleCounts, history, enrollmentAnalytics] = await Promise.all([
     orgAdminRepo.getOrganizationMemberCountByRole(organizationId),
     orgAdminRepo.getOrganizationMembershipHistory(organizationId),
+    orgAdminRepo.getEnrollmentAnalytics(organizationId, start, end),
   ]);
 
   return {
@@ -164,6 +187,18 @@ export async function getAnalytics(organizationId: string) {
     },
     growth: buildMemberGrowth(history),
     roles: buildRoleDistribution(roleCounts),
+    enrollments: {
+      total: enrollmentAnalytics.totals.total,
+      enrolledStudents: enrollmentAnalytics.totals.enrolledStudents,
+      trend: fillDailyTrend(start, range, enrollmentAnalytics.trend),
+      progress: {
+        notStarted: enrollmentAnalytics.totals.notStarted,
+        inProgress: enrollmentAnalytics.totals.inProgress,
+        completed: enrollmentAnalytics.totals.completed,
+      },
+    },
+    courses: enrollmentAnalytics.courses,
+    coursePerformance: enrollmentAnalytics.coursePerformance,
   };
 }
 
@@ -173,6 +208,14 @@ export async function getOrganization(organizationId: string) {
     throw new Error('ORGANIZATION_NOT_FOUND');
   }
   return toOrganizationDto(organization);
+}
+
+export async function listEnrollments(organizationId: string, input: Record<string, unknown>) {
+  const page = Math.max(1, Number(input.page) || 1);
+  const limit = Math.min(100, Math.max(1, Number(input.limit) || 20));
+  const status = typeof input.status === 'string' && ['NOT_STARTED', 'IN_PROGRESS', 'COMPLETED'].includes(input.status) ? input.status : undefined;
+  const result = await orgAdminRepo.listOrganizationEnrollments({ organizationId, search: typeof input.search === 'string' ? input.search : undefined, courseId: typeof input.courseId === 'string' ? input.courseId : undefined, status, skip: (page - 1) * limit, take: limit });
+  return { items: result.items, meta: { page, limit, total: result.total, totalPages: Math.ceil(result.total / limit) } };
 }
 
 export async function listUsers(organizationId: string, input: {

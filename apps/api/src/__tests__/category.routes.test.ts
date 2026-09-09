@@ -9,6 +9,7 @@ const prismaMock = {
   },
   category: {
     create: vi.fn(),
+    count: vi.fn(),
     findMany: vi.fn(),
     findFirst: vi.fn(),
     updateMany: vi.fn(),
@@ -36,6 +37,7 @@ function categoryRecord(overrides: Record<string, unknown> = {}) {
     organizationId: 'org-a',
     name: 'Web Development',
     slug: 'web-development',
+    status: 'ACTIVE',
     description: 'Web-focused courses',
     createdAt: now,
     updatedAt: now,
@@ -71,7 +73,7 @@ async function authenticateAs(
   });
 
   prismaMock.userOrganization.findMany.mockResolvedValue([
-    { role, organizationId, userId },
+    { role, organizationId, userId, organization: { id: organizationId, slug: 'org-a', name: 'Test Org' } },
   ]);
 
   prismaMock.userOrganization.findFirst.mockImplementation(async ({ where }: { where?: { role?: string; organizationId?: string; userId?: string; id?: string; courseId?: string; moduleId?: string; quizId?: string; status?: string } }) => {
@@ -101,6 +103,7 @@ function cookie() {
 function resetMocks() {
   Object.values(prismaMock.userOrganization).forEach((fn) => vi.mocked(fn).mockReset());
   prismaMock.category.create.mockReset();
+  prismaMock.category.count.mockReset();
   prismaMock.category.findMany.mockReset();
   prismaMock.category.findFirst.mockReset();
   prismaMock.category.updateMany.mockReset();
@@ -143,6 +146,7 @@ describe('Org-admin category endpoints', () => {
           _count: { courses: 0 },
         },
       ]);
+      prismaMock.category.count.mockResolvedValue(2);
 
       const res = await request(app)
         .get('/api/v1/org/categories')
@@ -150,19 +154,19 @@ describe('Org-admin category endpoints', () => {
 
       expect(res.status).toBe(200);
       expect(res.body.success).toBe(true);
-      expect(prismaMock.category.findMany).toHaveBeenCalledWith({
+      expect(prismaMock.category.findMany).toHaveBeenCalledWith(expect.objectContaining({
         where: { organizationId: 'org-a' },
-        include: {
-          _count: { select: { courses: true } },
-        },
         orderBy: [{ name: 'asc' }],
-      });
+        skip: 0,
+        take: 20,
+      }));
       expect(res.body.data).toHaveLength(2);
       expect(res.body.data[0]).toEqual({
         id: 'cat-1',
         organizationId: 'org-a',
         name: 'Web Development',
         slug: 'web-development',
+        status: 'ACTIVE',
         description: 'Web-focused courses',
         courseCount: 3,
         createdAt: now.toISOString(),
@@ -227,19 +231,21 @@ describe('Org-admin category endpoints', () => {
 
       expect(res.status).toBe(201);
       expect(res.body.success).toBe(true);
-      expect(prismaMock.category.create).toHaveBeenCalledWith({
-        data: {
+      expect(prismaMock.category.create).toHaveBeenCalledWith(expect.objectContaining({
+        data: expect.objectContaining({
           organizationId: 'org-a',
           name: 'Web Development & Design',
           slug: 'web-development-design',
           description: 'Web-focused courses',
-        },
-      });
+          status: 'ACTIVE',
+        }),
+      }));
       expect(res.body.data).toEqual({
         id: 'cat-1',
         organizationId: 'org-a',
         name: 'Web Development',
         slug: 'web-development',
+        status: 'ACTIVE',
         description: 'Web-focused courses',
         courseCount: 0,
         createdAt: now.toISOString(),
@@ -263,6 +269,19 @@ describe('Org-admin category endpoints', () => {
       expect(prismaMock.category.create).not.toHaveBeenCalled();
     });
 
+    it('rejects invalid status values', async () => {
+      await authenticateAs('ORG_ADMIN');
+
+      const res = await request(app)
+        .post('/api/v1/org/categories')
+        .set('Cookie', cookie())
+        .send({ name: 'Invalid Status', status: 'DELETED' });
+
+      expect(res.status).toBe(400);
+      expect(res.body.error).toBe('MISSING_FIELDS');
+      expect(prismaMock.category.create).not.toHaveBeenCalled();
+    });
+
     it('allows the same category name in a different organization', async () => {
       await authenticateAs('ORG_ADMIN', { organizationId: 'org-b' });
       prismaMock.category.findFirst.mockResolvedValue(null);
@@ -276,15 +295,33 @@ describe('Org-admin category endpoints', () => {
         .send({ name: 'Web Development' });
 
       expect(res.status).toBe(201);
-      expect(prismaMock.category.create).toHaveBeenCalledWith({
-        data: {
+      expect(prismaMock.category.create).toHaveBeenCalledWith(expect.objectContaining({
+        data: expect.objectContaining({
           organizationId: 'org-b',
           name: 'Web Development',
           slug: 'web-development',
           description: null,
-        },
-      });
+          status: 'ACTIVE',
+        }),
+      }));
       expect(res.body.data.organizationId).toBe('org-b');
+    });
+
+    describe('GET /api/v1/org/categories/:categoryId', () => {
+      it('returns only a category belonging to the current organization', async () => {
+        await authenticateAs('ORG_ADMIN');
+        prismaMock.category.findFirst.mockResolvedValue(categoryRecord());
+
+        const res = await request(app)
+          .get('/api/v1/org/categories/cat-1')
+          .set('Cookie', cookie());
+
+        expect(res.status).toBe(200);
+        expect(res.body.data.id).toBe('cat-1');
+        expect(prismaMock.category.findFirst).toHaveBeenCalledWith(expect.objectContaining({
+          where: { id: 'cat-1', organizationId: 'org-a' },
+        }));
+      });
     });
   });
 
@@ -307,7 +344,7 @@ describe('Org-admin category endpoints', () => {
       expect(res.body.data.slug).toBe('frontend');
       expect(prismaMock.category.updateMany).toHaveBeenCalledWith({
         where: { id: 'cat-1', organizationId: 'org-a' },
-        data: { name: 'Frontend', slug: 'frontend', description: 'Web-focused courses' },
+        data: { name: 'Frontend', slug: 'frontend', description: 'Web-focused courses', status: 'ACTIVE' },
       });
     });
 
@@ -345,6 +382,10 @@ describe('Org-admin category endpoints', () => {
   describe('DELETE /api/v1/org/categories/:categoryId', () => {
     it('deletes a category in the admin tenant', async () => {
       await authenticateAs('ORG_ADMIN');
+      prismaMock.category.findFirst.mockResolvedValue({
+        id: 'cat-1',
+        _count: { courses: 0 },
+      });
       prismaMock.category.deleteMany.mockResolvedValue({ count: 1 });
 
       const res = await request(app)
@@ -353,6 +394,9 @@ describe('Org-admin category endpoints', () => {
 
       expect(res.status).toBe(200);
       expect(res.body).toEqual({ success: true, deleted: true });
+      expect(prismaMock.category.findFirst).toHaveBeenCalledWith(expect.objectContaining({
+        where: { id: 'cat-1', organizationId: 'org-a' },
+      }));
       expect(prismaMock.category.deleteMany).toHaveBeenCalledWith({
         where: { id: 'cat-1', organizationId: 'org-a' },
       });
@@ -360,6 +404,7 @@ describe('Org-admin category endpoints', () => {
 
     it('cannot delete a category from another tenant (404 cross-tenant isolation)', async () => {
       await authenticateAs('ORG_ADMIN', { organizationId: 'org-b' });
+      prismaMock.category.findFirst.mockResolvedValue(null);
       prismaMock.category.deleteMany.mockResolvedValue({ count: 0 });
 
       const res = await request(app)
@@ -368,9 +413,25 @@ describe('Org-admin category endpoints', () => {
 
       expect(res.status).toBe(404);
       expect(res.body.error).toBe('CATEGORY_NOT_FOUND');
-      expect(prismaMock.category.deleteMany).toHaveBeenCalledWith({
+      expect(prismaMock.category.findFirst).toHaveBeenCalledWith(expect.objectContaining({
         where: { id: 'cat-1', organizationId: 'org-b' },
+      }));
+    });
+
+    it('prevents deletion when courses reference the category', async () => {
+      await authenticateAs('ORG_ADMIN');
+      prismaMock.category.findFirst.mockResolvedValue({
+        id: 'cat-1',
+        _count: { courses: 2 },
       });
+
+      const res = await request(app)
+        .delete('/api/v1/org/categories/cat-1')
+        .set('Cookie', cookie());
+
+      expect(res.status).toBe(409);
+      expect(res.body.error).toBe('CATEGORY_IN_USE');
+      expect(prismaMock.category.deleteMany).not.toHaveBeenCalled();
     });
   });
 });

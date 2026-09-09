@@ -6,12 +6,9 @@ import { EmptyState, EmptyStateIcons, ErrorState, Spinner } from '@/components/u
 import { useCurrentUser } from '@/features/auth/useCurrentUser';
 import { getOrgAdminErrorMessage } from '@/features/orgAdmin/orgAdminErrors';
 import {
-  PageHeader,
   StatCard,
   ChartCard,
-  BarList,
   LineChart,
-  type BarDatum,
 } from '@/components/dashboard';
 
 type OrganizationInfo = {
@@ -27,40 +24,30 @@ type DashboardSummary = {
   users: { total: number; instructors: number; students: number; organizationAdmins: number };
 };
 
-type GrowthPoint = { month: string; members: number };
-type RoleBreakdown = { label: string; role: string; value: number };
-
 type OrgAnalytics = {
   organization?: { id: string; name: string };
-  growth?: GrowthPoint[];
-  roles?: RoleBreakdown[];
+  enrollments?: {
+    total: number;
+    enrolledStudents: number;
+    trend: Array<{ date: string; count: number }>;
+    progress: { notStarted: number; inProgress: number; completed: number };
+  };
+  courses?: { published: number; draft: number };
 };
+
+type OrganizationEnrollment = {
+  id: string;
+  student: { name: string | null; email: string };
+  course: { id: string; name: string };
+  enrolledAt: string;
+};
+
+const enrollmentRanges = [
+  { value: 7, label: 'Last 7 days' }, { value: 30, label: 'Last 30 days' },
+  { value: 90, label: 'Last 90 days' }, { value: 365, label: 'Last 1 year' },
+] as const;
 
 const API_BASE = '';
-const statusBarTone = (status: string): BarDatum['tone'] => {
-  if (status === 'PUBLISHED') return 'success';
-  if (status === 'ARCHIVED') return 'neutral';
-  return 'warning';
-};
-
-const roleBarTone = (role: string): BarDatum['tone'] => {
-  if (role === 'ORG_ADMIN' || role === 'PLATFORM_ADMIN') return 'primary';
-  if (role === 'INSTRUCTOR') return 'warning';
-  return 'success';
-};
-
-const MembersIcon = (
-  <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
-    <path strokeLinecap="round" strokeLinejoin="round" d="M17 20h5v-2a3 3 0 00-4.974-2.337M14 20H2v-2a4 4 0 018-2.87M11 4a4 4 0 000 8M15.5 12a3.5 3.5 0 000-7M15 20h7v-2a3 3 0 00-2.97-3" />
-  </svg>
-);
-
-const AdminsIcon = (
-  <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
-    <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197" />
-  </svg>
-);
-
 const InstructorsIcon = (
   <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
     <path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
@@ -80,8 +67,11 @@ export default function OrgAnalyticsPage() {
 
   const [summary, setSummary] = useState<DashboardSummary | null>(null);
   const [analyticsData, setAnalyticsData] = useState<OrgAnalytics | null>(null);
+  const [enrollments, setEnrollments] = useState<OrganizationEnrollment[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [range, setRange] = useState<7 | 30 | 90 | 365>(30);
+  const [retry, setRetry] = useState(0);
 
   useEffect(() => {
     if (userLoading) return;
@@ -96,9 +86,10 @@ export default function OrgAnalyticsPage() {
       try {
         const orgId = orgIdParam ?? user?.organizationId ?? '';
         const orgHeaders: Record<string, string> = orgId ? { 'X-Organization-Id': orgId } : {};
-        const [dashRes, analyticsRes] = await Promise.all([
+        const [dashRes, analyticsRes, enrollmentsRes] = await Promise.all([
           fetch(`${API_BASE}/api/v1/org/dashboard`, { credentials: 'include', headers: orgHeaders }),
-          fetch(`${API_BASE}/api/v1/org/analytics`, { credentials: 'include', headers: orgHeaders }),
+          fetch(`${API_BASE}/api/v1/org/analytics?range=${range}`, { credentials: 'include', headers: orgHeaders }),
+          fetch(`${API_BASE}/api/v1/org/enrollments?limit=100`, { credentials: 'include', headers: orgHeaders }),
         ]);
 
         if (!dashRes.ok) {
@@ -115,11 +106,17 @@ export default function OrgAnalyticsPage() {
           setError('Could not load analytics. Please try again.');
           return;
         }
+        if (!enrollmentsRes.ok) {
+          setError('Could not load enrollments. Please try again.');
+          return;
+        }
 
         const dashData: { success?: boolean; data?: DashboardSummary } = await dashRes.json();
         const analyticsBody: { success?: boolean; data?: OrgAnalytics } = await analyticsRes.json();
+        const enrollmentsBody: { success?: boolean; data?: OrganizationEnrollment[] } = await enrollmentsRes.json();
         setSummary(dashData.data ?? null);
         setAnalyticsData(analyticsBody.data ?? null);
+        setEnrollments(enrollmentsBody.data ?? []);
       } catch {
         setError('Could not reach the API. Please try again.');
       } finally {
@@ -128,123 +125,56 @@ export default function OrgAnalyticsPage() {
     }
 
     void load();
-  }, [user, userLoading, orgIdParam]);
+  }, [user, userLoading, orgIdParam, range, retry]);
 
-  const statusDistribution: BarDatum[] = (analyticsData?.roles ?? []).map((r) => ({
-    label: r.label,
-    value: r.value,
-    tone: roleBarTone(r.role),
+  const enrollmentTrend = (analyticsData?.enrollments?.trend ?? []).map((point) => ({
+    label: new Date(`${point.date}T00:00:00.000Z`).toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: 'UTC' }),
+    value: point.count,
   }));
-
-  const growthData = (analyticsData?.growth ?? []).map((g) => ({
-    label: g.month,
-    value: g.members,
-  }));
-
+  const enrollmentsByMonth = enrollments.reduce<Record<string, OrganizationEnrollment[]>>((months, enrollment) => {
+    const month = new Date(enrollment.enrolledAt).toLocaleDateString('en-US', { month: 'long', year: 'numeric', timeZone: 'UTC' });
+    (months[month] ??= []).push(enrollment);
+    return months;
+  }, {});
   return (
     <div className="mx-auto max-w-5xl">
-      <PageHeader
-        title="Analytics"
-        badges={
-          summary
-            ? [
-                {
-                  label: summary.organization.status,
-                  variant: summary.organization.status === 'ACTIVE' ? 'success' : 'error',
-                },
-              ]
-            : undefined
-        }
-      />
-
       {loading && summary === null ? (
         <div className="flex items-center gap-3 text-neutral-700">
-          <Spinner size="lg" label="Loading analytics..." />
-          <span>Loading analytics...</span>
+          <Spinner size="lg" label="Loading enrollments..." />
+          <span>Loading enrollments...</span>
         </div>
       ) : error ? (
         <div className="rounded-2xl border border-neutral-200 bg-white shadow-sm">
           <ErrorState
-            title="Unable to load analytics"
+            title="Unable to load enrollments"
             message={error}
-            action={{ label: 'Retry', onClick: () => setLoading(true) }}
+            action={{ label: 'Retry', onClick: () => setRetry((value) => value + 1) }}
           />
         </div>
       ) : summary ? (
         <>
-          <div className="mb-8 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            <StatCard
-              label="Total members"
-              value={summary.users.total}
-              icon={MembersIcon}
-              tone="primary"
-              hint="Everyone in your organization"
-            />
-            <StatCard
-              label="Organization admins"
-              value={summary.users.organizationAdmins}
-              icon={AdminsIcon}
-              tone="neutral"
-              hint="Tenant-level administrators"
-            />
-            <StatCard
-              label="Instructors"
-              value={summary.users.instructors}
-              icon={InstructorsIcon}
-              tone="warning"
-              hint="Course creators"
-            />
-            <StatCard
-              label="Students"
-              value={summary.users.students}
-              icon={StudentsIcon}
-              tone="success"
-              hint="Active learners"
-            />
-          </div>
-
-          <div className="mb-8 grid grid-cols-1 gap-4 lg:grid-cols-2">
+          <section aria-labelledby="enrollment-analytics-title" className="mb-8">
+            {/* <h2 id="enrollment-analytics-title" className="mb-4 text-xl font-semibold text-neutral-900">Enrollment </h2> */}
+            <div className="mb-4 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              <StatCard label="Total Enrolled Students" value={(analyticsData?.enrollments?.enrolledStudents ?? 0).toLocaleString()} tone="primary" hint="Unique students enrolled in this organization" />
+              <StatCard label="Published Courses" value={(analyticsData?.courses?.published ?? 0).toLocaleString()} tone="success" hint="Published courses in this organization" />
+              <StatCard label="Draft Courses" value={(analyticsData?.courses?.draft ?? 0).toLocaleString()} tone="warning" hint="Draft courses in this organization" />
+            </div>
             <ChartCard
-              title="Organization Growth"
-              description={analyticsData?.growth?.length ? 'Cumulative members per month' : undefined}
+              title="Enrollment Trend"
+              description="Daily enrollments from real enrollment records"
+              action={<label className="text-sm text-neutral-600">Range <select aria-label="Enrollment date range" value={range} onChange={(event) => setRange(Number(event.target.value) as 7 | 30 | 90 | 365)} className="ml-2 rounded-md border border-neutral-300 bg-white px-2 py-1 text-sm">{enrollmentRanges.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}</select></label>}
             >
-              {analyticsData && analyticsData.growth && analyticsData.growth.length > 0 ? (
-                <LineChart data={growthData} color="#8b5cf6" height={240} />
-              ) : (
-                <EmptyState
-                  icon={EmptyStateIcons.NoData}
-                  title="No membership history yet"
-                  description="Member growth will appear as people join your organization."
-                />
-              )}
+              {enrollmentTrend.some((point) => point.value > 0) ? <LineChart data={enrollmentTrend} color="#8b5cf6" height={240} /> : <EmptyState icon={EmptyStateIcons.NoData} title="No enrollment data available for this period" description="Enrollments will appear here as students join courses." />}
             </ChartCard>
+          </section>
 
-            <ChartCard
-              title="Members by Role"
-              description={analyticsData?.roles?.length ? 'Current member distribution' : undefined}
-            >
-              {analyticsData && analyticsData.roles && analyticsData.roles.length > 0 ? (
-                <BarList data={statusDistribution} />
-              ) : (
-                <EmptyState
-                  icon={EmptyStateIcons.NoData}
-                  title="No members yet"
-                  description="Member role distribution will appear once members are added."
-                />
-              )}
-            </ChartCard>
-          </div>
-
-          <ChartCard
-            title="Courses by status"
-            description="Course catalog overview"
-          >
-            <EmptyState
-              icon={EmptyStateIcons.NoCourses}
-              title="Course analytics coming soon"
-              description="Course status distribution will be available in a future update."
-            />
+          <ChartCard title="Enrollment History" description="Student course purchases, grouped by month">
+            {enrollments.length === 0 ? <EmptyState icon={EmptyStateIcons.NoData} title="No enrollments yet" description="Student course purchases will appear here." /> : (
+              <div className="space-y-6">{Object.entries(enrollmentsByMonth).map(([month, monthlyEnrollments]) => <section key={month}><h3 className="mb-2 text-base font-semibold text-neutral-900">{month}</h3><div className="overflow-x-auto"><table className="min-w-full text-sm"><thead className="border-b border-neutral-200 text-left text-xs uppercase tracking-wide text-neutral-500"><tr><th className="px-3 py-3">Student</th><th className="px-3 py-3">Course Purchased</th><th className="px-3 py-3">Purchase Date</th></tr></thead><tbody className="divide-y divide-neutral-100">{monthlyEnrollments.map((enrollment) => <tr key={enrollment.id}><td className="px-3 py-3 font-medium text-neutral-900">{enrollment.student.name?.trim() || enrollment.student.email}</td><td className="px-3 py-3 text-neutral-700">{enrollment.course.name}</td><td className="px-3 py-3 text-neutral-600">{new Date(enrollment.enrolledAt).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric', timeZone: 'UTC' })}</td></tr>)}</tbody></table></div></section>)}</div>
+            )}
           </ChartCard>
+
         </>
       ) : null}
     </div>

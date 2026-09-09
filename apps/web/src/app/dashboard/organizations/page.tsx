@@ -335,7 +335,6 @@ export default function OrganizationsPage() {
   const [assignOrg, setAssignOrg] = useState<OrganizationItem | null>(null);
   const [assignMode, setAssignMode] = useState<AssignAdminMode>('existing');
   const [adminEmail, setAdminEmail] = useState('');
-  const [adminName, setAdminName] = useState('');
   const [adminPassword, setAdminPassword] = useState('');
   const [adminEmailError, setAdminEmailError] = useState<string>('');
   const [adminPasswordError, setAdminPasswordError] = useState<string>('');
@@ -444,7 +443,6 @@ export default function OrganizationsPage() {
     setAssignOrg(org);
     setAssignMode('existing');
     setAdminEmail('');
-    setAdminName('');
     setAdminPassword('');
     setAdminEmailError('');
     setAdminPasswordError('');
@@ -455,7 +453,6 @@ export default function OrganizationsPage() {
     setAssignOrg(null);
     setAssignMode('existing');
     setAdminEmail('');
-    setAdminName('');
     setAdminPassword('');
     setAdminEmailError('');
     setAdminPasswordError('');
@@ -463,7 +460,6 @@ export default function OrganizationsPage() {
 
   function clearAdminCredentials() {
     setAdminEmail('');
-    setAdminName('');
     setAdminPassword('');
   }
 
@@ -501,7 +497,7 @@ export default function OrganizationsPage() {
       const apiBase = '';
       const body =
         assignMode === 'new'
-          ? { name: adminName.trim() || undefined, email: trimmedEmail, password: adminPassword }
+          ? { email: trimmedEmail, password: adminPassword }
           : { email: trimmedEmail };
 
       const res = await fetch(`${apiBase}/api/v1/organizations/${assignOrg.id}/admins`, {
@@ -1061,17 +1057,6 @@ export default function OrganizationsPage() {
                 Create new admin
               </Button>
             </div>
-
-            {assignMode === 'new' ? (
-              <Input
-                label="Full name"
-                value={adminName}
-                onChange={(e) => setAdminName(e.target.value)}
-                placeholder="e.g. Mina Admin"
-                autoComplete="off"
-                disabled={assigning}
-              />
-            ) : null}
 
             <Input
               label="Email address"

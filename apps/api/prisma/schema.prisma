@@ -110,6 +110,7 @@ model Category {
   name           String
   slug           String
   description    String?
+  status         CategoryStatus @default(ACTIVE)
   createdAt      DateTime     @default(now())
   updatedAt      DateTime     @updatedAt
   organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
@@ -118,6 +119,11 @@ model Category {
   @@unique([organizationId, name])
   @@unique([organizationId, slug])
   @@index([organizationId])
+}
+
+enum CategoryStatus {
+  ACTIVE
+  INACTIVE
 }
 
 model Course {

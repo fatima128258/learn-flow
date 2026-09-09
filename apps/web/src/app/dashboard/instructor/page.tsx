@@ -1,204 +1,32 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
-import {
-  Badge,
-  EmptyState,
-  EmptyStateIcons,
-  ErrorState,
-  LinkButton,
-  Spinner,
-} from '@/components/ui';
-import { useToast } from '@/components/ui/ToastProvider';
+import { useEffect } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { ErrorState, Spinner } from '@/components/ui';
 import { useCurrentUser } from '@/features/auth/useCurrentUser';
 import { getJson } from '@/lib/api';
-import { getCourseStatusErrorMessage } from '@/features/course/courseStatusErrors';
-import {
-  PageHeader,
-  StatCard,
-  StatCardSkeleton,
-  TableCard,
-  Calendar,
-  tableHeadClass,
-  tableCellClass,
-  tableRowHoverClass,
-  CourseActionsMenu,
-} from '@/components/dashboard';
+import { Calendar, ChartCard, LineChart, PageHeader, StatCard, StatCardSkeleton } from '@/components/dashboard';
 
-// ─── Types ────────────────────────────────────────────────────────────────────
-
-type CourseItem = {
-  id: string;
-  title: string;
-  status: string;
-  difficulty: string | null;
-  createdAt: string;
+type InstructorDashboard = {
+  totalCourses: number;
+  publishedCourses: number;
+  draftCourses: number;
+  trend: Array<{ date: string; count: number }>;
 };
-
-type CourseStatus = 'DRAFT' | 'REVIEW' | 'PUBLISHED' | 'ARCHIVED';
-
-// ─── Constants ────────────────────────────────────────────────────────────────
-
-const STATUS_OPTIONS: { value: CourseStatus; label: string; description: string }[] = [
-  { value: 'PUBLISHED', label: 'Published',  description: 'Visible to enrolled students' },
-  { value: 'DRAFT',     label: 'Draft',      description: 'Not visible to students' },
-  { value: 'REVIEW',    label: 'In Review',  description: 'Pending approval' },
-  { value: 'ARCHIVED',  label: 'Archived',   description: 'Hidden from all students' },
-];
-
-// ─── Helpers ──────────────────────────────────────────────────────────────────
-
-function statusBadgeVariant(status: string) {
-  if (status === 'PUBLISHED') return 'success' as const;
-  if (status === 'REVIEW')    return 'warning' as const;
-  if (status === 'ARCHIVED')  return 'default' as const;
-  return 'warning' as const;
-}
-
-const CourseIcon = (
-  <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
-    <path strokeLinecap="round" strokeLinejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
-  </svg>
-);
-
-const PublishIcon = (
-  <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
-    <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-  </svg>
-);
-
-const DraftIcon = (
-  <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
-    <path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-  </svg>
-);
-
-// ─── Change-Status Modal ──────────────────────────────────────────────────────
-
-interface ChangeStatusModalProps {
-  course: CourseItem;
-  organizationId: string;
-  onClose: () => void;
-  onSuccess: (courseId: string, newStatus: CourseStatus) => void;
-}
-
-function ChangeStatusModal({ course, organizationId, onClose, onSuccess }: ChangeStatusModalProps) {
-  const toast = useToast();
-  const [selected, setSelected] = useState<CourseStatus>(course.status as CourseStatus);
-  const [saving, setSaving] = useState(false);
-
-  const isDirty = selected !== course.status;
-
-  async function handleConfirm() {
-    if (!isDirty) return;
-    setSaving(true);
-    try {
-      const apiBase = '';
-      const res = await fetch(
-        `${apiBase}/api/v1/organizations/${organizationId}/courses/${course.id}/status`,
-        {
-          method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
-          credentials: 'include',
-          body: JSON.stringify({ status: selected }),
-        },
-      );
-      let code: unknown = null;
-      try { code = (await res.clone().json())?.error; } catch { /* ignore */ }
-      if (!res.ok) { toast.error(getCourseStatusErrorMessage(code)); return; }
-      toast.success('Course status updated successfully.');
-      onSuccess(course.id, selected);
-      onClose();
-    } catch {
-      toast.error(getCourseStatusErrorMessage(null));
-    } finally {
-      setSaving(false);
-    }
-  }
-
-  useEffect(() => {
-    const h = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
-    document.addEventListener('keydown', h);
-    return () => document.removeEventListener('keydown', h);
-  }, [onClose]);
-
-  return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
-      onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
-    >
-      <div className="w-full max-w-md rounded-2xl border border-neutral-200 bg-white p-6 shadow-xl">
-        <div className="mb-4 flex items-start justify-between gap-2">
-          <div>
-            <h2 className="text-base font-semibold text-neutral-900">Change Course Status</h2>
-            <p className="mt-0.5 text-sm text-neutral-500 line-clamp-1">{course.title}</p>
-          </div>
-          <button onClick={onClose} className="rounded-md p-1 text-neutral-400 hover:bg-neutral-100 hover:text-neutral-600" aria-label="Close">
-            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-            </svg>
-          </button>
-        </div>
-
-        <div className="mb-4 flex items-center gap-2 rounded-lg bg-neutral-50 px-3 py-2 text-sm text-neutral-600">
-          <span>Current:</span>
-          <Badge variant={statusBadgeVariant(course.status)} size="sm">{course.status}</Badge>
-        </div>
-
-        <fieldset className="space-y-2">
-          <legend className="mb-2 text-sm font-medium text-neutral-700">Select new status</legend>
-          {STATUS_OPTIONS.map((opt) => {
-            const isCurrent = opt.value === course.status;
-            const isSelected = opt.value === selected;
-            return (
-              <label key={opt.value} className={`flex cursor-pointer items-start gap-3 rounded-lg border p-3 transition-colors ${isSelected ? 'border-primary-500 bg-primary-50' : 'border-neutral-200 hover:border-neutral-300 hover:bg-neutral-50'} ${isCurrent ? 'opacity-60' : ''}`}>
-                <input type="radio" name="status" value={opt.value} checked={isSelected} onChange={() => setSelected(opt.value)} className="mt-0.5 h-4 w-4 accent-primary-600" />
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm font-medium text-neutral-900">{opt.label}</span>
-                    {isCurrent && <span className="rounded-full bg-neutral-200 px-1.5 py-0.5 text-xs text-neutral-500">current</span>}
-                  </div>
-                  <p className="mt-0.5 text-xs text-neutral-500">{opt.description}</p>
-                </div>
-              </label>
-            );
-          })}
-        </fieldset>
-
-        <div className="mt-5 flex justify-end gap-2">
-          <button type="button" onClick={onClose} disabled={saving} className="rounded-lg border border-neutral-300 bg-white px-4 py-2 text-sm font-medium text-neutral-700 hover:bg-neutral-50 disabled:opacity-50">
-            Cancel
-          </button>
-          <button type="button" onClick={handleConfirm} disabled={!isDirty || saving} className="inline-flex items-center gap-2 rounded-lg bg-primary-600 px-4 py-2 text-sm font-medium text-white hover:bg-primary-700 disabled:cursor-not-allowed disabled:opacity-50">
-            {saving && <Spinner size="sm" />}
-            {saving ? 'Saving…' : 'Confirm'}
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function InstructorDashboardPage() {
   const { data: user, isLoading: userLoading } = useCurrentUser();
-  const queryClient = useQueryClient();
-  const [statusModalCourseId, setStatusModalCourseId] = useState<string | null>(null);
+  const organizationId = user?.organizationId ?? '';
 
-  const { data: courses, isLoading, isError, refetch } = useQuery({
-    // Include both organizationId and user id in the cache key so that cached
-    // courses from one instructor / organization are never served to a different
-    // instructor or organization in the same browser session.
-    queryKey: ['instructor', 'courses', user?.organizationId, user?.id],
+  const { data, isLoading, isError, refetch } = useQuery({
+    queryKey: ['instructor', 'dashboard', organizationId, user?.id],
     queryFn: async () => {
-      const body = await getJson<{ data?: CourseItem[] }>(
-        `/api/v1/organizations/${user?.organizationId ?? ''}/courses?page=1&limit=100`,
+      const response = await getJson<{ data?: InstructorDashboard }>(
+        `/api/v1/instructor/${organizationId}/dashboard`,
       );
-      return body.data ?? [];
+      return response.data ?? null;
     },
-    enabled: user?.role === 'INSTRUCTOR' && Boolean(user?.organizationId),
+    enabled: user?.role === 'INSTRUCTOR' && Boolean(organizationId),
   });
 
   useEffect(() => {
@@ -207,89 +35,48 @@ export default function InstructorDashboardPage() {
       window.location.href = '/login';
       return;
     }
-    // Only allow INSTRUCTOR role on this page
     if (user.role !== 'INSTRUCTOR') {
-      window.location.href =
-        user.role === 'ORG_ADMIN' ? '/dashboard/organization'
+      window.location.href = user.role === 'ORG_ADMIN' ? '/dashboard/organization'
         : user.role === 'PLATFORM_ADMIN' ? '/dashboard'
-        : user.role === 'STUDENT' ? '/dashboard/student'
-        : '/login';
+          : user.role === 'STUDENT' ? '/dashboard/student' : '/login';
     }
   }, [user, userLoading]);
 
-  function handleStatusSuccess(courseId: string, newStatus: CourseStatus) {
-    // Must use the same full cache key as the useQuery above so the optimistic
-    // update targets the correct cache entry.
-    queryClient.setQueryData<CourseItem[]>(
-      ['instructor', 'courses', user?.organizationId, user?.id],
-      (prev) => prev?.map((c) => (c.id === courseId ? { ...c, status: newStatus } : c)) ?? [],
-    );
-  }
-
-  const orgId = user?.organizationId ?? '';
-  const manageHref = (courseId: string) =>
-    `/dashboard/organization/courses/${courseId}${orgId ? `?organization=${orgId}` : ''}`;
-
-  const publishedCount = (courses ?? []).filter((c) => c.status === 'PUBLISHED').length;
-  const draftCount = (courses?.length ?? 0) - publishedCount;
-  const activeModal = courses?.find((c) => c.id === statusModalCourseId) ?? null;
+  const chartData = (data?.trend ?? []).map((point) => ({
+    label: new Date(`${point.date}T00:00:00.000Z`).toLocaleDateString('en-US', {
+      month: 'short', day: 'numeric', timeZone: 'UTC',
+    }),
+    value: point.count,
+  }));
 
   return (
-    <>
-      {activeModal && orgId && (
-        <ChangeStatusModal
-          course={activeModal}
-          organizationId={orgId}
-          onClose={() => setStatusModalCourseId(null)}
-          onSuccess={handleStatusSuccess}
-        />
-      )}
+    <div className="mx-auto max-w-6xl">
+      <PageHeader title={`Welcome, ${user?.name ?? 'Instructor'}`} />
 
-      <div className="mx-auto max-w-6xl">
-        <PageHeader
-          title={`Welcome, ${user?.name ?? 'Instructor'}`}
-          actions={
-            <LinkButton href={`/dashboard/organization/courses/new${orgId ? `?organization=${orgId}` : ''}`}>
-              Create Course
-            </LinkButton>
-          }
-        />
-
-        {isLoading ? (
-          <>
-            <div className="mb-8 grid grid-cols-1 gap-4 sm:grid-cols-3">
-              <StatCardSkeleton /><StatCardSkeleton /><StatCardSkeleton />
-            </div>
-            <div className="flex items-center gap-3 text-neutral-700">
-              <Spinner size="lg" label="Loading your courses..." />
-              <span>Loading your courses...</span>
-            </div>
-          </>
-        ) : isError ? (
-          <div className="rounded-2xl border border-neutral-200 bg-white shadow-sm">
-            <ErrorState title="Unable to load your courses" message="Your course list could not be loaded. Please try again." action={{ label: 'Retry', onClick: () => void refetch() }} />
+      {isLoading || userLoading ? (
+        <>
+          <div className="mb-8 grid grid-cols-1 gap-4 sm:grid-cols-3"><StatCardSkeleton /><StatCardSkeleton /><StatCardSkeleton /></div>
+          <div className="flex items-center gap-3 text-neutral-700"><Spinner size="lg" label="Loading instructor dashboard..." /><span>Loading instructor dashboard...</span></div>
+        </>
+      ) : isError ? (
+        <ErrorState title="Unable to load your dashboard" message="Your course and enrollment data could not be loaded." action={{ label: 'Retry', onClick: () => void refetch() }} />
+      ) : data ? (
+        <>
+          <div className="mb-8 grid grid-cols-1 gap-4 sm:grid-cols-3">
+            <StatCard label="Total Courses" value={data.totalCourses.toLocaleString()} tone="primary" hint="Courses you created" />
+            <StatCard label="Published Courses" value={data.publishedCourses.toLocaleString()} tone="success" hint="Live courses available to students" />
+            <StatCard label="Draft Courses" value={data.draftCourses.toLocaleString()} tone="warning" hint="Courses not published yet" />
           </div>
-        ) : courses && courses.length === 0 ? (
-          <div className="rounded-2xl border border-neutral-200 bg-white shadow-sm">
-            <EmptyState
-              icon={EmptyStateIcons.NoCourses}
-              title="No courses yet"
-              description="Create your first course to start teaching."
-              action={{ label: 'Create your first course', onClick: () => { window.location.href = `/dashboard/organization/courses/new${orgId ? `?organization=${orgId}` : ''}`; } }}
-            />
-          </div>
-        ) : (
-          <>
-            <div className="mb-8 grid grid-cols-1 gap-4 sm:grid-cols-3">
-              <StatCard label="Total courses" value={courses?.length ?? 0} hint="Everything you're teaching" icon={CourseIcon} tone="primary" />
-              <StatCard label="Published" value={publishedCount} hint="Live and visible to students" icon={PublishIcon} tone="success" />
-              <StatCard label="In progress" value={draftCount} hint="Draft or in review" icon={DraftIcon} tone="warning" />
-            </div>
 
-            <div className="mb-8"><Calendar /></div>
-          </>
-        )}
-      </div>
-    </>
+          <div className="mb-8">
+            <ChartCard title="This Month's Student Purchases" description="Unique students who enrolled in your courses this month">
+              <LineChart data={chartData} color="#8b5cf6" height={260} />
+            </ChartCard>
+          </div>
+
+          <Calendar />
+        </>
+      ) : null}
+    </div>
   );
 }

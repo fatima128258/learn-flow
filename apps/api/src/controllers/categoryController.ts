@@ -17,6 +17,7 @@ function handleError(res: Response, err: unknown) {
   const message = err instanceof Error ? err.message : undefined;
   switch (message) {
     case 'MISSING_FIELDS':
+    case 'INVALID_INPUT':
       return fail(res, 400, 'MISSING_FIELDS');
     case 'ORGANIZATION_REQUIRED':
       return fail(res, 400, 'ORGANIZATION_REQUIRED');
@@ -24,6 +25,8 @@ function handleError(res: Response, err: unknown) {
       return fail(res, 404, 'CATEGORY_NOT_FOUND');
     case 'CATEGORY_NAME_TAKEN':
       return fail(res, 409, 'CATEGORY_NAME_TAKEN');
+    case 'CATEGORY_IN_USE':
+      return fail(res, 409, 'CATEGORY_IN_USE');
     default:
       return fail(res, 500, 'SERVER_ERROR');
   }
@@ -31,7 +34,31 @@ function handleError(res: Response, err: unknown) {
 
 export async function listCategories(req: AuthenticatedRequest, res: Response) {
   try {
-    const data = await service.listCategories(tenantOrganizationId(req));
+    const page = Number(req.query.page) || 1;
+    const limit = Number(req.query.limit) || 20;
+    const search = typeof req.query.search === 'string' ? req.query.search : undefined;
+    const data = await service.listCategories(tenantOrganizationId(req), { page, limit, search });
+    return res.status(200).json({ success: true, data: data.items, meta: {
+      page: data.page, limit: data.limit, total: data.total, totalPages: data.totalPages,
+    } });
+  } catch (err) {
+    return handleError(res, err);
+  }
+}
+
+export async function getCategory(req: AuthenticatedRequest, res: Response) {
+  try {
+    const data = await service.getCategory(tenantOrganizationId(req), req.params.categoryId);
+    return res.status(200).json({ success: true, data });
+  } catch (err) {
+    return handleError(res, err);
+  }
+
+}
+
+export async function listAssignableCategories(req: AuthenticatedRequest, res: Response) {
+  try {
+    const data = await service.listAssignableCategories(tenantOrganizationId(req));
     return res.status(200).json({ success: true, data });
   } catch (err) {
     return handleError(res, err);

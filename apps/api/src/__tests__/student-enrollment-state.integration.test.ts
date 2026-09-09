@@ -149,18 +149,10 @@ describe('Student Enrollment State Integration Test', () => {
       .send({
         name: 'Test Student A',
         email: ctx.studentAEmail,
+        password: ctx.studentAPassword,
       });
     
     expect(resA.status, resA.body?.error).toBe(201);
-    
-    const userA = await prisma.user.findUnique({ where: { email: ctx.studentAEmail } });
-    expect(userA).toBeTruthy();
-    
-    const hashA = await argon2.hash(ctx.studentAPassword);
-    await prisma.user.update({
-      where: { id: userA!.id },
-      data: { passwordHash: hashA, emailVerified: true },
-    });
     
     ctx.studentACookie = await loginUser(ctx.studentAEmail, ctx.studentAPassword);
 
@@ -175,18 +167,10 @@ describe('Student Enrollment State Integration Test', () => {
       .send({
         name: 'Test Student B',
         email: ctx.studentBEmail,
+        password: ctx.studentBPassword,
       });
     
     expect(resB.status, resB.body?.error).toBe(201);
-    
-    const userB = await prisma.user.findUnique({ where: { email: ctx.studentBEmail } });
-    expect(userB).toBeTruthy();
-    
-    const hashB = await argon2.hash(ctx.studentBPassword);
-    await prisma.user.update({
-      where: { id: userB!.id },
-      data: { passwordHash: hashB, emailVerified: true },
-    });
     
     ctx.studentBCookie = await loginUser(ctx.studentBEmail, ctx.studentBPassword);
   }, 30_000);

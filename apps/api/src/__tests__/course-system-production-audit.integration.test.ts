@@ -234,18 +234,10 @@ describe('Complete Course System Production Audit', () => {
       .send({
         name: 'Test Student A',
         email: ctx.studentAEmail,
+        password: ctx.studentAPassword,
       });
     
     expect(resA.status, `Failed to create student A: ${resA.body?.error}`).toBe(201);
-    
-    // Set password for student A
-    const userA = await prisma.user.findUnique({ where: { email: ctx.studentAEmail } });
-    expect(userA).toBeTruthy();
-    const hashA = await argon2.hash(ctx.studentAPassword);
-    await prisma.user.update({
-      where: { id: userA!.id },
-      data: { passwordHash: hashA, emailVerified: true },
-    });
     
     ctx.studentACookie = await loginUser(ctx.studentAEmail, ctx.studentAPassword);
     
@@ -260,18 +252,10 @@ describe('Complete Course System Production Audit', () => {
       .send({
         name: 'Test Student B',
         email: ctx.studentBEmail,
+        password: ctx.studentBPassword,
       });
     
     expect(resB.status, `Failed to create student B: ${resB.body?.error}`).toBe(201);
-    
-    // Set password for student B
-    const userB = await prisma.user.findUnique({ where: { email: ctx.studentBEmail } });
-    expect(userB).toBeTruthy();
-    const hashB = await argon2.hash(ctx.studentBPassword);
-    await prisma.user.update({
-      where: { id: userB!.id },
-      data: { passwordHash: hashB, emailVerified: true },
-    });
     
     ctx.studentBCookie = await loginUser(ctx.studentBEmail, ctx.studentBPassword);
     

@@ -28,13 +28,19 @@ function userDto(user: {
   createdAt: Date;
   role?: string | null;
   organizationId?: string | null;
+  organizationName?: string | null;
 }) {
   const base = { id: user.id, name: user.name, email: user.email, emailVerified: user.emailVerified, createdAt: user.createdAt };
   // BUGFIX: Always include role and organizationId if they exist in the input
   // Previously, this would omit them if role was null/undefined, breaking login redirect logic
   // Now: if role or organizationId are provided in the input object, include them in output
-  if ('role' in user || 'organizationId' in user) {
-    return { ...base, role: user.role, organizationId: user.organizationId };
+  if ('role' in user || 'organizationId' in user || 'organizationName' in user) {
+    return {
+      ...base,
+      role: user.role,
+      organizationId: user.organizationId,
+      organizationName: user.organizationName ?? null,
+    };
   }
   return base;
 }
@@ -190,6 +196,10 @@ export async function getMe(req: AuthenticatedRequest, res: Response) {
       return res.status(401).json({ success: false, error: 'NOT_AUTHENTICATED' });
     }
 
+    const organizationName = req.__authCache?.userOrganizations
+      ?.find((membership) => membership.organizationId === req.user?.organizationId)
+      ?.organization.name ?? null;
+
     return res.json({
       user: userDto({
         id: req.user.id,
@@ -199,6 +209,7 @@ export async function getMe(req: AuthenticatedRequest, res: Response) {
         createdAt: req.user.createdAt ?? new Date(),
         role: req.user.role,
         organizationId: req.user.organizationId,
+        organizationName,
       }),
     });
   } catch {

@@ -11,6 +11,7 @@ import { getCreateCourseErrorMessage } from '../../../../../../features/course/c
 import { useToast } from '../../../../../../components/ui/ToastProvider';
 
 import { useCurrentUser } from '../../../../../../features/auth/useCurrentUser';
+import { CategorySelect } from '../../../../../../components/forms/CategorySelect';
 
 type CourseDetail = {
   id: string;
@@ -19,6 +20,7 @@ type CourseDetail = {
   description: string | null;
   thumbnailUrl: string | null;
   category: string | null;
+  categoryId: string | null;
   price: number | string | null;
   discountPrice: number | string | null;
   estimatedMinutes: number | null;
@@ -67,7 +69,7 @@ export default function EditCoursePage() {
   const [slug, setSlug] = useState('');
   const [description, setDescription] = useState('');
   const [thumbnailUrl, setThumbnailUrl] = useState('');
-  const [category, setCategory] = useState('');
+  const [categoryId, setCategoryId] = useState('');
   const [price, setPrice] = useState('');
   const [discountPrice, setDiscountPrice] = useState('');
   const [estimatedMinutes, setEstimatedMinutes] = useState('');
@@ -139,7 +141,7 @@ export default function EditCoursePage() {
         setSlug(c.slug ?? '');
         setDescription(c.description ?? '');
         setThumbnailUrl(c.thumbnailUrl ?? '');
-        setCategory(c.category ?? '');
+        setCategoryId(c.categoryId ?? '');
         setPrice(c.price === null || c.price === undefined ? '' : String(c.price));
         setDiscountPrice(
           c.discountPrice === null || c.discountPrice === undefined ? '' : String(c.discountPrice)
@@ -249,7 +251,7 @@ export default function EditCoursePage() {
     payload.slug = slug.trim().toLowerCase();
     payload.description = description.trim();
     payload.thumbnailUrl = thumbnailUrl.trim();
-    payload.category = category.trim();
+    payload.categoryId = categoryId || null;
 
     const parsedPrice = parseOptionalNumber(price);
     payload.price = parsedPrice ?? null;
@@ -359,12 +361,10 @@ export default function EditCoursePage() {
                 disabled={submitting}
               />
 
-              <Input
-                label="Category"
-                value={category}
-                onChange={(e) => setCategory(e.target.value)}
-                placeholder="e.g. Development"
-                autoComplete="off"
+              <CategorySelect
+                organizationId={organizationId}
+                value={categoryId}
+                onChange={setCategoryId}
                 disabled={submitting}
               />
 
