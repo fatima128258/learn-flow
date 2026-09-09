@@ -61,7 +61,6 @@ function VerifyEmailForm() {
 
   useEffect(() => {
     void (async () => { await verifyEmail(); })();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token]);
 
   return (

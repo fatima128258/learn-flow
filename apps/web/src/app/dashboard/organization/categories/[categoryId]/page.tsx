@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useParams, useSearchParams } from 'next/navigation';
 import { Badge, Card, EmptyState, EmptyStateIcons, ErrorState, Skeleton } from '@/components/ui';
 import { PageHeader } from '@/components/dashboard';
@@ -30,7 +30,10 @@ export default function CategoryDetailsPage() {
   const searchParams = useSearchParams();
   const categoryId = typeof params.categoryId === 'string' ? params.categoryId : null;
   const organizationId = searchParams.get('organization');
-  const headers = organizationId ? { 'X-Organization-Id': organizationId } : undefined;
+  const headers = useMemo(
+    () => (organizationId ? { 'X-Organization-Id': organizationId } : undefined),
+    [organizationId],
+  );
   const [category, setCategory] = useState<Category | null>(null);
   const [courses, setCourses] = useState<Course[]>([]);
   const [loading, setLoading] = useState(true);
@@ -60,7 +63,37 @@ export default function CategoryDetailsPage() {
     }
   }
 
-  useEffect(() => { void load(); }, [categoryId, organizationId]);
+  useEffect(() => {
+    if (!categoryId) return;
+    let active = true;
+    void (async () => {
+      setLoading(true);
+      setError(false);
+      try {
+        const [categoryResponse, coursesResponse] = await Promise.all([
+          apiRequest<{ data?: Category }>(`/api/v1/org/categories/${categoryId}`, { headers }),
+          apiRequest<{ data?: Course[] }>(
+            `/api/v1/organizations/${organizationId ?? ''}/courses?categoryId=${encodeURIComponent(categoryId)}&limit=100`,
+            { headers },
+          ),
+        ]);
+        if (!active) return;
+        setCategory(categoryResponse.data ?? null);
+        setCourses(coursesResponse.data ?? []);
+      } catch (caught) {
+        if (!active) return;
+        if (caught instanceof ApiError && caught.code === 'CATEGORY_NOT_FOUND') {
+          setCategory(null);
+        }
+        setError(true);
+      } finally {
+        if (active) setLoading(false);
+      }
+    })();
+    return () => {
+      active = false;
+    };
+  }, [categoryId, headers, organizationId]);
 
   if (loading) {
     return <div className="mx-auto max-w-6xl space-y-4"><Skeleton variant="text" height={36} /><Skeleton variant="rectangular" height={220} /></div>;

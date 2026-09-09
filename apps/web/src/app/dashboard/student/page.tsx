@@ -160,7 +160,6 @@ export default function StudentDashboardPage() {
                 <div className="group h-full overflow-hidden rounded-2xl border border-neutral-200 bg-white shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-primary-200 hover:shadow-md">
                   {course.thumbnailUrl ? (
                     <div className="h-32 w-full overflow-hidden bg-neutral-100">
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img
                         src={course.thumbnailUrl}
                         alt=""

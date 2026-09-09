@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useRouter } from 'next/navigation';
 import {
@@ -340,7 +340,7 @@ export default function OrganizationsPage() {
   const [adminPasswordError, setAdminPasswordError] = useState<string>('');
   const [assigning, setAssigning] = useState(false);
 
-  async function load() {
+  const load = useCallback(async () => {
     setError(null);
     setLoading(true);
     try {
@@ -358,19 +358,22 @@ export default function OrganizationsPage() {
     } finally {
       setLoading(false);
     }
-  }
+  }, []);
 
-  // Check auth and load organizations
   useEffect(() => {
     if (userLoading) return;
 
-    if (user?.role !== 'PLATFORM_ADMIN') {
-      window.location.href = '/login';
+    if (!user || user.role !== 'PLATFORM_ADMIN') {
+      router.push('/login');
       return;
     }
 
-    load();
-  }, [user, userLoading]);
+    const timer = window.setTimeout(() => {
+      void load();
+    }, 0);
+
+    return () => window.clearTimeout(timer);
+  }, [load, router, user, userLoading]);
 
   function closeCreateModal() {
     if (creating) return;
@@ -719,9 +722,33 @@ export default function OrganizationsPage() {
 
   return (
     <>
-    <PageHeader title="Organizations" />
-    <div className="mx-auto max-w-5xl">
-        <div className="mb-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+      <PageHeader title="Organizations" />
+      <div className="mx-auto max-w-5xl">
+        <div className="mb-8 grid grid-cols-1 gap-4 md:grid-cols-3">
+          <StatCard
+            label="Total organizations"
+            value={totalOrganizations}
+            icon={OrgIcon}
+            tone="primary"
+            hint="All registered"
+          />
+          <StatCard
+            label="Active organizations"
+            value={activeCount}
+            icon={OrgIcon}
+            tone="success"
+            hint="Currently active"
+          />
+          <StatCard
+            label="Suspended organizations"
+            value={suspendedCount}
+            icon={OrgIcon}
+            tone="danger"
+            hint="Currently suspended"
+          />
+        </div>
+
+        <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div className="max-w-sm">
             <Input
               variant="line"
@@ -729,7 +756,7 @@ export default function OrganizationsPage() {
               onChange={(e) => setSearchTerm(e.target.value)}
               placeholder="Search by name, admin email"
             />
-          </div> 
+          </div>
           <Button size="sm" onClick={() => setShowCreateModal(true)}>
             Create Organization
           </Button>
@@ -781,7 +808,13 @@ export default function OrganizationsPage() {
                     {filteredOrganizations.map((org) => (
                       <tr key={org.id} className={tableRowHoverClass}>
                         <td className={tableCellClass}>
-                          <p className="font-medium text-neutral-900">{org.name}</p>
+                          <button
+                            type="button"
+                            onClick={() => openOrganization(org)}
+                            className="font-medium text-neutral-900 transition-colors hover:text-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+                          >
+                            {org.name}
+                          </button>
                         </td>
                         <td className={tableCellClass}>
                           <Badge variant={org.status === 'ACTIVE' ? 'success' : 'error'} size="sm">

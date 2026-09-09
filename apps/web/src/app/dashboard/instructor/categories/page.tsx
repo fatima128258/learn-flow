@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { EmptyState, EmptyStateIcons, ErrorState, Skeleton } from '@/components/ui';
 import { PageHeader } from '@/components/dashboard';
 import { useCurrentUser } from '@/features/auth/useCurrentUser';
@@ -9,6 +10,7 @@ import { apiRequest } from '@/lib/api';
 type Category = { id: string; name: string; description: string | null };
 
 export default function InstructorCategoriesPage() {
+  const router = useRouter();
   const { data: user, isLoading: userLoading } = useCurrentUser();
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
@@ -18,23 +20,45 @@ export default function InstructorCategoriesPage() {
   useEffect(() => {
     if (userLoading) return;
     if (!user || user.role !== 'INSTRUCTOR') {
-      window.location.href = !user ? '/login' : '/dashboard';
+      router.push(!user ? '/login' : '/dashboard');
       return;
     }
-    if (!organizationId) {
-      setLoading(false);
-      setFailed(true);
+  }, [router, user, userLoading]);
+
+  useEffect(() => {
+    if (userLoading || !user || user.role !== 'INSTRUCTOR' || !organizationId) {
+      if (!userLoading && (!user || user.role !== 'INSTRUCTOR')) return;
+      if (!organizationId) {
+        const timer = window.setTimeout(() => {
+          setLoading(false);
+          setFailed(true);
+        }, 0);
+        return () => window.clearTimeout(timer);
+      }
       return;
     }
+
     let active = true;
-    setLoading(true);
-    setFailed(false);
-    apiRequest<{ data?: Category[] }>(`/api/v1/organizations/${organizationId}/categories`)
-      .then((result) => { if (active) setCategories(result.data ?? []); })
-      .catch(() => { if (active) setFailed(true); })
-      .finally(() => { if (active) setLoading(false); });
-    return () => { active = false; };
-  }, [user, userLoading, organizationId]);
+    const timer = window.setTimeout(() => {
+      if (!active) return;
+      setLoading(true);
+      setFailed(false);
+      void (async () => {
+        try {
+          const result = await apiRequest<{ data?: Category[] }>(`/api/v1/organizations/${organizationId}/categories`);
+          if (active) setCategories(result.data ?? []);
+        } catch {
+          if (active) setFailed(true);
+        } finally {
+          if (active) setLoading(false);
+        }
+      })();
+    }, 0);
+    return () => {
+      active = false;
+      window.clearTimeout(timer);
+    };
+  }, [organizationId, user, userLoading]);
 
   return (
     <div className="mx-auto max-w-6xl">

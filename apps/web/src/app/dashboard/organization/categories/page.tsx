@@ -51,7 +51,30 @@ export default function CategoriesPage() {
       setCategories(result.data ?? []); setMeta(result.meta);
     } catch { setError(true); } finally { setLoading(false); }
   }
-  useEffect(() => { void load(); }, [page, search, organizationId]);
+  useEffect(() => {
+    let active = true;
+    void (async () => {
+      setLoading(true);
+      setError(false);
+      try {
+        const query = new URLSearchParams({ page: String(page), limit: '20' });
+        if (search.trim()) query.set('search', search.trim());
+        const result = await apiRequest<ListResponse>(`/api/v1/org/categories?${query}`, {
+          headers: organizationId ? { 'X-Organization-Id': organizationId } : undefined,
+        });
+        if (!active) return;
+        setCategories(result.data ?? []);
+        setMeta(result.meta);
+      } catch {
+        if (active) setError(true);
+      } finally {
+        if (active) setLoading(false);
+      }
+    })();
+    return () => {
+      active = false;
+    };
+  }, [page, search, organizationId]);
 
   const hasCategories = categories.length > 0;
   const emptyAction = useMemo(() => ({ label: 'Create category', onClick: () => setEditing(null) }), []);
@@ -84,7 +107,13 @@ export default function CategoriesPage() {
             </div>}
         {meta && meta.totalPages > 1 && <div className="mt-4 flex items-center justify-between border-t border-neutral-200 pt-4 text-sm text-neutral-600"><span>Page {meta.page} of {meta.totalPages}</span><div className="flex gap-2"><Button size="sm" variant="outline" disabled={page <= 1} onClick={() => setPage((value) => value - 1)}>Previous</Button><Button size="sm" variant="outline" disabled={page >= meta.totalPages} onClick={() => setPage((value) => value + 1)}>Next</Button></div></div>}
       </Card>
-      <CategoryModal category={editing} organizationId={organizationId} onClose={() => setEditing(undefined)} onSaved={() => { setEditing(undefined); void load(); }} />
+      <CategoryModal
+        key={editing ? editing.id : 'new-category'}
+        category={editing}
+        organizationId={organizationId}
+        onClose={() => setEditing(undefined)}
+        onSaved={() => { setEditing(undefined); void load(); }}
+      />
       <ConfirmModal isOpen={!!deleting} onClose={() => setDeleting(null)} onConfirm={() => void removeCategory()} title="Delete category" message={`Delete "${deleting?.name}"? Categories assigned to courses cannot be deleted.`} variant="danger" />
     </div>
   );
@@ -92,8 +121,10 @@ export default function CategoriesPage() {
 
 function CategoryModal({ category, organizationId, onClose, onSaved }: { category: Category | null | undefined; organizationId: string | null; onClose: () => void; onSaved: () => void }) {
   const toast = useToast();
-  const [name, setName] = useState(''); const [description, setDescription] = useState(''); const [status, setStatus] = useState<'ACTIVE' | 'INACTIVE'>('ACTIVE'); const [saving, setSaving] = useState(false);
-  useEffect(() => { if (category !== undefined) { setName(category?.name ?? ''); setDescription(category?.description ?? ''); setStatus(category?.status ?? 'ACTIVE'); } }, [category]);
+  const [name, setName] = useState(category?.name ?? '');
+  const [description, setDescription] = useState(category?.description ?? '');
+  const [status, setStatus] = useState<'ACTIVE' | 'INACTIVE'>(category?.status ?? 'ACTIVE');
+  const [saving, setSaving] = useState(false);
   if (category === undefined) return null;
   async function save() {
     setSaving(true);

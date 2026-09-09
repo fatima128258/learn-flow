@@ -232,7 +232,8 @@ export default function MyCoursesPage() {
       return;
     }
     
-    setOrganizationId(orgId);
+    const timer = window.setTimeout(() => setOrganizationId(orgId), 0);
+    return () => window.clearTimeout(timer);
   }, [user, userLoading, orgIdParam]);
 
   // Load courses once organizationId is set

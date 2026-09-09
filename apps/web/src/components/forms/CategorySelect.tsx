@@ -30,20 +30,23 @@ export function CategorySelect({
   useEffect(() => {
     if (!organizationId) return;
     let active = true;
-    setLoading(true);
-    setFailed(false);
-    apiRequest<{ data?: CategoryOption[] }>(
-      `/api/v1/organizations/${organizationId}/categories`,
-    )
-      .then((result) => {
-        if (active) setCategories(result.data ?? []);
-      })
-      .catch(() => {
-        if (active) setFailed(true);
-      })
-      .finally(() => {
-        if (active) setLoading(false);
-      });
+    queueMicrotask(() => {
+      if (!active) return;
+      setLoading(true);
+      setFailed(false);
+      apiRequest<{ data?: CategoryOption[] }>(
+        `/api/v1/organizations/${organizationId}/categories`,
+      )
+        .then((result) => {
+          if (active) setCategories(result.data ?? []);
+        })
+        .catch(() => {
+          if (active) setFailed(true);
+        })
+        .finally(() => {
+          if (active) setLoading(false);
+        });
+    });
     return () => {
       active = false;
     };

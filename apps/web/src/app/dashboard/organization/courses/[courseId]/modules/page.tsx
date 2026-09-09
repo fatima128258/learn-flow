@@ -209,8 +209,11 @@ export default function CourseModulesPage() {
       return;
     }
 
-    setOrganizationId(orgId);
-    setCheckingAuth(false);
+    const timer = window.setTimeout(() => {
+      setOrganizationId(orgId);
+      setCheckingAuth(false);
+    }, 0);
+    return () => window.clearTimeout(timer);
   }, [user, userLoading]);
 
   useEffect(() => {
