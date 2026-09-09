@@ -171,6 +171,7 @@ describe('Org-admin category endpoints', () => {
         ownerUserId: null,
         description: 'Web-focused courses',
         courseCount: 3,
+        instructors: [],
         createdAt: now.toISOString(),
         updatedAt: now.toISOString(),
       });
@@ -251,6 +252,7 @@ describe('Org-admin category endpoints', () => {
         ownerUserId: null,
         description: 'Web-focused courses',
         courseCount: 0,
+        instructors: [],
         createdAt: now.toISOString(),
         updatedAt: now.toISOString(),
       });

@@ -3,7 +3,7 @@ services:
     name: learn-flow-api
     runtime: node
     plan: free
-    buildCommand: npm install --include=dev && npx prisma generate --schema=apps/api/prisma/schema.prisma && npm --prefix ./apps/api run build
+    buildCommand: npm install --include=dev && npx prisma migrate deploy --schema=apps/api/prisma/schema.prisma && npx prisma generate --schema=apps/api/prisma/schema.prisma && npm --prefix ./apps/api run build
     startCommand: npm --prefix ./apps/api start
     envVars:
       - key: NODE_ENV
