@@ -114,13 +114,12 @@ export default function InstructorCategoriesPage() {
         setCategories((current) => (editingCategory
           ? current.map((category) => category.id === result.data!.id ? result.data! : category)
           : [...current, result.data!]).sort((a, b) => a.name.localeCompare(b.name)));
-        setPrivateName('');
-        setPrivateDescription('');
-        setPrivateStatus('ACTIVE');
-        setShowPrivateModal(false);
-        setEditingCategory(null);
       }
-
+      setPrivateName('');
+      setPrivateDescription('');
+      setPrivateStatus('ACTIVE');
+      setShowPrivateModal(false);
+      setEditingCategory(null);
     } catch (error) {
       setErrorCode(error instanceof ApiError ? error.code : 'NETWORK_ERROR');
     } finally {

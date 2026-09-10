@@ -154,23 +154,24 @@ export async function update(
     return null;
   }
 
-  export async function updatePrivate(
-    organizationId: string,
-    ownerUserId: string,
-    categoryId: string,
-    data: UpdateCategoryData,
-  ) {
-    const result = await prisma().category.updateMany({
-      where: { id: categoryId, organizationId, ownerUserId },
-      data,
-    });
-    if (result.count === 0) return null;
-    return findPrivateById(organizationId, ownerUserId, categoryId);
-  }
   return prisma().category.findFirst({
     where: { id: categoryId, organizationId, ownerUserId: null },
     select: selectCategory(),
   });
+}
+
+export async function updatePrivate(
+  organizationId: string,
+  ownerUserId: string,
+  categoryId: string,
+  data: UpdateCategoryData,
+) {
+  const result = await prisma().category.updateMany({
+    where: { id: categoryId, organizationId, ownerUserId },
+    data,
+  });
+  if (result.count === 0) return null;
+  return findPrivateById(organizationId, ownerUserId, categoryId);
 }
 
 export async function remove(organizationId: string, categoryId: string) {
