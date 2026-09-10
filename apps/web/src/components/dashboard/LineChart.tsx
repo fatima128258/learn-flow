@@ -90,11 +90,17 @@ export const LineChart: React.FC<LineChartProps> = ({
     };
   });
 
-  // X-axis labels (evenly distribute up to seven labels to avoid crowding)
-  const xLabelCount = Math.min(data.length, 7);
-  const xLabelIndices = Array.from({ length: xLabelCount }, (_, i) =>
-    Math.round((i / (xLabelCount - 1 || 1)) * (data.length - 1))
-  );
+  // Daily month views use familiar calendar intervals; longer ranges stay sparse.
+  const xLabelIndices = data.length <= 31
+    ? Array.from(
+      new Set([
+        ...Array.from({ length: Math.ceil(data.length / 5) }, (_, i) => Math.min(i * 5, data.length - 1)),
+        data.length - 1,
+      ])
+    )
+    : Array.from({ length: Math.min(data.length, 7) }, (_, i) =>
+      Math.round((i / (Math.min(data.length, 7) - 1 || 1)) * (data.length - 1))
+    );
 
   return (
     <div className={className}>

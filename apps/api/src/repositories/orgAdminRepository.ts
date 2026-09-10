@@ -54,29 +54,27 @@ export async function getOrganizationMemberCountByRole(organizationId: string) {
 }
 
 export async function getOrganizationMembershipHistory(organizationId: string) {
-  // Aggregate membership growth by month directly in PostgreSQL using groupBy with date bucketing.
-  // This avoids loading thousands/millions of rows into Node.js memory.
+  // Load membership dates for the current month so the service can fill
+  // zero-activity days and build a daily cumulative chart.
   const now = new Date();
-  const twelveMonthsAgo = new Date(now);
-  twelveMonthsAgo.setUTCMonth(twelveMonthsAgo.getUTCMonth() - 12);
-
-  // Use raw SQL to aggregate memberships by month
-  const results = await prisma().$queryRaw<Array<{ year_month: string; count: bigint }>>`
-    SELECT 
-      TO_CHAR(DATE_TRUNC('month', "createdAt"), 'YYYY-MM') AS year_month,
-      COUNT(*) as count
-    FROM "UserOrganization"
-    WHERE "organizationId" = ${organizationId}
-      AND "createdAt" >= ${twelveMonthsAgo}
-    GROUP BY DATE_TRUNC('month', "createdAt")
-    ORDER BY DATE_TRUNC('month', "createdAt") ASC
-  `;
-
-  // Convert BigInt counts to numbers and format as the service expects
-  return results.map(row => ({
-    yearMonth: row.year_month,
-    count: Number(row.count)
-  }));
+  const monthStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
+  const memberships = (await prisma().userOrganization.findMany({
+    where: { organizationId },
+    select: { createdAt: true },
+    orderBy: { createdAt: 'asc' },
+  })) ?? [];
+  const initialCount = memberships.filter((membership) => membership.createdAt < monthStart).length;
+  const countsByDay = new Map<string, number>();
+  for (const membership of memberships) {
+    if (membership.createdAt >= monthStart) {
+      const key = membership.createdAt.toISOString().slice(0, 10);
+      countsByDay.set(key, (countsByDay.get(key) ?? 0) + 1);
+    }
+  }
+  return {
+    initialCount,
+    daily: Array.from(countsByDay, ([date, count]) => ({ date, count })),
+  };
 }
 
 type EnrollmentTotalsRow = { total: bigint; enrolled_students: bigint; not_started: bigint; in_progress: bigint; completed: bigint };

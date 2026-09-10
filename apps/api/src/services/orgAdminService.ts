@@ -100,42 +100,19 @@ const ROLE_LABELS: Record<string, string> = {
 
 const ROLE_ORDER = ['ORG_ADMIN', 'PLATFORM_ADMIN', 'INSTRUCTOR', 'STUDENT'];
 
-function monthKey(date: Date) {
-  return `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, '0')}`;
-}
-
-function monthLabel(key: string) {
-  const [year, month] = key.split('-').map(Number);
-  const date = new Date(Date.UTC(year, month - 1, 1));
-  return date.toLocaleString('en-US', { month: 'short', timeZone: 'UTC' });
-}
-
-function buildMemberGrowth(monthlyData: Array<{ yearMonth: string; count: number }>) {
-  if (monthlyData.length === 0) return [];
-
-  // Generate the last 12 months
+function buildMemberGrowth(history: { initialCount: number; daily: Array<{ date: string; count: number }> }) {
   const now = new Date();
-  const months: string[] = [];
-  for (let i = 11; i >= 0; i--) {
-    const date = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - i, 1));
-    const key = date.toISOString().slice(0, 7); // YYYY-MM format
-    months.push(key);
-  }
+  const daysInMonth = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 0)).getUTCDate();
+  const countsByDay = new Map(history.daily.map((row) => [row.date, row.count]));
+  let running = history.initialCount;
 
-  // Build a map of year-month -> count from aggregated data
-  const countsByMonth = new Map<string, number>();
-  for (const row of monthlyData) {
-    countsByMonth.set(row.yearMonth, row.count);
-  }
-
-  // Build cumulative growth chart
-  let running = 0;
-  return months.map((yearMonth) => {
-    running += countsByMonth.get(yearMonth) ?? 0;
-    const date = new Date(`${yearMonth}-01T00:00:00.000Z`);
+  return Array.from({ length: daysInMonth }, (_, index) => {
+    const date = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), index + 1));
+    const key = date.toISOString().slice(0, 10);
+    running += countsByDay.get(key) ?? 0;
     return {
-      month: monthLabel(yearMonth),
-      members: running
+      month: String(index + 1),
+      members: running,
     };
   });
 }
@@ -177,7 +154,7 @@ export async function getAnalytics(organizationId: string, rangeDays = 30) {
 
   const range = [7, 30, 90, 365].includes(rangeDays) ? rangeDays : 30;
   const { start, end } = enrollmentRange(range);
-  const [roleCounts, history, enrollmentAnalytics] = await Promise.all([
+  const [roleCounts, membershipHistory, enrollmentAnalytics] = await Promise.all([
     orgAdminRepo.getOrganizationMemberCountByRole(organizationId),
     orgAdminRepo.getOrganizationMembershipHistory(organizationId),
     orgAdminRepo.getEnrollmentAnalytics(organizationId, start, end),
@@ -188,7 +165,7 @@ export async function getAnalytics(organizationId: string, rangeDays = 30) {
       id: organizationId,
       name: organization.name,
     },
-    growth: buildMemberGrowth(history),
+    growth: buildMemberGrowth(membershipHistory),
     roles: buildRoleDistribution(roleCounts),
     enrollments: {
       total: enrollmentAnalytics.totals.total,

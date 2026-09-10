@@ -357,7 +357,7 @@ export default function OrganizationDashboardPage() {
                 title="Organization Growth"
                 description={
                   analyticsData?.growth?.length
-                    ? 'Cumulative members per month'
+                    ? 'Cumulative members this month'
                     : undefined
                 }
               >

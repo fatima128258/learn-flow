@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { Badge, Button, EmptyState, EmptyStateIcons, Spinner } from '../../../../../../../../components/ui';
+import { Badge, Button, Drawer, EmptyState, EmptyStateIcons, Spinner } from '../../../../../../../../components/ui';
 import { Input } from '../../../../../../../../components/ui/Input';
 import { Textarea } from '../../../../../../../../components/forms/Textarea';
 import { LinkButton } from '../../../../../../../../components/ui/LinkButton';
@@ -79,7 +79,6 @@ type LessonListItem = {
   type: string | null;
   duration: number | null;
   order: number;
-  isPreview: boolean;
   createdAt: string;
 };
 
@@ -122,6 +121,7 @@ export default function ModuleLessonsPage() {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [editingLesson, setEditingLesson] = useState<LessonDetail | null>(null);
+  const [selectedLesson, setSelectedLesson] = useState<LessonDetail | null>(null);
   const [creating, setCreating] = useState(false);
   const [updating, setUpdating] = useState(false);
 
@@ -131,7 +131,6 @@ export default function ModuleLessonsPage() {
   const [type, setType] = useState('');
   const [duration, setDuration] = useState('');
   const [order, setOrder] = useState('');
-  const [isPreview, setIsPreview] = useState(false);
   const [titleError, setTitleError] = useState('');
   const [orderError, setOrderError] = useState('');
   const [durationError, setDurationError] = useState('');
@@ -220,7 +219,6 @@ export default function ModuleLessonsPage() {
     setType('');
     setDuration('');
     setOrder('');
-    setIsPreview(false);
     setTitleError('');
     setOrderError('');
     setDurationError('');
@@ -285,7 +283,6 @@ export default function ModuleLessonsPage() {
       if (content.trim()) body.content = content.trim();
       if (type.trim()) body.type = type.trim();
       if (duration.trim() !== '') body.duration = parseInt(duration, 10);
-      if (isPreview) body.isPreview = true;
 
       const res = await fetch(
         `${apiBase}/api/v1/organizations/${organizationId}/courses/${courseId}/modules/${moduleId}/lessons`,
@@ -338,9 +335,11 @@ export default function ModuleLessonsPage() {
         } catch {
           code = null;
         }
+
         toast.error(getLessonErrorMessage(code));
         return;
       }
+
       const body: LessonApiResponse = await res.json();
       const detail = body.data;
       if (!detail) return;
@@ -352,8 +351,26 @@ export default function ModuleLessonsPage() {
       setType(detail.type ?? '');
       setDuration(detail.duration != null ? String(detail.duration) : '');
       setOrder(String(detail.order));
-      setIsPreview(detail.isPreview);
       setShowEditModal(true);
+    } catch {
+      toast.error(getLessonErrorMessage(null));
+    }
+  }
+
+  async function openLessonDetails(lesson: LessonListItem) {
+    if (!organizationId || !courseId || !moduleId) return;
+    try {
+      const res = await fetch(
+        `/api/v1/organizations/${organizationId}/courses/${courseId}/modules/${moduleId}/lessons/${lesson.id}`,
+        { credentials: 'include' }
+      );
+      if (!res.ok) {
+        const body: LessonApiResponse = await res.json().catch(() => ({}));
+        toast.error(getLessonErrorMessage(body.error));
+        return;
+      }
+      const body: LessonApiResponse = await res.json();
+      if (body.data) setSelectedLesson(body.data);
     } catch {
       toast.error(getLessonErrorMessage(null));
     }
@@ -382,7 +399,6 @@ export default function ModuleLessonsPage() {
       else body.type = null;
       if (duration.trim() !== '') body.duration = parseInt(duration, 10);
       else body.duration = null;
-      body.isPreview = isPreview;
 
       const res = await fetch(
         `${apiBase}/api/v1/organizations/${organizationId}/courses/${courseId}/modules/${moduleId}/lessons/${editingLesson.id}`,
@@ -513,13 +529,12 @@ export default function ModuleLessonsPage() {
                     <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-neutral-500">Title</th>
                     <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-neutral-500">Description</th>
                     <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-neutral-500 w-24">Duration</th>
-                    <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-neutral-500 w-20">Preview</th>
                     <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-neutral-500 w-40">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-neutral-200 bg-white">
                   {lessons.map((lesson) => (
-                    <tr key={lesson.id} className="hover:bg-neutral-50">
+                    <tr key={lesson.id} className="cursor-pointer hover:bg-neutral-50" onClick={() => void openLessonDetails(lesson)}>
                       <td className="px-6 py-4 text-sm font-medium text-neutral-900">
                         <Badge variant="default" size="sm">{lesson.order}</Badge>
                       </td>
@@ -532,14 +547,7 @@ export default function ModuleLessonsPage() {
                       <td className="px-6 py-4 text-sm text-neutral-700">
                         {lesson.duration != null ? `${lesson.duration}m` : '—'}
                       </td>
-                      <td className="px-6 py-4">
-                        {lesson.isPreview ? (
-                          <Badge variant="info" size="sm">Yes</Badge>
-                        ) : (
-                          <span className="text-sm text-neutral-400">No</span>
-                        )}
-                      </td>
-                      <td className="px-6 py-4 relative pl-2">
+                      <td className="px-6 py-4 relative pl-2" onClick={(event) => event.stopPropagation()}>
                         <LessonActionsMenu
                           lesson={lesson}
                           onEdit={() => openEditModal(lesson)}
@@ -554,6 +562,30 @@ export default function ModuleLessonsPage() {
           ) : null}
         </div>
       </div>
+
+      <Drawer isOpen={Boolean(selectedLesson)} onClose={() => setSelectedLesson(null)} title={selectedLesson?.title ?? 'Lesson details'}>
+        {selectedLesson && (
+          <div className="space-y-5">
+            <div>
+              <p className="text-xs font-medium uppercase tracking-wide text-neutral-400">Title</p>
+              <p className="mt-1 text-lg font-semibold text-neutral-900">{selectedLesson.title}</p>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div><p className="text-xs font-medium uppercase tracking-wide text-neutral-400">Order</p><p className="mt-1 text-sm text-neutral-700">{selectedLesson.order}</p></div>
+              <div><p className="text-xs font-medium uppercase tracking-wide text-neutral-400">Duration</p><p className="mt-1 text-sm text-neutral-700">{selectedLesson.duration != null ? `${selectedLesson.duration} minutes` : '—'}</p></div>
+              <div><p className="text-xs font-medium uppercase tracking-wide text-neutral-400">Type</p><p className="mt-1 text-sm text-neutral-700">{selectedLesson.type || '—'}</p></div>
+            </div>
+            <div>
+              <p className="text-xs font-medium uppercase tracking-wide text-neutral-400">Description</p>
+              <p className="mt-1 whitespace-pre-wrap text-sm leading-6 text-neutral-700">{selectedLesson.description || 'No description available.'}</p>
+            </div>
+            <div>
+              <p className="text-xs font-medium uppercase tracking-wide text-neutral-400">Content</p>
+              {selectedLesson.content ? <pre className="mt-1 max-h-96 overflow-auto whitespace-pre-wrap rounded-lg bg-neutral-50 p-3 text-sm leading-6 text-neutral-700">{selectedLesson.content}</pre> : <p className="mt-1 text-sm text-neutral-400">No content available.</p>}
+            </div>
+          </div>
+        )}
+      </Drawer>
 
       <Modal
         isOpen={showCreateModal}
@@ -632,17 +664,6 @@ export default function ModuleLessonsPage() {
               helperText="Non-negative integer."
             />
           </div>
-
-          <label className="flex items-center gap-2 text-sm text-neutral-700">
-            <input
-              type="checkbox"
-              checked={isPreview}
-              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setIsPreview(e.target.checked)}
-              disabled={creating}
-              className="h-4 w-4 rounded border-neutral-300 text-primary-600 focus:ring-primary-500"
-            />
-            Preview lesson (visible to unenrolled users)
-          </label>
 
           <div className="flex items-center justify-end gap-3 pt-2">
             <Button type="button" variant="ghost" onClick={closeCreateModal} disabled={creating}>
@@ -732,17 +753,6 @@ export default function ModuleLessonsPage() {
               helperText="Non-negative integer."
             />
           </div>
-
-          <label className="flex items-center gap-2 text-sm text-neutral-700">
-            <input
-              type="checkbox"
-              checked={isPreview}
-              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setIsPreview(e.target.checked)}
-              disabled={updating}
-              className="h-4 w-4 rounded border-neutral-300 text-primary-600 focus:ring-primary-500"
-            />
-            Preview lesson (visible to unenrolled users)
-          </label>
 
           <div className="flex items-center justify-end gap-3 pt-2">
             <Button type="button" variant="ghost" onClick={closeEditModal} disabled={updating}>

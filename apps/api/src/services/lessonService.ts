@@ -93,13 +93,6 @@ function requireOrder(value: unknown) {
   return parsed;
 }
 
-function requireBoolean(value: unknown) {
-  if (value === undefined || value === null) return false;
-  if (typeof value === 'boolean') return value;
-  if (typeof value === 'string') return value === 'true';
-  return Boolean(value);
-}
-
 export async function verifyModuleAccess(organizationId: string, courseId: string, moduleId: string) {
   const course = await courseRepo.getById(organizationId, courseId);
   if (!course) {
@@ -147,7 +140,7 @@ export async function createLesson(organizationId: string, courseId: string, mod
       resourceMimeType: optionalString(input.resourceMimeType),
       duration: optionalPositiveInt(input.duration),
       order,
-      isPreview: requireBoolean(input.isPreview),
+      isPreview: true,
     });
     return toLessonDto(lesson);
   } catch (err) {
@@ -212,13 +205,11 @@ export async function updateLesson(organizationId: string, courseId: string, mod
     updateData.order = requireOrder(input.order);
   }
 
-  if (input.isPreview !== undefined) {
-    updateData.isPreview = requireBoolean(input.isPreview);
-  }
-
   if (Object.keys(updateData).length === 0) {
     throw new Error('MISSING_FIELDS');
   }
+
+  updateData.isPreview = true;
 
   try {
     const lesson = await lessonRepo.updateLesson(moduleId, lessonId, updateData);

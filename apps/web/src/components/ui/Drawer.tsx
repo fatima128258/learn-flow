@@ -69,7 +69,7 @@ export const Drawer: React.FC<DrawerProps> = ({
         {/* Header */}
         <div className="flex items-center justify-between border-b border-neutral-200 px-6 py-5">
           <div className="min-w-0">
-            <p className="text-xs font-medium uppercase tracking-wide text-neutral-500">Audit Event</p>
+            <p className="text-xs font-medium uppercase tracking-wide text-neutral-500">Details</p>
             {title ? (
               <h2 id={titleId} className="truncate text-lg font-semibold text-neutral-900">
                 {title}

@@ -87,9 +87,13 @@ function ModuleActionsMenu({ module, courseId, organizationId, onEdit, onDelete 
   );
 }
 
+type ModuleLessonSummary = { id: string; title: string; description: string | null; duration: number | null; order: number };
+type ModuleQuizSummary = { id: string; title: string; description: string | null; order: number; timeLimitMinutes: number | null; passingPercentage: number | null };
+type ModuleDetails = ModuleListItem & { lessons: ModuleLessonSummary[]; quizzes: ModuleQuizSummary[] };
+
 // Module Details Drawer component
 function ModuleDetailsDrawer({ module, isOpen, onClose }: {
-  module: ModuleListItem | null;
+  module: ModuleDetails | null;
   isOpen: boolean;
   onClose: () => void;
 }) {
@@ -129,6 +133,34 @@ function ModuleDetailsDrawer({ module, isOpen, onClose }: {
         <div>
           <p className="text-xs font-medium uppercase tracking-wide text-neutral-400">Last Updated</p>
           <p className="mt-1 text-sm text-neutral-700">{new Date(module.updatedAt).toLocaleString()}</p>
+        </div>
+
+        <div>
+          <p className="text-xs font-medium uppercase tracking-wide text-neutral-400">Lessons ({module.lessons.length})</p>
+          {module.lessons.length > 0 ? (
+            <div className="mt-2 space-y-2">
+              {module.lessons.map((lesson) => (
+                <div key={lesson.id} className="rounded-lg bg-neutral-50 p-3">
+                  <p className="text-sm font-medium text-neutral-900">{lesson.order}. {lesson.title}</p>
+                  <p className="mt-1 text-xs text-neutral-600">{lesson.description || 'No description'}{lesson.duration != null ? ` · ${lesson.duration} min` : ''}</p>
+                </div>
+              ))}
+            </div>
+          ) : <p className="mt-1 text-sm text-neutral-400">No lessons yet.</p>}
+        </div>
+
+        <div>
+          <p className="text-xs font-medium uppercase tracking-wide text-neutral-400">Quizzes ({module.quizzes.length})</p>
+          {module.quizzes.length > 0 ? (
+            <div className="mt-2 space-y-2">
+              {module.quizzes.map((quiz) => (
+                <div key={quiz.id} className="rounded-lg bg-neutral-50 p-3">
+                  <p className="text-sm font-medium text-neutral-900">{quiz.order}. {quiz.title}</p>
+                  <p className="mt-1 text-xs text-neutral-600">{quiz.description || 'No description'}{quiz.timeLimitMinutes != null ? ` · ${quiz.timeLimitMinutes} min` : ''}{quiz.passingPercentage != null ? ` · Pass: ${quiz.passingPercentage}%` : ''}</p>
+                </div>
+              ))}
+            </div>
+          ) : <p className="mt-1 text-sm text-neutral-400">No quizzes yet.</p>}
         </div>
       </div>
     </Drawer>
@@ -182,7 +214,7 @@ export default function CourseModulesPage() {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [editingModule, setEditingModule] = useState<ModuleListItem | null>(null);
-  const [selectedModule, setSelectedModule] = useState<ModuleListItem | null>(null);
+  const [moduleDetails, setModuleDetails] = useState<ModuleDetails | null>(null);
   const [creating, setCreating] = useState(false);
   const [updating, setUpdating] = useState(false);
   const [deleting, setDeleting] = useState(false);
@@ -215,6 +247,34 @@ export default function CourseModulesPage() {
     }, 0);
     return () => window.clearTimeout(timer);
   }, [user, userLoading]);
+
+  async function openModuleDetails(module: ModuleListItem) {
+    if (!organizationId || !courseId) return;
+    try {
+      const base = `/api/v1/organizations/${organizationId}/courses/${courseId}/modules/${module.id}`;
+      const [moduleRes, lessonsRes, quizzesRes] = await Promise.all([
+        fetch(base, { credentials: 'include' }),
+        fetch(`${base}/lessons`, { credentials: 'include' }),
+        fetch(`${base}/quizzes`, { credentials: 'include' }),
+      ]);
+      if (!moduleRes.ok || !lessonsRes.ok || !quizzesRes.ok) {
+        toast.error('Could not load module details.');
+        return;
+      }
+      const moduleBody: { data?: ModuleListItem & { updatedAt: string } } = await moduleRes.json();
+      const lessonsBody: { data?: ModuleLessonSummary[] } = await lessonsRes.json();
+      const quizzesBody: { data?: ModuleQuizSummary[] } = await quizzesRes.json();
+      if (moduleBody.data) {
+        setModuleDetails({
+          ...moduleBody.data,
+          lessons: lessonsBody.data ?? [],
+          quizzes: quizzesBody.data ?? [],
+        });
+      }
+    } catch {
+      toast.error('Could not load module details.');
+    }
+  }
 
   useEffect(() => {
     if (!organizationId || !courseId) return;
@@ -518,7 +578,7 @@ export default function CourseModulesPage() {
                   </thead>
                   <tbody className="divide-y divide-neutral-200 bg-white">
                     {modules.map((module) => (
-                      <tr key={module.id} className="hover:bg-neutral-50 cursor-pointer" onClick={() => setSelectedModule(module)}>
+                      <tr key={module.id} className="hover:bg-neutral-50 cursor-pointer" onClick={() => void openModuleDetails(module)}>
                         <td className="px-6 py-4 text-sm font-medium text-neutral-900">
                           <Badge variant="default" size="sm">{module.order}</Badge>
                         </td>
@@ -670,9 +730,11 @@ export default function CourseModulesPage() {
       </Modal>
 
       <ModuleDetailsDrawer
-        module={selectedModule}
-        isOpen={selectedModule !== null}
-        onClose={() => setSelectedModule(null)}
+        module={moduleDetails}
+        isOpen={moduleDetails !== null}
+        onClose={() => {
+          setModuleDetails(null);
+        }}
       />
     </div>
   );
