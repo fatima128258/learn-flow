@@ -1,7 +1,7 @@
 ﻿'use client';
 
 import { useEffect, useState, useRef } from 'react';
-import { useParams, useRouter } from 'next/navigation';
+import { useParams, usePathname, useRouter } from 'next/navigation';
 import { Badge, Button, Drawer, EmptyState, EmptyStateIcons, Spinner } from '../../../../../../../../components/ui';
 import { Input } from '../../../../../../../../components/ui/Input';
 import { Textarea } from '../../../../../../../../components/forms/Textarea';
@@ -110,6 +110,8 @@ export default function ModuleLessonsPage() {
   const courseId = typeof params.courseId === 'string' ? params.courseId : null;
   const moduleId = typeof params.moduleId === 'string' ? params.moduleId : null;
   const router = useRouter();
+  const pathname = usePathname();
+  const dashboardPrefix = pathname.startsWith('/dashboard/instructor') ? '/dashboard/instructor' : '/dashboard/organization';
   const toast = useToast();
   const { data: user, isLoading: userLoading } = useCurrentUser();
 
@@ -483,7 +485,7 @@ export default function ModuleLessonsPage() {
       <div className="mx-auto max-w-5xl">
         <div className="mb-4 flex items-center justify-between">
           <p className="text-sm font-medium uppercase tracking-wide text-primary-600">Module Lessons</p>
-          <LinkButton href={`/dashboard/organization/courses/${courseId}/modules${organizationId ? `?organization=${organizationId}` : ''}`} variant="ghost" size="sm">
+          <LinkButton href={`${dashboardPrefix}/courses/${courseId}/modules${organizationId ? `?organization=${organizationId}` : ''}`} variant="ghost" size="sm">
             Back to Modules
           </LinkButton>
         </div>
@@ -526,7 +528,7 @@ export default function ModuleLessonsPage() {
                 <thead className="bg-neutral-50">
                   <tr>
                     <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-neutral-500 w-16">Order</th>
-                    <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-neutral-500">Title</th>
+                    <th className="w-64 px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-neutral-500">Title</th>
                     <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-neutral-500">Description</th>
                     <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-neutral-500 w-24">Duration</th>
                     <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-neutral-500 w-40">Actions</th>
@@ -538,8 +540,8 @@ export default function ModuleLessonsPage() {
                       <td className="px-6 py-4 text-sm font-medium text-neutral-900">
                         <Badge variant="default" size="sm">{lesson.order}</Badge>
                       </td>
-                      <td className="px-6 py-4 text-sm font-medium text-primary-600 hover:text-primary-700">
-                        {lesson.title}
+                      <td className="w-64 max-w-64 px-6 py-4 text-sm font-medium text-primary-600 hover:text-primary-700" title={lesson.title}>
+                        <span className="block truncate">{lesson.title}</span>
                       </td>
                       <td className="px-6 py-4 text-sm text-neutral-700 max-w-md truncate">
                         {lesson.description ?? '—'}

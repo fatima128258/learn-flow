@@ -208,6 +208,19 @@ export async function findOrganizationMember(organizationId: string, userId: str
   });
 }
 
+export async function getMemberActivityCounts(organizationId: string, userId: string) {
+  const rows = await prisma().$queryRaw<Array<{ courses_created: bigint; courses_purchased: bigint }>>`
+    SELECT
+      (SELECT COUNT(*) FROM "Course" WHERE "organizationId" = ${organizationId} AND "instructorUserId" = ${userId}) AS courses_created,
+      (SELECT COUNT(*) FROM "Enrollment" WHERE "organizationId" = ${organizationId} AND "userId" = ${userId}) AS courses_purchased
+  `;
+  const row = rows[0] ?? { courses_created: 0n, courses_purchased: 0n };
+  return {
+    coursesCreated: Number(row.courses_created),
+    coursesPurchased: Number(row.courses_purchased),
+  };
+}
+
 export async function createOrganizationMembership(data: {
   userId: string;
   organizationId: string;

@@ -1,7 +1,7 @@
 ﻿'use client';
 
 import { useEffect, useState } from 'react';
-import { useParams } from 'next/navigation';
+import { useParams, usePathname } from 'next/navigation';
 import { Alert, Spinner } from '../../../../../components/ui';
 import { LinkButton } from '../../../../../components/ui/LinkButton';
 import { getCreateCourseErrorMessage } from '../../../../../features/course/createCourseErrors';
@@ -45,6 +45,8 @@ function formatMoney(value: number | string | null): string {
 export default function CourseDetailPage() {
   const params = useParams();
   const courseId = typeof params.courseId === 'string' ? params.courseId : null;
+  const pathname = usePathname();
+  const dashboardPrefix = pathname.startsWith('/dashboard/instructor') ? '/dashboard/instructor' : '/dashboard/organization';
   const toast = useToast();
   const { data: user, isLoading: userLoading } = useCurrentUser();
 
@@ -171,7 +173,7 @@ export default function CourseDetailPage() {
       <div className="mx-auto max-w-3xl">
         <div className="mb-4 flex items-center justify-between">
           <p className="text-sm font-medium uppercase tracking-wide text-primary-600">Course Details</p>
-          <LinkButton href={`/dashboard/organization/courses${organizationId ? `?organization=${organizationId}` : ''}`} variant="ghost" size="sm">
+          <LinkButton href={`${dashboardPrefix}/courses${organizationId ? `?organization=${organizationId}` : ''}`} variant="ghost" size="sm">
             Back to My Courses
           </LinkButton>
         </div>
@@ -202,10 +204,10 @@ export default function CourseDetailPage() {
                       </option>
                     ))}
                   </select>
-                  <LinkButton href={`/dashboard/organization/courses/${courseId}/modules${organizationId ? `?organization=${organizationId}` : ''}`} size="sm" variant="primary">
+                  <LinkButton href={`${dashboardPrefix}/courses/${courseId}/modules${organizationId ? `?organization=${organizationId}` : ''}`} size="sm" variant="primary">
                     Manage Modules
                   </LinkButton>
-                  <LinkButton href={`/dashboard/organization/courses/${courseId}/edit${organizationId ? `?organization=${organizationId}` : ''}`} size="sm" variant="secondary">
+                  <LinkButton href={`${dashboardPrefix}/courses/${courseId}/edit${organizationId ? `?organization=${organizationId}` : ''}`} size="sm" variant="secondary">
                     Edit
                   </LinkButton>
                 </div>

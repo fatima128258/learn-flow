@@ -24,6 +24,7 @@ interface LessonListItemRecord {
   id: string;
   title: string;
   description: string | null;
+  content: string | null;
   type: string | null;
   duration: number | null;
   order: number;
@@ -54,6 +55,7 @@ function toLessonListItemDto(lesson: LessonListItemRecord) {
     id: lesson.id,
     title: lesson.title,
     description: lesson.description,
+    content: lesson.content,
     type: lesson.type,
     duration: lesson.duration,
     order: lesson.order,

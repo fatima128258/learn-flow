@@ -2,12 +2,12 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Button, EmptyState, EmptyStateIcons, ErrorState, Skeleton } from '@/components/ui';
+import { Button, EmptyState, EmptyStateIcons, ErrorState, Input, Modal, Skeleton } from '@/components/ui';
 import { PageHeader } from '@/components/dashboard';
 import { useCurrentUser } from '@/features/auth/useCurrentUser';
 import { ApiError, apiRequest } from '@/lib/api';
 
-type Category = { id: string; name: string; description: string | null; ownerUserId?: string | null };
+type Category = { id: string; name: string; description: string | null; status?: 'ACTIVE' | 'INACTIVE'; ownerUserId?: string | null };
 
 export default function InstructorCategoriesPage() {
   const router = useRouter();
@@ -16,7 +16,11 @@ export default function InstructorCategoriesPage() {
   const [loading, setLoading] = useState(true);
   const [failed, setFailed] = useState(false);
   const [errorCode, setErrorCode] = useState<string | null>(null);
+  const [search, setSearch] = useState('');
   const [privateName, setPrivateName] = useState('');
+  const [privateDescription, setPrivateDescription] = useState('');
+  const [privateStatus, setPrivateStatus] = useState<'ACTIVE' | 'INACTIVE'>('ACTIVE');
+  const [showPrivateModal, setShowPrivateModal] = useState(false);
   const [creating, setCreating] = useState(false);
   const organizationId = user?.organizationId;
 
@@ -75,11 +79,14 @@ export default function InstructorCategoriesPage() {
     try {
       const result = await apiRequest<{ data?: Category }>(
         `/api/v1/organizations/${organizationId}/categories`,
-        { method: 'POST', body: JSON.stringify({ name }) },
+        { method: 'POST', body: JSON.stringify({ name, description: privateDescription.trim(), status: privateStatus }) },
       );
       if (result.data) {
         setCategories((current) => [...current, result.data!].sort((a, b) => a.name.localeCompare(b.name)));
         setPrivateName('');
+        setPrivateDescription('');
+        setPrivateStatus('ACTIVE');
+        setShowPrivateModal(false);
       }
     } catch (error) {
       setErrorCode(error instanceof ApiError ? error.code : 'NETWORK_ERROR');
@@ -95,6 +102,10 @@ export default function InstructorCategoriesPage() {
       : errorCode === 'SESSION_INVALID' || errorCode === 'NOT_AUTHENTICATED'
         ? 'Your session has expired. Please sign in again.'
         : 'The categories service could not be reached. Please try again.';
+  const visibleCategories = categories.filter((category) => {
+    const query = search.trim().toLowerCase();
+    return !query || category.name.toLowerCase().includes(query) || (category.description ?? '').toLowerCase().includes(query);
+  });
 
   return (
     <div className="mx-auto max-w-6xl">
@@ -103,28 +114,33 @@ export default function InstructorCategoriesPage() {
         description="Use organization categories or create private categories for your own courses."
       />
       {!loading && !failed && (
-        <div className="mb-5 flex max-w-xl gap-2">
-          <input
-            className="min-w-0 flex-1 rounded-md border border-neutral-300 bg-white px-3 py-2 text-sm"
-            value={privateName}
-            onChange={(event) => setPrivateName(event.target.value)}
-            placeholder="New private category"
-            maxLength={100}
-            disabled={creating}
-          />
-          <Button
-            type="button"
-            onClick={() => void createPrivateCategory()}
-            disabled={creating || !privateName.trim()}
-          >
-            {creating ? 'Creating...' : 'Add private'}
-          </Button>
+        <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <Input variant="line" className="max-w-md" value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search categories" aria-label="Search categories" />
+          <Button type="button" onClick={() => setShowPrivateModal(true)}>Add private</Button>
         </div>
       )}
       {loading ? <div className="space-y-4"><Skeleton variant="text" height={30} /><Skeleton variant="text" height={30} /></div>
         : failed ? <ErrorState title={organizationId ? 'Unable to load categories' : 'No organization assigned'} message={organizationId ? errorMessage : 'Categories are available only through your organization.'} />
-          : categories.length === 0 ? <EmptyState icon={EmptyStateIcons.NoData} title="No categories available" description="Create a private category above or ask your Organization Admin to create an organization category." />
-          : <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">{categories.map((category) => <article key={category.id} className="rounded-2xl border border-neutral-200 bg-white p-5 shadow-sm"><div className="flex items-start justify-between gap-2"><h2 className="font-semibold text-neutral-900">{category.name}</h2><span className="text-xs text-neutral-500">{category.ownerUserId ? 'Private' : 'Organization'}</span></div><p className="mt-2 text-sm text-neutral-600">{category.description || 'No description provided.'}</p></article>)}</div>}
+          : visibleCategories.length === 0 ? <EmptyState icon={search ? EmptyStateIcons.NoResults : EmptyStateIcons.NoData} title={search ? 'No matching categories' : 'No categories available'} description={search ? 'Try a different search.' : 'Create a private category above or ask your Organization Admin to create an organization category.'} />
+          : <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">{visibleCategories.map((category) => <article key={category.id} className="rounded-2xl border border-neutral-200 bg-white p-5 shadow-sm"><div className="flex items-start justify-between gap-2"><h2 className="font-semibold text-neutral-900">{category.name}</h2><span className="text-xs text-neutral-500">{category.ownerUserId ? 'Private' : 'Organization'}</span></div><p className="mt-2 text-sm text-neutral-600">{category.description || 'No description provided.'}</p></article>)}</div>}
+      <Modal
+        isOpen={showPrivateModal}
+        onClose={() => { if (!creating) setShowPrivateModal(false); }}
+        title="Add private category"
+        footer={<><Button variant="ghost" onClick={() => setShowPrivateModal(false)} disabled={creating}>Cancel</Button><Button onClick={() => void createPrivateCategory()} loading={creating} disabled={!privateName.trim()}>Create category</Button></>}
+      >
+        <div className="space-y-4">
+          <Input label="Category name" value={privateName} onChange={(event) => setPrivateName(event.target.value)} maxLength={100} required disabled={creating} />
+          <Input label="Description" value={privateDescription} onChange={(event) => setPrivateDescription(event.target.value)} maxLength={1000} disabled={creating} />
+          <label className="block text-sm font-medium text-neutral-700">
+            Status
+            <select className="mt-1.5 block w-full rounded-md border border-neutral-300 bg-white px-3 py-2" value={privateStatus} onChange={(event) => setPrivateStatus(event.target.value as 'ACTIVE' | 'INACTIVE')} disabled={creating}>
+              <option value="ACTIVE">Active</option>
+              <option value="INACTIVE">Inactive</option>
+            </select>
+          </label>
+        </div>
+      </Modal>
     </div>
   );
 }

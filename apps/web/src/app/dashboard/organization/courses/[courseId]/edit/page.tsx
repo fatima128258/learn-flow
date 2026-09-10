@@ -1,7 +1,7 @@
 ﻿'use client';
 
 import { useEffect, useState } from 'react';
-import { useParams } from 'next/navigation';
+import { useParams, usePathname } from 'next/navigation';
 import { Spinner } from '../../../../../../components/ui';
 import { Input } from '../../../../../../components/ui/Input';
 import { SubmitButton } from '../../../../../../components/forms/SubmitButton';
@@ -57,6 +57,8 @@ function parseOptionalNumber(value: string): number | undefined {
 
 export default function EditCoursePage() {
   const params = useParams();
+  const pathname = usePathname();
+  const dashboardPrefix = pathname.startsWith('/dashboard/instructor') ? '/dashboard/instructor' : '/dashboard/organization';
   const courseId = typeof params.courseId === 'string' ? params.courseId : null;
   const toast = useToast();
   const { data: user, isLoading: userLoading } = useCurrentUser();
@@ -129,14 +131,14 @@ export default function EditCoursePage() {
             code = null;
           }
           toast.error(getCreateCourseErrorMessage(code));
-          window.location.href = `/dashboard/organization/courses/${courseId}`;
+          window.location.href = `${dashboardPrefix}/courses/${courseId}`;
           return;
         }
         const body: GetCourseResponse = await res.json();
         if (!active) return;
         if (!body.data) {
           toast.error(getCreateCourseErrorMessage('COURSE_NOT_FOUND'));
-          window.location.href = `/dashboard/organization/courses/${courseId}`;
+          window.location.href = `${dashboardPrefix}/courses/${courseId}`;
           return;
         }
         const c = body.data;
@@ -283,7 +285,7 @@ export default function EditCoursePage() {
 
       if (res.status === 200) {
         toast.success('Course updated.');
-        window.location.href = `/dashboard/organization/courses/${courseId}`;
+        window.location.href = `${dashboardPrefix}/courses/${courseId}`;
         return;
       }
 
@@ -318,7 +320,7 @@ export default function EditCoursePage() {
         <div className="mb-4 flex items-center justify-between">
           <p className="text-sm font-medium uppercase tracking-wide text-primary-600">Edit Course</p>
           <LinkButton
-            href={`/dashboard/organization/courses/${courseId}`}
+            href={`${dashboardPrefix}/courses/${courseId}`}
             variant="ghost"
             size="sm"
           >

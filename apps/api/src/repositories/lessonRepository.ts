@@ -41,6 +41,7 @@ export async function listByModule(moduleId: string) {
       id: true,
       title: true,
       description: true,
+      content: true,
       type: true,
       duration: true,
       order: true,

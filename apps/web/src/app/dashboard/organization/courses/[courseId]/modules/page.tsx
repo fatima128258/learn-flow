@@ -1,7 +1,8 @@
 ﻿'use client';
 
 import { useEffect, useState, useRef } from 'react';
-import { useParams, useRouter } from 'next/navigation';
+import { createPortal } from 'react-dom';
+import { useParams, usePathname, useRouter } from 'next/navigation';
 import { Badge, Button, EmptyState, EmptyStateIcons, Spinner, Drawer } from '../../../../../../components/ui';
 import { Input } from '../../../../../../components/ui/Input';
 import { LinkButton } from '../../../../../../components/ui/LinkButton';
@@ -12,15 +13,18 @@ import { useToast } from '../../../../../../components/ui/ToastProvider';
 import { useCurrentUser } from '../../../../../../features/auth/useCurrentUser';
 
 // 3-dot menu component
-function ModuleActionsMenu({ module, courseId, organizationId, onEdit, onDelete }: {
+function ModuleActionsMenu({ module, courseId, organizationId, dashboardPrefix, onEdit, onDelete }: {
   module: { id: string; title: string };
   courseId: string;
   organizationId: string;
+  dashboardPrefix: string;
   onEdit: () => void;
   onDelete: () => void;
 }) {
   const [isOpen, setIsOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
+  const buttonRef = useRef<HTMLButtonElement>(null);
+  const [menuPosition, setMenuPosition] = useState({ top: 0, left: 0 });
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -35,10 +39,25 @@ function ModuleActionsMenu({ module, courseId, organizationId, onEdit, onDelete 
     }
   }, [isOpen]);
 
+  function toggleMenu() {
+    if (!isOpen && buttonRef.current) {
+      const rect = buttonRef.current.getBoundingClientRect();
+      const menuWidth = 192;
+      const menuHeight = 180;
+      const top = rect.bottom + menuHeight <= window.innerHeight
+        ? rect.bottom + 4
+        : rect.top - menuHeight - 4;
+      const left = Math.max(8, Math.min(rect.right - menuWidth, window.innerWidth - menuWidth - 8));
+      setMenuPosition({ top, left });
+    }
+    setIsOpen(!isOpen);
+  }
+
   return (
     <div ref={menuRef} className="relative">
       <button
-        onClick={() => setIsOpen(!isOpen)}
+        ref={buttonRef}
+        onClick={toggleMenu}
         className="p-1 hover:bg-neutral-100 rounded-md transition-colors"
         aria-label="Module actions"
       >
@@ -47,17 +66,21 @@ function ModuleActionsMenu({ module, courseId, organizationId, onEdit, onDelete 
         </svg>
       </button>
 
-      {isOpen && (
-        <div className="fixed bg-white rounded-lg border border-neutral-200 shadow-lg z-50 w-48">
+      {isOpen && typeof document !== 'undefined' && createPortal(
+        <div
+          ref={menuRef}
+          style={{ position: 'fixed', top: menuPosition.top, left: menuPosition.left, zIndex: 9999 }}
+          className="w-48 rounded-lg border border-neutral-200 bg-white shadow-lg"
+        >
           <Link
-            href={`/dashboard/organization/courses/${courseId}/modules/${module.id}/lessons${organizationId ? `?organization=${organizationId}` : ''}`}
+            href={`${dashboardPrefix}/courses/${courseId}/modules/${module.id}/lessons${organizationId ? `?organization=${organizationId}` : ''}`}
             className="block px-4 py-2 text-sm text-neutral-700 hover:bg-neutral-50 border-b border-neutral-100 first:rounded-t-lg"
             onClick={() => setIsOpen(false)}
           >
             📚 Add Lesson
           </Link>
           <Link
-            href={`/dashboard/organization/courses/${courseId}/modules/${module.id}/quizzes${organizationId ? `?organization=${organizationId}` : ''}`}
+            href={`${dashboardPrefix}/courses/${courseId}/modules/${module.id}/quizzes${organizationId ? `?organization=${organizationId}` : ''}`}
             className="block px-4 py-2 text-sm text-neutral-700 hover:bg-neutral-50 border-b border-neutral-100"
             onClick={() => setIsOpen(false)}
           >
@@ -81,7 +104,8 @@ function ModuleActionsMenu({ module, courseId, organizationId, onEdit, onDelete 
           >
             🗑️ Delete
           </button>
-        </div>
+        </div>,
+        document.body,
       )}
     </div>
   );
@@ -203,6 +227,8 @@ export default function CourseModulesPage() {
   const params = useParams();
   const courseId = typeof params.courseId === 'string' ? params.courseId : null;
   const router = useRouter();
+  const pathname = usePathname();
+  const dashboardPrefix = pathname.startsWith('/dashboard/instructor') ? '/dashboard/instructor' : '/dashboard/organization';
   const toast = useToast();
   const { data: user, isLoading: userLoading } = useCurrentUser();
 
@@ -526,7 +552,7 @@ export default function CourseModulesPage() {
       <div className="mx-auto max-w-5xl">
         <div className="mb-4 flex items-center justify-between">
           <p className="text-sm font-medium uppercase tracking-wide text-primary-600">Course Modules</p>
-          <LinkButton href={`/dashboard/organization/courses/${courseId}${organizationId ? `?organization=${organizationId}` : ''}`} variant="ghost" size="sm">
+          <LinkButton href={`${dashboardPrefix}/courses/${courseId}${organizationId ? `?organization=${organizationId}` : ''}`} variant="ghost" size="sm">
             Back to Course
           </LinkButton>
         </div>
@@ -571,7 +597,7 @@ export default function CourseModulesPage() {
                   <thead className="bg-neutral-50">
                     <tr>
                       <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-neutral-500 w-16">Order</th>
-                      <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-neutral-500">Title</th>
+                      <th className="w-72 px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-neutral-500">Title</th>
                       <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-neutral-500">Description</th>
                       <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-neutral-500 w-20">Actions</th>
                     </tr>
@@ -582,13 +608,16 @@ export default function CourseModulesPage() {
                         <td className="px-6 py-4 text-sm font-medium text-neutral-900">
                           <Badge variant="default" size="sm">{module.order}</Badge>
                         </td>
-                        <td className="px-6 py-4 text-sm font-medium text-primary-600 hover:text-primary-700">{module.title}</td>
+                        <td className="w-72 max-w-72 px-6 py-4 text-sm font-medium text-primary-600 hover:text-primary-700" title={module.title}>
+                          <span className="block truncate">{module.title}</span>
+                        </td>
                         <td className="px-6 py-4 text-sm text-neutral-700 max-w-xs truncate" title={module.description ?? ''}>{module.description ?? '—'}</td>
                         <td className="px-6 py-4 relative pl-2" onClick={(e) => e.stopPropagation()}>
                           <ModuleActionsMenu
                             module={module}
                             courseId={courseId!}
                             organizationId={organizationId!}
+                            dashboardPrefix={dashboardPrefix}
                             onEdit={() => openEditModal(module)}
                             onDelete={() => handleDelete(module.id)}
                           />
@@ -610,8 +639,8 @@ export default function CourseModulesPage() {
                       <p className="mt-1 text-sm text-neutral-500">{module.description}</p>
                     )}
                     <div className="mt-3 flex flex-wrap items-center gap-2 border-t border-neutral-100 pt-3">
-                      <Link href={`/dashboard/organization/courses/${courseId}/modules/${module.id}/lessons${organizationId ? `?organization=${organizationId}` : ''}`} className="inline-flex items-center rounded-lg px-3 py-1.5 text-sm font-medium text-primary-600 hover:bg-primary-50 transition-colors">Lessons</Link>
-                      <Link href={`/dashboard/organization/courses/${courseId}/modules/${module.id}/quizzes${organizationId ? `?organization=${organizationId}` : ''}`} className="inline-flex items-center rounded-lg px-3 py-1.5 text-sm font-medium text-primary-600 hover:bg-primary-50 transition-colors">Quizzes</Link>
+                      <Link href={`${dashboardPrefix}/courses/${courseId}/modules/${module.id}/lessons${organizationId ? `?organization=${organizationId}` : ''}`} className="inline-flex items-center rounded-lg px-3 py-1.5 text-sm font-medium text-primary-600 hover:bg-primary-50 transition-colors">Lessons</Link>
+                      <Link href={`${dashboardPrefix}/courses/${courseId}/modules/${module.id}/quizzes${organizationId ? `?organization=${organizationId}` : ''}`} className="inline-flex items-center rounded-lg px-3 py-1.5 text-sm font-medium text-primary-600 hover:bg-primary-50 transition-colors">Quizzes</Link>
                       <Button variant="ghost" size="sm" onClick={() => openEditModal(module)}>Edit</Button>
                       <Button variant="danger" size="sm" onClick={() => handleDelete(module.id)}>Delete</Button>
                     </div>

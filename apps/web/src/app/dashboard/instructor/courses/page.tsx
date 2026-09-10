@@ -207,7 +207,7 @@ export default function InstructorCoursesPage() {
 
   const orgId = user?.organizationId ?? '';
   const manageHref = (courseId: string) =>
-    `/dashboard/organization/courses/${courseId}${orgId ? `?organization=${orgId}` : ''}`;
+    `/dashboard/instructor/courses/${courseId}${orgId ? `?organization=${orgId}` : ''}`;
 
   const activeModal = courses?.find((c) => c.id === statusModalCourseId) ?? null;
 

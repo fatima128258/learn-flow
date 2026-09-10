@@ -1,6 +1,7 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { useSearchParams } from 'next/navigation';
 import {
   Badge,
@@ -8,6 +9,7 @@ import {
   EmptyState,
   EmptyStateIcons,
   ErrorState,
+  Drawer,
   Input,
   Modal,
   ConfirmModal,
@@ -38,6 +40,8 @@ type MemberItem = {
   organizationId: string;
   createdAt: string;
   updatedAt: string;
+  coursesCreated?: number;
+  coursesPurchased?: number;
 };
 
 type UsersResponse = {
@@ -46,6 +50,38 @@ type UsersResponse = {
   meta?: { page: number; limit: number; total: number };
   error?: string;
 };
+
+function MemberActionsMenu({ member, onView, onStatus }: { member: MemberItem; onView: () => void; onStatus: () => void }) {
+  const [open, setOpen] = useState(false);
+  const [position, setPosition] = useState({ top: 0, right: 8 });
+  const buttonRef = useRef<HTMLButtonElement>(null);
+  useEffect(() => {
+    if (!open) return;
+    const close = () => setOpen(false);
+    document.addEventListener('mousedown', close);
+    return () => document.removeEventListener('mousedown', close);
+  }, [open]);
+  function toggle(event: React.MouseEvent) {
+    event.stopPropagation();
+    if (!open && buttonRef.current) {
+      const rect = buttonRef.current.getBoundingClientRect();
+      setPosition({ top: rect.bottom + 4, right: Math.max(8, window.innerWidth - rect.right) });
+    }
+    setOpen(!open);
+  }
+  const menu = open ? (
+    <div className="fixed z-[60] w-36 rounded-lg border border-neutral-200 bg-white py-1 shadow-lg" style={{ top: position.top, right: position.right }} onMouseDown={(event) => event.stopPropagation()}>
+      <button type="button" className="block w-full px-3 py-2 text-left text-sm text-neutral-700 hover:bg-neutral-50" onClick={() => { setOpen(false); onView(); }}>View</button>
+      <button type="button" className="block w-full px-3 py-2 text-left text-sm text-red-600 hover:bg-red-50" onClick={() => { setOpen(false); onStatus(); }}>{member.status === 'ACTIVE' ? 'Suspend' : 'Unsuspend'}</button>
+    </div>
+  ) : null;
+  return <>
+    <button ref={buttonRef} type="button" aria-label="Member actions" className="rounded-md p-2 text-neutral-500 hover:bg-neutral-100" onClick={toggle}>
+      <span className="sr-only">Member actions</span><span aria-hidden="true">⋮</span>
+    </button>
+    {typeof document !== 'undefined' && menu ? createPortal(menu, document.body) : null}
+  </>;
+}
 
 function roleBadgeVariant(role: MemberRole) {
   if (role === 'PLATFORM_ADMIN') return 'primary' as const;
@@ -79,6 +115,8 @@ export default function OrgUsersPage() {
   const [saving, setSaving] = useState(false);
   const [statusTarget, setStatusTarget] = useState<MemberItem | null>(null);
   const [updatingStatus, setUpdatingStatus] = useState(false);
+  const [selectedMember, setSelectedMember] = useState<MemberItem | null>(null);
+  const [memberDetailsLoading, setMemberDetailsLoading] = useState(false);
 
   const orgHeaders: Record<string, string> = orgId ? { 'X-Organization-Id': orgId } : {};
 
@@ -226,6 +264,22 @@ export default function OrgUsersPage() {
         toast.error(messages[body.error ?? ''] ?? 'Could not update the account status. Please try again.');
         return;
       }
+
+      async function openMemberDetails(member: MemberItem) {
+        setSelectedMember(member);
+        setMemberDetailsLoading(true);
+        try {
+          const res = await fetch(`${API_BASE}/api/v1/org/users/${member.id}`, { credentials: 'include', headers: orgHeaders });
+          if (!res.ok) throw new Error('Unable to load member details');
+          const body: { data?: MemberItem } = await res.json();
+          if (body.data) setSelectedMember(body.data);
+        } catch {
+          setSelectedMember(null);
+          toast.error('Could not load member details. Please try again.');
+        } finally {
+          setMemberDetailsLoading(false);
+        }
+      }
       toast.success(suspending ? 'Account suspended successfully.' : 'Account unsuspended successfully.');
       setStatusTarget(null);
       setLoading(true);
@@ -318,9 +372,7 @@ export default function OrgUsersPage() {
                               {new Date(member.createdAt).toLocaleDateString()}
                             </td>
                             <td className={tableCellClass}>
-                              <Button size="sm" variant={member.status === 'ACTIVE' ? 'danger' : 'outline'} onClick={() => setStatusTarget(member)}>
-                                {member.status === 'ACTIVE' ? 'Suspend' : 'Unsuspend'}
-                              </Button>
+                              <MemberActionsMenu member={member} onView={() => void openMemberDetails(member)} onStatus={() => setStatusTarget(member)} />
                             </td>
                           </tr>
                         ))}
@@ -340,7 +392,7 @@ export default function OrgUsersPage() {
                         </div>
                         <div className="mt-3 space-y-1 border-t border-neutral-100 pt-3">
                           <p className="text-sm text-neutral-700 break-all">{member.email}</p>
-                          <div className="flex items-center justify-between gap-3 pt-1"><Badge variant={member.status === 'ACTIVE' ? 'success' : 'warning'} size="sm">{member.status === 'ACTIVE' ? 'Active' : 'Suspended'}</Badge><Button size="sm" variant={member.status === 'ACTIVE' ? 'danger' : 'outline'} onClick={() => setStatusTarget(member)}>{member.status === 'ACTIVE' ? 'Suspend' : 'Unsuspend'}</Button></div>
+                          <div className="flex items-center justify-between gap-3 pt-1"><Badge variant={member.status === 'ACTIVE' ? 'success' : 'warning'} size="sm">{member.status === 'ACTIVE' ? 'Active' : 'Suspended'}</Badge><MemberActionsMenu member={member} onView={() => void openMemberDetails(member)} onStatus={() => setStatusTarget(member)} /></div>
                           <p className="text-xs text-neutral-400">{new Date(member.createdAt).toLocaleDateString()}</p>
                         </div>
                       </div>
@@ -408,6 +460,25 @@ export default function OrgUsersPage() {
         variant={statusTarget?.status === 'ACTIVE' ? 'danger' : 'primary'}
         loading={updatingStatus}
       />
+      <Drawer isOpen={Boolean(selectedMember)} onClose={() => { if (!memberDetailsLoading) setSelectedMember(null); }} title={selectedMember?.name ?? 'Member details'}>
+        {memberDetailsLoading ? (
+          <div className="flex items-center gap-3 text-neutral-700"><Spinner size="md" label="Loading member details..." /><span>Loading member details...</span></div>
+        ) : selectedMember ? (
+          <div className="space-y-6">
+            <div className="flex items-center gap-3"><UserAvatar name={selectedMember.name} size="lg" /><div><h3 className="font-semibold text-neutral-900">{selectedMember.name ?? '—'}</h3><p className="text-sm text-neutral-600">{selectedMember.email}</p></div></div>
+            <div className="grid grid-cols-2 gap-3 text-sm">
+              <div><p className="text-xs uppercase tracking-wide text-neutral-400">Role</p><p className="mt-1"><Badge variant={roleBadgeVariant(selectedMember.role)} size="sm">{selectedMember.role}</Badge></p></div>
+              <div><p className="text-xs uppercase tracking-wide text-neutral-400">Status</p><p className="mt-1"><Badge variant={selectedMember.status === 'ACTIVE' ? 'success' : 'warning'} size="sm">{selectedMember.status}</Badge></p></div>
+              <div><p className="text-xs uppercase tracking-wide text-neutral-400">Created</p><p className="mt-1 text-neutral-700">{new Date(selectedMember.createdAt).toLocaleString()}</p></div>
+              <div><p className="text-xs uppercase tracking-wide text-neutral-400">Updated</p><p className="mt-1 text-neutral-700">{new Date(selectedMember.updatedAt).toLocaleString()}</p></div>
+            </div>
+            <div className="rounded-lg bg-neutral-50 p-4">
+              <p className="text-xs uppercase tracking-wide text-neutral-400">Activity</p>
+              <p className="mt-2 text-sm text-neutral-700">{selectedMember.role === 'INSTRUCTOR' ? `Courses created: ${selectedMember.coursesCreated ?? 0}` : selectedMember.role === 'STUDENT' ? `Courses purchased: ${selectedMember.coursesPurchased ?? 0}` : 'Organization administration account'}</p>
+            </div>
+          </div>
+        ) : null}
+      </Drawer>
     </>
   );
 }

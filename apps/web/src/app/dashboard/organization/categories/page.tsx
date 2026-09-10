@@ -58,8 +58,13 @@ export default function CategoriesPage() {
         setCategories(result.data ?? []);
         setMeta(result.meta);
       }
-    } catch {
-      if (!controller.signal.aborted) setError(true);
+    } catch (err) {
+      if (controller.signal.aborted) return;
+      if (err instanceof ApiError && (err.status === 401 || err.status === 403)) {
+        window.location.assign('/login');
+        return;
+      }
+      setError(true);
     } finally {
       if (!controller.signal.aborted) setLoading(false);
     }

@@ -1,7 +1,7 @@
 ﻿'use client';
 
 import { useEffect, useState } from 'react';
-import { useParams, useRouter } from 'next/navigation';
+import { useParams, usePathname, useRouter } from 'next/navigation';
 import { Badge, Button, EmptyState, EmptyStateIcons, Spinner } from '../../../../../../../../../../components/ui';
 import { Input } from '../../../../../../../../../../components/ui/Input';
 import { Textarea } from '../../../../../../../../../../components/forms/Textarea';
@@ -66,6 +66,8 @@ export default function QuizQuestionsPage() {
   const moduleId = typeof params.moduleId === 'string' ? params.moduleId : null;
   const quizId = typeof params.quizId === 'string' ? params.quizId : null;
   const router = useRouter();
+  const pathname = usePathname();
+  const dashboardPrefix = pathname.startsWith('/dashboard/instructor') ? '/dashboard/instructor' : '/dashboard/organization';
   const toast = useToast();
   const { data: user, isLoading: userLoading } = useCurrentUser();
 
@@ -661,7 +663,7 @@ export default function QuizQuestionsPage() {
         <div className="mb-4 flex items-center justify-between">
           <p className="text-sm font-medium uppercase tracking-wide text-primary-600">Quiz Questions</p>
           <LinkButton
-            href={`/dashboard/organization/courses/${courseId}/modules/${moduleId}/quizzes${organizationId ? `?organization=${organizationId}` : ''}`}
+            href={`${dashboardPrefix}/courses/${courseId}/modules/${moduleId}/quizzes${organizationId ? `?organization=${organizationId}` : ''}`}
             variant="ghost"
             size="sm"
           >

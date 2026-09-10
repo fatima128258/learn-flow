@@ -1,7 +1,7 @@
 ﻿'use client';
 
 import { useEffect, useState, useRef } from 'react';
-import { useParams, useRouter } from 'next/navigation';
+import { useParams, usePathname, useRouter } from 'next/navigation';
 import { Badge, Button, Drawer, EmptyState, EmptyStateIcons, Spinner } from '../../../../../../../../components/ui';
 import { Input } from '../../../../../../../../components/ui/Input';
 import { Textarea } from '../../../../../../../../components/forms/Textarea';
@@ -14,10 +14,11 @@ import { useToast } from '../../../../../../../../components/ui/ToastProvider';
 import { useCurrentUser } from '../../../../../../../../features/auth/useCurrentUser';
 
 // 3-dot menu component for quizzes
-function QuizActionsMenu({ quiz, courseId, moduleId, onEdit, onDelete }: {
+function QuizActionsMenu({ quiz, courseId, moduleId, dashboardPrefix, onEdit, onDelete }: {
   quiz: { id: string; title: string };
   courseId: string;
   moduleId: string;
+  dashboardPrefix: string;
   onEdit: () => void;
   onDelete: () => void;
 }) {
@@ -52,7 +53,7 @@ function QuizActionsMenu({ quiz, courseId, moduleId, onEdit, onDelete }: {
       {isOpen && (
         <div className="fixed bg-white rounded-lg border border-neutral-200 shadow-lg z-50 w-48">
           <Link
-            href={`/dashboard/organization/courses/${courseId}/modules/${moduleId}/quizzes/${quiz.id}/questions`}
+            href={`${dashboardPrefix}/courses/${courseId}/modules/${moduleId}/quizzes/${quiz.id}/questions`}
             className="block px-4 py-2 text-sm text-neutral-700 hover:bg-neutral-50 border-b border-neutral-100 first:rounded-t-lg"
             onClick={() => setIsOpen(false)}
           >
@@ -140,6 +141,8 @@ export default function ModuleQuizzesPage() {
   const courseId = typeof params.courseId === 'string' ? params.courseId : null;
   const moduleId = typeof params.moduleId === 'string' ? params.moduleId : null;
   const router = useRouter();
+  const pathname = usePathname();
+  const dashboardPrefix = pathname.startsWith('/dashboard/instructor') ? '/dashboard/instructor' : '/dashboard/organization';
   const toast = useToast();
   const { data: user, isLoading: userLoading } = useCurrentUser();
 
@@ -553,7 +556,7 @@ export default function ModuleQuizzesPage() {
       <div className="mx-auto max-w-5xl">
         <div className="mb-4 flex items-center justify-between">
           <p className="text-sm font-medium uppercase tracking-wide text-primary-600">Module Quizzes</p>
-          <LinkButton href={`/dashboard/organization/courses/${courseId}/modules${organizationId ? `?organization=${organizationId}` : ''}`} variant="ghost" size="sm">
+          <LinkButton href={`${dashboardPrefix}/courses/${courseId}/modules${organizationId ? `?organization=${organizationId}` : ''}`} variant="ghost" size="sm">
             Back to Modules
           </LinkButton>
         </div>
@@ -596,7 +599,7 @@ export default function ModuleQuizzesPage() {
                 <thead className="bg-neutral-50">
                   <tr>
                     <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-neutral-500 w-16">Order</th>
-                    <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-neutral-500">Title</th>
+                    <th className="w-72 px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-neutral-500">Title</th>
                     <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-neutral-500">Description</th>
                     <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-neutral-500 w-24">Time Limit</th>
                     <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-neutral-500 w-24">Pass %</th>
@@ -610,8 +613,8 @@ export default function ModuleQuizzesPage() {
                       <td className="px-6 py-4 text-sm font-medium text-neutral-900">
                         <Badge variant="default" size="sm">{quiz.order}</Badge>
                       </td>
-                      <td className="px-6 py-4 text-sm font-medium text-primary-600 hover:text-primary-700">
-                        {quiz.title}
+                      <td className="w-72 max-w-72 px-6 py-4 text-sm font-medium text-primary-600 hover:text-primary-700" title={quiz.title}>
+                        <span className="block truncate">{quiz.title}</span>
                       </td>
                       <td className="px-6 py-4 text-sm text-neutral-700 max-w-md truncate">
                         {quiz.description ?? '—'}
@@ -630,6 +633,7 @@ export default function ModuleQuizzesPage() {
                           quiz={quiz}
                           courseId={courseId!}
                           moduleId={moduleId!}
+                          dashboardPrefix={dashboardPrefix}
                           onEdit={() => openEditModal(quiz)}
                           onDelete={() => handleDelete(quiz.id)}
                         />

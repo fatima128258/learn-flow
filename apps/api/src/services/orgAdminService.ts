@@ -233,7 +233,8 @@ export async function getUser(organizationId: string, userId: string) {
   if (!membership) {
     throw new Error('USER_NOT_FOUND');
   }
-  return toMemberDto(membership);
+  const activity = await orgAdminRepo.getMemberActivityCounts(organizationId, userId);
+  return { ...toMemberDto(membership), ...activity };
 }
 
 export async function createManagedUser(organizationId: string, input: {
