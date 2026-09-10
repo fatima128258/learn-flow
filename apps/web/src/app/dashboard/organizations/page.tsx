@@ -23,7 +23,6 @@ import { PasswordInput } from '../../../components/forms/PasswordInput';
 import { useToast } from '../../../components/ui/ToastProvider';
 import { useCurrentUser } from '../../../features/auth/useCurrentUser';
 import {
-  StatCard,
   TableCard,
   PageHeader,
   tableHeadClass,
@@ -112,12 +111,6 @@ type AssignAdminResponse = {
 };
 
 // MeResponse removed - using useCurrentUser() hook instead
-
-const OrgIcon = (
-  <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
-    <path strokeLinecap="round" strokeLinejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0H3m4-12h4m-4 4h4m-4 4h4m4-8h2m-2 4h2m-2 4h2" />
-  </svg>
-);
 
 // ── 3-dot actions dropdown ─────────────────────────────────────────────────
 function OrgActionsMenu({
@@ -693,10 +686,6 @@ export default function OrganizationsPage() {
     }
   }
 
-  const activeCount = organizations?.filter((org) => org.status === 'ACTIVE').length ?? 0;
-  const suspendedCount = organizations?.filter((org) => org.status === 'SUSPENDED').length ?? 0;
-  const totalOrganizations = meta?.total ?? organizations?.length ?? 0;
-
   const normalizedSearch = searchTerm.trim().toLowerCase();
   const filteredOrganizations = organizations
     ? organizations.filter((org) => {
@@ -724,30 +713,6 @@ export default function OrganizationsPage() {
     <>
       <PageHeader title="Organizations" />
       <div className="mx-auto max-w-5xl">
-        <div className="mb-8 grid grid-cols-1 gap-4 md:grid-cols-3">
-          <StatCard
-            label="Total organizations"
-            value={totalOrganizations}
-            icon={OrgIcon}
-            tone="primary"
-            hint="All registered"
-          />
-          <StatCard
-            label="Active organizations"
-            value={activeCount}
-            icon={OrgIcon}
-            tone="success"
-            hint="Currently active"
-          />
-          <StatCard
-            label="Suspended organizations"
-            value={suspendedCount}
-            icon={OrgIcon}
-            tone="danger"
-            hint="Currently suspended"
-          />
-        </div>
-
         <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div className="max-w-sm">
             <Input

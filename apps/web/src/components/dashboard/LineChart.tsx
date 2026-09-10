@@ -78,19 +78,22 @@ export const LineChart: React.FC<LineChartProps> = ({
     ? `${linePath} L ${points[points.length - 1].x},${padding.top + chartHeight} L ${points[0].x},${padding.top + chartHeight} Z`
     : '';
 
-  // Y-axis labels (show ~5 ticks)
-  const yTicks = 5;
-  const yLabels = Array.from({ length: yTicks }, (_, i) => {
-    const value = maxValue - (i / (yTicks - 1)) * (maxValue - minValue);
+  // Show every integer for small counts; larger ranges use five spaced ticks.
+  const yTickValues = maxValue <= 7
+    ? Array.from({ length: maxValue + 1 }, (_, i) => maxValue - i)
+    : Array.from({ length: 5 }, (_, i) => Math.round(maxValue - (i / 4) * maxValue));
+  const yLabels = yTickValues.map((value, i) => {
     return {
-      value: Math.round(value),
-      y: padding.top + (i / (yTicks - 1)) * chartHeight,
+      value,
+      y: padding.top + (i / (yTickValues.length - 1 || 1)) * chartHeight,
     };
   });
 
-  // X-axis labels (show every nth label to avoid crowding)
-  const xLabelInterval = Math.ceil(data.length / 8);
-  const xLabels = data.filter((_, i) => i % xLabelInterval === 0 || i === data.length - 1);
+  // X-axis labels (evenly distribute up to seven labels to avoid crowding)
+  const xLabelCount = Math.min(data.length, 7);
+  const xLabelIndices = Array.from({ length: xLabelCount }, (_, i) =>
+    Math.round((i / (xLabelCount - 1 || 1)) * (data.length - 1))
+  );
 
   return (
     <div className={className}>
@@ -129,15 +132,16 @@ export const LineChart: React.FC<LineChartProps> = ({
         ))}
 
         {/* X-axis labels */}
-        {xLabels.map((d, i) => {
-          const index = data.indexOf(d);
+        {xLabelIndices.map((index) => {
+          const d = data[index];
           const x = padding.left + (index / (data.length - 1 || 1)) * chartWidth;
+          const textAnchor = index === 0 ? 'start' : index === data.length - 1 ? 'end' : 'middle';
           return (
             <text
-              key={i}
+              key={index}
               x={x}
               y={height - padding.bottom + 25}
-              textAnchor="middle"
+              textAnchor={textAnchor}
               className="text-xs fill-neutral-500"
               style={{ fontSize: '11px' }}
             >
