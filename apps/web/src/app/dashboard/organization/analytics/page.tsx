@@ -131,6 +131,16 @@ export default function OrgAnalyticsPage() {
     label: new Date(`${point.date}T00:00:00.000Z`).toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: 'UTC' }),
     value: point.count,
   }));
+  const chartTrend = enrollmentTrend.length > 0
+    ? enrollmentTrend
+    : Array.from({ length: range }, (_, index) => {
+      const date = new Date();
+      date.setUTCDate(date.getUTCDate() - (range - index - 1));
+      return {
+        label: date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: 'UTC' }),
+        value: 0,
+      };
+    });
   const enrollmentsByMonth = enrollments.reduce<Record<string, OrganizationEnrollment[]>>((months, enrollment) => {
     const month = new Date(enrollment.enrolledAt).toLocaleDateString('en-US', { month: 'long', year: 'numeric', timeZone: 'UTC' });
     (months[month] ??= []).push(enrollment);
@@ -165,7 +175,8 @@ export default function OrgAnalyticsPage() {
               description="Daily enrollments from real enrollment records"
               action={<label className="text-sm text-neutral-600">Range <select aria-label="Enrollment date range" value={range} onChange={(event) => setRange(Number(event.target.value) as 7 | 30 | 90 | 365)} className="ml-2 rounded-md border border-neutral-300 bg-white px-2 py-1 text-sm">{enrollmentRanges.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}</select></label>}
             >
-              {enrollmentTrend.some((point) => point.value > 0) ? <LineChart data={enrollmentTrend} color="#8b5cf6" height={240} /> : <EmptyState icon={EmptyStateIcons.NoData} title="No enrollment data available for this period" description="Enrollments will appear here as students join courses." />}
+              <LineChart data={chartTrend} color="#8b5cf6" height={240} />
+              {!enrollmentTrend.some((point) => point.value > 0) && <p className="mt-2 text-center text-sm text-neutral-500">No enrollments in this period yet.</p>}
             </ChartCard>
           </section>
 
