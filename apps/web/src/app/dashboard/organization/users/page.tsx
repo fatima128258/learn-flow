@@ -265,21 +265,6 @@ export default function OrgUsersPage() {
         return;
       }
 
-      async function openMemberDetails(member: MemberItem) {
-        setSelectedMember(member);
-        setMemberDetailsLoading(true);
-        try {
-          const res = await fetch(`${API_BASE}/api/v1/org/users/${member.id}`, { credentials: 'include', headers: orgHeaders });
-          if (!res.ok) throw new Error('Unable to load member details');
-          const body: { data?: MemberItem } = await res.json();
-          if (body.data) setSelectedMember(body.data);
-        } catch {
-          setSelectedMember(null);
-          toast.error('Could not load member details. Please try again.');
-        } finally {
-          setMemberDetailsLoading(false);
-        }
-      }
       toast.success(suspending ? 'Account suspended successfully.' : 'Account unsuspended successfully.');
       setStatusTarget(null);
       setLoading(true);
@@ -288,6 +273,22 @@ export default function OrgUsersPage() {
       toast.error('Could not reach the API. Please try again.');
     } finally {
       setUpdatingStatus(false);
+    }
+  }
+
+  async function openMemberDetails(member: MemberItem) {
+    setSelectedMember(member);
+    setMemberDetailsLoading(true);
+    try {
+      const res = await fetch(`${API_BASE}/api/v1/org/users/${member.id}`, { credentials: 'include', headers: orgHeaders });
+      if (!res.ok) throw new Error('Unable to load member details');
+      const body: { data?: MemberItem } = await res.json();
+      if (body.data) setSelectedMember(body.data);
+    } catch {
+      setSelectedMember(null);
+      toast.error('Could not load member details. Please try again.');
+    } finally {
+      setMemberDetailsLoading(false);
     }
   }
 
