@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { usePathname } from 'next/navigation';
 import { Spinner } from '../../../../../components/ui';
 import { Input } from '../../../../../components/ui/Input';
 import { SubmitButton } from '../../../../../components/forms/SubmitButton';
@@ -26,6 +27,9 @@ function parseOptionalNumber(value: string): number | undefined {
 
 export default function CreateCoursePage() {
   const toast = useToast();
+  const pathname = usePathname();
+  const isInstructorRoute = pathname?.startsWith('/dashboard/instructor/') ?? false;
+  const dashboardPath = isInstructorRoute ? '/dashboard/instructor' : '/dashboard/organization';
   const { data: user, isLoading: userLoading } = useCurrentUser();
 
   const [checkingAuth, setCheckingAuth] = useState(true);
@@ -230,7 +234,7 @@ export default function CreateCoursePage() {
       <div className="mx-auto max-w-3xl">
         <div className="mb-4 flex items-center justify-between">
           <p className="text-sm font-medium uppercase tracking-wide text-primary-600">Create Course</p>
-          <LinkButton href="/dashboard/organization" variant="ghost" size="sm">
+          <LinkButton href={dashboardPath} variant="ghost" size="sm">
             Back to dashboard
           </LinkButton>
         </div>

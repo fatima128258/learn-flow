@@ -226,7 +226,7 @@ export default function InstructorCoursesPage() {
         <PageHeader
           title="My Courses"
           actions={
-            <LinkButton href={`/dashboard/organization/courses/new${orgId ? `?organization=${orgId}` : ''}`}>
+            <LinkButton href="/dashboard/instructor/courses/new">
               Create Course
             </LinkButton>
           }
@@ -249,14 +249,14 @@ export default function InstructorCoursesPage() {
               icon={EmptyStateIcons.NoCourses}
               title="No courses yet"
               description="Create your first course to start teaching."
-              action={{ label: 'Create your first course', onClick: () => { window.location.href = `/dashboard/organization/courses/new${orgId ? `?organization=${orgId}` : ''}`; } }}
+              action={{ label: 'Create your first course', onClick: () => { window.location.href = '/dashboard/instructor/courses/new'; } }}
             />
           </div>
         ) : (
           <TableCard
             title="My Courses"
             description={`${courses?.length ?? 0} course${(courses?.length ?? 0) !== 1 ? 's' : ''}`}
-            action={<LinkButton href={`/dashboard/organization/courses/new${orgId ? `?organization=${orgId}` : ''}`} size="sm">New Course</LinkButton>}
+            action={<LinkButton href="/dashboard/instructor/courses/new" size="sm">New Course</LinkButton>}
           >
             {/* Desktop */}
             <div className="hidden md:block">
