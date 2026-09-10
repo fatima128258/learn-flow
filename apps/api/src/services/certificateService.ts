@@ -300,6 +300,20 @@ export async function getCertificateDownloadUrl(
     throw new Error('CERTIFICATE_PDF_NOT_FOUND');
   }
 
+  const pdfUrl = await certificatePdfService.uploadCertificatePdf(
+    organizationId,
+    certificate.id,
+    {
+      certificateId: certificate.certificateId,
+      verificationUrl: verificationUrl(certificate.verificationToken),
+      studentName: certificate.studentName,
+      courseTitle: certificate.courseTitle,
+      organizationName: certificate.organizationName,
+      instructorName: certificate.instructorName,
+      completionDate: certificate.completionDate,
+    },
+  );
   const pdfKey = storage.certificatePdfKey(organizationId, certificate.id);
+  await certificateRepo.updatePdfUrl(certificate.id, pdfUrl);
   return storage.getPresignedUrl(pdfKey, { expiresInSeconds: 900 });
 }

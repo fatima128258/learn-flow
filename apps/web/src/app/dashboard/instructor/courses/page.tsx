@@ -254,9 +254,6 @@ export default function InstructorCoursesPage() {
           </div>
         ) : (
           <TableCard
-            title="My Courses"
-            description={`${courses?.length ?? 0} course${(courses?.length ?? 0) !== 1 ? 's' : ''}`}
-            action={<LinkButton href="/dashboard/instructor/courses/new" size="sm">New Course</LinkButton>}
           >
             {/* Desktop */}
             <div className="hidden md:block">

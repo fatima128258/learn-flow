@@ -224,6 +224,7 @@ export async function listCourses(
     limit?: unknown;
     status?: unknown;
     categoryId?: unknown;
+    scope?: unknown;
     sort?: unknown;
     order?: unknown;
   } = {},
@@ -245,10 +246,10 @@ export async function listCourses(
     { field: 'difficulty' },
   ]);
 
-  // INSTRUCTOR role: scope to only courses they own.
-  // ORG_ADMIN and PLATFORM_ADMIN see all courses in the organization.
-  const instructorId =
-    actor?.role === 'INSTRUCTOR' && actor.userId ? actor.userId : undefined;
+  const instructorId = actor?.role === 'INSTRUCTOR' && actor.userId ? actor.userId : undefined;
+  const creatorRole = actor?.role === 'ORG_ADMIN' && input.scope === 'organization'
+    ? 'ORG_ADMIN' as const
+    : undefined;
   const categoryId =
     input.categoryId !== undefined && input.categoryId !== null && input.categoryId !== ''
       ? String(input.categoryId)
@@ -261,13 +262,14 @@ export async function listCourses(
     instructorId,
     ...(categoryId ? { categoryId } : {}),
     ...(categoryId ? { includeDetails: true } : {}),
+    ...(creatorRole ? { creatorRole } : {}),
   };
 
   const [courses, total] = await Promise.all([
     courseRepo.listByOrganization(organizationId, listOptions),
     categoryId
-      ? courseRepo.countByOrganization(organizationId, status, instructorId, categoryId)
-      : courseRepo.countByOrganization(organizationId, status, instructorId),
+      ? courseRepo.countByOrganization(organizationId, status, instructorId, categoryId, creatorRole)
+      : courseRepo.countByOrganization(organizationId, status, instructorId, undefined, creatorRole),
   ]);
 
   return {

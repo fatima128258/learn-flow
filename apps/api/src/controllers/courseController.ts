@@ -81,6 +81,7 @@ export async function listCourses(req: AuthenticatedRequest, res: Response) {
         limit: req.query.limit,
         status: req.query.status,
         categoryId: req.query.categoryId,
+        scope: req.query.scope,
         sort: req.query.sort,
         order: req.query.order,
       },

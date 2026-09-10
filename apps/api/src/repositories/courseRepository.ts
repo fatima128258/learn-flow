@@ -88,6 +88,7 @@ export interface ListCoursesOptions {
   instructorId?: string;
   categoryId?: string;
   includeDetails?: boolean;
+  creatorRole?: 'ORG_ADMIN' | 'INSTRUCTOR';
 }
 
 export async function listByOrganization(organizationId: string, options: ListCoursesOptions = {}) {
@@ -100,6 +101,16 @@ export async function listByOrganization(organizationId: string, options: ListCo
   }
   if (options.categoryId) {
     where.categoryId = options.categoryId;
+  }
+  if (options.creatorRole) {
+    where.instructorUser = {
+      organizations: {
+        some: {
+          organizationId,
+          role: options.creatorRole,
+        },
+      },
+    };
   }
   return prisma().course.findMany({
     where,
@@ -134,6 +145,7 @@ export async function countByOrganization(
   status?: string,
   instructorId?: string,
   categoryId?: string,
+  creatorRole?: 'ORG_ADMIN' | 'INSTRUCTOR',
 ) {
   const where: Prisma.CourseWhereInput = { organizationId };
   if (status) {
@@ -144,6 +156,16 @@ export async function countByOrganization(
   }
   if (categoryId) {
     where.categoryId = categoryId;
+  }
+  if (creatorRole) {
+    where.instructorUser = {
+      organizations: {
+        some: {
+          organizationId,
+          role: creatorRole,
+        },
+      },
+    };
   }
   return prisma().course.count({ where });
 }

@@ -304,7 +304,7 @@ export default function MyCoursesPage() {
       try {
         const apiBase = '';
         const res = await fetch(
-          `${apiBase}/api/v1/organizations/${organizationId}/courses`,
+          `${apiBase}/api/v1/organizations/${organizationId}/courses?scope=organization`,
           { credentials: 'include' },
         );
         if (!active) return;
