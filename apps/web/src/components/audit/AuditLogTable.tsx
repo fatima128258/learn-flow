@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   Badge,
   Button,
@@ -142,9 +142,6 @@ function AuditLogDrawer({ item, onClose }: AuditLogDrawerProps) {
             {item.actor.name && <p className="font-medium text-neutral-900">{item.actor.name}</p>}
             {item.actor.email && <p className="break-all">{item.actor.email}</p>}
             {item.actor.role && <p className="text-xs text-neutral-500">{item.actor.role}</p>}
-            {item.actor.userId && (
-              <p className="break-all text-xs text-neutral-400">ID: {item.actor.userId}</p>
-            )}
           </div>
         </DetailRow>
 
@@ -153,24 +150,15 @@ function AuditLogDrawer({ item, onClose }: AuditLogDrawerProps) {
           {item.organization?.id ? (
             <div className="space-y-0.5">
               {item.organization.name && <p className="font-medium text-neutral-900">{item.organization.name}</p>}
-              <p className="break-all text-xs text-neutral-400">ID: {item.organization.id}</p>
             </div>
           ) : (
             <p className="text-neutral-400">—</p>
           )}
         </DetailRow>
 
-        
         <DetailRow label="Timestamp">
           {formatTimestamp(item.createdAt)}
         </DetailRow>
-
-        {/* IP address */}
-        {item.ipAddress && (
-          <DetailRow label="IP Address">
-            {item.ipAddress}
-          </DetailRow>
-        )}
 
         {/* Metadata / Details */}
         {metadataFormatted ? (
@@ -208,14 +196,21 @@ export const AuditLogTable: React.FC<AuditLogTableProps> = ({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selected, setSelected] = useState<AuditLogItem | null>(null);
+  const requestControllerRef = useRef<AbortController | null>(null);
 
   const totalPages = meta ? Math.max(1, Math.ceil(meta.total / meta.limit)) : 1;
 
   const load = useCallback(async () => {
+    requestControllerRef.current?.abort();
+    const controller = new AbortController();
+    requestControllerRef.current = controller;
     try {
       const params = new URLSearchParams({ page: String(page), limit: String(pageSize) });
       if (search) params.set('search', search);
-      const res = await fetch(`${API_BASE}${apiPath}?${params.toString()}`, { credentials: 'include' });
+      const res = await fetch(`${API_BASE}${apiPath}?${params.toString()}`, {
+        credentials: 'include',
+        signal: controller.signal,
+      });
       const body: { success?: boolean; data?: AuditLogItem[]; meta?: Partial<Meta> } = await res.json();
       if (!res.ok || !Array.isArray(body.data)) {
         setError('Could not load audit logs. Please try again.');
@@ -228,9 +223,10 @@ export const AuditLogTable: React.FC<AuditLogTableProps> = ({
         total: body.meta?.total ?? body.data.length,
       });
     } catch {
+      if (controller.signal.aborted) return;
       setError('Could not reach the API. Please try again.');
     } finally {
-      setLoading(false);
+      if (!controller.signal.aborted) setLoading(false);
     }
   }, [apiPath, page, pageSize, search]);
 
@@ -261,6 +257,12 @@ export const AuditLogTable: React.FC<AuditLogTableProps> = ({
       </div>
 
       <div className="overflow-hidden rounded-2xl border border-neutral-200 bg-white shadow-sm">
+        {loading && logs !== null && (
+          <div className="flex items-center gap-2 border-b border-neutral-100 bg-neutral-50 px-6 py-2 text-sm text-neutral-600">
+            <Spinner size="sm" label="Searching audit logs..." />
+            <span>Searching...</span>
+          </div>
+        )}
         {loading && logs === null ? (
           <div className="flex items-center gap-3 p-8 text-neutral-700">
             <Spinner size="lg" label="Loading audit logs..." />
