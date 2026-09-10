@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import {
   Badge,
   Button,
@@ -208,7 +208,6 @@ export const AuditLogTable: React.FC<AuditLogTableProps> = ({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selected, setSelected] = useState<AuditLogItem | null>(null);
-  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const totalPages = meta ? Math.max(1, Math.ceil(meta.total / meta.limit)) : 1;
 
@@ -242,17 +241,10 @@ export const AuditLogTable: React.FC<AuditLogTableProps> = ({
   const handleSearchChange = (value: string) => {
     setSearchInput(value);
     setError(null);
-    if (debounceRef.current) clearTimeout(debounceRef.current);
-    debounceRef.current = setTimeout(() => {
-      setSearch(value.trim());
-      setPage(1);
-      setLoading(true);
-    }, 50);
+    setSearch(value.trim());
+    setPage(1);
+    setLoading(true);
   };
-
-  useEffect(() => () => {
-    if (debounceRef.current) clearTimeout(debounceRef.current);
-  }, []);
 
   const openItem = (item: AuditLogItem) => setSelected(item);
   const closeItem = () => setSelected(null);
