@@ -232,8 +232,6 @@ export default function StudentCertificateViewPage() {
                 {certificate.pdfUrl && certificate.pdfDownloadUrl ? (
                   <a
                     href={`/api/v1/organizations/${certificate.organizationId}/certificates/${certificate.certificateId}/download`}
-                    target="_blank"
-                    rel="noopener noreferrer"
                     className="inline-flex items-center gap-2 rounded-lg border-2 border-neutral-900 bg-neutral-900 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-neutral-800"
                   >
                     Download PDF

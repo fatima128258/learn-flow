@@ -10,7 +10,6 @@ import {
   ErrorState,
   Spinner,
 } from '@/components/ui';
-import { PageHeader } from '@/components/dashboard';
 import { useCurrentUser } from '@/features/auth/useCurrentUser';
 import { useMyCourses } from '@/features/student/useMyCourses';
 
@@ -292,7 +291,6 @@ export default function StudentCertificatesPage() {
   if (loading) {
     return (
       <div className="mx-auto max-w-6xl">
-        <PageHeader title="Certificates" />
         <div className="flex items-center gap-3 rounded-2xl border border-neutral-200 bg-white p-8 shadow-sm">
           <Spinner size="lg" label="Loading certificates..." />
           <span className="text-neutral-700">Loading certificates...</span>
@@ -303,7 +301,6 @@ export default function StudentCertificatesPage() {
 
   return (
     <div className="mx-auto max-w-6xl">
-      <PageHeader title="Certificates" />
       {error ? (
           <div className="rounded-2xl border border-neutral-200 bg-white shadow-sm">
             <ErrorState
