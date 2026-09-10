@@ -108,3 +108,23 @@ export async function createPrivateCategory(req: AuthenticatedRequest, res: Resp
     return handleError(res, err);
   }
 }
+
+export async function getPrivateCategory(req: AuthenticatedRequest, res: Response) {
+  try {
+    if (!req.user || req.user.role !== 'INSTRUCTOR') return fail(res, 403, 'ROLE_NOT_ALLOWED');
+    const data = await service.getPrivateCategory(tenantOrganizationId(req), req.user.id, req.params.categoryId);
+    return res.status(200).json({ success: true, data });
+  } catch (err) {
+    return handleError(res, err);
+  }
+}
+
+export async function updatePrivateCategory(req: AuthenticatedRequest, res: Response) {
+  try {
+    if (!req.user || req.user.role !== 'INSTRUCTOR') return fail(res, 403, 'ROLE_NOT_ALLOWED');
+    const data = await service.updatePrivateCategory(tenantOrganizationId(req), req.user.id, req.params.categoryId, req.body);
+    return res.status(200).json({ success: true, data });
+  } catch (err) {
+    return handleError(res, err);
+  }
+}

@@ -153,16 +153,29 @@ export async function createPrivateCategory(organizationId: string, userId: stri
   const description = input.description === undefined || input.description === null || input.description === ''
     ? null
     : validateText(input.description, MAX_DESCRIPTION_LENGTH, false) || null;
+  const status = input.status === undefined ? 'ACTIVE' : validateStatus(input.status);
   await assertPrivateNameAvailable(organizationId, userId, name);
   try {
     const category = await categoryRepo.create({
-      organizationId, ownerUserId: userId, name, slug: slugify(name) || 'category', description, status: 'ACTIVE',
+      organizationId, ownerUserId: userId, name, slug: slugify(name) || 'category', description, status,
     });
     return toCategoryDto(category);
   } catch (err) {
     if (isUniqueViolation(err)) throw new Error('CATEGORY_NAME_TAKEN');
     throw err;
   }
+}
+
+export async function getPrivateCategory(organizationId: string, userId: string, categoryId: string) {
+  const category = await categoryRepo.findByIdAndOrganization(organizationId, categoryId);
+  if (!category || category.ownerUserId !== userId) throw new Error('CATEGORY_NOT_FOUND');
+  return toCategoryDto(category);
+}
+
+export async function updatePrivateCategory(organizationId: string, userId: string, categoryId: string, rawInput: unknown) {
+  const category = await categoryRepo.findByIdAndOrganization(organizationId, categoryId);
+  if (!category || category.ownerUserId !== userId) throw new Error('CATEGORY_NOT_FOUND');
+  return updateCategory(organizationId, categoryId, rawInput);
 }
 
 export async function updateCategory(

@@ -13,7 +13,7 @@ import {
   updateCourseStatus,
   updateCourseThumbnail,
 } from '../controllers/courseController';
-import { listAssignableCategories, createPrivateCategory } from '../controllers/categoryController';
+import { listAssignableCategories, createPrivateCategory, getPrivateCategory, updatePrivateCategory } from '../controllers/categoryController';
 import { uploadSingle } from '../middleware/multipart';
 
 const courseRouter = Router();
@@ -27,6 +27,8 @@ courseRouter.get(
   listAssignableCategories,
 );
 courseRouter.post('/:organizationId/categories', requireAuth, requireVerifiedEmail, requireOrganizationContext, requireRole('INSTRUCTOR'), createPrivateCategory);
+courseRouter.get('/:organizationId/categories/:categoryId', requireAuth, requireVerifiedEmail, requireOrganizationContext, requireRole('INSTRUCTOR'), getPrivateCategory);
+courseRouter.patch('/:organizationId/categories/:categoryId', requireAuth, requireVerifiedEmail, requireOrganizationContext, requireRole('INSTRUCTOR'), updatePrivateCategory);
 
 courseRouter.get(
   '/:organizationId/courses/:courseId',
