@@ -64,6 +64,16 @@ type OrgAnalytics = {
   growth?: GrowthPoint[];
 };
 
+function formatGrowthDate(value: string): string {
+  const date = new Date(value.includes('T') ? value : `${value}T00:00:00.000Z`);
+  if (Number.isNaN(date.getTime())) return value;
+  return date.toLocaleDateString('en-US', {
+    month: 'short',
+    day: 'numeric',
+    timeZone: 'UTC',
+  });
+}
+
 function roleBadgeVariant(role: MemberRole) {
   if (role === 'PLATFORM_ADMIN') return 'primary' as const;
   if (role === 'ORG_ADMIN') return 'info' as const;
@@ -368,11 +378,7 @@ export default function OrganizationDashboardPage() {
                 ) : analyticsData && analyticsData.growth && analyticsData.growth.length > 0 ? (
                   <LineChart
                     data={analyticsData.growth.map((g) => ({
-                      label: new Date(`${g.month}T00:00:00.000Z`).toLocaleDateString('en-US', {
-                        month: 'short',
-                        day: 'numeric',
-                        timeZone: 'UTC',
-                      }),
+                      label: formatGrowthDate(g.month),
                       value: g.members,
                     }))}
                     color="#8b5cf6"

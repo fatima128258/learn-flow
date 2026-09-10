@@ -94,7 +94,7 @@ export const LineChart: React.FC<LineChartProps> = ({
   const xLabelIndices = data.length <= 31
     ? Array.from(
       new Set([
-        ...Array.from({ length: Math.ceil(data.length / 5) }, (_, i) => Math.min(i * 5, data.length - 1)),
+        ...Array.from({ length: Math.ceil(data.length / 5) }, (_, i) => Math.min(i === 0 ? 0 : i * 5 - 1, data.length - 1)),
         data.length - 1,
       ])
     )
