@@ -167,15 +167,29 @@ export async function createPrivateCategory(organizationId: string, userId: stri
 }
 
 export async function getPrivateCategory(organizationId: string, userId: string, categoryId: string) {
-  const category = await categoryRepo.findByIdAndOrganization(organizationId, categoryId);
-  if (!category || category.ownerUserId !== userId) throw new Error('CATEGORY_NOT_FOUND');
+  const category = await categoryRepo.findPrivateById(organizationId, userId, categoryId);
+  if (!category) throw new Error('CATEGORY_NOT_FOUND');
   return toCategoryDto(category);
 }
 
 export async function updatePrivateCategory(organizationId: string, userId: string, categoryId: string, rawInput: unknown) {
-  const category = await categoryRepo.findByIdAndOrganization(organizationId, categoryId);
-  if (!category || category.ownerUserId !== userId) throw new Error('CATEGORY_NOT_FOUND');
-  return updateCategory(organizationId, categoryId, rawInput);
+  const existing = await categoryRepo.findPrivateById(organizationId, userId, categoryId);
+  if (!existing) throw new Error('CATEGORY_NOT_FOUND');
+  const input = (rawInput ?? {}) as Record<string, unknown>;
+  const name = validateText(input.name, MAX_NAME_LENGTH, true);
+  const description = input.description === undefined || input.description === null || input.description === ''
+    ? null
+    : validateText(input.description, MAX_DESCRIPTION_LENGTH, false) || null;
+  const status = input.status === undefined ? existing.status ?? 'ACTIVE' : validateStatus(input.status);
+  await assertPrivateNameAvailable(organizationId, userId, name, categoryId);
+  const updated = await categoryRepo.updatePrivate(organizationId, userId, categoryId, {
+    name,
+    slug: slugify(name) || 'category',
+    description,
+    status,
+  });
+  if (!updated) throw new Error('CATEGORY_NOT_FOUND');
+  return toCategoryDto(updated);
 }
 
 export async function updateCategory(
@@ -268,6 +282,7 @@ export async function resolveOrCreateCategoryId(
   }
 }
 
-async function assertPrivateNameAvailable(organizationId: string, userId: string, name: string) {
-  if (await categoryRepo.findByName(organizationId, name, userId)) throw new Error('CATEGORY_NAME_TAKEN');
+async function assertPrivateNameAvailable(organizationId: string, userId: string, name: string, excludeId?: string) {
+  const existing = await categoryRepo.findByName(organizationId, name, userId);
+  if (existing && existing.id !== excludeId) throw new Error('CATEGORY_NAME_TAKEN');
 }

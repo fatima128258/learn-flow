@@ -76,6 +76,23 @@ export async function findByIdAndOrganization(organizationId: string, categoryId
   });
 }
 
+export async function findPrivateById(organizationId: string, ownerUserId: string, categoryId: string) {
+  return prisma().category.findFirst({
+    where: { id: categoryId, organizationId, ownerUserId },
+    select: {
+      ...selectCategory(),
+      _count: {
+        select: { courses: true },
+      },
+      courses: {
+        select: {
+          instructorUser: { select: { id: true, name: true, email: true } },
+        },
+      },
+    },
+  });
+}
+
 export async function listByOrganization(
   organizationId: string,
   options?: { search?: string; skip?: number; take?: number },
@@ -135,6 +152,20 @@ export async function update(
   });
   if (result.count === 0) {
     return null;
+  }
+
+  export async function updatePrivate(
+    organizationId: string,
+    ownerUserId: string,
+    categoryId: string,
+    data: UpdateCategoryData,
+  ) {
+    const result = await prisma().category.updateMany({
+      where: { id: categoryId, organizationId, ownerUserId },
+      data,
+    });
+    if (result.count === 0) return null;
+    return findPrivateById(organizationId, ownerUserId, categoryId);
   }
   return prisma().category.findFirst({
     where: { id: categoryId, organizationId, ownerUserId: null },
