@@ -40,42 +40,42 @@ export function buildCertificatePdf(data: CertificatePdfData): Promise<Buffer> {
 
     doc.fontSize(14).fillColor(NEUTRAL_MEDIUM).font('Helvetica-Bold').text(
       'CERTIFICATE OF COMPLETION',
-      0,
+      60,
       140,
       { align: 'center', characterSpacing: 1, width: PAGE_WIDTH - 120 },
     );
 
     doc.fontSize(13).fillColor(NEUTRAL_MEDIUM).font('Helvetica').text(
       'This certifies that',
-      0,
+      60,
       190,
       { align: 'center', width: PAGE_WIDTH - 120 },
     );
 
     doc.fontSize(32).fillColor(PRIMARY_COLOR).font('Helvetica-Bold').text(
       data.studentName,
-      0,
+      60,
       220,
       { align: 'center', width: PAGE_WIDTH - 120 },
     );
 
     doc.fontSize(13).fillColor(NEUTRAL_MEDIUM).font('Helvetica').text(
       'has successfully completed the course',
-      0,
+      60,
       280,
       { align: 'center', width: PAGE_WIDTH - 120 },
     );
 
     doc.fontSize(20).fillColor(NEUTRAL_DARK).font('Helvetica-Bold').text(
       data.courseTitle,
-      0,
+      60,
       310,
       { align: 'center', width: PAGE_WIDTH - 120 },
     );
 
     doc.fontSize(12).fillColor(NEUTRAL_MEDIUM).font('Helvetica').text(
       `offered by ${data.organizationName} · instructed by ${data.instructorName}`,
-      0,
+      60,
       360,
       { align: 'center', width: PAGE_WIDTH - 120 },
     );
@@ -93,7 +93,7 @@ export function buildCertificatePdf(data: CertificatePdfData): Promise<Buffer> {
     if (completionLabel) {
       doc.fontSize(11).fillColor(NEUTRAL_MEDIUM).font('Helvetica').text(
         completionLabel,
-        0,
+        60,
         402,
         { align: 'center', width: PAGE_WIDTH - 120 },
       );
