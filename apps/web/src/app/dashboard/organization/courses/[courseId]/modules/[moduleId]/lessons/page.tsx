@@ -567,20 +567,20 @@ export default function ModuleLessonsPage() {
         {selectedLesson && (
           <div className="space-y-5">
             <div>
-              <p className="text-xs font-medium uppercase tracking-wide text-neutral-400">Title</p>
+              <p className="text-xs font-semibold uppercase tracking-wide text-neutral-900">Title</p>
               <p className="mt-1 text-lg font-semibold text-neutral-900">{selectedLesson.title}</p>
             </div>
             <div className="grid grid-cols-2 gap-4">
-              <div><p className="text-xs font-medium uppercase tracking-wide text-neutral-400">Order</p><p className="mt-1 text-sm text-neutral-700">{selectedLesson.order}</p></div>
-              <div><p className="text-xs font-medium uppercase tracking-wide text-neutral-400">Duration</p><p className="mt-1 text-sm text-neutral-700">{selectedLesson.duration != null ? `${selectedLesson.duration} minutes` : '—'}</p></div>
-              <div><p className="text-xs font-medium uppercase tracking-wide text-neutral-400">Type</p><p className="mt-1 text-sm text-neutral-700">{selectedLesson.type || '—'}</p></div>
+              <div><p className="text-xs font-semibold uppercase tracking-wide text-neutral-900">Order</p><p className="mt-1 text-sm text-neutral-700">{selectedLesson.order}</p></div>
+              <div><p className="text-xs font-semibold uppercase tracking-wide text-neutral-900">Duration</p><p className="mt-1 text-sm text-neutral-700">{selectedLesson.duration != null ? `${selectedLesson.duration} minutes` : '—'}</p></div>
+              <div><p className="text-xs font-semibold uppercase tracking-wide text-neutral-900">Type</p><p className="mt-1 text-sm text-neutral-700">{selectedLesson.type || '—'}</p></div>
             </div>
             <div>
-              <p className="text-xs font-medium uppercase tracking-wide text-neutral-400">Description</p>
+              <p className="text-xs font-semibold uppercase tracking-wide text-neutral-900">Description</p>
               <p className="mt-1 whitespace-pre-wrap text-sm leading-6 text-neutral-700">{selectedLesson.description || 'No description available.'}</p>
             </div>
             <div>
-              <p className="text-xs font-medium uppercase tracking-wide text-neutral-400">Content</p>
+              <p className="text-xs font-semibold uppercase tracking-wide text-neutral-900">Content</p>
               {selectedLesson.content ? <pre className="mt-1 max-h-96 overflow-auto whitespace-pre-wrap rounded-lg bg-neutral-50 p-3 text-sm leading-6 text-neutral-700">{selectedLesson.content}</pre> : <p className="mt-1 text-sm text-neutral-400">No content available.</p>}
             </div>
           </div>

@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { Badge, EmptyState, EmptyStateIcons, Spinner } from '../../../../components/ui';
+import { Badge, Drawer, EmptyState, EmptyStateIcons, Spinner } from '../../../../components/ui';
 import { LinkButton } from '../../../../components/ui/LinkButton';
 import { getListCoursesErrorMessage } from '../../../../features/course/listCoursesErrors';
 import { getCourseStatusErrorMessage } from '../../../../features/course/courseStatusErrors';
@@ -27,6 +27,19 @@ type CourseListItem = {
   difficulty: string | null;
   createdAt: string;
 };
+
+type CourseContent = CourseListItem & {
+  description: string | null;
+  category: string | null;
+  estimatedMinutes: number | null;
+  learningObjectives: string[];
+};
+type CourseLesson = { id: string; title: string; description: string | null; content: string | null; type: string | null; duration: number | null; order: number };
+type CourseOption = { id: string; text: string; isCorrect: boolean; order: number };
+type CourseQuestion = { id: string; questionText: string; marks: number; order: number; options: CourseOption[] };
+type CourseQuiz = { id: string; title: string; description: string | null; order: number; timeLimitMinutes: number | null; passingPercentage: number | null; maxAttempts: number | null; questions: CourseQuestion[] };
+type CourseModule = { id: string; title: string; description: string | null; order: number; lessons: CourseLesson[]; quizzes: CourseQuiz[] };
+type CourseDrawerData = { course: CourseContent; modules: CourseModule[] };
 
 type CourseStatus = 'DRAFT' | 'REVIEW' | 'PUBLISHED' | 'ARCHIVED';
 
@@ -210,6 +223,51 @@ export default function MyCoursesPage() {
   const [courses, setCourses] = useState<CourseListItem[] | null>(null);
   const [coursesLoading, setCoursesLoading] = useState(false);
   const [statusModalCourseId, setStatusModalCourseId] = useState<string | null>(null);
+  const [courseDrawer, setCourseDrawer] = useState<CourseDrawerData | null>(null);
+  const [courseDrawerLoading, setCourseDrawerLoading] = useState(false);
+
+  async function openCourseView(course: CourseListItem) {
+    if (!organizationId) return;
+    setCourseDrawerLoading(true);
+    setCourseDrawer({ course: course as CourseContent, modules: [] });
+    try {
+      const prefix = `/api/v1/organizations/${organizationId}/courses/${course.id}`;
+      const courseResponse = await fetch(prefix, { credentials: 'include' });
+      const modulesResponse = await fetch(`${prefix}/modules`, { credentials: 'include' });
+      if (!courseResponse.ok || !modulesResponse.ok) throw new Error('Unable to load course content');
+      const courseBody: { data?: CourseContent } = await courseResponse.json();
+      const modulesBody: { data?: Array<{ id: string; title: string; description: string | null; order: number }> } = await modulesResponse.json();
+      const modules = await Promise.all((modulesBody.data ?? []).map(async (module) => {
+        const [lessonsResponse, quizzesResponse] = await Promise.all([
+          fetch(`${prefix}/modules/${module.id}/lessons`, { credentials: 'include' }),
+          fetch(`${prefix}/modules/${module.id}/quizzes`, { credentials: 'include' }),
+        ]);
+        if (!lessonsResponse.ok || !quizzesResponse.ok) throw new Error('Unable to load module content');
+        const lessonsBody: { data?: CourseLesson[] } = await lessonsResponse.json();
+        const quizzesBody: { data?: Array<Omit<CourseQuiz, 'questions'> & { questions?: CourseQuestion[] }> } = await quizzesResponse.json();
+        const quizzes = await Promise.all((quizzesBody.data ?? []).map(async (quiz) => {
+          const questionsResponse = await fetch(`${prefix}/modules/${module.id}/quizzes/${quiz.id}/questions`, { credentials: 'include' });
+          if (!questionsResponse.ok) throw new Error('Unable to load quiz questions');
+          const questionsBody: { data?: Array<Omit<CourseQuestion, 'options'> & { options?: CourseOption[] }> } = await questionsResponse.json();
+          const questions = await Promise.all((questionsBody.data ?? []).map(async (question) => {
+            if (question.options) return question as CourseQuestion;
+            const detailResponse = await fetch(`${prefix}/modules/${module.id}/quizzes/${quiz.id}/questions/${question.id}`, { credentials: 'include' });
+            if (!detailResponse.ok) throw new Error('Unable to load question options');
+            const detailBody: { data?: CourseQuestion } = await detailResponse.json();
+            return detailBody.data ?? { ...question, options: [] };
+          }));
+          return { ...quiz, questions };
+        }));
+        return { ...module, lessons: lessonsBody.data ?? [], quizzes };
+      }));
+      setCourseDrawer({ course: courseBody.data ?? course as CourseContent, modules: modules.sort((a, b) => a.order - b.order) });
+    } catch {
+      setCourseDrawer(null);
+      toast.error('Unable to load complete course details.');
+    } finally {
+      setCourseDrawerLoading(false);
+    }
+  }
 
   // Extract organizationId from URL param or user context, perform role check
   useEffect(() => {
@@ -374,6 +432,7 @@ export default function MyCoursesPage() {
                           <CourseActionsMenu
                             courseId={course.id}
                             manageHref={`/dashboard/organization/courses/${course.id}${organizationId ? `?organization=${organizationId}` : ''}`}
+                            onViewClick={() => void openCourseView(course)}
                             onChangeStatusClick={() => setStatusModalCourseId(course.id)}
                           />
                         </td>
@@ -404,6 +463,7 @@ export default function MyCoursesPage() {
                         <CourseActionsMenu
                           courseId={course.id}
                           manageHref={`/dashboard/organization/courses/${course.id}${organizationId ? `?organization=${organizationId}` : ''}`}
+                          onViewClick={() => void openCourseView(course)}
                           onChangeStatusClick={() => setStatusModalCourseId(course.id)}
                         />
                       </div>
@@ -420,6 +480,67 @@ export default function MyCoursesPage() {
           ) : null}
         </div>
       </div>
+      <Drawer
+        isOpen={Boolean(courseDrawer)}
+        onClose={() => { if (!courseDrawerLoading) setCourseDrawer(null); }}
+        title={courseDrawer?.course.title ?? 'Course details'}
+      >
+        {courseDrawerLoading ? (
+          <div className="flex items-center gap-3 text-neutral-700"><Spinner size="md" label="Loading course details..." /><span>Loading complete course details...</span></div>
+        ) : courseDrawer ? (
+          <div className="space-y-7">
+            <section className="space-y-3">
+              <h3 className="text-base font-semibold text-neutral-900">Course</h3>
+              <p className="whitespace-pre-wrap text-sm text-neutral-700">{courseDrawer.course.description || 'No description available.'}</p>
+              <div className="grid grid-cols-2 gap-3 text-sm text-neutral-700">
+                <span>Category: {courseDrawer.course.category || '—'}</span>
+                <span>Difficulty: {courseDrawer.course.difficulty || '—'}</span>
+                <span>Modules: {courseDrawer.modules.length}</span>
+                <span>Duration: {courseDrawer.course.estimatedMinutes ? `${courseDrawer.course.estimatedMinutes} minutes` : '—'}</span>
+              </div>
+            </section>
+            <section>
+              <h3 className="border-b border-neutral-200 pb-2 text-base font-semibold text-neutral-900">Modules</h3>
+              <div className="mt-4 space-y-6">
+                {courseDrawer.modules.length === 0 ? <p className="text-sm text-neutral-400">No modules available.</p> : courseDrawer.modules.map((module) => (
+                  <div key={module.id} className="rounded-lg border border-neutral-200 p-4">
+                    <h4 className="font-semibold text-neutral-900">{module.order}. {module.title}</h4>
+                    <p className="mt-1 whitespace-pre-wrap text-sm text-neutral-600">{module.description || 'No module description available.'}</p>
+                    <h5 className="mt-4 text-sm font-semibold text-neutral-800">Lessons ({module.lessons.length})</h5>
+                    <div className="mt-2 space-y-3">
+                      {module.lessons.map((lesson) => (
+                        <div key={lesson.id} className="rounded-md bg-neutral-50 p-3">
+                          <p className="text-sm font-medium text-neutral-900">{lesson.order}. {lesson.title}</p>
+                          <p className="mt-1 text-sm text-neutral-700">{lesson.description || 'No description available.'}</p>
+                          <p className="mt-1 whitespace-pre-wrap text-sm text-neutral-600">{lesson.content || 'No content available.'}</p>
+                        </div>
+                      ))}
+                    </div>
+                    <h5 className="mt-5 text-sm font-semibold text-neutral-800">Quizzes ({module.quizzes.length})</h5>
+                    <div className="mt-2 space-y-4">
+                      {module.quizzes.map((quiz) => (
+                        <div key={quiz.id} className="rounded-md border border-neutral-200 p-3">
+                          <p className="font-medium text-neutral-900">{quiz.order}. {quiz.title}</p>
+                          <p className="mt-1 text-sm text-neutral-700">{quiz.description || 'No description available.'}</p>
+                          <p className="mt-2 text-xs text-neutral-500">Questions: {quiz.questions.length} · Passing: {quiz.passingPercentage ?? '—'}% · Attempts: {quiz.maxAttempts ?? 'Unlimited'}</p>
+                          <div className="mt-3 space-y-3">
+                            {quiz.questions.map((question) => (
+                              <div key={question.id} className="rounded-md bg-neutral-50 p-3">
+                                <p className="text-sm font-medium text-neutral-900">{question.order}. {question.questionText}</p>
+                                <div className="mt-2 space-y-1">{question.options.map((option) => <p key={option.id} className={`text-sm ${option.isCorrect ? 'font-medium text-green-700' : 'text-neutral-600'}`}>{option.isCorrect ? '✓ ' : ''}{option.text}</p>)}</div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </section>
+          </div>
+        ) : null}
+      </Drawer>
     </>
   );
 }

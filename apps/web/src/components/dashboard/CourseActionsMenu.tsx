@@ -6,11 +6,13 @@ import { createPortal } from 'react-dom';
 interface CourseActionsMenuProps {
   courseId: string;
   manageHref: string;
+  onViewClick?: () => void;
   onChangeStatusClick: () => void;
 }
 
 export function CourseActionsMenu({
   manageHref,
+  onViewClick,
   onChangeStatusClick,
 }: CourseActionsMenuProps) {
   const [open, setOpen] = useState(false);
@@ -78,6 +80,22 @@ export function CourseActionsMenu({
       style={{ position: 'fixed', top: coords.top, left: coords.left, zIndex: 9999 }}
       className="w-52 rounded-xl border border-neutral-200 bg-white py-1 shadow-xl ring-1 ring-black/5"
     >
+      {onViewClick && (
+        <>
+          <button
+            type="button"
+            onClick={() => { setOpen(false); onViewClick(); }}
+            className="flex w-full items-center gap-2.5 px-4 py-2.5 text-sm text-neutral-700 hover:bg-neutral-50"
+          >
+            <svg className="h-4 w-4 shrink-0 text-neutral-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 12s3.5-6 9.75-6 9.75 6 9.75 6-3.5 6-9.75 6-9.75-6-9.75-6z" />
+              <circle cx="12" cy="12" r="2.5" />
+            </svg>
+            View
+          </button>
+          <div className="mx-3 border-t border-neutral-100" />
+        </>
+      )}
       {/* Manage */}
       <a
         href={manageHref}

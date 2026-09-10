@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { useSearchParams } from 'next/navigation';
 import { Badge, Button, Card, ConfirmModal, Drawer, EmptyState, EmptyStateIcons, ErrorState, Input, Modal, Skeleton, useToast } from '@/components/ui';
 import { ApiError, apiRequest } from '@/lib/api';
@@ -144,18 +145,54 @@ export default function CategoriesPage() {
 
 function CategoryActionsMenu({ onView, onEdit, onDelete }: { onView: () => void; onEdit: () => void; onDelete: () => void }) {
   const [open, setOpen] = useState(false);
+  const [position, setPosition] = useState({ top: 0, right: 0 });
+  const buttonRef = useRef<HTMLButtonElement>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    function handleOutsideClick(event: MouseEvent) {
+      if (!menuRef.current?.contains(event.target as Node) && !buttonRef.current?.contains(event.target as Node)) {
+        setOpen(false);
+      }
+    }
+    function closeOnViewportChange() {
+      setOpen(false);
+    }
+    document.addEventListener('mousedown', handleOutsideClick);
+    window.addEventListener('scroll', closeOnViewportChange, true);
+    window.addEventListener('resize', closeOnViewportChange);
+    return () => {
+      document.removeEventListener('mousedown', handleOutsideClick);
+      window.removeEventListener('scroll', closeOnViewportChange, true);
+      window.removeEventListener('resize', closeOnViewportChange);
+    };
+  }, [open]);
+
+  function toggleMenu() {
+    if (open) {
+      setOpen(false);
+      return;
+    }
+    const rect = buttonRef.current?.getBoundingClientRect();
+    if (!rect) return;
+    setPosition({ top: rect.bottom + 8, right: window.innerWidth - rect.right });
+    setOpen(true);
+  }
+
   return (
-    <div className="relative flex justify-end">
-      <button type="button" aria-label="Category actions" className="rounded-md p-2 text-neutral-500 hover:bg-neutral-100 hover:text-neutral-800" onClick={() => setOpen((value) => !value)}>
+    <div className="flex justify-end">
+      <button ref={buttonRef} type="button" aria-label="Category actions" className="rounded-md p-2 text-neutral-500 hover:bg-neutral-100 hover:text-neutral-800" onClick={toggleMenu}>
         <span className="sr-only">Category actions</span>
-        <svg className="h-5 w-5" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="5" cy="12" r="1.8" /><circle cx="12" cy="12" r="1.8" /><circle cx="19" cy="12" r="1.8" /></svg>
+        <svg className="h-5 w-5" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="12" cy="5" r="1.8" /><circle cx="12" cy="12" r="1.8" /><circle cx="12" cy="19" r="1.8" /></svg>
       </button>
-      {open ? (
-        <div className="absolute bottom-10 right-0 z-20 w-36 rounded-lg border border-neutral-200 bg-white py-1 shadow-lg">
+      {open && typeof document !== 'undefined' ? createPortal(
+        <div ref={menuRef} className="fixed z-[60] w-36 rounded-lg border border-neutral-200 bg-white py-1 shadow-lg" style={{ top: position.top, right: position.right }}>
           <button type="button" className="block w-full px-3 py-2 text-left text-sm text-neutral-700 hover:bg-neutral-50" onClick={() => { setOpen(false); onView(); }}>View details</button>
           <button type="button" className="block w-full px-3 py-2 text-left text-sm text-neutral-700 hover:bg-neutral-50" onClick={() => { setOpen(false); onEdit(); }}>Edit</button>
           <button type="button" className="block w-full px-3 py-2 text-left text-sm text-red-600 hover:bg-red-50" onClick={() => { setOpen(false); onDelete(); }}>Delete</button>
-        </div>
+        </div>,
+        document.body,
       ) : null}
     </div>
   );
