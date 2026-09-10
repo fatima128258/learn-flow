@@ -104,5 +104,5 @@ export async function logout(): Promise<void> {
   // 30-second stale window before their own fetches complete.
   const { clearQueryCache } = await import('../providers/QueryProvider');
   clearQueryCache();
-  window.location.href = '/';
+  window.location.href = '/login';
 }
