@@ -94,7 +94,7 @@ export default function CategoriesPage() {
           onChange={(event) => { setSearch(event.target.value); setPage(1); }}
           className="max-w-md"
         />
-        <Button onClick={() => setEditing(null)}>Add category</Button>
+        <Button onClick={() => setEditing(null)} className="whitespace-nowrap">Add category</Button>
       </div>
       <Card>
         {loading ? <div className="space-y-4"><Skeleton variant="text" height={28} /><Skeleton variant="text" height={28} /><Skeleton variant="text" height={28} /></div>
@@ -130,10 +130,6 @@ export default function CategoriesPage() {
               <div className="rounded-lg bg-neutral-50 p-4"><p className="text-xs text-neutral-500">Courses</p><p className="mt-1 text-2xl font-semibold text-neutral-900">{selectedCategory.courseCount}</p></div>
               <div className="rounded-lg bg-neutral-50 p-4"><p className="text-xs text-neutral-500">Instructors</p><p className="mt-1 text-2xl font-semibold text-neutral-900">{selectedCategory.instructors?.length ?? 0}</p></div>
             </div>
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-wide text-neutral-500">Instructors</p>
-              <p className="mt-2 text-sm text-neutral-700">{selectedCategory.instructors?.length ? selectedCategory.instructors.map((instructor) => instructor.name).join(', ') : 'No instructors assigned.'}</p>
-            </div>
             <div className="flex gap-2 border-t border-neutral-200 pt-5">
               <Button size="sm" onClick={() => { setEditing(selectedCategory); setSelectedCategory(null); }}>Edit category</Button>
               <Button size="sm" variant="danger" onClick={() => { setDeleting(selectedCategory); setSelectedCategory(null); }}>Delete</Button>
@@ -155,7 +151,7 @@ function CategoryActionsMenu({ onView, onEdit, onDelete }: { onView: () => void;
         <svg className="h-5 w-5" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="5" cy="12" r="1.8" /><circle cx="12" cy="12" r="1.8" /><circle cx="19" cy="12" r="1.8" /></svg>
       </button>
       {open ? (
-        <div className="absolute right-0 top-10 z-10 w-36 rounded-lg border border-neutral-200 bg-white py-1 shadow-lg">
+        <div className="absolute bottom-10 right-0 z-20 w-36 rounded-lg border border-neutral-200 bg-white py-1 shadow-lg">
           <button type="button" className="block w-full px-3 py-2 text-left text-sm text-neutral-700 hover:bg-neutral-50" onClick={() => { setOpen(false); onView(); }}>View details</button>
           <button type="button" className="block w-full px-3 py-2 text-left text-sm text-neutral-700 hover:bg-neutral-50" onClick={() => { setOpen(false); onEdit(); }}>Edit</button>
           <button type="button" className="block w-full px-3 py-2 text-left text-sm text-red-600 hover:bg-red-50" onClick={() => { setOpen(false); onDelete(); }}>Delete</button>

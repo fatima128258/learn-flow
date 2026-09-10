@@ -367,7 +367,14 @@ export default function OrganizationDashboardPage() {
                   </div>
                 ) : analyticsData && analyticsData.growth && analyticsData.growth.length > 0 ? (
                   <LineChart
-                    data={analyticsData.growth.map((g) => ({ label: g.month, value: g.members }))}
+                    data={analyticsData.growth.map((g) => ({
+                      label: new Date(`${g.month}T00:00:00.000Z`).toLocaleDateString('en-US', {
+                        month: 'short',
+                        day: 'numeric',
+                        timeZone: 'UTC',
+                      }),
+                      value: g.members,
+                    }))}
                     color="#8b5cf6"
                     height={240}
                   />

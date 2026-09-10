@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { Badge, Button, EmptyState, EmptyStateIcons, Spinner } from '../../../../../../../../components/ui';
+import { Badge, Button, Drawer, EmptyState, EmptyStateIcons, Spinner } from '../../../../../../../../components/ui';
 import { Input } from '../../../../../../../../components/ui/Input';
 import { Textarea } from '../../../../../../../../components/forms/Textarea';
 import { LinkButton } from '../../../../../../../../components/ui/LinkButton';
@@ -98,6 +98,26 @@ type QuizDetail = QuizListItem & {
   updatedAt: string;
 };
 
+type QuizOption = {
+  id: string;
+  text: string;
+  isCorrect: boolean;
+  order: number;
+};
+
+type QuizQuestion = {
+  id: string;
+  questionText: string;
+  marks: number;
+  order: number;
+  options: QuizOption[];
+};
+
+type QuizDrawerData = {
+  quiz: QuizListItem;
+  questions: QuizQuestion[];
+};
+
 type ListQuizzesResponse = {
   success?: boolean;
   data?: QuizListItem[];
@@ -133,6 +153,8 @@ export default function ModuleQuizzesPage() {
   const [editingQuiz, setEditingQuiz] = useState<QuizDetail | null>(null);
   const [creating, setCreating] = useState(false);
   const [updating, setUpdating] = useState(false);
+  const [selectedQuiz, setSelectedQuiz] = useState<QuizDrawerData | null>(null);
+  const [loadingQuizDetails, setLoadingQuizDetails] = useState(false);
 
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
@@ -223,10 +245,41 @@ export default function ModuleQuizzesPage() {
         const body: ListQuizzesResponse = await res.json();
         setQuizzes(body.data ?? []);
       }
+
     } catch {
       // Silently fail, user can manually refresh
     } finally {
       setLoading(false);
+    }
+
+  }
+
+  async function openQuizDetails(quiz: QuizListItem) {
+    if (!organizationId || !courseId || !moduleId) return;
+    setLoadingQuizDetails(true);
+    setSelectedQuiz({ quiz, questions: [] });
+    try {
+      const prefix = `/api/v1/organizations/${organizationId}/courses/${courseId}/modules/${moduleId}/quizzes/${quiz.id}`;
+      const [quizResponse, questionsResponse] = await Promise.all([
+        fetch(prefix, { credentials: 'include' }),
+        fetch(`${prefix}/questions`, { credentials: 'include' }),
+      ]);
+      if (!quizResponse.ok || !questionsResponse.ok) throw new Error('Unable to load quiz details');
+      const quizBody: QuizApiResponse = await quizResponse.json();
+      const questionsBody: { success?: boolean; data?: Array<{ id: string; questionText: string; marks: number; order: number }> } = await questionsResponse.json();
+      const questions = await Promise.all((questionsBody.data ?? []).map(async (question) => {
+        const response = await fetch(`${prefix}/questions/${question.id}`, { credentials: 'include' });
+        if (!response.ok) throw new Error('Unable to load question details');
+        const body: { success?: boolean; data?: QuizQuestion } = await response.json();
+        return body.data ?? { ...question, options: [] };
+      }));
+      if (!quizBody.data) throw new Error('Quiz details are unavailable');
+      setSelectedQuiz({ quiz: quizBody.data, questions: questions.sort((a, b) => a.order - b.order) });
+    } catch {
+      setSelectedQuiz(null);
+      toast.error('Unable to load quiz details');
+    } finally {
+      setLoadingQuizDetails(false);
     }
   }
 
@@ -553,7 +606,7 @@ export default function ModuleQuizzesPage() {
                 </thead>
                 <tbody className="divide-y divide-neutral-200 bg-white">
                   {quizzes.map((quiz) => (
-                    <tr key={quiz.id} className="hover:bg-neutral-50">
+                    <tr key={quiz.id} className="cursor-pointer hover:bg-neutral-50" onClick={() => void openQuizDetails(quiz)}>
                       <td className="px-6 py-4 text-sm font-medium text-neutral-900">
                         <Badge variant="default" size="sm">{quiz.order}</Badge>
                       </td>
@@ -572,7 +625,7 @@ export default function ModuleQuizzesPage() {
                       <td className="px-6 py-4 text-sm text-neutral-700">
                         {quiz.maxAttempts != null ? quiz.maxAttempts : '—'}
                       </td>
-                      <td className="px-6 py-4 relative pl-2">
+                      <td className="px-6 py-4 relative pl-2" onClick={(event) => event.stopPropagation()}>
                         <QuizActionsMenu
                           quiz={quiz}
                           courseId={courseId!}
@@ -589,6 +642,61 @@ export default function ModuleQuizzesPage() {
           ) : null}
         </div>
       </div>
+
+      <Drawer
+        isOpen={Boolean(selectedQuiz)}
+        onClose={() => {
+          if (!loadingQuizDetails) setSelectedQuiz(null);
+        }}
+        title={selectedQuiz?.quiz.title ?? 'Quiz details'}
+      >
+        {loadingQuizDetails ? (
+          <div className="flex items-center gap-3 text-neutral-700">
+            <Spinner size="md" label="Loading quiz details..." />
+            <span>Loading quiz details...</span>
+          </div>
+        ) : selectedQuiz ? (
+          <div className="space-y-6">
+            <div className="grid grid-cols-2 gap-4 text-sm">
+              <div><p className="text-xs font-medium uppercase tracking-wide text-neutral-400">Order</p><p className="mt-1 text-neutral-800">{selectedQuiz.quiz.order}</p></div>
+              <div><p className="text-xs font-medium uppercase tracking-wide text-neutral-400">Questions</p><p className="mt-1 text-neutral-800">{selectedQuiz.questions.length}</p></div>
+              <div><p className="text-xs font-medium uppercase tracking-wide text-neutral-400">Time limit</p><p className="mt-1 text-neutral-800">{selectedQuiz.quiz.timeLimitMinutes != null ? `${selectedQuiz.quiz.timeLimitMinutes} minutes` : 'No limit'}</p></div>
+              <div><p className="text-xs font-medium uppercase tracking-wide text-neutral-400">Passing score</p><p className="mt-1 text-neutral-800">{selectedQuiz.quiz.passingPercentage != null ? `${selectedQuiz.quiz.passingPercentage}%` : '—'}</p></div>
+              <div><p className="text-xs font-medium uppercase tracking-wide text-neutral-400">Max attempts</p><p className="mt-1 text-neutral-800">{selectedQuiz.quiz.maxAttempts ?? 'Unlimited'}</p></div>
+            </div>
+            <div>
+              <p className="text-xs font-medium uppercase tracking-wide text-neutral-400">Description</p>
+              <p className="mt-1 whitespace-pre-wrap text-sm leading-6 text-neutral-700">{selectedQuiz.quiz.description || 'No description available.'}</p>
+            </div>
+            <div>
+              <p className="text-xs font-medium uppercase tracking-wide text-neutral-400">Questions</p>
+              {selectedQuiz.questions.length === 0 ? (
+                <p className="mt-2 text-sm text-neutral-400">No questions available.</p>
+              ) : (
+                <div className="mt-3 space-y-4">
+                  {selectedQuiz.questions.map((question) => (
+                    <div key={question.id} className="rounded-lg border border-neutral-200 p-4">
+                      <div className="flex items-start justify-between gap-3">
+                        <p className="text-sm font-semibold text-neutral-900">{question.order}. {question.questionText}</p>
+                        <Badge variant="default" size="sm">{question.marks} {question.marks === 1 ? 'mark' : 'marks'}</Badge>
+                      </div>
+                      <div className="mt-3 space-y-2">
+                        {question.options.length === 0 ? (
+                          <p className="text-sm text-neutral-400">No options available.</p>
+                        ) : question.options.sort((a, b) => a.order - b.order).map((option) => (
+                          <div key={option.id} className={`rounded-md px-3 py-2 text-sm ${option.isCorrect ? 'bg-green-50 font-medium text-green-800' : 'bg-neutral-50 text-neutral-700'}`}>
+                            {option.isCorrect ? '✓ ' : ''}{option.text}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        ) : null}
+      </Drawer>
 
       <Modal
         isOpen={showCreateModal}

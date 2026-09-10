@@ -111,7 +111,7 @@ function buildMemberGrowth(history: { initialCount: number; daily: Array<{ date:
     const key = date.toISOString().slice(0, 10);
     running += countsByDay.get(key) ?? 0;
     return {
-      month: String(index + 1),
+      month: key,
       members: running,
     };
   });
