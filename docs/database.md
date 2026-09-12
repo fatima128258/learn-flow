@@ -9,6 +9,40 @@
 - **Migration workflow:** `prisma migrate dev` during development; `prisma migrate deploy` in CI/production. Migrations are committed and applied in order; breaking schema changes ship as additive migrations with backfills (e.g. the Category promotion).
 - **Seed:** `apps/api/prisma/seed.js` provisions the platform admin and the system `Platform` organization.
 
+### Recovering a failed production migration
+
+`prisma migrate deploy` stops with `P3009` when the database contains a failed migration record. Do not remove the migration directory or add `migrate resolve` to the recurring Render build command. First inspect the target database using the same `DATABASE_URL` as the deployment:
+
+```sql
+SELECT migration_name, started_at, finished_at, rolled_back_at, logs
+FROM "_prisma_migrations"
+WHERE migration_name = '20260909_category_private_owner';
+
+SELECT column_name
+FROM information_schema.columns
+WHERE table_name = 'Category' AND column_name = 'ownerUserId';
+
+SELECT indexname
+FROM pg_indexes
+WHERE tablename = 'Category';
+```
+
+If `ownerUserId` is absent and the old category indexes are still present, the migration did not apply. Mark only that migration rolled back, then rerun the normal deploy command:
+
+```bash
+npx prisma migrate resolve --rolled-back 20260909_category_private_owner --schema=apps/api/prisma/schema.prisma
+npx prisma migrate deploy --schema=apps/api/prisma/schema.prisma
+```
+
+If the column, foreign key, and replacement indexes are already present, verify them against `apps/api/prisma/migrations/20260909_category_private_owner/migration.sql`, mark the migration applied, and rerun the normal deploy:
+
+```bash
+npx prisma migrate resolve --applied 20260909_category_private_owner --schema=apps/api/prisma/schema.prisma
+npx prisma migrate deploy --schema=apps/api/prisma/schema.prisma
+```
+
+Take a database backup before manually completing or resolving a production migration. The `logs` value in `_prisma_migrations` contains the underlying PostgreSQL error that caused `P3009` and should be checked before choosing either path.
+
 ## How the minimum-entity list maps to the schema
 
 The assignment asks for these minimum entities. The implementation keeps the same concepts but two names differ deliberately:
@@ -432,3 +466,4 @@ The assignment lists `Role` as a minimum entity; the implementation stores roles
 | `20260828_progress` | LessonProgress + CourseProgress. |
 | `20260829_audit_log` | AuditLog entity. |
 | `20260829_categories` | Category entity + **backfill**: promotes existing free-text `Course.category` values into `Category` rows (per organization), links `Course.categoryId`, then drops the `category` column. Idempotent-safe: the unique promo keys are deterministic (per-org name hash). |
+| `20260909_category_private_owner` | Adds optional private category ownership, replaces the category uniqueness indexes with public/private partial unique indexes, and adds the owner lookup index. |

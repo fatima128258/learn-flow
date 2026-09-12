@@ -3,6 +3,7 @@ import * as quizRepo from '../repositories/quizRepository';
 import * as moduleRepo from '../repositories/moduleRepository';
 import * as courseRepo from '../repositories/courseRepository';
 import { assertCanManage, type ContentActor } from './contentAccess';
+import * as sequenceRepo from '../repositories/contentSequenceRepository';
 
 interface QuizRecord {
   id: string;
@@ -144,6 +145,7 @@ export async function createQuiz(organizationId: string, courseId: string, modul
       maxAttempts: optionalPositiveInt(input.maxAttempts),
       order,
     });
+    await sequenceRepo.append(moduleId, { type: 'QUIZ', id: quiz.id });
     return toQuizDto(quiz);
   } catch (err) {
     if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === 'P2002') {

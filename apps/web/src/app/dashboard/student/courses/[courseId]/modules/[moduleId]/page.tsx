@@ -32,6 +32,7 @@ type ModuleLessonsResponse = {
   courseId: string;
   courseName: string;
   lessons: LessonItem[];
+  items?: Array<{ type: 'LESSON' | 'QUIZ'; id: string; position: number; state?: 'completed' | 'current' | 'locked'; lesson?: LessonItem; quiz?: { id: string; title: string; description: string | null; timeLimitMinutes: number | null; passingPercentage: number | null } }>;
 };
 
 function lessonTypeIcon(type: string | null) {
@@ -75,6 +76,7 @@ type LessonRowProps = {
   markingLessonId: string | null;
   onError: (error: string | null) => void;
   onMarkedSuccess?: (lessonId: string) => void;
+  state?: 'completed' | 'current' | 'locked';
 };
 
 function LessonRow({
@@ -88,6 +90,7 @@ function LessonRow({
   markingLessonId,
   onError,
   onMarkedSuccess,
+  state = 'current',
 }: LessonRowProps) {
   const recordProgress = useRecordProgress(organizationId, courseId, moduleId, lesson.id);
   const isMarking = markingLessonId === lesson.id;
@@ -115,12 +118,14 @@ function LessonRow({
     } finally {
       onMarkingChange(null);
     }
+
   };
 
   return (
-    <Link
-      href={`/dashboard/student/courses/${courseId}/modules/${moduleId}/lessons/${lesson.id}`}
-    >
+    <Link href={`/dashboard/student/courses/${courseId}/modules/${moduleId}/lessons/${lesson.id}`}
+      aria-disabled={state === 'locked'}
+      onClick={e => { if (state === 'locked') e.preventDefault(); }}
+      className={state === 'locked' ? 'cursor-not-allowed' : undefined}>
       <div className="group flex items-center gap-4 rounded-2xl border border-neutral-200 bg-white p-4 shadow-sm transition-all hover:border-primary-200 hover:shadow-md cursor-pointer">
         <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg bg-neutral-50 text-neutral-600 group-hover:bg-primary-50 group-hover:text-primary-600 transition-colors">
           {isCompleted ? (
@@ -143,6 +148,8 @@ function LessonRow({
             {isCompleted && (
               <Badge variant="success" size="sm">✓ Completed</Badge>
             )}
+            {state === 'locked' && <Badge variant="default" size="sm">Locked</Badge>}
+            {state === 'current' && <Badge variant="info" size="sm">Current</Badge>}
           </div>
           {lesson.description && (
             <p className="mt-0.5 text-sm text-neutral-500 line-clamp-1">{lesson.description}</p>
@@ -155,7 +162,7 @@ function LessonRow({
           {lesson.duration != null && (
             <span className="whitespace-nowrap">{lesson.duration}m</span>
           )}
-          {!isCompleted && (
+          {!isCompleted && state !== 'locked' && (
             <Button
               size="sm"
               variant="primary"
@@ -180,6 +187,18 @@ function LessonRow({
       </div>
     </Link>
   );
+}
+
+function QuizRow({ quiz, index, courseId, moduleId, state = 'current' }: { quiz: NonNullable<ModuleLessonsResponse['items']>[number]['quiz']; index: number; courseId: string; moduleId: string; state?: 'completed' | 'current' | 'locked' }) {
+  if (!quiz) return null;
+  return <Link href={`/dashboard/student/courses/${courseId}/modules/${moduleId}/quizzes/${quiz.id}`} aria-disabled={state === 'locked'} onClick={e => { if (state === 'locked') e.preventDefault(); }} className={state === 'locked' ? 'cursor-not-allowed' : undefined}>
+    <div className="group flex items-center gap-4 rounded-2xl border border-neutral-200 bg-white p-4 shadow-sm hover:border-primary-200 hover:shadow-md">
+      <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-neutral-50 text-lg">❓</div>
+      <div className="flex-1"><div className="flex items-center gap-2"><span className="text-sm font-medium text-neutral-400">{index + 1}.</span><h3 className="font-medium text-neutral-900 group-hover:text-primary-600">{quiz.title}</h3><Badge variant="info" size="sm">Quiz</Badge></div>{quiz.description && <p className="text-sm text-neutral-500">{quiz.description}</p>}</div>
+      {state === 'locked' ? <Badge variant="default" size="sm">Locked</Badge> : state === 'completed' ? <Badge variant="success" size="sm">✓ Completed</Badge> : <Badge variant="info" size="sm">Current</Badge>}
+      {quiz.timeLimitMinutes != null && <span className="text-sm text-neutral-500">{quiz.timeLimitMinutes}m</span>}
+    </div>
+  </Link>;
 }
 
 export default function StudentModuleLessonsPage() {
@@ -349,7 +368,7 @@ export default function StudentModuleLessonsPage() {
               </p>
             </div>
 
-            {lessonsData.lessons.length === 0 ? (
+            {!lessonsData.items?.length && lessonsData.lessons.length === 0 ? (
               <div className="rounded-2xl border border-neutral-200 bg-white shadow-sm">
                 <EmptyState
                   icon={EmptyStateIcons.NoData}
@@ -359,21 +378,22 @@ export default function StudentModuleLessonsPage() {
               </div>
             ) : (
               <div className="space-y-2">
-                {lessonsData.lessons.map((lesson: LessonItem, index: number) => (
-                  <LessonRow
-                    key={lesson.id}
-                    lesson={lesson}
+                {(lessonsData.items?.length ? lessonsData.items : lessonsData.lessons.map((lesson: LessonItem, i: number) => ({ type: 'LESSON' as const, id: lesson.id, position: i, lesson }))).map((item: NonNullable<ModuleLessonsResponse['items']>[number], index: number) => (
+                    item.type === 'QUIZ' ? <QuizRow key={item.id} quiz={item.quiz} state={item.state} index={index} courseId={courseId!} moduleId={moduleId!} /> : <LessonRow
+                      key={item.id}
+                      lesson={item.lesson!}
                     index={index}
                     courseId={courseId!}
                     moduleId={moduleId!}
                     organizationId={organizationId!}
-                    isCompleted={lesson.isCompleted ?? getLessonCompletionStatus(lesson.id)}
+                    isCompleted={item.lesson!.isCompleted ?? getLessonCompletionStatus(item.lesson!.id)}
                     onMarkingChange={setMarkingLessonId}
                     markingLessonId={markingLessonId}
                     onError={setMarkingError}
-                    onMarkedSuccess={(lessonId) => {
+                    onMarkedSuccess={() => {
                       // No need to update local state anymore - React Query will refetch
                     }}
+                    state={item.state}
                   />
                 ))}
               </div>

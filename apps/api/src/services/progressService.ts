@@ -5,6 +5,7 @@ import * as enrollmentRepo from '../repositories/enrollmentRepository';
 import * as progressRepo from '../repositories/progressRepository';
 import { dispatchNotification } from './notificationDispatcher';
 import getPrisma from '../prisma';
+import { assertContentUnlocked } from './sequentialAccess';
 
 function round2(value: number) {
   return Math.round(value * 100) / 100;
@@ -30,6 +31,9 @@ async function verifyLessonAccess(
   if (!enrollment || enrollment.organizationId !== organizationId) {
     throw new Error('STUDENT_NOT_ENROLLED');
   }
+  if (enrollment.status && enrollment.status !== 'ACTIVE') {
+    throw new Error('STUDENT_NOT_ENROLLED');
+  }
 
   const module = await moduleRepo.getById(courseId, moduleId);
   if (!module) {
@@ -40,6 +44,7 @@ async function verifyLessonAccess(
   if (!lesson) {
     throw new Error('LESSON_NOT_FOUND');
   }
+  await assertContentUnlocked(userId, courseId, moduleId, 'LESSON', lessonId);
 
   return { course, module, lesson, enrollment };
 }

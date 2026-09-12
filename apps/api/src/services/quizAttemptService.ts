@@ -3,6 +3,7 @@ import * as moduleRepo from '../repositories/moduleRepository';
 import * as quizRepo from '../repositories/quizRepository';
 import * as enrollmentRepo from '../repositories/enrollmentRepository';
 import * as quizAttemptRepo from '../repositories/quizAttemptRepository';
+import { assertContentUnlocked } from './sequentialAccess';
 
 function round2(value: number) {
   return Math.round(value * 100) / 100;
@@ -84,6 +85,9 @@ async function verifyQuizAttemptAccess(
   if (enrollment.organizationId !== organizationId) {
     throw new Error('STUDENT_NOT_ENROLLED');
   }
+  if (enrollment.status && enrollment.status !== 'ACTIVE') {
+    throw new Error('STUDENT_NOT_ENROLLED');
+  }
 
   const module = await moduleRepo.getById(courseId, moduleId);
   if (!module) {
@@ -94,6 +98,8 @@ async function verifyQuizAttemptAccess(
   if (!quiz) {
     throw new Error('QUIZ_NOT_FOUND');
   }
+
+  await assertContentUnlocked(userId, courseId, moduleId, 'QUIZ', quizId);
 
   return { course, module, quiz };
 }

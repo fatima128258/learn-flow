@@ -176,9 +176,32 @@ model Module {
   progress    LessonProgress[]
   course      Course           @relation(fields: [courseId], references: [id], onDelete: Cascade)
   quizzes     Quiz[]
+  contentItems ModuleContentItem[]
 
   @@unique([courseId, order])
   @@index([courseId, order])
+}
+
+enum ModuleContentType {
+  LESSON
+  QUIZ
+}
+
+model ModuleContentItem {
+  id        String            @id @default(cuid())
+  moduleId  String
+  type      ModuleContentType
+  lessonId  String?
+  quizId    String?
+  position  Int
+  module    Module            @relation(fields: [moduleId], references: [id], onDelete: Cascade)
+  lesson    Lesson?           @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  quiz      Quiz?             @relation(fields: [quizId], references: [id], onDelete: Cascade)
+
+  @@unique([moduleId, position])
+  @@unique([moduleId, lessonId])
+  @@unique([moduleId, quizId])
+  @@index([moduleId, position])
 }
 
 model Lesson {
@@ -197,6 +220,7 @@ model Lesson {
   resourceMimeType String?
   module           Module           @relation(fields: [moduleId], references: [id], onDelete: Cascade)
   progress         LessonProgress[]
+  contentItems     ModuleContentItem[]
 
   @@unique([moduleId, order])
   @@index([moduleId, order])
@@ -216,6 +240,7 @@ model Quiz {
   questions         Question[]
   module            Module        @relation(fields: [moduleId], references: [id], onDelete: Cascade)
   attempts          QuizAttempt[]
+  contentItems      ModuleContentItem[]
 
   @@unique([moduleId, order])
   @@index([moduleId, order])

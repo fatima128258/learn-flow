@@ -34,6 +34,10 @@ function handleError(res: Response, err: unknown) {
       return fail(res, 400, 'QUIZ_HAS_NO_QUESTIONS');
     case 'STUDENT_NOT_ENROLLED':
       return fail(res, 403, 'STUDENT_NOT_ENROLLED');
+    case 'CONTENT_LOCKED':
+      return fail(res, 403, 'CONTENT_LOCKED');
+    case 'CONTENT_SEQUENCE_MISSING':
+      return fail(res, 403, 'CONTENT_SEQUENCE_MISSING');
     case 'MAX_ATTEMPTS_REACHED':
       return fail(res, 403, 'MAX_ATTEMPTS_REACHED');
     case 'ATTEMPT_ALREADY_SUBMITTED':

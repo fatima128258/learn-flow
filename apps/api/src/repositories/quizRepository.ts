@@ -1,4 +1,5 @@
 import getPrisma from '../prisma';
+import * as sequenceRepo from './contentSequenceRepository';
 
 function prisma() {
   return getPrisma();
@@ -80,5 +81,6 @@ export async function deleteQuiz(moduleId: string, quizId: string) {
   const result = await prisma().quiz.deleteMany({
     where: { id: quizId, moduleId },
   });
+  await sequenceRepo.removeQuiz(quizId);
   return result;
 }

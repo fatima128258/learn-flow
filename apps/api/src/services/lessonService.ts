@@ -3,6 +3,7 @@ import * as lessonRepo from '../repositories/lessonRepository';
 import * as moduleRepo from '../repositories/moduleRepository';
 import * as courseRepo from '../repositories/courseRepository';
 import { assertCanManage, type ContentActor } from './contentAccess';
+import * as sequenceRepo from '../repositories/contentSequenceRepository';
 
 interface LessonRecord {
   id: string;
@@ -84,10 +85,17 @@ function optionalPositiveInt(value: unknown) {
   return parsed;
 }
 
+function optionalBoolean(value: unknown, fallback = false) {
+  if (value === undefined || value === null) return fallback;
+  if (typeof value !== 'boolean') throw new Error('INVALID_VALUE');
+  return value;
+}
+
 function requireOrder(value: unknown) {
   if (value === undefined || value === null) {
     throw new Error('MISSING_FIELDS');
   }
+
   const parsed = Number(value);
   if (!Number.isInteger(parsed) || parsed < 0) {
     throw new Error('INVALID_ORDER');
@@ -142,8 +150,9 @@ export async function createLesson(organizationId: string, courseId: string, mod
       resourceMimeType: optionalString(input.resourceMimeType),
       duration: optionalPositiveInt(input.duration),
       order,
-      isPreview: true,
+      isPreview: optionalBoolean(input.isPreview),
     });
+    await sequenceRepo.append(moduleId, { type: 'LESSON', id: lesson.id });
     return toLessonDto(lesson);
   } catch (err) {
     if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === 'P2002') {
@@ -207,11 +216,13 @@ export async function updateLesson(organizationId: string, courseId: string, mod
     updateData.order = requireOrder(input.order);
   }
 
+  if (input.isPreview !== undefined) {
+    updateData.isPreview = optionalBoolean(input.isPreview);
+  }
+
   if (Object.keys(updateData).length === 0) {
     throw new Error('MISSING_FIELDS');
   }
-
-  updateData.isPreview = true;
 
   try {
     const lesson = await lessonRepo.updateLesson(moduleId, lessonId, updateData);

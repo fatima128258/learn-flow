@@ -207,4 +207,18 @@ describe('PATCH /api/v1/organizations/:organizationId/courses/:courseId/status',
     expect(res.body.error).toBe('COURSE_NOT_FOUND');
     expect(dispatcher.dispatchNotification).not.toHaveBeenCalled();
   });
+
+  it('rejects publishing an archived course', async () => {
+    await authenticateAs('INSTRUCTOR');
+    prismaMock.course.findFirst.mockResolvedValue(courseRecord({ status: 'ARCHIVED' }));
+
+    const res = await request(app)
+      .patch('/api/v1/organizations/org-a/courses/course-1/status')
+      .set('Cookie', cookie())
+      .send({ status: 'PUBLISHED' });
+
+    expect(res.status).toBe(400);
+    expect(res.body.error).toBe('INVALID_STATUS');
+    expect(prismaMock.course.updateMany).not.toHaveBeenCalled();
+  });
 });

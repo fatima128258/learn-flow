@@ -216,7 +216,7 @@ describe('POST /api/v1/organizations/:orgId/courses/:courseId/modules/:moduleId/
   it('rejects unauthenticated requests with 401', async () => {
     const res = await request(app)
       .post(BASE)
-      .send({ title: 'Lesson One', order: 0 });
+      .send({ title: 'Lesson One', order: 0, isPreview: false });
 
     expect(res.status).toBe(401);
     expect(res.body.error).toBe('NOT_AUTHENTICATED');
@@ -232,7 +232,7 @@ describe('POST /api/v1/organizations/:orgId/courses/:courseId/modules/:moduleId/
     const res = await request(app)
       .post(BASE)
       .set('Cookie', cookie())
-      .send({ title: 'Lesson One', order: 0 });
+      .send({ title: 'Lesson One', order: 0, isPreview: false });
 
     expect(res.status).toBe(403);
     expect(res.body.error).toBe('EMAIL_NOT_VERIFIED');
@@ -273,12 +273,14 @@ describe('POST /api/v1/organizations/:orgId/courses/:courseId/modules/:moduleId/
       moduleId: 'module-1',
       title: 'Lesson One',
       order: 0,
+      isPreview: false,
     });
     expect(prismaMock.lesson.create).toHaveBeenCalledWith(expect.objectContaining({
       data: expect.objectContaining({
         moduleId: 'module-1',
         title: 'Lesson One',
         order: 0,
+        isPreview: false,
       }),
     }));
   });

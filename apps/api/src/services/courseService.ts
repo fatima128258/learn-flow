@@ -10,6 +10,12 @@ import { parsePagination, parseSort, buildMeta } from '../utils/pagination';
 import { assertCanManage } from './contentAccess';
 
 const VALID_COURSE_STATUSES = new Set(['DRAFT', 'REVIEW', 'PUBLISHED', 'ARCHIVED']);
+const ALLOWED_STATUS_TRANSITIONS: Record<string, Set<string>> = {
+  DRAFT: new Set(['DRAFT', 'REVIEW', 'PUBLISHED']),
+  REVIEW: new Set(['DRAFT', 'REVIEW', 'PUBLISHED']),
+  PUBLISHED: new Set(['REVIEW', 'PUBLISHED', 'ARCHIVED']),
+  ARCHIVED: new Set(['DRAFT', 'ARCHIVED']),
+};
 
 const MIN_SLUG_LENGTH = 2;
 const MAX_SLUG_LENGTH = 50;
@@ -482,6 +488,10 @@ export async function updateCourseStatus(
   }
 
   assertCanManage(actor, course);
+
+  if (!ALLOWED_STATUS_TRANSITIONS[course.status]?.has(status)) {
+    throw new Error('INVALID_STATUS');
+  }
 
   const publishedAt = status === 'PUBLISHED' ? (course.publishedAt ?? new Date()) : null;
   const updated = await courseRepo.updateCourseStatus(organizationId, courseId, {

@@ -22,6 +22,8 @@ function handleError(res: Response, err: unknown) {
       return fail(res, 400, 'INVALID_ORDER');
     case 'INVALID_DURATION':
       return fail(res, 400, 'INVALID_DURATION');
+    case 'INVALID_VALUE':
+      return fail(res, 400, 'INVALID_VALUE');
     case 'ORGANIZATION_REQUIRED':
       return fail(res, 400, 'ORGANIZATION_REQUIRED');
     case 'COURSE_NOT_FOUND':

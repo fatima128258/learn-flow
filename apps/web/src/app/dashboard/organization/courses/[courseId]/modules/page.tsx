@@ -113,15 +113,21 @@ function ModuleActionsMenu({ module, courseId, organizationId, dashboardPrefix, 
 
 type ModuleLessonSummary = { id: string; title: string; description: string | null; duration: number | null; order: number };
 type ModuleQuizSummary = { id: string; title: string; description: string | null; order: number; timeLimitMinutes: number | null; passingPercentage: number | null };
-type ModuleDetails = ModuleListItem & { lessons: ModuleLessonSummary[]; quizzes: ModuleQuizSummary[] };
+type ContentItem = { type: 'LESSON' | 'QUIZ'; id: string; position: number; title: string; description: string | null };
+type ModuleDetails = ModuleListItem & { lessons: ModuleLessonSummary[]; quizzes: ModuleQuizSummary[]; content: ContentItem[] };
 
 // Module Details Drawer component
-function ModuleDetailsDrawer({ module, isOpen, onClose }: {
+function ModuleDetailsDrawer({ module, isOpen, onClose, onSaveContent }: {
   module: ModuleDetails | null;
   isOpen: boolean;
   onClose: () => void;
+  onSaveContent: (items: ContentItem[]) => Promise<void>;
 }) {
+  const [content, setContent] = useState<ContentItem[]>([]);
+  const [saving, setSaving] = useState(false);
+  useEffect(() => setContent(module?.content ?? []), [module]);
   if (!module) return null;
+  async function save() { setSaving(true); try { await onSaveContent(content); } finally { setSaving(false); } }
 
   return (
     <Drawer
@@ -134,6 +140,24 @@ function ModuleDetailsDrawer({ module, isOpen, onClose }: {
           <p className="text-xs font-medium uppercase tracking-wide text-neutral-400">Order</p>
           <div className="mt-1">
             <Badge variant="default" size="sm">{module.order}</Badge>
+          </div>
+          <div>
+            <div className="flex items-center justify-between">
+              <p className="text-xs font-medium uppercase tracking-wide text-neutral-400">Course content order</p>
+              <Button size="sm" variant="primary" disabled={saving} onClick={() => void save()}>{saving ? 'Saving...' : 'Save order'}</Button>
+            </div>
+            <div className="mt-2 space-y-2">
+              {content.map((item, index) => (
+                <div key={`${item.type}-${item.id}`} className="flex items-center gap-2 rounded-lg bg-neutral-50 p-2">
+                  <span className="w-5 text-xs text-neutral-400">{index + 1}.</span>
+                  <Badge variant={item.type === 'QUIZ' ? 'info' : 'default'} size="sm">{item.type}</Badge>
+                  <span className="flex-1 text-sm text-neutral-800">{item.title}</span>
+                  <button disabled={index === 0} className="px-1 text-neutral-500 disabled:opacity-30" onClick={() => setContent(move(content, index, index - 1))} aria-label="Move content up">↑</button>
+                  <button disabled={index === content.length - 1} className="px-1 text-neutral-500 disabled:opacity-30" onClick={() => setContent(move(content, index, index + 1))} aria-label="Move content down">↓</button>
+                </div>
+              ))}
+              {content.length === 0 && <p className="text-sm text-neutral-400">Add lessons or quizzes to arrange them here.</p>}
+            </div>
           </div>
         </div>
 
@@ -189,6 +213,13 @@ function ModuleDetailsDrawer({ module, isOpen, onClose }: {
       </div>
     </Drawer>
   );
+}
+
+function move<T>(items: T[], from: number, to: number) {
+  const next = [...items];
+  const [item] = next.splice(from, 1);
+  next.splice(to, 0, item);
+  return next.map((value: any, position) => ({ ...value, position }));
 }
 
 type ModuleListItem = {
@@ -278,23 +309,26 @@ export default function CourseModulesPage() {
     if (!organizationId || !courseId) return;
     try {
       const base = `/api/v1/organizations/${organizationId}/courses/${courseId}/modules/${module.id}`;
-      const [moduleRes, lessonsRes, quizzesRes] = await Promise.all([
+      const [moduleRes, lessonsRes, quizzesRes, contentRes] = await Promise.all([
         fetch(base, { credentials: 'include' }),
         fetch(`${base}/lessons`, { credentials: 'include' }),
         fetch(`${base}/quizzes`, { credentials: 'include' }),
+        fetch(`${base}/content`, { credentials: 'include' }),
       ]);
-      if (!moduleRes.ok || !lessonsRes.ok || !quizzesRes.ok) {
+      if (!moduleRes.ok || !lessonsRes.ok || !quizzesRes.ok || !contentRes.ok) {
         toast.error('Could not load module details.');
         return;
       }
       const moduleBody: { data?: ModuleListItem & { updatedAt: string } } = await moduleRes.json();
       const lessonsBody: { data?: ModuleLessonSummary[] } = await lessonsRes.json();
       const quizzesBody: { data?: ModuleQuizSummary[] } = await quizzesRes.json();
+      const contentBody: { data?: ContentItem[] } = await contentRes.json();
       if (moduleBody.data) {
         setModuleDetails({
           ...moduleBody.data,
           lessons: lessonsBody.data ?? [],
           quizzes: quizzesBody.data ?? [],
+          content: contentBody.data ?? [],
         });
       }
     } catch {
@@ -763,6 +797,18 @@ export default function CourseModulesPage() {
         isOpen={moduleDetails !== null}
         onClose={() => {
           setModuleDetails(null);
+        }}
+        onSaveContent={async (items) => {
+          if (!organizationId || !courseId || !moduleDetails) return;
+          const response = await fetch(`/api/v1/organizations/${organizationId}/courses/${courseId}/modules/${moduleDetails.id}/content`, {
+            method: 'PUT',
+            credentials: 'include',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ items: items.map(({ type, id }) => ({ type, id })) }),
+          });
+          if (!response.ok) throw new Error('Could not save content order');
+          toast.success('Content order saved.');
+          await openModuleDetails(moduleDetails);
         }}
       />
     </div>

@@ -7,6 +7,8 @@ import * as searchRepo from '../repositories/searchRepository';
 import * as certificateRepo from '../repositories/certificateRepository';
 import { categoryLabel } from '../utils/categoryLabel';
 import getPrisma from '../prisma';
+import * as sequenceRepo from '../repositories/contentSequenceRepository';
+import { getSequenceState, assertContentUnlocked } from './sequentialAccess';
 
 interface EnrolledEnrollment {
   id: string;
@@ -111,6 +113,9 @@ async function verifyEnrollment(userId: string, courseId: string, organizationId
   if (organizationId && enrollment.organizationId !== organizationId) {
     throw new Error('STUDENT_NOT_ENROLLED');
   }
+  if (enrollment.status && enrollment.status !== 'ACTIVE') {
+    throw new Error('STUDENT_NOT_ENROLLED');
+  }
   return enrollment;
 }
 
@@ -132,7 +137,6 @@ export async function getCourseOverview(
   if (!course) {
     throw new Error('COURSE_NOT_FOUND');
   }
-
   const prisma = getPrisma();
   const [moduleCount, lessonCount, quizCount, enrollment] = await Promise.all([
     prisma.module.count({ where: { courseId: course.id } }),
@@ -163,14 +167,16 @@ export async function getCourseOverview(
     moduleCount,
     lessonCount,
     quizCount,
-    isEnrolled: Boolean(enrollment) && enrollment?.organizationId === organizationId,
+    isEnrolled: Boolean(enrollment) &&
+      enrollment?.organizationId === organizationId &&
+      (!enrollment?.status || enrollment.status === 'ACTIVE'),
   };
 }
 
 export async function listEnrolledCourses(organizationId: string, userId: string) {
   const enrollments = await enrollmentRepo.listByUser(userId);
   const orgEnrollments = enrollments.filter(
-    (e: { organizationId: string; course?: unknown }) => e.organizationId === organizationId,
+    (e: { organizationId: string; course?: unknown; status?: string }) => e.organizationId === organizationId && (!e.status || e.status === 'ACTIVE'),
   );
 
   // The course data is already included in the enrollment query, so no additional DB query needed
@@ -184,7 +190,7 @@ export async function listEnrolledCourses(organizationId: string, userId: string
 
 export async function getEnrolledCourseDetail(organizationId: string, userId: string, courseId: string) {
   const enrollment = await enrollmentRepo.findByUserAndCourse(userId, courseId);
-  if (!enrollment || enrollment.organizationId !== organizationId) {
+  if (!enrollment || enrollment.organizationId !== organizationId || (enrollment.status && enrollment.status !== 'ACTIVE')) {
     throw new Error('STUDENT_NOT_ENROLLED');
   }
 
@@ -277,6 +283,14 @@ export async function listModuleLessons(
   ]);
 
   const completedLessonIds = new Set(completedLessons.map(row => row.lessonId));
+  const sequence = await sequenceRepo.listByModule(moduleId);
+  const sequenceState = await getSequenceState(userId, courseId);
+  const stateByKey = new Map(sequenceState.map((item: any) => [`${item.type}:${item.id}`, item] as const));
+  const items = sequence
+    .filter((row: any) => row.lesson || row.quiz)
+    .map((row: any) => row.lesson
+      ? { type: 'LESSON' as const, id: row.lesson.id, position: row.position, state: stateByKey.get(`LESSON:${row.lesson.id}`)?.state ?? 'locked', unlocked: stateByKey.get(`LESSON:${row.lesson.id}`)?.unlocked ?? false, lesson: { ...toModuleLessonDto(row.lesson), isCompleted: completedLessonIds.has(row.lesson.id) } }
+      : { type: 'QUIZ' as const, id: row.quiz!.id, position: row.position, state: stateByKey.get(`QUIZ:${row.quiz!.id}`)?.state ?? 'locked', unlocked: stateByKey.get(`QUIZ:${row.quiz!.id}`)?.unlocked ?? false, quiz: { id: row.quiz!.id, title: row.quiz!.title, description: row.quiz!.description, order: row.quiz!.order, timeLimitMinutes: row.quiz!.timeLimitMinutes, passingPercentage: row.quiz!.passingPercentage } });
 
   return {
     moduleId: module.id,
@@ -287,6 +301,7 @@ export async function listModuleLessons(
       ...toModuleLessonDto(lesson),
       isCompleted: completedLessonIds.has(lesson.id),
     })),
+    items,
   };
 }
 
@@ -313,6 +328,7 @@ export async function getLessonContent(
   if (!lesson) {
     throw new Error('LESSON_NOT_FOUND');
   }
+  await assertContentUnlocked(userId, courseId, moduleId, 'LESSON', lessonId);
 
   return {
     enrollmentVerified: true,
