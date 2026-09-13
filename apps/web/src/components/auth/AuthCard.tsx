@@ -27,7 +27,7 @@ export const AuthCard: React.FC<AuthCardProps> = ({
         <button
           type="button"
           onClick={footer.linkOnClick}
-          className="font-semibold text-primary-600 underline-offset-2 transition-colors hover:text-primary-700 hover:underline"
+          className="font-semibold text-[#7a4a2e] underline-offset-2 transition-colors hover:text-[#5a321f] hover:underline"
         >
           {footer.linkText}
         </button>
@@ -37,7 +37,7 @@ export const AuthCard: React.FC<AuthCardProps> = ({
     return (
       <Link
         href={footer.linkHref ?? '#'}
-        className="font-semibold text-primary-600 underline-offset-2 transition-colors hover:text-primary-700 hover:underline"
+        className="font-semibold text-[#7a4a2e] underline-offset-2 transition-colors hover:text-[#5a321f] hover:underline"
       >
         {footer.linkText}
       </Link>
@@ -48,11 +48,11 @@ export const AuthCard: React.FC<AuthCardProps> = ({
     <div>
       {/* Header */}
       <div className="mb-8 animate-slide-up">
-        <h1 className="text-3xl font-bold tracking-tight text-neutral-900">
+        <h1 className="text-3xl font-bold tracking-tight text-[#17212b] sm:text-4xl">
           {title}
         </h1>
         {description && (
-          <p className="mt-2 text-base leading-relaxed text-neutral-600">
+          <p className="mt-3 text-base leading-relaxed text-[#5f6368]">
             {description}
           </p>
         )}
@@ -66,10 +66,10 @@ export const AuthCard: React.FC<AuthCardProps> = ({
       {/* Footer */}
       {footer && (
         <div
-          className="mt-8 animate-slide-up border-t border-neutral-200 pt-6"
+          className="mt-8 animate-slide-up border-t border-[#ead8c6] pt-6"
           style={{ animationDelay: '200ms' }}
         >
-          <p className="text-center text-sm text-neutral-600">
+          <p className="text-center text-sm text-[#5f6368]">
             {footer.text}{' '}
             {renderFooterLink()}
           </p>

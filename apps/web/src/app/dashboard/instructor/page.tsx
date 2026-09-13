@@ -70,7 +70,7 @@ export default function InstructorDashboardPage() {
 
           <div className="mb-8">
             <ChartCard title="This Month's Student Purchases" description="Unique students who enrolled in your courses this month">
-              <LineChart data={chartData} color="#8b5cf6" height={260} />
+              <LineChart data={chartData} color="#7A4A2E" height={260} />
             </ChartCard>
           </div>
 

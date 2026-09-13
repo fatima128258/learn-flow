@@ -168,7 +168,7 @@ graph TB
     style Client fill:#3b82f6
     style API fill:#10b981
     style Auth fill:#f59e0b
-    style DB fill:#8b5cf6
+    style DB fill:#7A4A2E
     style Redis fill:#ec4899
     style Search fill:#06b6d4
     style Storage fill:#f97316

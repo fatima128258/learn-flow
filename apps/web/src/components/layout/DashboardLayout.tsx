@@ -352,7 +352,7 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
     </div>
   );
 
-  const brand = <LearnFlowLogo href={undefined} size={30} />;
+  const brand = <LearnFlowLogo href={undefined} />;
 
   // Sidebar width values
   const sidebarW = collapsed ? 'w-16' : 'w-52';
@@ -372,7 +372,7 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
             collapsed ? 'justify-center px-2' : 'px-6'
           }`}
         >
-          {collapsed ? <LearnFlowLogo href={undefined} size={28} withText={false} /> : brand}
+          {collapsed ? <LearnFlowLogo href={undefined} size={44} withText={false} /> : brand}
         </div>
 
         {desktopNav}

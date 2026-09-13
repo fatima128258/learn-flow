@@ -220,7 +220,24 @@ export async function getCourse(organizationId: string, courseId: string) {
   if (!course) {
     throw new Error('COURSE_NOT_FOUND');
   }
+
   return toCourseDto(course);
+}
+
+export async function listTopPublishedCourses() {
+  const courses = await courseRepo.listTopPublishedCourses(6);
+  return courses.map((course) => ({
+    id: course.id,
+    organizationId: course.organizationId,
+    title: course.title,
+    description: course.description,
+    thumbnailUrl: course.thumbnailUrl,
+    instructor: {
+      id: course.instructorUser.id,
+      name: course.instructorUser.name,
+    },
+    enrollmentCount: course._count.enrollments,
+  }));
 }
 
 export async function listCourses(

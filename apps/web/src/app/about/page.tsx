@@ -101,7 +101,7 @@ export default function AboutPage() {
                 <div className="text-neutral-600 font-medium">Courses</div>
               </div>
               <div className="animate-fade-in" style={{ animationDelay: '0.3s' }}>
-                <div className="text-5xl font-bold text-purple-600 mb-2">98%</div>
+                <div className="text-5xl font-bold text-primary-600 mb-2">98%</div>
                 <div className="text-neutral-600 font-medium">Satisfaction</div>
               </div>
             </div>

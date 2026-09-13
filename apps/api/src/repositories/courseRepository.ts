@@ -151,9 +151,11 @@ export async function countByOrganization(
   if (status) {
     where.status = status as Prisma.CourseWhereInput['status'];
   }
+
   if (instructorId) {
     where.instructorUserId = instructorId;
   }
+
   if (categoryId) {
     where.categoryId = categoryId;
   }
@@ -168,6 +170,31 @@ export async function countByOrganization(
     };
   }
   return prisma().course.count({ where });
+}
+
+export async function listTopPublishedCourses(limit: number) {
+  return prisma().course.findMany({
+    where: { status: 'PUBLISHED' },
+    include: {
+      instructorUser: {
+        select: {
+          id: true,
+          name: true,
+        },
+      },
+      _count: {
+        select: {
+          enrollments: true,
+        },
+      },
+    },
+    orderBy: [
+      { enrollments: { _count: 'desc' } },
+      { publishedAt: 'desc' },
+      { id: 'asc' },
+    ],
+    take: limit,
+  });
 }
 
 type DailyEnrollmentRow = { date: string; count: bigint };

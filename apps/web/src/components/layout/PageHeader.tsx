@@ -1,4 +1,5 @@
 import React from 'react';
+import { Container } from '../ui/layout/Container';
 
 export interface PageHeaderProps {
   title: string;
@@ -17,7 +18,7 @@ export const PageHeader: React.FC<PageHeaderProps> = ({
 }) => {
   return (
     <div className={`bg-white border-b border-neutral-200 ${className}`.trim()}>
-      <div className="px-4 sm:px-6 lg:px-8 py-6">
+      <Container size="xl" className="py-6">
         {breadcrumbs && (
           <div className="mb-4">
             {breadcrumbs}
@@ -40,7 +41,7 @@ export const PageHeader: React.FC<PageHeaderProps> = ({
             </div>
           )}
         </div>
-      </div>
+      </Container>
     </div>
   );
 };

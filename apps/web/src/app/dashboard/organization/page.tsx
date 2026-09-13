@@ -381,7 +381,7 @@ export default function OrganizationDashboardPage() {
                       label: formatGrowthDate(g.month),
                       value: g.members,
                     }))}
-                    color="#8b5cf6"
+                    color="#7A4A2E"
                     height={240}
                   />
                 ) : (

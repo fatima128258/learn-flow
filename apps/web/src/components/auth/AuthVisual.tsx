@@ -9,7 +9,7 @@ const FEATURES = [
 
 const CheckIcon = () => (
   <svg
-    className="h-5 w-5 flex-shrink-0 text-primary-200"
+    className="h-5 w-5 flex-shrink-0 text-[#d69a5b]"
     viewBox="0 0 20 20"
     fill="currentColor"
     aria-hidden="true"
@@ -29,9 +29,9 @@ const CheckIcon = () => (
  */
 export const AuthVisual: React.FC = () => {
   return (
-    <div className="relative hidden lg:flex flex-col justify-between overflow-hidden bg-primary-700 px-10 py-12 text-white">
-      {/* subtle tonal panel, not a gradient */}
-      <div className="pointer-events-none absolute inset-0 bg-primary-800/40" aria-hidden="true" />
+    <div className="relative hidden flex-col justify-between overflow-hidden bg-[#5a321f] px-10 py-12 text-[#fff9f0] lg:flex">
+      <div className="pointer-events-none absolute -right-24 -top-24 h-72 w-72 rounded-full bg-[#7a4a2e]/50 blur-3xl" aria-hidden="true" />
+      <div className="pointer-events-none absolute -bottom-32 -left-24 h-80 w-80 rounded-full bg-[#a8784f]/30 blur-3xl" aria-hidden="true" />
 
       <div className="relative flex items-center animate-slide-up">
         <LearnFlowLogo href="/" tone="light" />
@@ -41,14 +41,14 @@ export const AuthVisual: React.FC = () => {
         <h2 className="text-3xl font-bold leading-tight tracking-tight">
           Learn something that sticks.
         </h2>
-        <p className="mt-4 max-w-sm text-base leading-relaxed text-primary-100">
+        <p className="mt-4 max-w-sm text-base leading-relaxed text-[#f5ebdd]">
           Courses, progress, and certificates in one calm, focused workspace —
           built for learners, instructors, and organizations.
         </p>
 
         <ul className="mt-8 space-y-3">
           {FEATURES.map((feature) => (
-            <li key={feature} className="flex items-center gap-3 text-sm text-primary-50">
+            <li key={feature} className="flex items-center gap-3 text-sm text-[#fff9f0]">
               <CheckIcon />
               {feature}
             </li>
@@ -56,8 +56,8 @@ export const AuthVisual: React.FC = () => {
         </ul>
       </div>
 
-      <p className="relative text-xs text-primary-200/80 animate-slide-up" style={{ animationDelay: '160ms' }}>
-        © {new Date().getFullYear()} LearnFlow. All rights reserved.
+      <p className="relative text-xs text-[#f5ebdd]/80 animate-slide-up" style={{ animationDelay: '160ms' }}>
+        © {new Date().getFullYear()} LearnHub. All rights reserved.
       </p>
     </div>
   );

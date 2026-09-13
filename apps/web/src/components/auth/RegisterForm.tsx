@@ -124,7 +124,7 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
 
   return (
     <form onSubmit={handleSubmit} noValidate>
-      <Stack spacing="md">
+      <Stack spacing="sm">
         <Input
           label="Full name"
           type="text"
@@ -136,6 +136,7 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
           autoComplete="name"
           disabled={loading || success}
           required
+          className="!rounded-xl !border-[#e5d5c4] !bg-[#fffdf9] !px-4 !py-2.5 !text-[#17212b] focus:!border-[#7a4a2e] focus:!ring-[#a8784f]/20"
         />
 
         <Input
@@ -149,6 +150,7 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
           autoComplete="email"
           disabled={loading || success}
           required
+          className="!rounded-xl !border-[#e5d5c4] !bg-[#fffdf9] !px-4 !py-2.5 !text-[#17212b] focus:!border-[#7a4a2e] focus:!ring-[#a8784f]/20"
         />
 
         <PasswordInput
@@ -160,8 +162,9 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
           placeholder="At least 8 characters"
           autoComplete="new-password"
           disabled={loading || success}
-          helperText="Use at least 8 characters"
+          // helperText="Use at least 8 characters"
           required
+          className="!rounded-xl !border-[#e5d5c4] !bg-[#fffdf9] !px-4 !py-2.5 !text-[#17212b] focus:!border-[#7a4a2e] focus:!ring-[#a8784f]/20"
         />
 
         <PasswordInput
@@ -174,14 +177,16 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
           autoComplete="new-password"
           disabled={loading || success}
           required
+          className="!rounded-xl !border-[#e5d5c4] !bg-[#fffdf9] !px-4 !py-2.5 !text-[#17212b] focus:!border-[#7a4a2e] focus:!ring-[#a8784f]/20"
         />
 
         <SubmitButton
           loading={loading}
           loadingText="Creating account..."
           disabled={success}
+          className="!rounded-xl !bg-[#5a321f] !py-3 !text-[#fff9f0] hover:!bg-[#7a4a2e] hover:!shadow-md"
         >
-          Create account
+          Create Account
         </SubmitButton>
       </Stack>
     </form>

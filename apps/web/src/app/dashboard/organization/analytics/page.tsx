@@ -175,7 +175,7 @@ export default function OrgAnalyticsPage() {
               description="Daily enrollments from real enrollment records"
               action={<label className="text-sm text-neutral-600">Range <select aria-label="Enrollment date range" value={range} onChange={(event) => setRange(Number(event.target.value) as 7 | 30 | 90 | 365)} className="ml-2 rounded-md border border-neutral-300 bg-white px-2 py-1 text-sm">{enrollmentRanges.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}</select></label>}
             >
-              <LineChart data={chartTrend} color="#8b5cf6" height={240} />
+              <LineChart data={chartTrend} color="#7A4A2E" height={240} />
               {!enrollmentTrend.some((point) => point.value > 0) && <p className="mt-2 text-center text-sm text-neutral-500">No enrollments in this period yet.</p>}
             </ChartCard>
           </section>

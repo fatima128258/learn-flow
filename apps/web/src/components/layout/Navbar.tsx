@@ -1,24 +1,22 @@
 'use client';
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import { LinkButton } from '../ui/LinkButton';
 import { LearnFlowLogo } from '../public/LearnFlowLogo';
 
-/**
- * Landing-page scroll navigations. `id` must match the target section on the
- * home page; clicking smooth-scrolls when already on the landing page and
- * otherwise routes to `/#<id>` so the section loads and is scrolled to.
- */
 const SECTIONS = [
   { href: '/#home', id: 'home', label: 'Home' },
   { href: '/#features', id: 'features', label: 'Features' },
-  { href: '/#why-choose-us', id: 'why-choose-us', label: 'Why Choose Us' },
+  { href: '/#about', id: 'about', label: 'Why Choose Us' },
   { href: '/#faq', id: 'faq', label: 'FAQ' },
 ];
 
 export const Navbar: React.FC = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
+  const [activeSection, setActiveSection] = useState('home');
+  const pendingSectionRef = useRef<string | null>(null);
+  const pendingSectionTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const pathname = usePathname();
   const router = useRouter();
 
@@ -32,7 +30,6 @@ export const Navbar: React.FC = () => {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  // Prevent background scroll while the mobile menu is open (accessibility)
   useEffect(() => {
     document.body.style.overflow = mobileMenuOpen ? 'hidden' : '';
     return () => {
@@ -40,8 +37,53 @@ export const Navbar: React.FC = () => {
     };
   }, [mobileMenuOpen]);
 
-  const closeMenu = useCallback(() => setMobileMenuOpen(false), []);
+  useEffect(() => {
+    const routeSection = pathname.startsWith('/courses')
+      ? 'features'
+      : pathname.startsWith('/about')
+        ? 'about'
+        : pathname.startsWith('/contact')
+          ? 'contact'
+          : pathname.startsWith('/faq')
+            ? 'faq'
+            : pathname === '/'
+              ? 'home'
+              : null;
 
+    if (!routeSection || pathname !== '/') {
+      if (routeSection) setActiveSection(routeSection);
+      return;
+    }
+
+    const sections = SECTIONS.map(({ id }) => document.getElementById(id)).filter(
+      (section): section is HTMLElement => Boolean(section)
+    );
+
+    if (sections.length === 0) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (pendingSectionRef.current) return;
+
+        const visibleSection = entries
+          .filter((entry) => entry.isIntersecting)
+          .sort((a, b) => b.intersectionRatio - a.intersectionRatio)[0];
+
+        if (visibleSection) setActiveSection(visibleSection.target.id);
+      },
+      { rootMargin: '-25% 0px -55% 0px', threshold: [0.1, 0.3, 0.6] }
+    );
+
+    sections.forEach((section) => observer.observe(section));
+    return () => {
+      observer.disconnect();
+      if (pendingSectionTimerRef.current) {
+        clearTimeout(pendingSectionTimerRef.current);
+      }
+    };
+  }, [pathname]);
+
+  const closeMenu = useCallback(() => setMobileMenuOpen(false), []);
   const isLanding = pathname === '/';
 
   const handleSectionClick = (e: React.MouseEvent<HTMLAnchorElement>, id: string) => {
@@ -49,12 +91,20 @@ export const Navbar: React.FC = () => {
 
     if (isLanding) {
       e.preventDefault();
+      setActiveSection(id);
+      pendingSectionRef.current = id;
+      if (pendingSectionTimerRef.current) {
+        clearTimeout(pendingSectionTimerRef.current);
+      }
       const el = document.getElementById(id);
       if (el) {
         el.scrollIntoView({ behavior: 'smooth', block: 'start' });
       } else {
         window.scrollTo({ top: 0, behavior: 'smooth' });
       }
+      pendingSectionTimerRef.current = setTimeout(() => {
+        pendingSectionRef.current = null;
+      }, 900);
       return;
     }
 
@@ -63,45 +113,41 @@ export const Navbar: React.FC = () => {
   };
 
   const sectionLinkClasses = (active: boolean) =>
-    `px-3.5 py-2 rounded-md text-sm font-medium transition-colors duration-200 ${
+    `relative px-3.5 py-2 text-[15px] font-medium transition-colors duration-200 after:absolute after:bottom-0 after:left-3.5 after:h-0.5 after:bg-[#99501f] after:transition-all after:duration-250 ${
       active
-        ? 'text-primary-700 bg-primary-50'
-        : 'text-neutral-600 hover:text-primary-700 hover:bg-primary-50/70'
+        ? 'text-[#7a4a2a] after:right-3.5'
+        : 'text-[#344047] hover:text-[#99501f] after:right-full hover:after:right-3.5'
     }`;
 
   return (
     <header
-      className={`fixed top-0 left-0 right-0 z-50 w-full animate-slide-down transition-all duration-300 ${
-        scrolled
-          ? 'bg-primary-50/95 backdrop-blur-md shadow-sm border-b border-primary-100'
-          : 'bg-primary-50/80 backdrop-blur-sm border-b border-transparent'
+      className={`fixed top-0 left-0 right-0 z-50 w-full transition-all duration-300 ${
+        scrolled ? 'bg-[#fbf8f3] shadow-[0_4px_18px_rgba(88,53,33,0.07)] border-b border-[#eadfd4]' : 'bg-[#fbf8f3] border-b border-[#f0e7de]'
       }`}
     >
-      <nav className="mx-auto max-w-7xl px-4 sm:px-8 lg:px-12" aria-label="Primary">
-        <div className="flex items-center justify-between h-16 lg:h-[68px]">
-          <LearnFlowLogo href="/" />
+      <nav className="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8" aria-label="Primary">
+        <div className="flex h-[72px] items-center justify-between lg:h-[80px]">
+          <LearnFlowLogo href="/" tone="dark" size={38} />
 
-          {/* Desktop Navigation */}
-          <div className="hidden lg:flex items-center gap-1">
+          <div className="hidden items-center gap-5 lg:flex">
             {SECTIONS.map((section) => (
               <a
                 key={section.id}
                 href={section.href}
                 onClick={(e) => handleSectionClick(e, section.id)}
-                className={sectionLinkClasses(false)}
+                className={sectionLinkClasses(section.id === activeSection)}
               >
                 {section.label}
               </a>
             ))}
           </div>
 
-          {/* Desktop Auth Buttons */}
-          <div className="hidden lg:flex items-center gap-2.5 shrink-0">
+          <div className="hidden items-center gap-2.5 lg:flex">
             <LinkButton
               href="/login"
-              variant="ghost"
+              variant="secondary"
               size="sm"
-              className="text-neutral-700 bg-neutral-100 hover:bg-neutral-200 rounded-md transition-colors"
+              className="h-11 rounded-full border border-[#dfc8b5] !bg-[#fffdf9] px-6 !text-[#563522] transition duration-200 hover:-translate-y-px hover:!bg-[#f7eee6]"
               showLoading
               loadingText="Loading..."
             >
@@ -109,20 +155,19 @@ export const Navbar: React.FC = () => {
             </LinkButton>
             <LinkButton
               href="/register"
-              variant="primary"
+              variant="secondary"
               size="sm"
-              className="rounded-md"
+              className="h-11 rounded-full !bg-[#5a2d18] px-6 !text-[#fffaf3] shadow-sm transition duration-200 hover:-translate-y-0.5 hover:!bg-[#713b21] hover:shadow-md"
               showLoading
               loadingText="Loading..."
             >
-              Sign Up
+              Get Started
             </LinkButton>
           </div>
 
-          {/* Mobile Menu Button */}
           <button
             type="button"
-            className="lg:hidden p-2.5 rounded-md text-neutral-600 hover:text-primary-700 hover:bg-primary-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 transition-colors"
+            className="rounded-md p-2.5 text-[#4d382d] transition hover:bg-[#f4e8dd] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#99501f] lg:hidden"
             onClick={() => setMobileMenuOpen((open) => !open)}
             aria-expanded={mobileMenuOpen}
             aria-controls="mobile-menu"
@@ -140,33 +185,32 @@ export const Navbar: React.FC = () => {
           </button>
         </div>
 
-        {/* Mobile Menu */}
         <div
           id="mobile-menu"
-          className={`lg:hidden overflow-hidden transition-all duration-300 ease-in-out ${
+          className={`overflow-hidden transition-all duration-300 ease-in-out lg:hidden ${
             mobileMenuOpen ? 'max-h-[460px] opacity-100' : 'max-h-0 opacity-0'
           }`}
         >
-          <div className="py-4 border-t border-neutral-100">
+          <div className="border-t border-[#eadbc9] py-4">
             <nav className="flex flex-col gap-1" aria-label="Mobile">
               {SECTIONS.map((section) => (
                 <a
                   key={section.id}
                   href={section.href}
                   onClick={(e) => handleSectionClick(e, section.id)}
-                  className="px-4 py-2.5 rounded-md text-sm font-medium text-neutral-600 hover:text-primary-700 hover:bg-primary-50/70 transition-colors"
+                  className="rounded-lg px-4 py-2.5 text-sm font-medium text-[#344047] transition hover:bg-[#f5eae0] hover:text-[#99501f]"
                 >
                   {section.label}
                 </a>
               ))}
 
-              <div className="pt-4 mt-2 border-t border-neutral-200 flex flex-col gap-2.5">
+              <div className="mt-3 flex flex-col gap-2.5 border-t border-[#eadbc9] pt-4">
                 <LinkButton
                   href="/login"
-                  variant="outline"
+                  variant="secondary"
                   size="md"
                   fullWidth
-                  className="rounded-md border-primary-200 text-primary-700 hover:bg-primary-50"
+                  className="rounded-full border-[#d9c1a9] !bg-[#fffdf9] !text-[#4d382d] hover:!bg-[#f5eae0]"
                   showLoading
                   loadingText="Loading..."
                   onClick={closeMenu}
@@ -175,15 +219,15 @@ export const Navbar: React.FC = () => {
                 </LinkButton>
                 <LinkButton
                   href="/register"
-                  variant="primary"
+                  variant="secondary"
                   size="md"
                   fullWidth
-                  className="rounded-md"
+                  className="rounded-full !bg-[#5a2d18] !text-[#fffaf3] hover:!bg-[#713b21]"
                   showLoading
                   loadingText="Loading..."
                   onClick={closeMenu}
                 >
-                  Sign Up
+                  Get Started
                 </LinkButton>
               </div>
             </nav>

@@ -26,7 +26,7 @@ export default function LoginPage() {
   // are already authenticated. Blocking render on isLoading caused a confirmed
   // blank/white-screen in production while the /auth/me round-trip completed.
   return (
-    <AuthLayout hideChrome>
+    <AuthLayout hideChrome noScroll>
       <AuthSwitch initialMode="login" />
     </AuthLayout>
   );

@@ -5,3 +5,4 @@ export * from './FAQAccordion';
 export * from './FeatureCard';
 export * from './CategoryCard';
 export * from './Reveal';
+export * from './AnimatedCounter';

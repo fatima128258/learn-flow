@@ -78,6 +78,7 @@ export const LoginForm: React.FC<LoginFormProps> = ({ onSubmit }) => {
           placeholder="you@example.com"
           autoComplete="email"
           disabled={isSubmitting}
+          className="!rounded-xl !border-[#e5d5c4] !bg-[#fffdf9] !px-4 !py-3 !text-[#17212b] focus:!border-[#7a4a2e] focus:!ring-[#a8784f]/20"
           required
         />
 
@@ -90,13 +91,14 @@ export const LoginForm: React.FC<LoginFormProps> = ({ onSubmit }) => {
           placeholder="Enter your password"
           autoComplete="current-password"
           disabled={isSubmitting}
+          className="!rounded-xl !border-[#e5d5c4] !bg-[#fffdf9] !px-4 !py-3 !text-[#17212b] focus:!border-[#7a4a2e] focus:!ring-[#a8784f]/20"
           required
         />
 
         <div className="flex items-center justify-end -mt-2">
           <Link
             href="/forgot-password"
-            className="text-sm font-medium text-primary-600 hover:text-primary-700 transition-colors"
+            className="text-sm font-medium text-[#7a4a2e] transition-colors hover:text-[#5a321f]"
           >
             Forgot password?
           </Link>
@@ -105,8 +107,9 @@ export const LoginForm: React.FC<LoginFormProps> = ({ onSubmit }) => {
         <SubmitButton
           loading={isSubmitting}
           loadingText="Signing in..."
+          className="!rounded-xl !bg-[#5a321f] !py-3 !text-[#fff9f0] hover:!bg-[#7a4a2e] hover:!shadow-md"
         >
-          Sign in
+          Login
         </SubmitButton>
       </Stack>
     </form>

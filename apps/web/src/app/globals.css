@@ -4,24 +4,24 @@
 
 :root {
   /* Semantic Colors - Light Mode */
-  --color-primary: #6d28d9;
-  --color-primary-hover: #5b21b6;
-  --color-primary-active: #4c1d95;
-  --color-primary-soft: #ddd6fe;
-  --color-accent: #ec4899;
-  --color-accent-hover: #db2777;
-  --color-accent-soft: #fce7f3;
+  --color-primary: #5a321f;
+  --color-primary-hover: #7a4a2e;
+  --color-primary-active: #4a2819;
+  --color-primary-soft: #f5ebdd;
+  --color-accent: #d69a5b;
+  --color-accent-hover: #b9793f;
+  --color-accent-soft: #f8e8d5;
   
-  --color-background: #ffffff;
-  --color-background-alt: #faf9ff;
-  --color-surface: #ffffff;
-  --color-surface-muted: #f5f3ff;
-  --color-border: #ece9f5;
-  --color-border-focus: #6d28d9;
+  --color-background: #fff9f0;
+  --color-background-alt: #fcfaf7;
+  --color-surface: #fcfaf7;
+  --color-surface-muted: #f5ebdd;
+  --color-border: #ead8c6;
+  --color-border-focus: #7a4a2e;
   
-  --color-text: #0f172a;
-  --color-text-secondary: #475569;
-  --color-text-muted: #64748b;
+  --color-text: #17212b;
+  --color-text-secondary: #5f6368;
+  --color-text-muted: #7b8085;
   --color-text-inverse: #ffffff;
   
   --color-success: #16a34a;
@@ -68,6 +68,12 @@ html, body, #__next {
   height: 100%;
 }
 
+html,
+body {
+  max-width: 100%;
+  overflow-x: hidden;
+}
+
 /* Smooth scrolling for same-page anchor navigation, disabled for users who
    prefer reduced motion. */
 @media (prefers-reduced-motion: no-preference) {
@@ -110,26 +116,6 @@ body {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
-  }
-}
-
-/* Responsive Container Padding */
-.container-responsive {
-  padding-left: 1rem;
-  padding-right: 1rem;
-}
-
-@media (min-width: 48rem) {
-  .container-responsive {
-    padding-left: 2rem;
-    padding-right: 2rem;
-  }
-}
-
-@media (min-width: 64rem) {
-  .container-responsive {
-    padding-left: 3rem;
-    padding-right: 3rem;
   }
 }
 

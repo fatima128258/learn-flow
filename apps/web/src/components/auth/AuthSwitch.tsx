@@ -114,15 +114,15 @@ export const AuthSwitch: React.FC<AuthSwitchProps> = ({ initialMode = 'login' })
 
   return (
     <AuthCard
-      title={isLogin ? 'Welcome back' : 'Create your account'}
+      title={isLogin ? 'Welcome Back' : 'Create Your Account'}
       description={
         isLogin
-          ? 'Sign in to your LearnFlow account to continue your learning journey.'
-          : 'Start learning, teaching, and growing with LearnFlow.'
+          ? 'Sign in to continue your learning journey.'
+          : 'Start your learning journey with LearnHub.'
       }
       footer={{
         text: isLogin ? "Don't have an account?" : 'Already have an account?',
-        linkText: isLogin ? 'Sign up' : 'Sign in',
+        linkText: isLogin ? 'Sign Up' : 'Login',
         linkOnClick: () => switchMode(isLogin ? 'register' : 'login')
       }}
     >

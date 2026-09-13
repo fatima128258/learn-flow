@@ -24,7 +24,7 @@ export const Container = React.forwardRef<HTMLDivElement, ContainerProps>(
     return (
       <div
         ref={ref}
-        className={`${sizeClass} mx-auto container-responsive w-full ${className}`.trim()}
+        className={`${sizeClass} mx-auto w-full px-4 sm:px-6 lg:px-8 ${className}`.trim()}
         {...rest}
       >
         {children}
