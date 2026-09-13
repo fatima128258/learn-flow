@@ -11,6 +11,7 @@ import { Badge, Button, Card, CardSkeleton, EmptyState, LinkButton, Skeleton } f
 import { Footer } from '@/components/layout/Footer';
 import { useToast } from '@/components/ui/ToastProvider';
 import { ApiError } from '@/lib/api';
+import { getCoursePricing } from '@/lib/coursePricing';
 
 export default function CheckoutPage() {
   const params = useParams<{ courseId: string }>();
@@ -67,8 +68,8 @@ export default function CheckoutPage() {
     );
   }
 
-  const hasDiscount = course.discountPrice !== null && course.discountPrice < course.price;
-  const finalAmount = hasDiscount ? (course.discountPrice ?? course.price) : course.price;
+  const { originalPrice, currentPrice, hasDiscount } = getCoursePricing(course.price, course.discountPrice);
+  const finalAmount = currentPrice ?? 0;
 
   if (order) {
     return (
@@ -164,15 +165,15 @@ export default function CheckoutPage() {
                   </dd>
                 </div>
                 <div className="flex items-start justify-between gap-4 border-t border-neutral-200 pt-3">
-                  <dt className="text-neutral-600">Price</dt>
-                  <dd className="text-right font-medium text-neutral-900">{currency(course.price)}</dd>
+                  <dt className="text-neutral-600">{hasDiscount ? 'Original price' : 'Price'}</dt>
+                  <dd className={`text-right font-medium${hasDiscount ? ' text-neutral-400 line-through' : ' text-neutral-900'}`}>
+                    {currency(originalPrice ?? 0)}
+                  </dd>
                 </div>
                 {hasDiscount && (
                   <div className="flex items-start justify-between gap-4">
-                    <dt className="text-neutral-600">Discount</dt>
-                    <dd className="text-right font-semibold text-success-700">
-                      −{currency(course.price - (course.discountPrice ?? course.price))}
-                    </dd>
+                    <dt className="text-neutral-600">Current price</dt>
+                    <dd className="text-right font-semibold text-success-700">{currency(finalAmount)}</dd>
                   </div>
                 )}
                 <div className="flex items-start justify-between gap-4 border-t border-neutral-200 pt-3">

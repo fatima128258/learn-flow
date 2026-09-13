@@ -39,6 +39,10 @@ vi.mock('../services/authService', () => ({
   getUserById: vi.fn(),
 }));
 
+vi.mock('../services/progressService', () => ({
+  getCourseProgress: vi.fn(),
+}));
+
 vi.mock('../prisma', () => ({
   default: () => prismaMock,
 }));
@@ -59,6 +63,7 @@ vi.mock('../storage', async (importOriginal) => {
 
 import app from '../server';
 import * as authService from '../services/authService';
+import * as progressService from '../services/progressService';
 
 const now = new Date('2026-08-28T12:00:00.000Z');
 
@@ -224,6 +229,9 @@ function setupEligibleFixtures(overrides: { completed?: boolean; existing?: bool
   prismaMock.courseProgress.findUnique.mockResolvedValue(
     completedCourseProgress({ completed: overrides.completed ?? true }),
   );
+  vi.mocked(progressService.getCourseProgress).mockResolvedValue({
+    courseComplete: overrides.completed ?? true,
+  } as Awaited<ReturnType<typeof progressService.getCourseProgress>>);
   prismaMock.certificate.findUnique.mockResolvedValue(
     overrides.existing ? certificateRecord() : null,
   );
@@ -394,6 +402,34 @@ describe('POST /api/v1/organizations/:organizationId/student/courses/:courseId/c
       where: { id: 'cert-1' },
       data: { pdfUrl: expect.stringContaining('certificate.pdf') },
     });
+  });
+
+  it('generates a certificate from computed completion when a failed quiz is exhausted', async () => {
+    await authenticateAs('STUDENT');
+    setupEligibleFixtures({ completed: false });
+    vi.mocked(progressService.getCourseProgress).mockResolvedValue({
+      courseComplete: true,
+    } as Awaited<ReturnType<typeof progressService.getCourseProgress>>);
+    prismaMock.certificate.create.mockResolvedValue(certificateRecord());
+    prismaMock.certificate.update.mockResolvedValue(certificateRecord());
+    prismaMock.quiz.findMany.mockResolvedValueOnce([{ id: 'quiz-1' }]);
+    prismaMock.quizAttempt.findMany.mockResolvedValueOnce([
+      {
+        quizId: 'quiz-1',
+        score: 4,
+        percentage: 40,
+        passed: false,
+        submittedAt: new Date('2026-08-28T12:00:00.000Z'),
+        quiz: { questions: [{ marks: 10 }] },
+      },
+    ]);
+
+    const res = await request(app).post(GENERATE_PATH).set('Cookie', cookie());
+
+    expect(res.status).toBe(201);
+    expect(res.body.data.passed).toBe(false);
+    expect(res.body.data.obtainedMarks).toBe(4);
+    expect(res.body.data.percentage).toBe(40);
   });
 });
 

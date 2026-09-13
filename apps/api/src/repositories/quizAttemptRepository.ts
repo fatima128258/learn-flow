@@ -14,7 +14,7 @@ export async function listByQuizAndUser(quizId: string, userId: string) {
 /** Attempts are always scoped to both the quiz and authenticated student. */
 export async function listResultsByQuizAndUser(quizId: string, userId: string) {
   return prisma().quizAttempt.findMany({
-    where: { quizId, userId },
+    where: { quizId, userId, status: 'COMPLETED' },
     orderBy: { attemptNumber: 'desc' },
     select: {
       id: true,

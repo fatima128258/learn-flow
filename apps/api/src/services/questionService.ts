@@ -84,11 +84,17 @@ function requireMarks(value: unknown) {
   if (value === undefined || value === null) {
     return 1;
   }
+
   const parsed = Number(value);
   if (!Number.isInteger(parsed) || parsed < 1) {
     throw new Error('INVALID_VALUE');
   }
+
   return parsed;
+}
+
+export function calculateQuizTotalMarks(questions: Array<{ marks: number }>) {
+  return questions.reduce((total, question) => total + question.marks, 0);
 }
 
 function requireOptionText(value: unknown) {

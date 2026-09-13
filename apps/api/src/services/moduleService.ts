@@ -19,6 +19,7 @@ interface ModuleListItemRecord {
   description: string | null;
   order: number;
   createdAt: Date;
+  lessons?: Array<{ duration: number | null }>;
 }
 
 function toModuleDto(module: ModuleRecord) {
@@ -33,6 +34,14 @@ function toModuleDto(module: ModuleRecord) {
   };
 }
 
+async function withDuration<T extends object>(module: T & { id: string; lessons?: Array<{ duration: number | null }> }) {
+  const { lessons, ...moduleData } = module;
+  return {
+    ...moduleData,
+    durationMinutes: (lessons ?? []).reduce((total, lesson) => total + (lesson.duration ?? 0), 0),
+  };
+}
+
 function toModuleListItemDto(module: ModuleListItemRecord) {
   return {
     id: module.id,
@@ -40,6 +49,7 @@ function toModuleListItemDto(module: ModuleListItemRecord) {
     description: module.description,
     order: module.order,
     createdAt: module.createdAt,
+    lessons: module.lessons,
   };
 }
 
@@ -78,7 +88,7 @@ export async function verifyCourseAccess(organizationId: string, courseId: strin
 export async function listModules(organizationId: string, courseId: string) {
   await verifyCourseAccess(organizationId, courseId);
   const modules = await moduleRepo.listByCourse(courseId);
-  return modules.map(toModuleListItemDto);
+  return Promise.all(modules.map(async (module) => withDuration(toModuleListItemDto(module))));
 }
 
 export async function getModule(organizationId: string, courseId: string, moduleId: string) {
@@ -87,7 +97,7 @@ export async function getModule(organizationId: string, courseId: string, module
   if (!module) {
     throw new Error('MODULE_NOT_FOUND');
   }
-  return toModuleDto(module);
+  return withDuration(toModuleDto(module));
 }
 
 export async function createModule(
@@ -111,7 +121,7 @@ export async function createModule(
       description: optionalString(input.description),
       order,
     });
-    return toModuleDto(module);
+    return withDuration(toModuleDto(module));
   } catch (err) {
     if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === 'P2002') {
       throw new Error('MODULE_ORDER_TAKEN');
@@ -161,7 +171,7 @@ export async function updateModule(
     if (!module) {
       throw new Error('MODULE_NOT_FOUND');
     }
-    return toModuleDto(module);
+    return withDuration(toModuleDto(module));
   } catch (err) {
     if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === 'P2002') {
       throw new Error('MODULE_ORDER_TAKEN');

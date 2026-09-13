@@ -229,6 +229,7 @@ type ModuleListItem = {
   order: number;
   createdAt: string;
   updatedAt: string;
+  durationMinutes: number;
 };
 
 type ListModulesResponse = {
@@ -632,6 +633,7 @@ export default function CourseModulesPage() {
                     <tr>
                       <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-neutral-500 w-16">Order</th>
                       <th className="w-72 px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-neutral-500">Title</th>
+                      <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-neutral-500">Duration</th>
                       <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-neutral-500">Description</th>
                       <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-neutral-500 w-20">Actions</th>
                     </tr>
@@ -645,6 +647,7 @@ export default function CourseModulesPage() {
                         <td className="w-72 max-w-72 px-6 py-4 text-sm font-medium text-primary-600 hover:text-primary-700" title={module.title}>
                           <span className="block truncate">{module.title}</span>
                         </td>
+                        <td className="px-6 py-4 text-sm text-neutral-700">{module.durationMinutes} min</td>
                         <td className="px-6 py-4 text-sm text-neutral-700 max-w-xs truncate" title={module.description ?? ''}>{module.description ?? '—'}</td>
                         <td className="px-6 py-4 relative pl-2" onClick={(e) => e.stopPropagation()}>
                           <ModuleActionsMenu
@@ -672,6 +675,7 @@ export default function CourseModulesPage() {
                     {module.description && (
                       <p className="mt-1 text-sm text-neutral-500">{module.description}</p>
                     )}
+                    <p className="mt-2 text-sm text-neutral-600">Duration: {module.durationMinutes} min</p>
                     <div className="mt-3 flex flex-wrap items-center gap-2 border-t border-neutral-100 pt-3">
                       <Link href={`${dashboardPrefix}/courses/${courseId}/modules/${module.id}/lessons${organizationId ? `?organization=${organizationId}` : ''}`} className="inline-flex items-center rounded-lg px-3 py-1.5 text-sm font-medium text-primary-600 hover:bg-primary-50 transition-colors">Lessons</Link>
                       <Link href={`${dashboardPrefix}/courses/${courseId}/modules/${module.id}/quizzes${organizationId ? `?organization=${organizationId}` : ''}`} className="inline-flex items-center rounded-lg px-3 py-1.5 text-sm font-medium text-primary-600 hover:bg-primary-50 transition-colors">Quizzes</Link>

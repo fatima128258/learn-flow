@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useCurrentUser } from '@/features/auth/useCurrentUser';
 import { useCourseOverview } from '@/features/student/useCourseStore';
 import { currency, type CourseOverview } from '@/lib/types';
+import { getCoursePricing } from '@/lib/coursePricing';
 import { Badge, Button, Card, CardSkeleton, EmptyState, ErrorState, LinkButton, Skeleton } from '@/components/ui';
 
 function StatBlock({ label, value }: { label: string; value: number }) {
@@ -17,7 +18,7 @@ function StatBlock({ label, value }: { label: string; value: number }) {
 }
 
 function OverviewBody({ course, checkoutHref }: { course: CourseOverview; checkoutHref: string }) {
-  const hasDiscount = course.discountPrice !== null && course.discountPrice < course.price;
+  const { originalPrice, currentPrice, hasDiscount } = getCoursePricing(course.price, course.discountPrice);
   return (
     <div className="overflow-hidden rounded-2xl border border-neutral-200 bg-white shadow-sm">
       <div className="border-b border-neutral-200 p-6 sm:p-8">
@@ -49,10 +50,10 @@ function OverviewBody({ course, checkoutHref }: { course: CourseOverview; checko
 
       <div className="flex flex-col gap-4 border-t border-neutral-200 bg-neutral-50 p-6 sm:flex-row sm:items-center sm:justify-between sm:p-8">
         <div className="flex items-baseline gap-3">
-          <span className="text-3xl font-bold text-neutral-900">{currency(course.price)}</span>
+          <span className="text-3xl font-bold text-neutral-900">{currency(currentPrice ?? 0)}</span>
           {hasDiscount && (
             <span className="text-sm font-medium text-neutral-400 line-through">
-              {currency(course.discountPrice ?? course.price)}
+              {currency(originalPrice ?? 0)}
             </span>
           )}
         </div>

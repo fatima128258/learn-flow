@@ -32,6 +32,7 @@ export async function listByCourse(courseId: string) {
       order: true,
       createdAt: true,
       updatedAt: true,
+      lessons: { select: { duration: true } },
     },
     orderBy: { order: 'asc' },
   });
@@ -40,6 +41,7 @@ export async function listByCourse(courseId: string) {
 export async function getById(courseId: string, moduleId: string) {
   return prisma().module.findFirst({
     where: { id: moduleId, courseId },
+    include: { lessons: { select: { duration: true } } },
   });
 }
 

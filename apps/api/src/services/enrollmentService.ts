@@ -3,6 +3,7 @@ import * as courseRepo from '../repositories/courseRepository';
 import * as authService from './authService';
 import { dispatchNotification } from './notificationDispatcher';
 import { record as recordAudit } from './auditLogService';
+import { getActiveCoursePrice } from '../utils/coursePricing';
 
 interface EnrollmentRecord {
   id: string;
@@ -72,8 +73,10 @@ export async function enroll(organizationId: string, userId: string, courseId: s
   }
 
   // Prevent free enrollment of paid courses
-  const coursePrice = course.discountPrice != null ? course.discountPrice : course.price;
-  const unitPrice = coursePrice == null ? 0 : Number(coursePrice);
+  const unitPrice = getActiveCoursePrice(
+    course.price == null ? null : Number(course.price),
+    course.discountPrice == null ? null : Number(course.discountPrice),
+  );
   if (unitPrice > 0) {
     throw new Error('COURSE_REQUIRES_PAYMENT');
   }

@@ -428,7 +428,7 @@ describe('GET /api/v1/organizations/:organizationId/student/courses/:courseId/mo
       attemptsRemaining: 1,
     })]);
     expect(prismaMock.quizAttempt.findMany).toHaveBeenCalledWith(
-      expect.objectContaining({ where: { quizId: 'quiz-1', userId: 'user-1' } }),
+      expect.objectContaining({ where: { quizId: 'quiz-1', userId: 'user-1', status: 'COMPLETED' } }),
     );
   });
 });
@@ -585,6 +585,13 @@ describe('POST /api/v1/organizations/:organizationId/student/courses/:courseId/m
     await setValidStudent();
     prismaMock.quiz.findUnique.mockResolvedValue(quizForGradingRecord());
     prismaMock.quizAttempt.count.mockResolvedValue(0);
+    prismaMock.quizAttempt.findFirst.mockResolvedValue({
+      id: 'attempt-1',
+      attemptNumber: 1,
+      startedAt: new Date(),
+      expiresAt: new Date(Date.now() + 30 * 60_000),
+      status: 'IN_PROGRESS',
+    });
     prismaMock.quizAttempt.create.mockResolvedValue({
       id: 'attempt-1',
       quizId: 'quiz-1',
@@ -627,6 +634,13 @@ describe('POST /api/v1/organizations/:organizationId/student/courses/:courseId/m
     await setValidStudent();
     prismaMock.quiz.findUnique.mockResolvedValue(quizForGradingRecord());
     prismaMock.quizAttempt.count.mockResolvedValue(0);
+    prismaMock.quizAttempt.findFirst.mockResolvedValue({
+      id: 'attempt-1',
+      attemptNumber: 1,
+      startedAt: new Date(),
+      expiresAt: new Date(Date.now() + 30 * 60_000),
+      status: 'IN_PROGRESS',
+    });
     prismaMock.quizAttempt.create.mockResolvedValue({
       id: 'attempt-1',
       quizId: 'quiz-1',
@@ -665,6 +679,13 @@ describe('POST /api/v1/organizations/:organizationId/student/courses/:courseId/m
     await setValidStudent();
     prismaMock.quiz.findUnique.mockResolvedValue(quizForGradingRecord());
     prismaMock.quizAttempt.count.mockResolvedValue(2);
+    prismaMock.quizAttempt.findFirst.mockResolvedValue({
+      id: 'attempt-3',
+      attemptNumber: 3,
+      startedAt: new Date(),
+      expiresAt: new Date(Date.now() + 30 * 60_000),
+      status: 'IN_PROGRESS',
+    });
     prismaMock.quizAttempt.create.mockResolvedValue({
       id: 'attempt-3',
       quizId: 'quiz-1',
@@ -691,18 +712,21 @@ describe('POST /api/v1/organizations/:organizationId/student/courses/:courseId/m
       });
     expect(res.status).toBe(201);
     expect(res.body.data.attemptNumber).toBe(3);
-    expect(prismaMock.quizAttempt.create).toHaveBeenCalledWith(
-      expect.objectContaining({
-        data: expect.objectContaining({ attemptNumber: 3 }),
-      }),
-    );
+    expect(prismaMock.quizAttempt.create).not.toHaveBeenCalled();
   });
 
   it('rejects duplicate simultaneous submissions with 409', async () => {
     await setValidStudent();
     prismaMock.quiz.findUnique.mockResolvedValue(quizForGradingRecord());
     prismaMock.quizAttempt.count.mockResolvedValue(0);
-    prismaMock.quizAttempt.create.mockRejectedValue({ code: 'P2002' });
+    prismaMock.quizAttempt.findFirst.mockResolvedValue({
+      id: 'attempt-1',
+      attemptNumber: 1,
+      startedAt: new Date(),
+      expiresAt: new Date(Date.now() + 30 * 60_000),
+      status: 'IN_PROGRESS',
+    });
+    prismaMock.quizAttempt.updateMany.mockResolvedValue({ count: 0 });
 
     const res = await request(app)
       .post(`${QUIZ_BASE}/attempts`)

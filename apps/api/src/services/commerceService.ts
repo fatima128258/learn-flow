@@ -3,6 +3,7 @@ import * as enrollmentRepo from '../repositories/enrollmentRepository';
 import * as orderRepo from '../repositories/orderRepository';
 import { processMockPayment } from './paymentService';
 import { dispatchNotification } from './notificationDispatcher';
+import { getActiveCoursePrice } from '../utils/coursePricing';
 
 function round2(value: number) {
   return Math.round(value * 100) / 100;
@@ -45,8 +46,10 @@ export async function purchaseCourse(organizationId: string, userId: string, cou
     throw new Error('ALREADY_PURCHASED');
   }
 
-  const rawPrice = course.discountPrice != null ? course.discountPrice : course.price;
-  const unitPrice = rawPrice == null ? 0 : Number(rawPrice);
+  const unitPrice = getActiveCoursePrice(
+    course.price == null ? null : Number(course.price),
+    course.discountPrice == null ? null : Number(course.discountPrice),
+  );
   const totalAmount = round2(unitPrice);
   const currency = 'USD';
 

@@ -42,6 +42,7 @@ type QuizForTaking = {
     used: number;
     remaining: number | null;
   };
+  activeAttempt: ActiveAttempt | null;
 };
 
 type AttemptResult = {
@@ -107,20 +108,11 @@ export default function StudentQuizTakingPage() {
       }
       const body = await res.json();
       setQuiz(body.data ?? null);
-      if (typeof window !== 'undefined') {
-        const saved = window.sessionStorage.getItem(`quiz-attempt:${qid}`);
-        if (saved) {
-          try {
-            const attempt = JSON.parse(saved) as ActiveAttempt;
-            if (attempt.attemptId) {
-              setActiveAttempt(attempt);
-              setStarted(true);
-              setExpired(Boolean(attempt.expiresAt && new Date(attempt.expiresAt).getTime() <= Date.now()));
-            }
-          } catch {
-            window.sessionStorage.removeItem(`quiz-attempt:${qid}`);
-          }
-        }
+      const attempt = body.data?.activeAttempt as ActiveAttempt | null | undefined;
+      if (attempt?.attemptId) {
+        setActiveAttempt(attempt);
+        setStarted(true);
+        setExpired(Boolean(attempt.expiresAt && new Date(attempt.expiresAt).getTime() <= Date.now()));
       }
     } catch {
       setError('Could not reach the server. Please try again.');
@@ -189,9 +181,6 @@ export default function StudentQuizTakingPage() {
       setActiveAttempt(attempt);
       setStarted(true);
       setCurrentQuestion(0);
-      if (typeof window !== 'undefined') {
-        window.sessionStorage.setItem(`quiz-attempt:${quizId}`, JSON.stringify(attempt));
-      }
     } catch {
       setError('Could not start the quiz. Please try again.');
     } finally {
@@ -230,6 +219,7 @@ export default function StudentQuizTakingPage() {
       toast.error(getQuizErrorMessage('ALL_QUESTIONS_REQUIRED'));
       return;
     }
+
     setSubmitting(true);
     try {
       const apiBase = '';
@@ -258,6 +248,16 @@ export default function StudentQuizTakingPage() {
     } finally {
       setSubmitting(false);
     }
+  }
+
+  function retryAttempt() {
+    setResult(null);
+    setAnswers({});
+    setActiveAttempt(null);
+    setStarted(false);
+    setExpired(false);
+    setCurrentQuestion(0);
+    void startAttempt();
   }
 
   if (loading) {
@@ -369,6 +369,11 @@ export default function StudentQuizTakingPage() {
                 >
                   &larr; Back to Module
                 </Link>
+                {!result.passed && (result.attemptsRemaining == null || result.attemptsRemaining > 0) && (
+                  <Button variant="primary" onClick={retryAttempt} loading={starting}>
+                    Retry Quiz
+                  </Button>
+                )}
               </div>
             </div>
           </div>

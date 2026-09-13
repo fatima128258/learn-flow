@@ -11,6 +11,7 @@ import {
   Input,
 } from '@/components/ui';
 import { useCurrentUser } from '@/features/auth/useCurrentUser';
+import { getCoursePricing } from '@/lib/coursePricing';
 
 type CourseHit = {
   id: string;
@@ -35,6 +36,16 @@ function formatPrice(value: number | null) {
   if (value === null || value === undefined) return 'Free';
   if (value === 0) return 'Free';
   return `$${Number(value).toFixed(2)}`;
+}
+
+function PriceDisplay({ price, discountPrice }: { price: number | null; discountPrice: number | null }) {
+  const { originalPrice, currentPrice, hasDiscount } = getCoursePricing(price, discountPrice);
+  return (
+    <span className="flex items-center gap-2">
+      <span>{formatPrice(currentPrice)}</span>
+      {hasDiscount && <span className="text-xs text-neutral-400 line-through">{formatPrice(originalPrice)}</span>}
+    </span>
+  );
 }
 
 export default function StudentSearchPage() {
@@ -251,7 +262,7 @@ export default function StudentSearchPage() {
                           ? `${Math.round(course.estimatedMinutes / 60)}h ${course.estimatedMinutes % 60}m`
                           : 'Self-paced'}
                       </span>
-                      <span className="font-semibold text-neutral-900">{formatPrice(course.price)}</span>
+                      <PriceDisplay price={course.price} discountPrice={course.discountPrice} />
                     </div>
                     <div className="mt-4">
                       {course.isEnrolled ? (

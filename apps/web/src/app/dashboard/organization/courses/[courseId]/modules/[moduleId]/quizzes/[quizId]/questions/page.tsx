@@ -679,9 +679,12 @@ export default function QuizQuestionsPage() {
                 Manage questions and answer options for this quiz.
               </p>
             </div>
-            <Button size="sm" onClick={() => setShowCreateModal(true)}>
-              Create Question
-            </Button>
+            <div className="flex items-center gap-3">
+              <div className="rounded-lg bg-primary-50 px-3 py-2 text-sm font-semibold text-primary-700">
+                Total marks: {questions?.reduce((total, question) => total + question.marks, 0) ?? 0}
+              </div>
+              <Button size="sm" onClick={() => setShowCreateModal(true)}>Create Question</Button>
+            </div>
           </div>
 
           {loading ? (

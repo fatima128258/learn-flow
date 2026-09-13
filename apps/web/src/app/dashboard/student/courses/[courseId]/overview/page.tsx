@@ -16,6 +16,7 @@ import { useToast } from '@/components/ui/ToastProvider';
 import { useEnroll, usePurchase } from '@/features/student/useEnrollment';
 import { getPurchaseErrorMessage } from '@/features/student/courseErrors';
 import { useCurrentUser } from '@/features/auth/useCurrentUser';
+import { getCoursePricing } from '@/lib/coursePricing';
 
 type CourseOverview = {
   id: string;
@@ -52,6 +53,18 @@ function formatDuration(minutes: number | null): string {
   if (hours === 0) return `${mins}m`;
   if (mins === 0) return `${hours}h`;
   return `${hours}h ${mins}m`;
+}
+
+function PriceDisplay({ price, discountPrice }: { price: number | null; discountPrice: number | null }) {
+  const { originalPrice, currentPrice, hasDiscount } = getCoursePricing(price, discountPrice);
+  return (
+    <span className="flex items-center gap-3">
+      <span className="text-2xl font-bold text-neutral-900">{formatPrice(currentPrice)}</span>
+      {hasDiscount && (
+        <span className="text-lg text-neutral-500 line-through">{formatPrice(originalPrice)}</span>
+      )}
+    </span>
+  );
 }
 
 export default function StudentCourseOverviewPage() {
@@ -256,14 +269,7 @@ export default function StudentCourseOverviewPage() {
             <div className="border-t border-neutral-200 bg-neutral-50 px-6 py-4">
               <div className="flex flex-wrap items-center justify-between gap-4">
                 <div className="flex items-center gap-3">
-                  <span className="text-2xl font-bold text-neutral-900">
-                    {formatPrice(course.price)}
-                  </span>
-                  {course.discountPrice && course.price && course.discountPrice < course.price && (
-                    <span className="text-lg text-neutral-500 line-through">
-                      {formatPrice(course.price)}
-                    </span>
-                  )}
+                  <PriceDisplay price={course.price} discountPrice={course.discountPrice} />
                 </div>
 
                 {course.isEnrolled ? (
@@ -280,7 +286,7 @@ export default function StudentCourseOverviewPage() {
                     loading={purchaseMutation.isPending}
                     loadingText="Processing..."
                   >
-                    Buy Now - {formatPrice(course.discountPrice ?? course.price)}
+                    Buy Now - {formatPrice(getCoursePricing(course.price, course.discountPrice).currentPrice)}
                   </Button>
                 ) : (
                   <Button

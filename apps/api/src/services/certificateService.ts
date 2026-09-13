@@ -10,6 +10,7 @@ import * as certificatePdfService from './certificatePdfService';
 import * as storage from '../storage';
 import { record as recordAudit } from './auditLogService';
 import { initializeServices } from './serviceInitializer';
+import * as progressService from './progressService';
 
 const API_BASE_URL = process.env.API_BASE_URL ?? 'http://localhost:4000';
 const APP_BASE_URL = process.env.APP_URL ?? 'http://localhost:3000';
@@ -103,12 +104,15 @@ async function verifyStudentEligibility(organizationId: string, userId: string, 
     throw new Error('STUDENT_NOT_ENROLLED');
   }
 
-  const courseProgress = await progressRepo.getCourseProgress(userId, courseId);
-  if (!courseProgress || !courseProgress.completed) {
+  const [courseProgress, computedProgress] = await Promise.all([
+    progressRepo.getCourseProgress(userId, courseId),
+    progressService.getCourseProgress(organizationId, userId, courseId),
+  ]);
+  if (!computedProgress.courseComplete) {
     throw new Error('COURSE_NOT_COMPLETED');
   }
 
-  return { course, courseProgress };
+  return { course, courseProgress, computedProgress };
 }
 
 async function getCourseAssessmentResult(userId: string, courseId: string) {
@@ -178,7 +182,7 @@ export async function generateCertificate(organizationId: string, userId: string
     );
     console.log('[CERTIFICATE] ✓ Eligibility verified:', {
       courseTitle: course.title,
-      completed: courseProgress.completed,
+      completed: true,
     });
 
     console.log('[CERTIFICATE] Step 2: Checking for existing certificate...');
@@ -202,7 +206,7 @@ export async function generateCertificate(organizationId: string, userId: string
       instructorName: instructor?.name,
     });
 
-    const issued = courseProgress.completedAt ?? new Date();
+    const issued = courseProgress?.completedAt ?? new Date();
 
     console.log('[CERTIFICATE] Step 4: Creating certificate record...');
     let certificate;

@@ -36,7 +36,17 @@ interface QuizTakingRecord {
   questions: QuizTakingQuestion[];
 }
 
-function toQuizTakingDto(quiz: QuizTakingRecord, attemptCount: number, maxAttempts: number | null) {
+function toQuizTakingDto(
+  quiz: QuizTakingRecord,
+  attemptCount: number,
+  maxAttempts: number | null,
+  activeAttempt: {
+    id: string;
+    attemptNumber: number;
+    startedAt: Date;
+    expiresAt: Date | null;
+  } | null,
+) {
   const attemptsRemaining =
     maxAttempts == null ? null : Math.max(0, maxAttempts - attemptCount);
 
@@ -64,7 +74,24 @@ function toQuizTakingDto(quiz: QuizTakingRecord, attemptCount: number, maxAttemp
       used: attemptCount,
       remaining: attemptsRemaining,
     },
+    activeAttempt: activeAttempt
+      ? {
+          attemptId: activeAttempt.id,
+          attemptNumber: activeAttempt.attemptNumber,
+          startedAt: activeAttempt.startedAt,
+          expiresAt: activeAttempt.expiresAt,
+        }
+      : null,
   };
+}
+
+async function getValidInProgressAttempt(quizId: string, userId: string) {
+  const attempt = await quizAttemptRepo.findInProgressAttempt(quizId, userId);
+  if (attempt?.expiresAt && new Date() >= attempt.expiresAt) {
+    await quizAttemptRepo.expireAttempt(attempt.id);
+    return null;
+  }
+  return attempt;
 }
 
 async function verifyQuizAttemptAccess(
@@ -114,16 +141,17 @@ export async function getQuizForTaking(
 ) {
   await verifyQuizAttemptAccess(organizationId, userId, courseId, moduleId, quizId);
 
-  const [quiz, attemptCount] = await Promise.all([
+  const [quiz, attemptCount, existingAttempt] = await Promise.all([
     quizAttemptRepo.getQuizWithQuestionsForTaking(quizId),
     quizAttemptRepo.countByQuizAndUser(quizId, userId),
+    getValidInProgressAttempt(quizId, userId),
   ]);
 
   if (!quiz) {
     throw new Error('QUIZ_NOT_FOUND');
   }
 
-  return toQuizTakingDto(quiz, attemptCount, quiz.maxAttempts);
+  return toQuizTakingDto(quiz, attemptCount, quiz.maxAttempts, existingAttempt);
 }
 
 export async function startQuizAttempt(
@@ -140,18 +168,14 @@ export async function startQuizAttempt(
     moduleId,
     quizId,
   );
-  const existing = await quizAttemptRepo.findInProgressAttempt(quizId, userId);
+  const existing = await getValidInProgressAttempt(quizId, userId);
   if (existing) {
-    if (existing.expiresAt && new Date() >= existing.expiresAt) {
-      await quizAttemptRepo.expireAttempt(existing.id);
-    } else {
-      return {
-        attemptId: existing.id,
-        attemptNumber: existing.attemptNumber,
-        startedAt: existing.startedAt,
-        expiresAt: existing.expiresAt,
-      };
-    }
+    return {
+      attemptId: existing.id,
+      attemptNumber: existing.attemptNumber,
+      startedAt: existing.startedAt,
+      expiresAt: existing.expiresAt,
+    };
   }
 
   const attemptCount = await quizAttemptRepo.countByQuizAndUser(quizId, userId);
@@ -249,7 +273,7 @@ export async function submitQuizAttempt(
   }
 
   const attemptCount = await quizAttemptRepo.countByQuizAndUser(quizId, userId);
-  let attempt: {
+  const attempt: {
     id: string;
     attemptNumber: number;
     startedAt: Date;
@@ -288,15 +312,6 @@ export async function submitQuizAttempt(
     throw new Error('INVALID_ANSWERS');
   }
 
-  if (!attempt) {
-    const started = await startQuizAttempt(organizationId, userId, courseId, moduleId, quizId);
-    attempt = {
-      id: started.attemptId,
-      attemptNumber: started.attemptNumber,
-      startedAt: started.startedAt,
-      expiresAt: started.expiresAt,
-    };
-  }
   if (!attempt) {
     throw new Error('ATTEMPT_NOT_STARTED');
   }
