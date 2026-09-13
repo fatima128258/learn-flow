@@ -21,7 +21,7 @@ export const LineChart: React.FC<LineChartProps> = ({
   data,
   className = '',
   height = 240,
-  color = '#10b981', // success-500 green
+  color = '#7a4a2e',
   showArea = true,
 }) => {
   if (!data || data.length === 0) {
@@ -174,6 +174,7 @@ export const LineChart: React.FC<LineChartProps> = ({
           strokeWidth="2"
           strokeLinecap="round"
           strokeLinejoin="round"
+          className="dashboard-chart-line"
         />
 
         {/* Data points */}

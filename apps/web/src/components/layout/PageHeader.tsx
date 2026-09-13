@@ -17,7 +17,7 @@ export const PageHeader: React.FC<PageHeaderProps> = ({
   className = '',
 }) => {
   return (
-    <div className={`bg-white border-b border-neutral-200 ${className}`.trim()}>
+    <div className={`dashboard-content-in bg-white border-b border-neutral-200 ${className}`.trim()}>
       <Container size="xl" className="py-6">
         {breadcrumbs && (
           <div className="mb-4">

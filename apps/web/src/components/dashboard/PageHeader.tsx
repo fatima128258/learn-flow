@@ -36,18 +36,18 @@ export const PageHeader: React.FC<PageHeaderProps> = ({
   className = '',
 }) => {
   return (
-    <div className={`mb-8 ${className}`.trim()}>
+    <div className={`dashboard-content-in mb-8 rounded-2xl border border-[#ead8c6] bg-[#fffaf5] px-5 py-5 shadow-sm sm:px-6 ${className}`.trim()}>
       {breadcrumbs && <div className="mb-4">{breadcrumbs}</div>}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div className="min-w-0">
-          <h1 className="flex items-baseline gap-2.5 text-2xl font-semibold tracking-tight text-neutral-900 sm:text-3xl">
+          <h1 className="flex items-baseline gap-2.5 text-2xl font-semibold tracking-tight text-[#17212b] sm:text-3xl">
             {title}
             {titleSuffix && (
-              <span className="text-base font-normal text-neutral-400">{titleSuffix}</span>
+              <span className="text-base font-normal text-[#a8784f]">{titleSuffix}</span>
             )}
           </h1>
           {description && (
-            <p className="mt-2 max-w-2xl text-sm leading-relaxed text-neutral-600 sm:text-base">
+            <p className="mt-2 max-w-2xl text-sm leading-relaxed text-[#5f6368] sm:text-base">
               {description}
             </p>
           )}

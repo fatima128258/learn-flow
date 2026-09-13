@@ -73,12 +73,13 @@ export default function DashboardPage() {
   }, [user, userLoading, router]);
 
   const busy = userLoading || summaryLoading;
+  const welcomeName = user?.name?.trim() || user?.email || 'there';
 
   // Don't render dashboard content until we confirm user is PLATFORM_ADMIN
   if (userLoading) {
     return (
       <div className="mx-auto max-w-6xl">
-        <PageHeader title="Platform Overview" />
+        <PageHeader title={`Welcome, ${welcomeName}`} />
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
           <StatCardSkeleton />
           <StatCardSkeleton />
@@ -108,7 +109,7 @@ export default function DashboardPage() {
   return (
     <div className="mx-auto max-w-6xl">
         <PageHeader
-          title="Platform Overview"
+          title={`Welcome, ${welcomeName}`}
         />
 
         {busy ? (
@@ -128,22 +129,23 @@ export default function DashboardPage() {
         ) : (
           <>
             <div className="mb-8 grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
-              <StatCard label="Total organizations" value={summary.organizations.total} icon={OrgIcon} tone="primary" hint="All registered" />
-              <StatCard label="Active organizations" value={summary.organizations.active} icon={OrgIcon} tone="success" hint="Currently active" />
-              <StatCard label="Suspended organizations" value={summary.organizations.suspended} icon={OrgIcon} tone="danger" hint="Currently suspended" />
+              <StatCard className="rounded-xl border-[#ead8c6] bg-[#fffaf5] p-4 shadow-[0_4px_14px_rgba(90,50,31,0.08)]" label="Total organizations" value={summary.organizations.total} icon={OrgIcon} tone="primary" hint="All registered" />
+              <StatCard className="rounded-xl border-[#ead8c6] bg-[#fffaf5] p-4 shadow-[0_4px_14px_rgba(90,50,31,0.08)]" label="Active organizations" value={summary.organizations.active} icon={OrgIcon} tone="success" hint="Currently active" />
+              <StatCard className="rounded-xl border-[#ead8c6] bg-[#fffaf5] p-4 shadow-[0_4px_14px_rgba(90,50,31,0.08)]" label="Suspended organizations" value={summary.organizations.suspended} icon={OrgIcon} tone="danger" hint="Currently suspended" />
             </div>
 
             <div className="mb-8">
               <ChartCard
+                className="rounded-xl border-[#ead8c6] bg-[#fffaf5] p-4 shadow-[0_4px_14px_rgba(90,50,31,0.08)]"
                 title="Organizations created this month"
                 description="Daily breakdown of new organization registrations"
               >
-                <LineChart data={chartData} color="#10b981" showArea={true} />
+                <LineChart data={chartData} color="#7A4A2E" showArea={true} />
               </ChartCard>
             </div>
 
             <div className="w-full">
-              <Calendar />
+              <Calendar className="rounded-xl border-[#ead8c6] bg-[#fffaf5] shadow-[0_4px_14px_rgba(90,50,31,0.08)]" />
             </div>
           </>
         )}

@@ -21,7 +21,7 @@ export const TableCard: React.FC<TableCardProps> = ({
   className = '',
 }) => {
   return (
-    <div className={`overflow-hidden rounded-2xl border border-neutral-200 bg-white shadow-sm ${className}`.trim()}>
+    <div className={`dashboard-content-in overflow-hidden rounded-2xl border border-neutral-200 bg-white shadow-sm ${className}`.trim()}>
       {(title || description || action) && (
         <div className="border-b border-neutral-200 px-5 py-4">
           <SectionHeader title={title ?? ''} description={description} action={action} />
@@ -39,4 +39,4 @@ export const tableHeadClass =
 
 export const tableCellClass = 'px-5 py-4 text-sm';
 
-export const tableRowHoverClass = 'hover:bg-neutral-50';
+export const tableRowHoverClass = 'transition-colors duration-200 hover:bg-primary-50/50';

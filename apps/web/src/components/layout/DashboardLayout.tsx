@@ -474,7 +474,7 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
           <ProfileAvatarMenu user={currentUser} />
         </header>
 
-        <main id="main-content" tabIndex={-1} className={`${contentClassName}`}>
+        <main id="main-content" tabIndex={-1} className={`dashboard-content-in ${contentClassName}`}>
           {children}
         </main>
       </div>

@@ -21,7 +21,7 @@ export const ChartCard: React.FC<ChartCardProps> = ({
   className = '',
 }) => {
   return (
-    <div className={`rounded-2xl border border-neutral-200 bg-white p-5 shadow-sm ${className}`.trim()}>
+    <div className={`dashboard-content-in rounded-2xl border border-neutral-200 bg-white p-5 shadow-sm ${className}`.trim()}>
       <SectionHeader title={title} description={description} action={action} className="mb-4" />
       {children}
     </div>

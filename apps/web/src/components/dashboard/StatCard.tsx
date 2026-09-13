@@ -44,7 +44,7 @@ export const StatCard: React.FC<StatCardProps> = ({
 }) => {
   return (
     <div
-      className={`rounded-2xl border border-neutral-200 bg-white p-5 shadow-sm transition-shadow hover:shadow-md ${className}`.trim()}
+      className={`dashboard-content-in rounded-2xl border border-neutral-200 bg-white p-5 shadow-sm transition duration-250 hover:-translate-y-1 hover:border-primary-200 hover:shadow-md ${className}`.trim()}
     >
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">

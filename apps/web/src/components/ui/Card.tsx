@@ -34,7 +34,7 @@ export const Card = React.forwardRef<HTMLDivElement, CardProps>(
     ref
   ) => {
     const baseStyles = 'bg-white rounded-lg border border-neutral-200';
-    const hoverStyles = hover ? 'transition-shadow hover:shadow-xl' : '';
+    const hoverStyles = hover ? 'transition duration-250 ease-out hover:-translate-y-1 hover:border-primary-200 hover:shadow-xl' : 'transition-shadow duration-200';
 
     return (
       <div
