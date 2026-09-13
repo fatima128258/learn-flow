@@ -129,6 +129,7 @@ export default function StudentSearchPage() {
   // Handle search input with minimal debouncing for instant feel
   const handleSearchInput = (value: string) => {
     setQuery(value);
+    setSubmittedQuery(value.trim());
     setSearchError(null);
     
     // Clear existing timeout
@@ -145,6 +146,8 @@ export default function StudentSearchPage() {
   // Clear search and reset to all courses
   const handleClearSearch = () => {
     setQuery('');
+    setSubmittedQuery('');
+    setResults(null);
     setSearchError(null);
     if (debounceRef.current) clearTimeout(debounceRef.current);
     if (organizationId) {
