@@ -117,20 +117,18 @@ async function getCourseAssessmentResult(userId: string, courseId: string) {
   }
 
   const attempts = (await progressRepo.listAttemptsForCourse(userId, courseId)) ?? [];
-  const latestPassedByQuiz = new Map<string, (typeof attempts)[number]>();
+  const latestAttemptByQuiz = new Map<string, (typeof attempts)[number]>();
   for (const attempt of attempts) {
-    if (attempt.passed && !latestPassedByQuiz.has(attempt.quizId)) {
-      latestPassedByQuiz.set(attempt.quizId, attempt);
-    }
+    latestAttemptByQuiz.set(attempt.quizId, attempt);
   }
 
-  if (latestPassedByQuiz.size === 0) {
+  if (latestAttemptByQuiz.size === 0) {
     return { totalMarks: null, obtainedMarks: null, percentage: null, passed: null };
   }
 
   let totalMarks = 0;
   let obtainedMarks = 0;
-  for (const attempt of latestPassedByQuiz.values()) {
+  for (const attempt of latestAttemptByQuiz.values()) {
     const quizTotal = (attempt.quiz?.questions ?? []).reduce(
       (sum: number, question: { marks: number }) => sum + question.marks,
       0,
@@ -143,7 +141,7 @@ async function getCourseAssessmentResult(userId: string, courseId: string) {
     totalMarks,
     obtainedMarks,
     percentage: totalMarks === 0 ? 0 : (obtainedMarks / totalMarks) * 100,
-    passed: [...latestPassedByQuiz.values()].every((attempt) => attempt.passed),
+    passed: [...latestAttemptByQuiz.values()].every((attempt) => attempt.passed),
   };
 }
 

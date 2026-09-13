@@ -86,6 +86,20 @@ async function computeCourseProgress(
     attempts.filter((attempt: { passed: boolean | null }) => attempt.passed === true)
       .map((attempt: { quizId: string }) => attempt.quizId),
   );
+  const exhaustedAttemptsByQuiz = new Map<string, { count: number; maxAttempts: number | null }>();
+  for (const attempt of attempts) {
+    const current = exhaustedAttemptsByQuiz.get(attempt.quizId);
+    exhaustedAttemptsByQuiz.set(attempt.quizId, {
+      count: (current?.count ?? 0) + 1,
+      maxAttempts: attempt.quiz?.maxAttempts ?? current?.maxAttempts ?? null,
+    });
+  }
+  const exhaustedFailedQuizIds = new Set(
+    Array.from(exhaustedAttemptsByQuiz.entries())
+      .filter(([, state]) => state.maxAttempts !== null && state.count >= state.maxAttempts)
+      .map(([quizId]) => quizId),
+  );
+  const completedQuizIds = new Set([...passedQuizIds, ...exhaustedFailedQuizIds]);
 
   // OPTIMIZATION: Batch query all lessons instead of N+1 loop
   const moduleIds = modules.map((m: { id: string }) => m.id);
@@ -130,7 +144,7 @@ async function computeCourseProgress(
       ? contentItems.filter((item) =>
         item.type === 'LESSON'
           ? completedLessonIds.has(item.lessonId ?? '')
-          : passedQuizIds.has(item.quizId ?? ''),
+          : completedQuizIds.has(item.quizId ?? ''),
       ).length
       : moduleCompleted;
     const moduleDenominator = contentItems.length > 0 ? contentItems.length : lessons.length;
@@ -157,7 +171,7 @@ async function computeCourseProgress(
   if (items.length > 0) {
     totalContentItems = items.length;
     completedContentItems = items.filter((item: any) =>
-      item.type === 'LESSON' ? completedLessonIds.has(item.lessonId) : passedQuizIds.has(item.quizId),
+      item.type === 'LESSON' ? completedLessonIds.has(item.lessonId) : completedQuizIds.has(item.quizId),
     ).length;
   }
   const denominator = totalContentItems > 0 ? totalContentItems : totalLessons;

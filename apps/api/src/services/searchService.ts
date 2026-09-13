@@ -1,5 +1,4 @@
 import * as searchRepo from '../repositories/searchRepository';
-import * as enrollmentRepo from '../repositories/enrollmentRepository';
 import { categoryLabel } from '../utils/categoryLabel';
 import { parsePagination, parseSort, buildMeta } from '../utils/pagination';
 
@@ -38,6 +37,7 @@ function toCourseSearchDto(course: {
   learningObjectives: string[];
   status: string;
   publishedAt: Date | null;
+  enrollments?: { id: string }[];
 }, isEnrolled = false) {
   return {
     id: course.id,
@@ -86,28 +86,12 @@ export async function searchCourses(organizationId: string, userId: string, rawI
   ]);
 
   const [results, total] = await Promise.all([
-    searchRepo.searchPublishedCourses(organizationId, filters, { skip, take, orderBy }),
+    searchRepo.searchPublishedCourses(organizationId, filters, { skip, take, orderBy }, userId),
     searchRepo.countPublishedCourses(organizationId, filters),
   ]);
 
-  // Get enrollment status for each course for the current user
-  const courseIds = results.map(course => course.id);
-  const enrollments = await Promise.all(
-    courseIds.map(courseId => enrollmentRepo.findByUserAndCourse(userId, courseId))
-  );
-
-  // Create lookup map for efficient enrollment checking
-  const enrollmentMap = new Map<string, boolean>();
-  enrollments.forEach((enrollment, index) => {
-    if (enrollment && enrollment.organizationId === organizationId) {
-      enrollmentMap.set(courseIds[index], true);
-    }
-  });
-
   return {
-    items: results.map(course => 
-      toCourseSearchDto(course, enrollmentMap.get(course.id) || false)
-    ),
+    items: results.map(course => toCourseSearchDto(course, (course.enrollments?.length ?? 0) > 0)),
     meta: buildMeta(page, limit, total),
   };
 }

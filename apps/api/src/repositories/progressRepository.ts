@@ -163,6 +163,7 @@ export async function listAttemptsForCourse(userId: string, courseId: string) {
           moduleId: true,
           title: true,
           passingPercentage: true,
+          maxAttempts: true,
           questions: {
             select: { marks: true },
           },

@@ -78,6 +78,7 @@ export async function searchPublishedCourses(
   organizationId: string,
   filters: SearchFilters,
   options: SearchOptions = {},
+  userId?: string,
 ) {
   return prisma().course.findMany({
     where: buildWhere(organizationId, filters),
@@ -95,6 +96,15 @@ export async function searchPublishedCourses(
           slug: true,
         },
       },
+      ...(userId
+        ? {
+            enrollments: {
+              where: { userId },
+              select: { id: true },
+              take: 1,
+            },
+          }
+        : {}),
     },
     orderBy: options.orderBy ?? { publishedAt: 'desc' },
     skip: options.skip,

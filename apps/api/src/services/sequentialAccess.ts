@@ -29,12 +29,28 @@ export async function getSequenceState(userId: string, courseId: string) {
     progressRepo.listAttemptsForCourse(userId, courseId),
   ]);
   const completedLessons = new Set(lessons.map((row: { lessonId: string }) => row.lessonId));
-  const passedQuizzes = new Set(attempts.filter((row: { passed: boolean | null }) => row.passed === true).map((row: { quizId: string }) => row.quizId));
+  const quizAttempts = new Map<string, { count: number; maxAttempts: number | null }>();
+  for (const row of attempts as Array<{ quizId: string; passed: boolean | null; quiz?: { maxAttempts: number | null } }>) {
+    const current = quizAttempts.get(row.quizId);
+    quizAttempts.set(row.quizId, {
+      count: (current?.count ?? 0) + 1,
+      maxAttempts: row.quiz?.maxAttempts ?? current?.maxAttempts ?? null,
+    });
+  }
+  const completedQuizzes = new Set(
+    Array.from(quizAttempts.entries())
+      .filter(([quizId, state]) =>
+        attempts.some((row: { quizId: string; passed: boolean | null }) =>
+          row.quizId === quizId && row.passed === true,
+        ) || (state.maxAttempts !== null && state.count >= state.maxAttempts),
+      )
+      .map(([quizId]) => quizId),
+  );
   let previousComplete = true;
   return sequence.map((item: SequenceRow & { moduleId: string }) => {
     const completed = item.type === 'LESSON'
       ? completedLessons.has(item.id)
-      : passedQuizzes.has(item.id);
+      : completedQuizzes.has(item.id);
     const state = completed ? 'completed' : previousComplete ? 'current' : 'locked';
     if (!completed) previousComplete = false;
     return { ...item, completed, state, unlocked: state !== 'locked' };

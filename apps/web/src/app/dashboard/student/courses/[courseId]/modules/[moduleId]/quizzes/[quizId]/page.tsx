@@ -59,6 +59,13 @@ type AttemptResult = {
   attemptsRemaining: number | null;
 };
 
+type ActiveAttempt = {
+  attemptId: string;
+  attemptNumber: number;
+  startedAt: string;
+  expiresAt: string | null;
+};
+
 export default function StudentQuizTakingPage() {
   const params = useParams();
   const courseId = typeof params.courseId === 'string' ? params.courseId : null;
@@ -74,6 +81,12 @@ export default function StudentQuizTakingPage() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [organizationId, setOrganizationId] = useState<string | null>(null);
+  const [activeAttempt, setActiveAttempt] = useState<ActiveAttempt | null>(null);
+  const [started, setStarted] = useState(false);
+  const [currentQuestion, setCurrentQuestion] = useState(0);
+  const [remainingSeconds, setRemainingSeconds] = useState<number | null>(null);
+  const [starting, setStarting] = useState(false);
+  const [expired, setExpired] = useState(false);
 
   async function loadQuiz(orgId: string, cid: string, mid: string, qid: string) {
     try {
@@ -94,11 +107,20 @@ export default function StudentQuizTakingPage() {
       }
       const body = await res.json();
       setQuiz(body.data ?? null);
-      if ((body.data?.attempts?.remaining ?? 1) !== 0) {
-        await fetch(
-          `${apiBase}/api/v1/organizations/${orgId}/student/courses/${cid}/modules/${mid}/quizzes/${qid}/attempts/start`,
-          { method: 'POST', credentials: 'include' },
-        );
+      if (typeof window !== 'undefined') {
+        const saved = window.sessionStorage.getItem(`quiz-attempt:${qid}`);
+        if (saved) {
+          try {
+            const attempt = JSON.parse(saved) as ActiveAttempt;
+            if (attempt.attemptId) {
+              setActiveAttempt(attempt);
+              setStarted(true);
+              setExpired(Boolean(attempt.expiresAt && new Date(attempt.expiresAt).getTime() <= Date.now()));
+            }
+          } catch {
+            window.sessionStorage.removeItem(`quiz-attempt:${qid}`);
+          }
+        }
       }
     } catch {
       setError('Could not reach the server. Please try again.');
@@ -126,13 +148,11 @@ export default function StudentQuizTakingPage() {
     }
     
     setOrganizationId(orgId);
-    if (courseId && moduleId && quizId) loadQuiz(orgId, courseId, moduleId, quizId);
   }, [user, userLoading, courseId, moduleId, quizId]);
 
   // Load quiz data
   useEffect(() => {
     if (!organizationId || !courseId || !moduleId || !quizId) {
-      setLoading(false);
       return;
     }
     let active = true;
@@ -150,6 +170,54 @@ export default function StudentQuizTakingPage() {
       active = false;
     };
   }, [organizationId, courseId, moduleId, quizId]);
+
+  async function startAttempt() {
+    if (!organizationId || !courseId || !moduleId || !quizId || !quiz || starting) return;
+    setStarting(true);
+    setError(null);
+    try {
+      const res = await fetch(
+        `/api/v1/organizations/${organizationId}/student/courses/${courseId}/modules/${moduleId}/quizzes/${quizId}/attempts/start`,
+        { method: 'POST', credentials: 'include' },
+      );
+      const body = await res.json();
+      if (!res.ok) {
+        setError(getQuizErrorMessage(body?.error));
+        return;
+      }
+      const attempt = body.data as ActiveAttempt;
+      setActiveAttempt(attempt);
+      setStarted(true);
+      setCurrentQuestion(0);
+      if (typeof window !== 'undefined') {
+        window.sessionStorage.setItem(`quiz-attempt:${quizId}`, JSON.stringify(attempt));
+      }
+    } catch {
+      setError('Could not start the quiz. Please try again.');
+    } finally {
+      setStarting(false);
+    }
+  }
+
+  useEffect(() => {
+    if (!started || !activeAttempt?.expiresAt) return;
+    const updateRemaining = () => {
+      const seconds = Math.max(0, Math.ceil((new Date(activeAttempt.expiresAt!).getTime() - Date.now()) / 1000));
+      setRemainingSeconds(seconds);
+      if (seconds === 0) setExpired(true);
+    };
+    updateRemaining();
+    const timer = window.setInterval(updateRemaining, 1000);
+    return () => window.clearInterval(timer);
+  }, [started, activeAttempt]);
+
+  useEffect(() => {
+    if (userLoading || organizationId) return;
+    if (user && user.role === 'STUDENT' && user.organizationId && (!courseId || !moduleId || !quizId)) {
+      setError('The quiz link is incomplete. Please return to the module and open the quiz again.');
+      setLoading(false);
+    }
+  }, [user, userLoading, organizationId, courseId, moduleId, quizId]);
 
   function selectOption(questionId: string, optionId: string) {
     if (result) return;
@@ -204,6 +272,11 @@ export default function StudentQuizTakingPage() {
   const attemptsRemaining = quiz?.attempts.remaining ?? null;
   const answeredCount = Object.keys(answers).length;
   const totalQuestions = quiz?.questions.length ?? 0;
+  const question = quiz?.questions[currentQuestion];
+  const isLastQuestion = currentQuestion === totalQuestions - 1;
+  const formattedTime = remainingSeconds == null
+    ? null
+    : `${Math.floor(remainingSeconds / 60).toString().padStart(2, '0')}:${(remainingSeconds % 60).toString().padStart(2, '0')}`;
 
   return (
     <div className="mx-auto max-w-6xl">
@@ -301,7 +374,7 @@ export default function StudentQuizTakingPage() {
           </div>
         ) : null}
 
-        {quiz && !result && attemptsRemaining !== 0 ? (
+        {quiz && !result && attemptsRemaining !== 0 && !started ? (
           <>
             <div className="mb-6 rounded-2xl border border-neutral-200 bg-white p-6 shadow-sm">
               <div className="flex flex-wrap items-center gap-2 mb-2">
@@ -329,12 +402,33 @@ export default function StudentQuizTakingPage() {
               </p>
             </div>
 
-            <div className="space-y-4">
-              {quiz.questions.map((question, qIndex) => (
-                <div key={question.id} className="rounded-2xl border border-neutral-200 bg-white p-6 shadow-sm">
+            <div className="rounded-2xl border border-neutral-200 bg-white p-8 shadow-sm">
+              <div className="flex flex-wrap items-center justify-between gap-4">
+                <div>
+                  <p className="text-sm font-medium text-neutral-500">Ready to begin?</p>
+                  <p className="mt-1 text-sm text-neutral-600">Your attempt and timer start when you click the button.</p>
+                </div>
+                <Button variant="primary" onClick={startAttempt} loading={starting}>
+                  Start Quiz
+                </Button>
+              </div>
+            </div>
+          </>
+        ) : null}
+
+        {quiz && !result && started && question && !expired ? (
+          <>
+            <div className="mb-6 flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-neutral-200 bg-white p-5 shadow-sm">
+              <div>
+                <p className="text-sm font-medium text-neutral-500">Question {currentQuestion + 1} of {totalQuestions}</p>
+                <h2 className="mt-1 text-xl font-semibold text-neutral-900">{quiz.title}</h2>
+              </div>
+              {formattedTime && <Badge variant={remainingSeconds != null && remainingSeconds < 60 ? 'warning' : 'info'} size="sm">Timer {formattedTime}</Badge>}
+            </div>
+            <div className="rounded-2xl border border-neutral-200 bg-white p-6 shadow-sm">
                   <div className="mb-4 flex items-start justify-between gap-3">
                     <h3 className="font-semibold text-neutral-900">
-                      <span className="mr-2 text-neutral-400">{qIndex + 1}.</span>
+                      <span className="mr-2 text-neutral-400">{currentQuestion + 1}.</span>
                       {question.questionText}
                     </h3>
                     <Badge variant="default" size="sm">{question.marks} pt{question.marks !== 1 ? 's' : ''}</Badge>
@@ -357,11 +451,7 @@ export default function StudentQuizTakingPage() {
                             <span className={`flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full border ${
                               selected ? 'border-primary-500 bg-primary-500' : 'border-neutral-300 bg-white'
                             }`}>
-                              {selected && (
-                                <svg className="h-3 w-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
-                                </svg>
-                              )}
+                              {selected && <span className="h-2 w-2 rounded-full bg-white" />}
                             </span>
                             <span className="text-sm text-neutral-800">{option.text}</span>
                           </span>
@@ -370,34 +460,32 @@ export default function StudentQuizTakingPage() {
                     })}
                   </div>
                 </div>
-              ))}
-            </div>
 
-            <div className="mt-6 rounded-2xl border border-neutral-200 bg-white p-6 shadow-sm">
-              <div className="flex flex-wrap items-center justify-between gap-4">
-                <div className="text-sm text-neutral-500">
-                  Answered {answeredCount} of {totalQuestions} question{totalQuestions !== 1 ? 's' : ''}
-                </div>
-                <div className="flex items-center gap-3">
-                  <Button
-                    variant="secondary"
-                    onClick={() => setAnswers({})}
-                    disabled={submitting}
-                  >
-                    Reset
-                  </Button>
-                  <Button
-                    variant="primary"
-                    onClick={submitAttempt}
-                    loading={submitting}
-                    disabled={answeredCount === 0}
-                  >
+            <div className="mt-6 flex items-center justify-between rounded-2xl border border-neutral-200 bg-white p-5 shadow-sm">
+              <span className="text-sm text-neutral-500">Answered {answeredCount} of {totalQuestions}</span>
+              <div className="flex gap-3">
+                <Button variant="secondary" onClick={() => setCurrentQuestion((index) => Math.max(0, index - 1))} disabled={currentQuestion === 0 || submitting}>
+                  Previous
+                </Button>
+                {isLastQuestion ? (
+                  <Button variant="primary" onClick={submitAttempt} loading={submitting} disabled={answeredCount !== totalQuestions}>
                     Submit Quiz
                   </Button>
-                </div>
+                ) : (
+                  <Button variant="primary" onClick={() => setCurrentQuestion((index) => index + 1)} disabled={!answers[question.id] || submitting}>
+                    Next
+                  </Button>
+                )}
               </div>
             </div>
           </>
+        ) : null}
+
+        {quiz && !result && started && expired ? (
+          <div className="rounded-2xl border border-warning-200 bg-warning-50 p-6 shadow-sm">
+            <h2 className="text-lg font-semibold text-warning-900">Time is up</h2>
+            <p className="mt-2 text-sm text-warning-800">Your quiz attempt has expired. Please reload to view the latest attempt state.</p>
+          </div>
         ) : null}
         {quiz && !result && attemptsRemaining === 0 ? (
           <div className="rounded-2xl border border-warning-200 bg-warning-50 p-6 shadow-sm">

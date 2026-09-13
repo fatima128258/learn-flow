@@ -48,6 +48,8 @@ export default function StudentSearchPage() {
   const [navigatingCourseId, setNavigatingCourseId] = useState<string | null>(null);
   const router = useRouter();
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const requestRef = useRef<AbortController | null>(null);
+  const requestIdRef = useRef(0);
 
   // Check auth and set organizationId
   useEffect(() => {
@@ -72,33 +74,41 @@ export default function StudentSearchPage() {
     setOrganizationId(orgId);
   }, [user, userLoading]);
 
-  async function runSearch(e?: React.FormEvent) {
+  async function runSearch(e?: React.FormEvent, searchTerm = query) {
     if (e) e.preventDefault();
     if (!organizationId) return;
 
+    const requestId = ++requestIdRef.current;
+    requestRef.current?.abort();
+    const controller = new AbortController();
+    requestRef.current = controller;
     setLoading(true);
     setSearchError(null);
     try {
       const apiBase = '';
       const params = new URLSearchParams();
-      if (query.trim()) params.set('q', query.trim());
+      const normalizedTerm = searchTerm.trim();
+      if (normalizedTerm) params.set('q', normalizedTerm);
       const qs = params.toString();
 
       const res = await fetch(
         `${apiBase}/api/v1/organizations/${organizationId}/student/search${qs ? `?${qs}` : ''}`,
-        { credentials: 'include' },
+        { credentials: 'include', signal: controller.signal },
       );
+      if (requestId !== requestIdRef.current) return;
       if (!res.ok) {
         setSearchError('Could not search courses. Please try again.');
         return;
       }
       const body = await res.json();
       setResults(body.data ?? []);
-      setSubmittedQuery(query.trim());
-    } catch {
+      setSubmittedQuery(normalizedTerm);
+    } catch (error) {
+      if (error instanceof DOMException && error.name === 'AbortError') return;
+      if (requestId !== requestIdRef.current) return;
       setSearchError('Could not reach the server. Please try again.');
     } finally {
-      setLoading(false);
+      if (requestId === requestIdRef.current) setLoading(false);
     }
   }
 
@@ -112,6 +122,7 @@ export default function StudentSearchPage() {
   useEffect(() => {
     return () => {
       if (debounceRef.current) clearTimeout(debounceRef.current);
+      requestRef.current?.abort();
     };
   }, []);
 
@@ -123,12 +134,12 @@ export default function StudentSearchPage() {
     // Clear existing timeout
     if (debounceRef.current) clearTimeout(debounceRef.current);
     
-    // Minimal debounce (50ms) to prevent excessive API calls while maintaining instant feel
+    // Wait briefly for the user to finish typing, then cancel any stale request.
     debounceRef.current = setTimeout(() => {
       if (organizationId) {
-        runSearch();
+        runSearch(undefined, value);
       }
-    }, 50);
+    }, 250);
   };
 
   // Clear search and reset to all courses
@@ -137,8 +148,7 @@ export default function StudentSearchPage() {
     setSearchError(null);
     if (debounceRef.current) clearTimeout(debounceRef.current);
     if (organizationId) {
-      setLoading(true);
-      runSearch();
+      runSearch(undefined, '');
     }
   };
 
@@ -154,7 +164,7 @@ export default function StudentSearchPage() {
             onKeyDown={(e) => {
               if (e.key === 'Enter') {
                 if (debounceRef.current) clearTimeout(debounceRef.current);
-                runSearch();
+                runSearch(undefined, query);
               }
             }}
           />
