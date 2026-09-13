@@ -110,6 +110,7 @@ export default function DashboardPage() {
     <div className="mx-auto max-w-6xl">
         <PageHeader
           title={`Welcome, ${welcomeName}`}
+          className="-mt-4 mb-3 py-0"
         />
 
         {busy ? (

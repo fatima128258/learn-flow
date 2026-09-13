@@ -36,7 +36,7 @@ export const PageHeader: React.FC<PageHeaderProps> = ({
   className = '',
 }) => {
   return (
-    <div className={`dashboard-content-in mb-8 rounded-2xl border border-[#ead8c6] bg-[#fffaf5] px-5 py-5 shadow-sm sm:px-6 ${className}`.trim()}>
+    <div className={`dashboard-content-in mb-8 px-1 py-2 ${className}`.trim()}>
       {breadcrumbs && <div className="mb-4">{breadcrumbs}</div>}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div className="min-w-0">

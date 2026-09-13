@@ -168,7 +168,12 @@ export async function loginUser({ email, password, ip = '127.0.0.1' }: { email: 
   const expiresAt = new Date(Date.now() + SESSION_TTL_SECONDS * 1000);
   const session = await repo.createSession({ userId: user.id, tokenHash, expiresAt });
   const redis = getRedis();
-  await redis.del(`rl:login:ip:${ip}`);
+  try {
+    await redis.del(`rl:login:ip:${ip}`);
+  } catch (err) {
+    // Rate-limit cleanup is non-critical after a successful login.
+    console.warn(`[loginUser] Unable to clear login rate limit: ${err instanceof Error ? err.message : err}`);
+  }
 
   await recordAudit({
     action: 'LOGIN',

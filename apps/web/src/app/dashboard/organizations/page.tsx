@@ -307,6 +307,7 @@ export default function OrganizationsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
+  const [createdDate, setCreatedDate] = useState('');
 
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [newName, setNewName] = useState('');
@@ -689,6 +690,8 @@ export default function OrganizationsPage() {
   const normalizedSearch = searchTerm.trim().toLowerCase();
   const filteredOrganizations = organizations
     ? organizations.filter((org) => {
+        const matchesDate = !createdDate || org.createdAt.slice(0, 10) === createdDate;
+        if (!matchesDate) return false;
         if (!normalizedSearch) return true;
         const adminMatch = org.admins?.some((admin) => admin.email.toLowerCase().includes(normalizedSearch)) ?? false;
         return (
@@ -711,18 +714,29 @@ export default function OrganizationsPage() {
 
   return (
     <>
-      <PageHeader title="Organizations" />
+      <h1 className="mb-4 px-1 text-2xl font-semibold tracking-tight text-[#17212b] sm:text-3xl">
+        Organizations
+      </h1>
       <div className="mx-auto max-w-5xl">
         <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <div className="max-w-sm">
+          <div className="flex flex-1 flex-col gap-3 sm:flex-row sm:items-center">
             <Input
               variant="line"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               placeholder="Search by name, admin email"
+              className="sm:max-w-sm"
+            />
+            <Input
+              variant="line"
+              type="date"
+              value={createdDate}
+              onChange={(e) => setCreatedDate(e.target.value)}
+              aria-label="Search by created date"
+              className="sm:max-w-xs"
             />
           </div>
-          <Button size="sm" onClick={() => setShowCreateModal(true)}>
+          <Button className="border-0" size="sm" onClick={() => setShowCreateModal(true)}>
             Create Organization
           </Button>
         </div>
