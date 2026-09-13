@@ -147,7 +147,7 @@ export const Navbar: React.FC = () => {
               href="/login"
               variant="secondary"
               size="sm"
-              className="h-11 rounded-full border border-[#dfc8b5] !bg-[#fffdf9] px-6 !text-[#563522] transition duration-200 hover:-translate-y-px hover:!bg-[#f7eee6]"
+              className="h-11 rounded-full !bg-[#fffdf9] px-6 !text-[#563522] transition duration-200 hover:-translate-y-px hover:!bg-[#f7eee6]"
               showLoading
               loadingText="Loading..."
             >
@@ -210,7 +210,7 @@ export const Navbar: React.FC = () => {
                   variant="secondary"
                   size="md"
                   fullWidth
-                  className="rounded-full border-[#d9c1a9] !bg-[#fffdf9] !text-[#4d382d] hover:!bg-[#f5eae0]"
+                  className="rounded-full !bg-[#fffdf9] !text-[#4d382d] hover:!bg-[#f5eae0]"
                   showLoading
                   loadingText="Loading..."
                   onClick={closeMenu}

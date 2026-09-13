@@ -12,7 +12,7 @@ export interface AuthLayoutProps {
 
 export const AuthLayout: React.FC<AuthLayoutProps> = ({ children, hideChrome = false, noScroll = false }) => {
   return (
-    <div className={`flex min-h-screen flex-col overflow-x-hidden bg-[#fff9f0] ${noScroll ? 'lg:min-h-0 lg:h-screen lg:overflow-hidden' : ''}`}>
+    <div className={`flex min-h-screen flex-col overflow-x-hidden bg-[#fff9f0] ${noScroll ? 'lg:h-screen' : ''}`}>
       {!hideChrome && (
         <>
           <Navbar />
@@ -21,7 +21,7 @@ export const AuthLayout: React.FC<AuthLayoutProps> = ({ children, hideChrome = f
         </>
       )}
 
-      <main className={`relative flex flex-1 justify-center px-4 py-8 sm:px-6 lg:px-8 ${noScroll ? 'items-center overflow-hidden lg:min-h-0 lg:py-4' : 'items-start overflow-y-auto'}`}>
+      <main className={`relative flex min-h-0 flex-1 justify-center px-4 py-8 sm:px-6 lg:px-8 ${noScroll ? 'items-center overflow-y-auto lg:py-4' : 'items-start overflow-y-auto'}`}>
         <div className="pointer-events-none absolute -left-24 top-16 h-72 w-72 rounded-full bg-[#f5ebdd] blur-3xl" />
         <div className="pointer-events-none absolute -right-24 bottom-10 h-80 w-80 rounded-full bg-[#f8e8d5] blur-3xl" />
         <div className="relative mx-auto w-full max-w-6xl animate-fade-in">

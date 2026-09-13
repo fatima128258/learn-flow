@@ -13,20 +13,20 @@ export interface ToastProps {
 
 const variantStyles: Record<ToastVariant, { container: string; icon: string }> = {
   info: {
-    container: 'bg-white border-blue-200 shadow-lg',
-    icon: 'text-blue-600',
+    container: 'bg-[#fffaf5] border-[#ead8c6] shadow-[0_12px_30px_rgba(90,50,31,0.14)]',
+    icon: 'text-[#7a4a2a]',
   },
   success: {
-    container: 'bg-white border-success-200 shadow-lg',
-    icon: 'text-success-600',
+    container: 'bg-[#fffaf5] border-[#d8c3a6] shadow-[0_12px_30px_rgba(90,50,31,0.14)]',
+    icon: 'text-[#6f7d45]',
   },
   warning: {
-    container: 'bg-white border-warning-200 shadow-lg',
-    icon: 'text-warning-600',
+    container: 'bg-[#fffaf5] border-[#e4c18e] shadow-[0_12px_30px_rgba(90,50,31,0.14)]',
+    icon: 'text-[#a66a2c]',
   },
   error: {
-    container: 'bg-white border-error-200 shadow-lg',
-    icon: 'text-error-600',
+    container: 'bg-[#fffaf5] border-[#d9a99d] shadow-[0_12px_30px_rgba(90,50,31,0.14)]',
+    icon: 'text-[#a34f3d]',
   },
 };
 
@@ -87,11 +87,11 @@ export const Toast: React.FC<ToastProps> = ({
         </div>
         <div className="ml-3 flex-1">
           {title && (
-            <p className="text-sm font-medium text-neutral-900">
+            <p className="text-sm font-medium text-[#2d201b]">
               {title}
             </p>
           )}
-          <p className={`text-sm text-neutral-600 ${title ? 'mt-1' : ''}`}>
+          <p className={`text-sm text-[#614d45] ${title ? 'mt-1' : ''}`}>
             {message}
           </p>
         </div>
@@ -102,7 +102,7 @@ export const Toast: React.FC<ToastProps> = ({
               setIsVisible(false);
               onClose?.();
             }}
-            className="inline-flex rounded-md text-neutral-400 hover:text-neutral-500 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2"
+            className="inline-flex rounded-md border-0 text-[#9a6f54] hover:text-[#5a321f] focus:outline-none focus:ring-2 focus:ring-[#99501f] focus:ring-offset-2"
           >
             <span className="sr-only">Close</span>
             <svg className="h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">

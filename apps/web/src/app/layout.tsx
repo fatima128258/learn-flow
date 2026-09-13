@@ -27,12 +27,9 @@ export const metadata: Metadata = {
   publisher: "LearnFlow",
   metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'),
   icons: {
-    icon: [
-      { url: '/icon.svg', type: 'image/svg+xml' },
-      { url: '/icon.png', type: 'image/png', sizes: '512x512' },
-    ],
-    shortcut: '/favicon.ico',
-    apple: [{ url: '/icon.png', sizes: '180x180', type: 'image/png' }],
+    icon: [{ url: '/icon.svg', type: 'image/svg+xml' }],
+    shortcut: '/icon.svg',
+    apple: [{ url: '/icon.svg', type: 'image/svg+xml' }],
   },
   openGraph: {
     type: "website",

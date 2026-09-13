@@ -42,7 +42,7 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
     },
     ref
   ) => {
-    const baseStyles = 'inline-flex items-center justify-center font-medium rounded-lg transition-[color,transform] duration-150 active:scale-[0.98] focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:cursor-not-allowed';
+    const baseStyles = 'inline-flex items-center justify-center border-0 font-medium rounded-lg transition-[color,transform] duration-150 active:scale-[0.98] focus:outline-none focus-visible:outline-none focus:ring-2 focus:ring-offset-2 disabled:cursor-not-allowed';
     const widthStyles = fullWidth ? 'w-full' : '';
     
     return (
