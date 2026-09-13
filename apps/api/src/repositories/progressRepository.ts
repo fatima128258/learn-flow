@@ -147,6 +147,7 @@ export async function listAttemptsForCourse(userId: string, courseId: string) {
     where: {
       userId,
       quizId: { in: quizIds },
+      status: 'COMPLETED',
     },
     select: {
       id: true,
@@ -162,6 +163,9 @@ export async function listAttemptsForCourse(userId: string, courseId: string) {
           moduleId: true,
           title: true,
           passingPercentage: true,
+          questions: {
+            select: { marks: true },
+          },
         },
       },
     },

@@ -31,10 +31,24 @@ function certificatePdfDownloadUrl(organizationId: string, certificateId: string
   return `${API_BASE_URL}/api/v1/organizations/${organizationId}/certificates/${certificateId}/download`;
 }
 
+function isCertificateUniqueConflict(error: unknown) {
+  if (!error || typeof error !== 'object') {
+    return false;
+  }
+  const candidate = error as { code?: unknown; meta?: { target?: unknown } };
+  return (
+    candidate.code === 'P2002' &&
+    Array.isArray(candidate.meta?.target) &&
+    candidate.meta.target.includes('userId') &&
+    candidate.meta.target.includes('courseId')
+  );
+}
+
 interface CertificateRecord {
   id: string;
   certificateId: string;
   verificationToken: string;
+  userId: string;
   courseId: string;
   courseTitle: string;
   organizationId: string;
@@ -44,6 +58,10 @@ interface CertificateRecord {
   completionDate: Date;
   createdAt: Date;
   pdfUrl: string | null;
+  totalMarks?: number | null;
+  obtainedMarks?: number | null;
+  percentage?: number | null;
+  passed?: boolean | null;
 }
 
 function toCertificateDto(certificate: CertificateRecord) {
@@ -60,6 +78,10 @@ function toCertificateDto(certificate: CertificateRecord) {
     completionDate: certificate.completionDate,
     issuedAt: certificate.createdAt,
     pdfUrl: certificate.pdfUrl ?? null,
+    totalMarks: certificate.totalMarks ?? null,
+    obtainedMarks: certificate.obtainedMarks ?? null,
+    percentage: certificate.percentage ?? null,
+    passed: certificate.passed ?? null,
     pdfDownloadUrl: certificate.pdfUrl
       ? certificatePdfDownloadUrl(certificate.organizationId, certificate.certificateId)
       : null,
@@ -73,7 +95,11 @@ async function verifyStudentEligibility(organizationId: string, userId: string, 
   }
 
   const enrollment = await enrollmentRepo.findByUserAndCourse(userId, courseId);
-  if (!enrollment || enrollment.organizationId !== organizationId) {
+  if (
+    !enrollment ||
+    enrollment.organizationId !== organizationId ||
+    !['ACTIVE', 'COMPLETED'].includes(enrollment.status)
+  ) {
     throw new Error('STUDENT_NOT_ENROLLED');
   }
 
@@ -83,6 +109,47 @@ async function verifyStudentEligibility(organizationId: string, userId: string, 
   }
 
   return { course, courseProgress };
+}
+
+async function getCourseAssessmentResult(userId: string, courseId: string) {
+  if (typeof progressRepo.listAttemptsForCourse !== 'function') {
+    return { totalMarks: null, obtainedMarks: null, percentage: null, passed: null };
+  }
+
+  const attempts = (await progressRepo.listAttemptsForCourse(userId, courseId)) ?? [];
+  const latestPassedByQuiz = new Map<string, (typeof attempts)[number]>();
+  for (const attempt of attempts) {
+    if (attempt.passed && !latestPassedByQuiz.has(attempt.quizId)) {
+      latestPassedByQuiz.set(attempt.quizId, attempt);
+    }
+  }
+
+  if (latestPassedByQuiz.size === 0) {
+    return { totalMarks: null, obtainedMarks: null, percentage: null, passed: null };
+  }
+
+  let totalMarks = 0;
+  let obtainedMarks = 0;
+  for (const attempt of latestPassedByQuiz.values()) {
+    const quizTotal = (attempt.quiz?.questions ?? []).reduce(
+      (sum: number, question: { marks: number }) => sum + question.marks,
+      0,
+    );
+    totalMarks += quizTotal;
+    obtainedMarks += attempt.score ?? 0;
+  }
+
+  return {
+    totalMarks,
+    obtainedMarks,
+    percentage: totalMarks === 0 ? 0 : (obtainedMarks / totalMarks) * 100,
+    passed: [...latestPassedByQuiz.values()].every((attempt) => attempt.passed),
+  };
+}
+
+async function withAssessment<T extends { userId: string; courseId: string }>(certificate: T) {
+  const assessment = await getCourseAssessmentResult(certificate.userId, certificate.courseId);
+  return { ...certificate, ...assessment };
 }
 
 export async function generateCertificate(organizationId: string, userId: string, courseId: string) {
@@ -125,10 +192,11 @@ export async function generateCertificate(organizationId: string, userId: string
     console.log('[CERTIFICATE] ✓ No existing certificate found');
 
     console.log('[CERTIFICATE] Step 3: Fetching user and organization data...');
-    const [student, organization, instructor] = await Promise.all([
+    const [student, organization, instructor, assessment] = await Promise.all([
       authService.getUserById(userId),
       organizationRepo.findOrganizationById(organizationId),
       authService.getUserById(course.instructorUserId),
+      getCourseAssessmentResult(userId, courseId),
     ]);
     console.log('[CERTIFICATE] ✓ Data fetched:', {
       studentName: student?.name,
@@ -139,23 +207,32 @@ export async function generateCertificate(organizationId: string, userId: string
     const issued = courseProgress.completedAt ?? new Date();
 
     console.log('[CERTIFICATE] Step 4: Creating certificate record...');
-    const certificate = await certificateRepo.createCertificate({
-      certificateId: generateCertificateId(),
-      verificationToken: generateVerificationToken(),
-      userId,
-      courseId,
-      organizationId,
-      organizationName: organization?.name ?? 'Unknown Organization',
-      instructorUserId: course.instructorUserId,
-      // Organization admins may be created without a personal name. In that
-      // case, certificates use their organization's name instead of an
-      // unhelpful "Unknown Instructor" label.
-      instructorName: instructor?.name?.trim() || organization?.name || 'Organization Instructor',
-      studentName: student?.name ?? student?.email ?? 'Student',
-      courseTitle: course.title,
-      completionDate: issued,
-    });
-    console.log('[CERTIFICATE] ✓ Certificate record created:', certificate.certificateId);
+    let certificate;
+    try {
+      certificate = await certificateRepo.createCertificate({
+        certificateId: generateCertificateId(),
+        verificationToken: generateVerificationToken(),
+        userId,
+        courseId,
+        organizationId,
+        organizationName: organization?.name ?? 'Unknown Organization',
+        instructorUserId: course.instructorUserId,
+        instructorName: instructor?.name?.trim() || organization?.name || 'Organization Instructor',
+        studentName: student?.name ?? student?.email ?? 'Student',
+        courseTitle: course.title,
+        completionDate: issued,
+      });
+    } catch (error) {
+      if (isCertificateUniqueConflict(error)) {
+        throw new Error('CERTIFICATE_EXISTS');
+      }
+      throw error;
+    }
+    const certificateRecord: CertificateRecord = {
+      ...certificate,
+      ...assessment,
+    };
+    console.log('[CERTIFICATE] ✓ Certificate record created:', certificateRecord.certificateId);
 
     console.log('[CERTIFICATE] Step 5: Recording audit log...');
     try {
@@ -166,9 +243,9 @@ export async function generateCertificate(organizationId: string, userId: string
         actorName: student?.name ?? null,
         actorRole: 'STUDENT',
         resourceType: 'CERTIFICATE',
-        resourceId: certificate.id,
+        resourceId: certificateRecord.id,
         metadata: {
-          certificateId: certificate.certificateId,
+          certificateId: certificateRecord.certificateId,
           courseId,
           courseTitle: course.title,
         },
@@ -186,10 +263,10 @@ export async function generateCertificate(organizationId: string, userId: string
         title: `Certificate for ${course.title}`,
         body: `Your certificate for ${course.title} has been generated.`,
         data: {
-          certificateId: certificate.certificateId,
+          certificateId: certificateRecord.certificateId,
           courseId,
           courseTitle: course.title,
-          verificationUrl: verificationUrl(certificate.verificationToken),
+          verificationUrl: verificationUrl(certificateRecord.verificationToken),
         },
         userId,
         organizationId,
@@ -206,16 +283,16 @@ export async function generateCertificate(organizationId: string, userId: string
     }
 
     console.log('[CERTIFICATE] Step 7: Generating PDF...');
-    const pdfUrl = await createCertificatePdf(certificate, organizationId);
+    const pdfUrl = await createCertificatePdf(certificateRecord, organizationId);
     if (pdfUrl) {
-      certificate.pdfUrl = pdfUrl;
+      certificateRecord.pdfUrl = pdfUrl;
       console.log('[CERTIFICATE] ✓ PDF generated and uploaded:', pdfUrl);
     } else {
       console.log('[CERTIFICATE] ⚠ PDF generation skipped or failed');
     }
 
     console.log('[CERTIFICATE] === CERTIFICATE GENERATION COMPLETED ===');
-    return toCertificateDto(certificate);
+    return toCertificateDto(certificateRecord);
   } catch (error) {
     console.error('[CERTIFICATE] === CERTIFICATE GENERATION FAILED ===');
     console.error('[CERTIFICATE] Error details:', {
@@ -242,6 +319,10 @@ async function createCertificatePdf(certificate: CertificateRecord, organization
         organizationName: certificate.organizationName,
         instructorName: certificate.instructorName,
         completionDate: certificate.completionDate,
+        totalMarks: certificate.totalMarks,
+        obtainedMarks: certificate.obtainedMarks,
+        percentage: certificate.percentage,
+        passed: certificate.passed,
       },
     );
     console.log('[CERTIFICATE-PDF] PDF uploaded successfully:', pdfUrl);
@@ -259,7 +340,9 @@ async function createCertificatePdf(certificate: CertificateRecord, organization
 
 export async function listCertificates(organizationId: string, userId: string) {
   const records = await certificateRepo.listByUserAndOrganization(userId, organizationId);
-  return records.map(toCertificateDto);
+  return Promise.all((records as CertificateRecord[]).map(async (record) =>
+    toCertificateDto(await withAssessment(record)),
+  ));
 }
 
 export async function getCertificate(organizationId: string, userId: string, certificateId: string) {
@@ -267,7 +350,7 @@ export async function getCertificate(organizationId: string, userId: string, cer
   if (!certificate || certificate.organizationId !== organizationId) {
     throw new Error('CERTIFICATE_NOT_FOUND');
   }
-  return toCertificateDto(certificate);
+  return toCertificateDto(await withAssessment(certificate as CertificateRecord));
 }
 
 export async function verifyCertificate(verificationToken: string) {
@@ -275,7 +358,7 @@ export async function verifyCertificate(verificationToken: string) {
   if (!certificate) {
     throw new Error('CERTIFICATE_NOT_FOUND');
   }
-  return toCertificateDto(certificate);
+  return toCertificateDto(await withAssessment(certificate as CertificateRecord));
 }
 
 const STAFF_ROLES = new Set(['ORG_ADMIN', 'INSTRUCTOR', 'PLATFORM_ADMIN']);
@@ -300,6 +383,7 @@ export async function getCertificateDownloadUrl(
     throw new Error('CERTIFICATE_PDF_NOT_FOUND');
   }
 
+  const certificateWithAssessment = await withAssessment(certificate);
   const pdfUrl = await certificatePdfService.uploadCertificatePdf(
     organizationId,
     certificate.id,
@@ -311,6 +395,10 @@ export async function getCertificateDownloadUrl(
       organizationName: certificate.organizationName,
       instructorName: certificate.instructorName,
       completionDate: certificate.completionDate,
+      totalMarks: certificateWithAssessment.totalMarks,
+      obtainedMarks: certificateWithAssessment.obtainedMarks,
+      percentage: certificateWithAssessment.percentage,
+      passed: certificateWithAssessment.passed,
     },
   );
   const pdfKey = storage.certificatePdfKey(organizationId, certificate.id);

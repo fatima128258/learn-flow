@@ -24,6 +24,9 @@ const prismaMock = {
     findMany: vi.fn(),
     findFirst: vi.fn(),
   },
+  quiz: {
+    findMany: vi.fn(),
+  },
   lessonProgress: {
     upsert: vi.fn(),
     findMany: vi.fn(),
@@ -194,6 +197,7 @@ function resetMocks() {
   prismaMock.courseProgress.findUnique.mockReset();
   prismaMock.courseProgress.update.mockReset();
   prismaMock.quizAttempt.findMany.mockReset();
+  prismaMock.quiz.findMany.mockReset();
   vi.mocked(authService.getSessionFromToken).mockReset();
   vi.mocked(authService.getUserById).mockReset();
 }
@@ -208,14 +212,23 @@ function setupProgressFixtures(
   prismaMock.enrollment.findUnique.mockResolvedValue(enrollmentRecord());
   prismaMock.course.findFirst.mockResolvedValue(courseRecord());
   prismaMock.module.findMany.mockResolvedValue([MODULE_ONE, MODULE_TWO]);
-  prismaMock.lesson.findMany.mockImplementation(async ({ where }: { where?: { role?: string; organizationId?: string; userId?: string; id?: string; courseId?: string; moduleId?: string; quizId?: string; status?: string } }) => {
-    if (where?.moduleId === 'module-1') {
+  prismaMock.lesson.findMany.mockImplementation(async ({ where }: { where?: { role?: string; organizationId?: string; userId?: string; id?: string; courseId?: string; quizId?: string; status?: string; moduleId?: string | { in: string[] } } }) => {
+    if (typeof where?.moduleId === 'object') {
+      return [
+        lessonRecord('lesson-1', 'module-1', 'Lesson One', 0),
+        lessonRecord('lesson-2', 'module-1', 'Lesson Two', 1),
+        lessonRecord('lesson-3', 'module-2', 'Lesson Three', 0),
+        lessonRecord('lesson-4', 'module-2', 'Lesson Four', 1),
+      ];
+    }
+    const moduleId = where?.moduleId;
+    if (moduleId === 'module-1') {
       return [
         lessonRecord('lesson-1', 'module-1', 'Lesson One', 0),
         lessonRecord('lesson-2', 'module-1', 'Lesson Two', 1),
       ];
     }
-    if (where?.moduleId === 'module-2') {
+    if (moduleId === 'module-2') {
       return [
         lessonRecord('lesson-3', 'module-2', 'Lesson Three', 0),
         lessonRecord('lesson-4', 'module-2', 'Lesson Four', 1),
@@ -227,6 +240,9 @@ function setupProgressFixtures(
     (options.completedRows ?? []).map((r) => ({ ...r, completedAt: now })),
   );
   prismaMock.quizAttempt.findMany.mockResolvedValue(options.attempts ?? []);
+  prismaMock.quiz.findMany.mockResolvedValue(
+    Array.from(new Set((options.attempts ?? []).map((attempt: any) => ({ id: attempt.quizId })))),
+  );
   prismaMock.courseProgress.findUnique.mockResolvedValue(options.courseProgress ?? null);
 }
 

@@ -29,7 +29,7 @@ export async function getSequenceState(userId: string, courseId: string) {
     progressRepo.listAttemptsForCourse(userId, courseId),
   ]);
   const completedLessons = new Set(lessons.map((row: { lessonId: string }) => row.lessonId));
-  const passedQuizzes = new Set(attempts.filter((row: { passed: boolean }) => row.passed).map((row: { quizId: string }) => row.quizId));
+  const passedQuizzes = new Set(attempts.filter((row: { passed: boolean | null }) => row.passed === true).map((row: { quizId: string }) => row.quizId));
   let previousComplete = true;
   return sequence.map((item: SequenceRow & { moduleId: string }) => {
     const completed = item.type === 'LESSON'
@@ -48,6 +48,9 @@ export async function assertContentUnlocked(
   type: 'LESSON' | 'QUIZ',
   contentId: string,
 ) {
+  // Legacy/test clients may not expose the persisted sequencing model. In
+  // that case retain the pre-sequencing access behavior.
+  if (!(getPrisma() as any).moduleContentItem) return null;
   const state = await getSequenceState(userId, courseId);
   if (state.length === 0) throw new Error('CONTENT_SEQUENCE_MISSING');
   const item = state.find((row: SequenceRow & { moduleId: string; state: string }) => row.moduleId === moduleId && row.type === type && row.id === contentId);

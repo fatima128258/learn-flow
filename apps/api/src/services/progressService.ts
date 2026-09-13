@@ -82,6 +82,10 @@ async function computeCourseProgress(
 
   const prisma = getPrisma();
   const completedLessonIds = new Set(completedRows.map((row: { lessonId: string }) => row.lessonId));
+  const passedQuizIds = new Set(
+    attempts.filter((attempt: { passed: boolean | null }) => attempt.passed === true)
+      .map((attempt: { quizId: string }) => attempt.quizId),
+  );
 
   // OPTIMIZATION: Batch query all lessons instead of N+1 loop
   const moduleIds = modules.map((m: { id: string }) => m.id);
@@ -92,7 +96,21 @@ async function computeCourseProgress(
   });
 
   const lessonsByModule = new Map<string, { id: string }[]>();
+  const contentItemsByModule = new Map<string, any[]>();
+  if ((prisma as any).moduleContentItem?.findMany) {
+    const items = await (prisma as any).moduleContentItem.findMany({
+      where: { moduleId: { in: moduleIds } },
+      select: { moduleId: true, type: true, lessonId: true, quizId: true },
+    });
+    for (const item of items) {
+      const list = contentItemsByModule.get(item.moduleId) ?? [];
+      list.push(item);
+      contentItemsByModule.set(item.moduleId, list);
+    }
+  }
   let totalLessons = 0;
+  let totalContentItems = 0;
+  let completedContentItems = 0;
   for (const module of modules) {
     const lessons = allLessons.filter((l: { moduleId: string }) => l.moduleId === module.id);
     lessonsByModule.set(module.id, lessons);
@@ -107,8 +125,17 @@ async function computeCourseProgress(
       if (completedLessonIds.has(lesson.id)) moduleCompleted += 1;
     }
     completedLessons += moduleCompleted;
+    const contentItems = contentItemsByModule.get(module.id) ?? [];
+    const completedItems = contentItems.length > 0
+      ? contentItems.filter((item) =>
+        item.type === 'LESSON'
+          ? completedLessonIds.has(item.lessonId ?? '')
+          : passedQuizIds.has(item.quizId ?? ''),
+      ).length
+      : moduleCompleted;
+    const moduleDenominator = contentItems.length > 0 ? contentItems.length : lessons.length;
     const percentage =
-      lessons.length > 0 ? round2((moduleCompleted / lessons.length) * 100) : 0;
+      moduleDenominator > 0 ? round2((completedItems / moduleDenominator) * 100) : 0;
     return {
       id: module.id,
       title: module.title,
@@ -117,14 +144,28 @@ async function computeCourseProgress(
       lessonCount: lessons.length,
       completedLessons: moduleCompleted,
       percentage: round0(percentage),
-      complete: lessons.length > 0 && moduleCompleted === lessons.length,
+      complete: moduleDenominator > 0 && completedItems === moduleDenominator,
       moduleIndex: index,
+      contentItemCount: contentItems.length,
+      completedContentItems: completedItems,
     };
   });
 
+  // ModuleContentItem is the persisted curriculum denominator. Keep the
+  // lesson-only fallback for courses created before content sequencing.
+  const items = Array.from(contentItemsByModule.values()).flat();
+  if (items.length > 0) {
+    totalContentItems = items.length;
+    completedContentItems = items.filter((item: any) =>
+      item.type === 'LESSON' ? completedLessonIds.has(item.lessonId) : passedQuizIds.has(item.quizId),
+    ).length;
+  }
+  const denominator = totalContentItems > 0 ? totalContentItems : totalLessons;
+  const numerator = totalContentItems > 0 ? completedContentItems : completedLessons;
+
   const coursePercentage =
-    totalLessons > 0 ? round2((completedLessons / totalLessons) * 100) : 0;
-  const courseComplete = totalLessons > 0 && completedLessons === totalLessons;
+    denominator > 0 ? round2((numerator / denominator) * 100) : 0;
+  const courseComplete = denominator > 0 && numerator === denominator;
 
   const attemptsByQuiz = new Map<string, { attempts: number; best: number | null; latest: number | null; passed: boolean }>();
   for (const attempt of attempts) {
@@ -132,15 +173,15 @@ async function computeCourseProgress(
     if (!entry) {
       attemptsByQuiz.set(attempt.quizId, {
         attempts: 1,
-        best: attempt.percentage,
-        latest: attempt.percentage,
-        passed: attempt.passed,
+        best: attempt.percentage ?? 0,
+        latest: attempt.percentage ?? 0,
+        passed: attempt.passed === true,
       });
     } else {
       entry.attempts += 1;
-      entry.latest = attempt.percentage;
-      entry.best = entry.best == null ? attempt.percentage : Math.max(entry.best, attempt.percentage);
-      if (entry.passed === false && attempt.passed) entry.passed = true;
+      entry.latest = attempt.percentage ?? 0;
+      entry.best = entry.best == null ? (attempt.percentage ?? 0) : Math.max(entry.best, attempt.percentage ?? 0);
+      if (entry.passed === false && attempt.passed === true) entry.passed = true;
     }
   }
 
@@ -160,6 +201,8 @@ async function computeCourseProgress(
     organizationId,
     totalLessons,
     completedLessons,
+    totalContentItems: denominator,
+    completedContentItems: numerator,
     coursePercentage: round0(coursePercentage),
     courseComplete,
     enrollmentStatus: 'ACTIVE',
@@ -184,6 +227,21 @@ export async function getCourseProgress(
   const { course } = await verifyCourseAccess(organizationId, userId, courseId);
   const courseProgress = await progressRepo.getCourseProgress(userId, courseId);
   return computeCourseProgress(userId, courseId, organizationId, course, courseProgress);
+}
+
+export async function refreshCourseProgressAfterQuiz(
+  organizationId: string,
+  userId: string,
+  courseId: string,
+) {
+  const db: any = getPrisma();
+  if (!db.courseProgress?.upsert) return;
+  const { course } = await verifyCourseAccess(organizationId, userId, courseId);
+  const current = await progressRepo.getCourseProgress(userId, courseId);
+  const progress = await computeCourseProgress(userId, courseId, organizationId, course, current);
+  if (progress.courseComplete !== (current?.completed ?? false)) {
+    await progressRepo.markCourseCompleted(userId, courseId, progress.courseComplete, organizationId);
+  }
 }
 
 export async function recordLessonProgress(

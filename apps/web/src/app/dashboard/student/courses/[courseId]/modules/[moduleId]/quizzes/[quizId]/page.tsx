@@ -55,6 +55,8 @@ type AttemptResult = {
   submittedAt: string;
   passingPercentage: number | null;
   totalMarks: number;
+  totalQuestions: number;
+  attemptsRemaining: number | null;
 };
 
 export default function StudentQuizTakingPage() {
@@ -92,6 +94,12 @@ export default function StudentQuizTakingPage() {
       }
       const body = await res.json();
       setQuiz(body.data ?? null);
+      if ((body.data?.attempts?.remaining ?? 1) !== 0) {
+        await fetch(
+          `${apiBase}/api/v1/organizations/${orgId}/student/courses/${cid}/modules/${mid}/quizzes/${qid}/attempts/start`,
+          { method: 'POST', credentials: 'include' },
+        );
+      }
     } catch {
       setError('Could not reach the server. Please try again.');
     }
@@ -266,6 +274,11 @@ export default function StudentQuizTakingPage() {
                   <div className="text-2xl font-bold text-neutral-900">{result.score} / {result.totalMarks}</div>
                   <div className="text-sm text-neutral-500">Score</div>
                 </div>
+                <p className="mt-4 text-sm text-neutral-500">
+                  Attempt {result.attemptNumber} of {quiz.maxAttempts ?? 'unlimited'}
+                  {' · '}{result.correctCount} of {result.totalQuestions} questions correct
+                  {result.attemptsRemaining != null && ` · ${result.attemptsRemaining} attempt${result.attemptsRemaining !== 1 ? 's' : ''} remaining`}
+                </p>
                 <div className="rounded-xl border border-neutral-200 p-4 text-center">
                   <div className="text-2xl font-bold text-success-600">{result.correctCount}</div>
                   <div className="text-sm text-neutral-500">Correct</div>
@@ -288,7 +301,7 @@ export default function StudentQuizTakingPage() {
           </div>
         ) : null}
 
-        {quiz && !result ? (
+        {quiz && !result && attemptsRemaining !== 0 ? (
           <>
             <div className="mb-6 rounded-2xl border border-neutral-200 bg-white p-6 shadow-sm">
               <div className="flex flex-wrap items-center gap-2 mb-2">
@@ -385,6 +398,14 @@ export default function StudentQuizTakingPage() {
               </div>
             </div>
           </>
+        ) : null}
+        {quiz && !result && attemptsRemaining === 0 ? (
+          <div className="rounded-2xl border border-warning-200 bg-warning-50 p-6 shadow-sm">
+            <h2 className="text-lg font-semibold text-warning-900">No attempts remaining</h2>
+            <p className="mt-2 text-sm text-warning-800">
+              You have used all allowed attempts for this quiz.
+            </p>
+          </div>
         ) : null}
       </div>
   );

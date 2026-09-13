@@ -26,6 +26,12 @@ const prismaMock = {
     create: vi.fn(),
     update: vi.fn(),
   },
+  quiz: {
+    findMany: vi.fn(),
+  },
+  quizAttempt: {
+    findMany: vi.fn(),
+  },
 };
 
 vi.mock('../services/authService', () => ({
@@ -203,6 +209,10 @@ function resetMocks() {
   prismaMock.certificate.findMany.mockReset();
   prismaMock.certificate.create.mockReset();
   prismaMock.certificate.update.mockReset();
+  prismaMock.quiz.findMany.mockReset();
+  prismaMock.quizAttempt.findMany.mockReset();
+  prismaMock.quiz.findMany.mockResolvedValue([]);
+  prismaMock.quizAttempt.findMany.mockResolvedValue([]);
   vi.mocked(authService.getSessionFromToken).mockReset();
   vi.mocked(authService.getUserById).mockReset();
 }
@@ -322,6 +332,18 @@ describe('POST /api/v1/organizations/:organizationId/student/courses/:courseId/c
     expect(prismaMock.certificate.create).not.toHaveBeenCalled();
   });
 
+  it('rejects a dropped enrollment even when historical progress is complete', async () => {
+    await authenticateAs('STUDENT');
+    setupEligibleFixtures({ completed: true });
+    prismaMock.enrollment.findUnique.mockResolvedValue(enrollmentRecord({ status: 'DROPPED' }));
+
+    const res = await request(app).post(GENERATE_PATH).set('Cookie', cookie());
+
+    expect(res.status).toBe(403);
+    expect(res.body.error).toBe('STUDENT_NOT_ENROLLED');
+    expect(prismaMock.certificate.create).not.toHaveBeenCalled();
+  });
+
   it('generates a certificate with all required fields for a completed course', async () => {
     await authenticateAs('STUDENT');
     setupEligibleFixtures({ completed: true });
@@ -338,6 +360,16 @@ describe('POST /api/v1/organizations/:organizationId/student/courses/:courseId/c
 
     prismaMock.certificate.create.mockResolvedValue(certificateRecord());
     prismaMock.certificate.update.mockResolvedValue(certificateRecord());
+    prismaMock.quiz.findMany
+      .mockResolvedValueOnce([{ id: 'quiz-1' }]);
+    prismaMock.quizAttempt.findMany.mockResolvedValueOnce([
+      {
+        quizId: 'quiz-1',
+        score: 8,
+        passed: true,
+        quiz: { questions: [{ marks: 10 }] },
+      },
+    ]);
 
     const res = await request(app).post(GENERATE_PATH).set('Cookie', cookie());
 
@@ -348,6 +380,10 @@ describe('POST /api/v1/organizations/:organizationId/student/courses/:courseId/c
     expect(data.courseTitle).toBe('Certificate Course');
     expect(data.organizationName).toBe('Acme Org');
     expect(data.instructorName).toBe('Instructor One');
+    expect(data.totalMarks).toBe(10);
+    expect(data.obtainedMarks).toBe(8);
+    expect(data.percentage).toBe(80);
+    expect(data.passed).toBe(true);
     expect(data.completionDate).toBeTruthy();
     expect(data.certificateId).toBe('CRT-ABC123');
     expect(data.verificationUrl).toContain(`/verify/${data.verificationToken}`);

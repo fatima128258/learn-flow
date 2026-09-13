@@ -279,12 +279,15 @@ model QuizAttempt {
   quizId         String
   userId         String
   attemptNumber  Int
-  score          Float
-  correctCount   Int
-  incorrectCount Int
-  percentage     Float
-  passed         Boolean
-  submittedAt    DateTime @default(now())
+  score          Float?
+  correctCount   Int?
+  incorrectCount Int?
+  percentage     Float?
+  passed         Boolean?
+  status         String   @default("IN_PROGRESS")
+  startedAt      DateTime @default(now())
+  expiresAt      DateTime?
+  submittedAt    DateTime?
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
   quiz           Quiz     @relation(fields: [quizId], references: [id], onDelete: Cascade)

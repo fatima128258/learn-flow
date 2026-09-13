@@ -27,7 +27,11 @@ const prismaMock = {
   quizAttempt: {
     count: vi.fn(),
     create: vi.fn(),
+    findFirst: vi.fn(),
+    findUnique: vi.fn(),
     findMany: vi.fn(),
+    update: vi.fn(),
+    updateMany: vi.fn(),
   },
 };
 
@@ -229,7 +233,31 @@ function resetMocks() {
   prismaMock.quiz.findUnique.mockReset();
   prismaMock.quizAttempt.count.mockReset();
   prismaMock.quizAttempt.create.mockReset();
+  prismaMock.quizAttempt.findFirst.mockReset();
+  prismaMock.quizAttempt.findUnique.mockReset();
   prismaMock.quizAttempt.findMany.mockReset();
+  prismaMock.quizAttempt.update.mockReset();
+  prismaMock.quizAttempt.updateMany.mockReset();
+  prismaMock.quizAttempt.findFirst.mockResolvedValue(null);
+  prismaMock.quizAttempt.update.mockImplementation(async ({ where, data }: {
+    where: { id: string };
+    data: Record<string, unknown>;
+  }) => ({
+    id: where.id,
+    attemptNumber: 1,
+    submittedAt: new Date(),
+    ...data,
+  }));
+  prismaMock.quizAttempt.updateMany.mockImplementation(async ({ data }: {
+    data: Record<string, unknown>;
+  }) => {
+    prismaMock.quizAttempt.findUnique.mockResolvedValue({
+      id: 'attempt-1',
+      attemptNumber: 1,
+      ...data,
+    });
+    return { count: 1 };
+  });
   vi.mocked(authService.getSessionFromToken).mockReset();
   vi.mocked(authService.getUserById).mockReset();
 }
@@ -371,6 +399,38 @@ describe('GET /api/v1/organizations/:organizationId/student/courses/:courseId/mo
     expect(res.status).toBe(200);
     expect(res.body.data.attempts).toEqual({ used: 3, remaining: null });
   });
+
+  it('returns only the authenticated student’s quiz results with attempt metadata', async () => {
+    await setValidStudent();
+    prismaMock.quiz.findUnique
+      .mockResolvedValueOnce(quizForTakingRecord({ maxAttempts: 3 }))
+      .mockResolvedValueOnce(quizForGradingRecord());
+    prismaMock.quizAttempt.count.mockResolvedValue(2);
+    prismaMock.quizAttempt.findMany.mockResolvedValue([{
+      id: 'attempt-2',
+      quizId: 'quiz-1',
+      userId: 'user-1',
+      attemptNumber: 2,
+      score: 2,
+      correctCount: 1,
+      incorrectCount: 1,
+      percentage: 66.67,
+      passed: false,
+      submittedAt: now,
+      quiz: { passingPercentage: 70 },
+    }]);
+
+    const res = await request(app).get(`${QUIZ_BASE}/attempts`).set('Cookie', cookie());
+    expect(res.status).toBe(200);
+    expect(res.body.data).toEqual([expect.objectContaining({
+      attemptId: 'attempt-2',
+      totalQuestions: 2,
+      attemptsRemaining: 1,
+    })]);
+    expect(prismaMock.quizAttempt.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({ where: { quizId: 'quiz-1', userId: 'user-1' } }),
+    );
+  });
 });
 
 describe('POST /api/v1/organizations/:organizationId/student/courses/:courseId/modules/:moduleId/quizzes/:quizId/attempts', () => {
@@ -452,6 +512,60 @@ describe('POST /api/v1/organizations/:organizationId/student/courses/:courseId/m
       .send({ answers: [{ questionId: 'q1', optionId: 'o1' }] });
     expect(res.status).toBe(403);
     expect(res.body.error).toBe('MAX_ATTEMPTS_REACHED');
+  });
+
+  it('starts an attempt with a server-calculated expiry', async () => {
+    await setValidStudent();
+    prismaMock.quiz.findUnique.mockResolvedValue(quizForGradingRecord());
+    prismaMock.quizAttempt.count.mockResolvedValue(0);
+    const startedAt = new Date();
+    prismaMock.quizAttempt.create.mockResolvedValue({
+      id: 'attempt-1',
+      quizId: 'quiz-1',
+      userId: 'user-1',
+      attemptNumber: 1,
+      startedAt,
+      expiresAt: new Date(startedAt.getTime() + 30 * 60_000),
+      status: 'IN_PROGRESS',
+    });
+
+    const res = await request(app)
+      .post(`${QUIZ_BASE}/attempts/start`)
+      .set('Cookie', cookie());
+
+    expect(res.status).toBe(201);
+    expect(res.body.data.attemptNumber).toBe(1);
+    expect(new Date(res.body.data.expiresAt).getTime() - new Date(res.body.data.startedAt).getTime())
+      .toBe(30 * 60_000);
+  });
+
+  it('rejects submission after the persisted expiry', async () => {
+    await setValidStudent();
+    prismaMock.quiz.findUnique.mockResolvedValue(quizForGradingRecord());
+    prismaMock.quizAttempt.count.mockResolvedValue(1);
+    prismaMock.quizAttempt.findFirst.mockResolvedValue({
+      id: 'attempt-1',
+      attemptNumber: 1,
+      startedAt: new Date(Date.now() - 31 * 60_000),
+      expiresAt: new Date(Date.now() - 1),
+      status: 'IN_PROGRESS',
+    });
+
+    const res = await request(app)
+      .post(`${QUIZ_BASE}/attempts`)
+      .set('Cookie', cookie())
+      .send({
+        answers: [
+          { questionId: 'q1', optionId: 'o1' },
+          { questionId: 'q2', optionId: 'o4' },
+        ],
+      });
+
+    expect(res.status).toBe(410);
+    expect(res.body.error).toBe('ATTEMPT_EXPIRED');
+    expect(prismaMock.quizAttempt.update).toHaveBeenCalledWith(
+      expect.objectContaining({ data: { status: 'EXPIRED' } }),
+    );
   });
 
   it('returns 400 when not all questions are answered', async () => {

@@ -16,6 +16,29 @@ export interface CertificatePdfData {
   organizationName: string;
   instructorName: string;
   completionDate: Date;
+  totalMarks?: number | null;
+  obtainedMarks?: number | null;
+  percentage?: number | null;
+  passed?: boolean | null;
+}
+
+export function formatAssessmentResult(data: Pick<CertificatePdfData, 'totalMarks' | 'obtainedMarks' | 'percentage' | 'passed'>) {
+  if (
+    data.totalMarks === null ||
+    data.totalMarks === undefined ||
+    data.obtainedMarks === null ||
+    data.obtainedMarks === undefined ||
+    data.percentage === null ||
+    data.percentage === undefined ||
+    data.passed === null ||
+    data.passed === undefined
+  ) {
+    return null;
+  }
+  return {
+    marks: `Assessment result: ${data.obtainedMarks}/${data.totalMarks} marks (${data.percentage.toFixed(2)}%)`,
+    status: data.passed ? 'Result: Passed' : 'Result: Not passed',
+  };
 }
 
 export function buildCertificatePdf(data: CertificatePdfData): Promise<Buffer> {
@@ -28,6 +51,7 @@ export function buildCertificatePdf(data: CertificatePdfData): Promise<Buffer> {
         Title: `Certificate of Completion - ${data.courseTitle}`,
         Author: 'LearnFlow',
       },
+      compress: false,
     });
 
     const chunks: Buffer[] = [];
@@ -95,6 +119,22 @@ export function buildCertificatePdf(data: CertificatePdfData): Promise<Buffer> {
         completionLabel,
         60,
         402,
+        { align: 'center', width: PAGE_WIDTH - 120 },
+      );
+    }
+
+    const assessmentResult = formatAssessmentResult(data);
+    if (assessmentResult) {
+      doc.fontSize(12).fillColor(NEUTRAL_DARK).font('Helvetica-Bold').text(
+        assessmentResult.marks,
+        60,
+        445,
+        { align: 'center', width: PAGE_WIDTH - 120 },
+      );
+      doc.fontSize(11).fillColor(data.passed ? '#166534' : '#991b1b').font('Helvetica-Bold').text(
+        assessmentResult.status,
+        60,
+        468,
         { align: 'center', width: PAGE_WIDTH - 120 },
       );
     }

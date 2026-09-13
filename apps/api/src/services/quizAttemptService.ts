@@ -4,6 +4,7 @@ import * as quizRepo from '../repositories/quizRepository';
 import * as enrollmentRepo from '../repositories/enrollmentRepository';
 import * as quizAttemptRepo from '../repositories/quizAttemptRepository';
 import { assertContentUnlocked } from './sequentialAccess';
+import * as progressService from './progressService';
 
 function round2(value: number) {
   return Math.round(value * 100) / 100;
@@ -125,6 +126,76 @@ export async function getQuizForTaking(
   return toQuizTakingDto(quiz, attemptCount, quiz.maxAttempts);
 }
 
+export async function startQuizAttempt(
+  organizationId: string,
+  userId: string,
+  courseId: string,
+  moduleId: string,
+  quizId: string,
+) {
+  const { quiz } = await verifyQuizAttemptAccess(
+    organizationId,
+    userId,
+    courseId,
+    moduleId,
+    quizId,
+  );
+  const existing = await quizAttemptRepo.findInProgressAttempt(quizId, userId);
+  if (existing) {
+    if (existing.expiresAt && new Date() >= existing.expiresAt) {
+      await quizAttemptRepo.expireAttempt(existing.id);
+    } else {
+      return {
+        attemptId: existing.id,
+        attemptNumber: existing.attemptNumber,
+        startedAt: existing.startedAt,
+        expiresAt: existing.expiresAt,
+      };
+    }
+  }
+
+  const attemptCount = await quizAttemptRepo.countByQuizAndUser(quizId, userId);
+  if (quiz.maxAttempts != null && attemptCount >= quiz.maxAttempts) {
+    throw new Error('MAX_ATTEMPTS_REACHED');
+  }
+
+  const startedAt = new Date();
+  const expiresAt = quiz.timeLimitMinutes == null
+    ? null
+    : new Date(startedAt.getTime() + quiz.timeLimitMinutes * 60_000);
+  try {
+    const attempt = await quizAttemptRepo.createAttempt({
+      quizId,
+      userId,
+      attemptNumber: attemptCount + 1,
+      expiresAt,
+    });
+    return {
+      attemptId: attempt.id,
+      attemptNumber: attempt.attemptNumber,
+      startedAt: attempt.startedAt,
+      expiresAt: attempt.expiresAt,
+    };
+  } catch (err) {
+    if ((err as { code?: string }).code === 'P2002') {
+      const concurrentAttempt = await quizAttemptRepo.findInProgressAttempt(quizId, userId);
+      if (concurrentAttempt) {
+        return {
+          attemptId: concurrentAttempt.id,
+          attemptNumber: concurrentAttempt.attemptNumber,
+          startedAt: concurrentAttempt.startedAt,
+          expiresAt: concurrentAttempt.expiresAt,
+        };
+      }
+      throw new Error('ATTEMPT_ALREADY_SUBMITTED');
+    }
+    if (err instanceof Error && err.message === 'ATTEMPT_ALREADY_SUBMITTED') {
+      throw err;
+    }
+    throw err;
+  }
+}
+
 export async function submitQuizAttempt(
   organizationId: string,
   userId: string,
@@ -133,7 +204,13 @@ export async function submitQuizAttempt(
   quizId: string,
   rawInput: unknown,
 ) {
-  await verifyQuizAttemptAccess(organizationId, userId, courseId, moduleId, quizId);
+  await verifyQuizAttemptAccess(
+    organizationId,
+    userId,
+    courseId,
+    moduleId,
+    quizId,
+  );
 
   if (rawInput === undefined || rawInput === null || typeof rawInput !== 'object') {
     throw new Error('MISSING_FIELDS');
@@ -172,21 +249,58 @@ export async function submitQuizAttempt(
   }
 
   const attemptCount = await quizAttemptRepo.countByQuizAndUser(quizId, userId);
-
-  if (quiz.maxAttempts != null && attemptCount >= quiz.maxAttempts) {
+  let attempt: {
+    id: string;
+    attemptNumber: number;
+    startedAt: Date;
+    expiresAt: Date | null;
+  } | null = await quizAttemptRepo.findInProgressAttempt(quizId, userId);
+  if (attempt && attempt.expiresAt && new Date() >= attempt.expiresAt) {
+    await quizAttemptRepo.expireAttempt(attempt.id);
+    throw new Error('ATTEMPT_EXPIRED');
+  }
+  if (!attempt && quiz.maxAttempts != null && attemptCount >= quiz.maxAttempts) {
     throw new Error('MAX_ATTEMPTS_REACHED');
   }
 
-  const attemptNumber = attemptCount + 1;
-
   const correctLookup = new Map<string, Set<string>>();
+  const validOptionLookup = new Map<string, Set<string>>();
   for (const question of questions) {
     const correctIds = new Set<string>();
+    const optionIds = new Set<string>();
     for (const option of question.options ?? []) {
+      optionIds.add(option.id);
       if (option.isCorrect) correctIds.add(option.id);
     }
     correctLookup.set(question.id, correctIds);
+    validOptionLookup.set(question.id, optionIds);
   }
+
+  // Do not accept answers for another quiz/question, or an option belonging
+  // to another question. Apart from being a correctness issue this prevents
+  // callers from probing or influencing records outside this quiz.
+  if (questions.some((question) => !answers.has(question.id))) {
+    throw new Error('ALL_QUESTIONS_REQUIRED');
+  }
+  if (answers.size !== questions.length ||
+      questions.some((question) =>
+        !validOptionLookup.get(question.id)?.has(answers.get(question.id)!))) {
+    throw new Error('INVALID_ANSWERS');
+  }
+
+  if (!attempt) {
+    const started = await startQuizAttempt(organizationId, userId, courseId, moduleId, quizId);
+    attempt = {
+      id: started.attemptId,
+      attemptNumber: started.attemptNumber,
+      startedAt: started.startedAt,
+      expiresAt: started.expiresAt,
+    };
+  }
+  if (!attempt) {
+    throw new Error('ATTEMPT_NOT_STARTED');
+  }
+  const attemptNumber = attempt.attemptNumber;
 
   let score = 0;
   let correctCount = 0;
@@ -194,9 +308,7 @@ export async function submitQuizAttempt(
 
   for (const question of questions) {
     const selectedOptionId = answers.get(question.id);
-    if (selectedOptionId === undefined) {
-      throw new Error('ALL_QUESTIONS_REQUIRED');
-    }
+    if (selectedOptionId === undefined) throw new Error('ALL_QUESTIONS_REQUIRED');
     const correctIds = correctLookup.get(question.id);
     if (correctIds && correctIds.has(selectedOptionId)) {
       score += question.marks ?? 0;
@@ -210,10 +322,7 @@ export async function submitQuizAttempt(
   const passed = passingPercentage == null ? percentage >= 100 : percentage >= passingPercentage;
 
   try {
-    const attempt = await quizAttemptRepo.createAttempt({
-      quizId,
-      userId,
-      attemptNumber,
+    const completedAttempt = await quizAttemptRepo.completeAttempt(attempt.id, {
       score,
       correctCount,
       incorrectCount,
@@ -221,17 +330,30 @@ export async function submitQuizAttempt(
       passed,
     });
 
+    // Keep the denormalized completion flag in sync after a successful quiz.
+    // The helper is intentionally best-effort for older test doubles/databases
+    // that do not expose CourseProgress yet.
+    if (passed) {
+      await progressService.refreshCourseProgressAfterQuiz(
+        organizationId,
+        userId,
+        courseId,
+      );
+    }
+
     return {
-      attemptId: attempt.id,
-      attemptNumber: attempt.attemptNumber,
-      score: attempt.score,
-      correctCount: attempt.correctCount,
-      incorrectCount: attempt.incorrectCount,
-      percentage: attempt.percentage,
-      passed: attempt.passed,
-      submittedAt: attempt.submittedAt,
+      attemptId: completedAttempt.id,
+      attemptNumber,
+      score: completedAttempt.score,
+      correctCount: completedAttempt.correctCount,
+      incorrectCount: completedAttempt.incorrectCount,
+      percentage: completedAttempt.percentage,
+      passed: completedAttempt.passed,
+      submittedAt: completedAttempt.submittedAt,
       passingPercentage,
       totalMarks,
+      totalQuestions: questions.length,
+      attemptsRemaining: quiz.maxAttempts == null ? null : Math.max(0, quiz.maxAttempts - attemptNumber),
     };
   } catch (err) {
     if ((err as { code?: string }).code === 'P2002') {
@@ -239,4 +361,34 @@ export async function submitQuizAttempt(
     }
     throw err;
   }
+}
+
+export async function getQuizResults(
+  organizationId: string,
+  userId: string,
+  courseId: string,
+  moduleId: string,
+  quizId: string,
+) {
+  const { quiz } = await verifyQuizAttemptAccess(organizationId, userId, courseId, moduleId, quizId);
+  const [attempts, gradingQuiz] = await Promise.all([
+    quizAttemptRepo.listResultsByQuizAndUser(quizId, userId),
+    quizAttemptRepo.getQuizWithQuestionsForGrading(quizId),
+  ]);
+  const totalQuestions = gradingQuiz?.questions.length ?? 0;
+  return attempts.map((attempt) => ({
+    attemptId: attempt.id,
+    attemptNumber: attempt.attemptNumber,
+    score: attempt.score,
+    correctCount: attempt.correctCount,
+    incorrectCount: attempt.incorrectCount,
+    percentage: attempt.percentage,
+    passed: attempt.passed,
+    submittedAt: attempt.submittedAt,
+    passingPercentage: attempt.quiz.passingPercentage,
+    totalQuestions,
+    attemptsRemaining: quiz.maxAttempts == null
+      ? null
+      : Math.max(0, quiz.maxAttempts - attempt.attemptNumber),
+  }));
 }

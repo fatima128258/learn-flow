@@ -21,6 +21,10 @@ const pdfData = {
   organizationName: 'Acme Org',
   instructorName: 'Instructor One',
   completionDate: new Date('2026-08-28T12:00:00.000Z'),
+  totalMarks: 10,
+  obtainedMarks: 8,
+  percentage: 80,
+  passed: true,
 };
 
 describe('buildCertificatePdf', () => {
@@ -30,6 +34,10 @@ describe('buildCertificatePdf', () => {
     expect(Buffer.isBuffer(buffer)).toBe(true);
     expect(buffer.length).toBeGreaterThan(100);
     expect(buffer.subarray(0, 5).toString()).toBe('%PDF-');
+    expect(certificatePdfService.formatAssessmentResult(pdfData)).toEqual({
+      marks: 'Assessment result: 8/10 marks (80.00%)',
+      status: 'Result: Passed',
+    });
   });
 });
 

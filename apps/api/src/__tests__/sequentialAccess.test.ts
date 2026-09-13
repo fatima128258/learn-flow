@@ -1,13 +1,19 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-const { moduleFindMany, sequenceList, lessonProgress, attempts } = vi.hoisted(() => ({
+const { moduleFindMany, sequenceList, lessonProgress, attempts, contentItemFindMany } = vi.hoisted(() => ({
   moduleFindMany: vi.fn(),
   sequenceList: vi.fn(),
   lessonProgress: vi.fn(),
   attempts: vi.fn(),
+  contentItemFindMany: vi.fn(),
 }));
 
-vi.mock('../prisma', () => ({ default: () => ({ module: { findMany: moduleFindMany } }) }));
+vi.mock('../prisma', () => ({
+  default: () => ({
+    module: { findMany: moduleFindMany },
+    moduleContentItem: { findMany: contentItemFindMany },
+  }),
+}));
 vi.mock('../repositories/contentSequenceRepository', () => ({ listByModule: sequenceList }));
 vi.mock('../repositories/progressRepository', () => ({
   listLessonProgressForCourse: lessonProgress,
@@ -27,6 +33,7 @@ describe('student sequential access', () => {
     ]);
     lessonProgress.mockResolvedValue([]);
     attempts.mockResolvedValue([]);
+    contentItemFindMany.mockResolvedValue([]);
   });
 
   it('locks mixed sequence items and unlocks after lesson and passed quiz', async () => {

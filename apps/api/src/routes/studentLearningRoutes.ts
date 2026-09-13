@@ -16,7 +16,9 @@ import {
 } from '../controllers/studentLearningController';
 import {
   getQuizForTaking,
+  startQuizAttempt,
   submitQuizAttempt,
+  getQuizResults,
 } from '../controllers/quizAttemptController';
 
 function requireStudentOnly(req: AuthenticatedRequest, res: Response, next: NextFunction) {
@@ -87,9 +89,21 @@ studentLearningRouter.get(
 );
 
 studentLearningRouter.post(
+  '/:organizationId/student/courses/:courseId/modules/:moduleId/quizzes/:quizId/attempts/start',
+  ...studentMiddleware,
+  startQuizAttempt,
+);
+
+studentLearningRouter.post(
   '/:organizationId/student/courses/:courseId/modules/:moduleId/quizzes/:quizId/attempts',
   ...studentMiddleware,
   submitQuizAttempt,
+);
+
+studentLearningRouter.get(
+  '/:organizationId/student/courses/:courseId/modules/:moduleId/quizzes/:quizId/attempts',
+  ...studentMiddleware,
+  getQuizResults,
 );
 
 export default studentLearningRouter;
