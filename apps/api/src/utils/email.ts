@@ -145,8 +145,9 @@ export async function sendMail(options: MailOptions) {
     });
     return true;
   } catch (error) {
-    console.error('Failed to send email:', error);
-    return false;
+    const message = error instanceof Error ? error.message : 'Unknown email delivery error';
+    console.error('Failed to send email:', message);
+    throw new Error('EMAIL_DELIVERY_FAILED');
   }
 }
 
@@ -177,7 +178,9 @@ export async function sendVerificationEmail(email: string, token: string) {
 }
 
 export async function sendPasswordResetEmail(email: string, token: string) {
-  const baseUrl = process.env.APP_URL || 'http://localhost:3000';
+  const baseUrl = process.env.APP_URL
+    || (process.env.NODE_ENV === 'production' ? null : 'http://localhost:3000');
+  if (!baseUrl) throw new Error('EMAIL_CONFIGURATION_ERROR');
   const resetUrl = `${baseUrl}/reset-password?token=${token}`;
 
   return sendMail({

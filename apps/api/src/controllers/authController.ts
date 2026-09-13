@@ -122,7 +122,7 @@ export async function logout(req: Request, res: Response) {
 export async function forgotPassword(req: Request, res: Response) {
   try {
     const { email } = req.body;
-    if (!email) return res.status(400).json({ error: 'MISSING_EMAIL' });
+    if (typeof email !== 'string' || !email.trim()) return res.status(400).json({ error: 'MISSING_EMAIL' });
     if (!isValidEmail(email)) return res.status(400).json({ error: 'INVALID_EMAIL' });
 
     await service.requestPasswordReset({ email, ip: getClientIp(req) });
@@ -137,7 +137,11 @@ export async function forgotPassword(req: Request, res: Response) {
 export async function resetPassword(req: Request, res: Response) {
   try {
     const { token, password, confirmPassword } = req.body;
-    if (!token || !password || !confirmPassword) {
+    if (
+      typeof token !== 'string' || !token
+      || typeof password !== 'string' || !password
+      || typeof confirmPassword !== 'string' || !confirmPassword
+    ) {
       return res.status(400).json({ error: 'MISSING_FIELDS' });
     }
     if (password !== confirmPassword) {

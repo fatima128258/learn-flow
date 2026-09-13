@@ -126,6 +126,17 @@ export async function markPasswordResetTokenAsUsed(id: string) {
   return prisma().passwordResetToken.update({ where: { id }, data: { used: true } });
 }
 
+export async function claimPasswordResetToken(id: string) {
+  return prisma().passwordResetToken.updateMany({
+    where: { id, used: false, expiresAt: { gt: new Date() } },
+    data: { used: true },
+  });
+}
+
 export async function deletePasswordResetTokensByUserId(userId: string) {
   return prisma().passwordResetToken.deleteMany({ where: { userId, used: false, expiresAt: { gt: new Date() } } });
+}
+
+export async function deletePasswordResetTokenById(id: string) {
+  return prisma().passwordResetToken.delete({ where: { id } });
 }

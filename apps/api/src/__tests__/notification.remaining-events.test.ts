@@ -18,9 +18,11 @@ const {
     findUserByEmail: vi.fn(),
     createUser: vi.fn(),
     findUserById: vi.fn(),
+    findUserPrimaryOrganization: vi.fn(),
     markUserEmailAsVerified: vi.fn(),
     findPasswordResetTokenByTokenHash: vi.fn(),
     updateUserPassword: vi.fn(),
+    claimPasswordResetToken: vi.fn(),
     markPasswordResetTokenAsUsed: vi.fn(),
     revokeAllSessionsByUserId: vi.fn(),
     findUserOrganizationsByUserId: vi.fn(),
@@ -220,16 +222,18 @@ describe('remaining notification event wiring', () => {
         expiresAt: new Date(Date.now() + 3600000),
       });
       authRepoMock.findUserById.mockResolvedValue(userRecord());
+      authRepoMock.findUserPrimaryOrganization.mockResolvedValue({ organizationId: 'org-a', role: 'STUDENT' });
       authRepoMock.findUserOrganizationsByUserId.mockResolvedValue([
         { role: 'STUDENT', organizationId: 'org-a' },
       ]);
       authRepoMock.updateUserPassword.mockResolvedValue({});
+      authRepoMock.claimPasswordResetToken.mockResolvedValue({ count: 1 });
       authRepoMock.markPasswordResetTokenAsUsed.mockResolvedValue({});
       authRepoMock.revokeAllSessionsByUserId.mockResolvedValue({});
 
       await authService.resetPassword('reset-token', 'newpass1234');
 
-      expect(authRepoMock.findUserOrganizationsByUserId).toHaveBeenCalledWith('user-1');
+      expect(authRepoMock.findUserPrimaryOrganization).toHaveBeenCalledWith('user-1');
       expect(dispatchMock.dispatchNotification).toHaveBeenCalledTimes(1);
       expect(dispatchMock.dispatchNotification).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -248,8 +252,10 @@ describe('remaining notification event wiring', () => {
         expiresAt: new Date(Date.now() + 3600000),
       });
       authRepoMock.findUserById.mockResolvedValue(userRecord());
+      authRepoMock.findUserPrimaryOrganization.mockResolvedValue(null);
       authRepoMock.findUserOrganizationsByUserId.mockResolvedValue([]);
       authRepoMock.updateUserPassword.mockResolvedValue({});
+      authRepoMock.claimPasswordResetToken.mockResolvedValue({ count: 1 });
       authRepoMock.markPasswordResetTokenAsUsed.mockResolvedValue({});
       authRepoMock.revokeAllSessionsByUserId.mockResolvedValue({});
 

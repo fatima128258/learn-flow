@@ -222,7 +222,11 @@ export async function requestPasswordReset(input: string | { email: string; ip?:
   const resetToken = generateToken();
   const resetTokenHash = hashToken(resetToken);
   const resetExpiresAt = new Date(Date.now() + PASSWORD_RESET_TTL * 1000);
-  await repo.createPasswordResetToken({ userId: user.id, tokenHash: resetTokenHash, expiresAt: resetExpiresAt });
+  const resetRecord = await repo.createPasswordResetToken({
+    userId: user.id,
+    tokenHash: resetTokenHash,
+    expiresAt: resetExpiresAt,
+  });
 
   // OPTIMIZATION: Queue email to background job instead of awaiting SMTP delivery
   if (isEmailQueueEnabled()) {
@@ -234,12 +238,17 @@ export async function requestPasswordReset(input: string | { email: string; ip?:
       })
       .catch((err) => {
         console.error('Failed to queue password reset email:', err);
+        repo.deletePasswordResetTokenById(resetRecord.id).catch((cleanupError) => {
+          console.error('Failed to clean up password reset token after queue failure:', cleanupError instanceof Error ? cleanupError.message : cleanupError);
+        });
       });
   } else {
-    // Fallback: send without blocking
-    sendPasswordResetEmail(normalizedEmail, resetToken).catch((err) => {
-      console.error('Failed to send password reset email:', err);
-    });
+    try {
+      await sendPasswordResetEmail(normalizedEmail, resetToken);
+    } catch (err) {
+      await repo.deletePasswordResetTokenById(resetRecord.id);
+      throw err;
+    }
   }
 
   return { success: true };
@@ -260,13 +269,17 @@ export async function resetPassword(token: string, newPassword: string, ip = '12
   // OPTIMIZATION: Hash password while doing other work (not blocking)
   const passwordHash = await argon2.hash(newPassword, { type: argon2.argon2id });
 
-  // OPTIMIZATION: Parallelize independent DB writes (password update, token mark as used, session revoke)
-  // These 3 operations don't depend on each other, so run them concurrently
+  // Claim the token atomically so concurrent reset requests cannot both succeed.
+  const claimed = await repo.claimPasswordResetToken(resetToken.id);
+  if (claimed.count === 0) {
+    throw new Error(resetToken.used ? 'TOKEN_ALREADY_USED' : 'TOKEN_EXPIRED');
+  }
+
+  // Password update and session revocation are independent after the token is claimed.
   const [, primaryOrganizationId] = await Promise.all([
     // DB operations that can run in parallel
     Promise.all([
       repo.updateUserPassword(user.id, passwordHash),
-      repo.markPasswordResetTokenAsUsed(resetToken.id),
       repo.revokeAllSessionsByUserId(user.id),
     ]),
     // Get primary org concurrently (for notification)
