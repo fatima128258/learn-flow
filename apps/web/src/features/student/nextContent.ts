@@ -5,7 +5,18 @@ type SequenceItem = {
   unlocked?: boolean;
 };
 
-type ModuleSummary = { id: string; order: number };
+type ModuleSummary = {
+  id: string;
+  order: number;
+  complete?: boolean;
+};
+
+type CourseModuleSummary = {
+  id: string;
+  order: number;
+  firstContentType?: 'LESSON' | 'QUIZ' | null;
+  firstContentId?: string | null;
+};
 
 export async function getNextContentUrl({
   organizationId,
@@ -50,8 +61,29 @@ export async function getNextContentUrl({
     (item) => item.moduleId === moduleId && item.type === contentType && item.id === contentId,
   );
   const next = currentIndex >= 0 ? sequence[currentIndex + 1] : undefined;
-  if (!next || next.state === 'locked' || next.unlocked === false) return null;
+  if (next && next.state !== 'locked' && next.unlocked !== false) {
+    const contentPath = next.type === 'LESSON' ? 'lessons' : 'quizzes';
+    return `/dashboard/student/courses/${courseId}/modules/${next.moduleId}/${contentPath}/${next.id}`;
+  }
 
-  const contentPath = next.type === 'LESSON' ? 'lessons' : 'quizzes';
-  return `/dashboard/student/courses/${courseId}/modules/${next.moduleId}/${contentPath}/${next.id}`;
+  // Locked modules do not expose their content endpoint. Use the enrolled
+  // course summary to find the next module's first activity instead.
+  const currentModule = orderedModules.find(module => module.id === moduleId);
+  const nextModule = orderedModules.find(
+    module => currentModule && module.order > currentModule.order,
+  );
+  if (!nextModule) return null;
+
+  const courseResponse = await fetch(
+    `/api/v1/organizations/${organizationId}/student/courses/${courseId}`,
+    { credentials: 'include' },
+  );
+  if (!courseResponse.ok) return null;
+  const courseBody = await courseResponse.json();
+  const moduleSummaries = (courseBody.data?.modules ?? []) as CourseModuleSummary[];
+  const nextModuleSummary = moduleSummaries.find(module => module.id === nextModule.id);
+  if (!nextModuleSummary?.firstContentType || !nextModuleSummary.firstContentId) return null;
+
+  const contentPath = nextModuleSummary.firstContentType === 'LESSON' ? 'lessons' : 'quizzes';
+  return `/dashboard/student/courses/${courseId}/modules/${nextModuleSummary.id}/${contentPath}/${nextModuleSummary.firstContentId}`;
 }

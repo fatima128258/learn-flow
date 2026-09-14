@@ -396,6 +396,14 @@ export default function StudentQuizTakingPage() {
                 >
                   &larr; Back to Module
                 </Link>
+                {courseCompleted && result.passed && (
+                  <Link
+                    href="/dashboard/student/certificates"
+                    className="inline-flex items-center justify-center rounded-lg bg-[#5A321F] px-4 py-2 text-sm font-semibold text-white hover:bg-[#472719]"
+                  >
+                    Go to Certificate
+                  </Link>
+                )}
                 {!result.passed && (result.attemptsRemaining == null || result.attemptsRemaining > 0) && (
                   <Button className="w-full sm:w-auto" variant="primary" onClick={retryAttempt} loading={starting}>
                     Retry Quiz

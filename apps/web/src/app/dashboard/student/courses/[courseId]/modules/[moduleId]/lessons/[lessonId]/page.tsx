@@ -45,6 +45,7 @@ export default function StudentLessonPage() {
   const [markError, setMarkError] = useState<string | null>(null);
   const [nextContentUrl, setNextContentUrl] = useState<string | null>(null);
   const [completedLocally, setCompletedLocally] = useState(false);
+  const [courseCompleted, setCourseCompleted] = useState(false);
   const isCompleted = completedLocally || Boolean(lessonId && progress?.completedLessonIds.includes(lessonId));
 
   useEffect(() => {
@@ -166,7 +167,11 @@ export default function StudentLessonPage() {
         setMarkError('Could not update your progress. Please try again.');
         return;
       }
+      const responseBody = await res.json().catch(() => null) as {
+        data?: { courseProgress?: { courseComplete?: boolean } };
+      } | null;
       setCompletedLocally(true);
+      setCourseCompleted(responseBody?.data?.courseProgress?.courseComplete === true);
       if (completed && data?.module.order === 1) {
         toast.success('Congratulations! You completed the first module.');
       }
@@ -257,14 +262,26 @@ export default function StudentLessonPage() {
                   >
                     {marking ? 'Saving...' : isCompleted ? 'Completed' : 'Mark as Read'}
                   </Button>
-                  {isCompleted && nextContentUrl && (
+                  {isCompleted && courseCompleted && (
+                    <div className="w-full rounded-lg border border-[#d9eadf] bg-[#f4fbf6] px-4 py-3 text-sm font-semibold text-[#16834b]">
+                      Congratulations! You completed the course.
+                    </div>
+                  )}
+                  {isCompleted && courseCompleted ? (
+                    <Link
+                      href="/dashboard/student/certificates"
+                      className="inline-flex items-center rounded-lg bg-[#5A321F] px-4 py-2 text-sm font-semibold text-white hover:bg-[#472719]"
+                    >
+                      Go to Certificate
+                    </Link>
+                  ) : isCompleted && nextContentUrl ? (
                     <Link
                       href={nextContentUrl}
                       className="inline-flex items-center rounded-lg bg-[#5A321F] px-4 py-2 text-sm font-semibold text-white hover:bg-[#472719]"
                     >
                       Next
                     </Link>
-                  )}
+                  ) : null}
                 </div>
               </div>
             </div>
