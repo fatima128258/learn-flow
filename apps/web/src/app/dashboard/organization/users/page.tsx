@@ -93,6 +93,13 @@ function roleBadgeVariant(role: MemberRole) {
   return 'default' as const;
 }
 
+function roleLabel(role: MemberRole) {
+  if (role === 'INSTRUCTOR') return 'Instructor';
+  if (role === 'STUDENT') return 'Student';
+  if (role === 'ORG_ADMIN') return 'Organization Admin';
+  return 'Platform Admin';
+}
+
 const API_BASE = '';
 
 export default function OrgUsersPage() {
@@ -347,7 +354,7 @@ export default function OrgUsersPage() {
                         <tr>
                           <th className={tableHeadClass}>Name</th>
                           <th className={tableHeadClass}>Email</th>
-                          <th className={`${tableHeadClass} text-center`}>Status</th>
+                          <th className={`${tableHeadClass} text-center`}>Role</th>
                           <th className={tableHeadClass}>Created</th>
                           <th className={`${tableHeadClass} text-center`}>Action</th>
                         </tr>
@@ -363,7 +370,7 @@ export default function OrgUsersPage() {
                             </td>
                             <td className={`${tableCellClass} text-neutral-700`}>{member.email}</td>
                             <td className={tableStatusClass}>
-                              <Badge variant={member.status === 'ACTIVE' ? 'success' : 'warning'} size="sm">{member.status === 'ACTIVE' ? 'Active' : 'Suspended'}</Badge>
+                              <Badge variant={roleBadgeVariant(member.role)} size="sm">{roleLabel(member.role)}</Badge>
                             </td>
                             <td className={`${tableCellClass} text-neutral-700`}>
                               {new Date(member.createdAt).toLocaleDateString()}
@@ -392,7 +399,7 @@ export default function OrgUsersPage() {
                         <div className="mt-5 flex-1 space-y-3 border-t border-[#ead8c6] pt-4">
                           <p className="break-all text-sm text-[#5f6368]">{member.email}</p>
                           <div className="flex items-center justify-between gap-3">
-                            <Badge variant={member.status === 'ACTIVE' ? 'success' : 'warning'} size="sm">{member.status === 'ACTIVE' ? 'Active' : 'Suspended'}</Badge>
+                            <Badge variant={roleBadgeVariant(member.role)} size="sm">{roleLabel(member.role)}</Badge>
                           </div>
                         </div>
                         <div className="mt-4 border-t border-[#ead8c6] pt-3 text-xs font-medium uppercase tracking-wide text-[#9b765c]">

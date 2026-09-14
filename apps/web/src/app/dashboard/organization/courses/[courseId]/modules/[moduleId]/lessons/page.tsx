@@ -42,10 +42,10 @@ function LessonActionsMenu({ lesson, onEdit, onDelete }: {
       const rect = buttonRef.current.getBoundingClientRect();
       const menuWidth = 192;
       const menuHeight = 96;
-      const left = Math.max(8, Math.min(rect.right - menuWidth, window.innerWidth - menuWidth - 8));
-      const top = rect.bottom + menuHeight <= window.innerHeight
-        ? rect.bottom + 4
-        : rect.top - menuHeight - 4;
+      const left = rect.left - menuWidth - 8 >= 8
+        ? rect.left - menuWidth - 8
+        : Math.min(rect.right + 8, window.innerWidth - menuWidth - 8);
+      const top = Math.max(8, Math.min(rect.top, window.innerHeight - menuHeight - 8));
       setMenuPosition({ top, left });
     }
     setIsOpen(!isOpen);

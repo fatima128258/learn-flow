@@ -24,6 +24,8 @@ function QuizActionsMenu({ quiz, courseId, moduleId, dashboardPrefix, onEdit, on
 }) {
   const [isOpen, setIsOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
+  const buttonRef = useRef<HTMLButtonElement>(null);
+  const [menuPosition, setMenuPosition] = useState({ top: 0, left: 0 });
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -38,10 +40,25 @@ function QuizActionsMenu({ quiz, courseId, moduleId, dashboardPrefix, onEdit, on
     }
   }, [isOpen]);
 
+  function toggleMenu() {
+    if (!isOpen && buttonRef.current) {
+      const rect = buttonRef.current.getBoundingClientRect();
+      const menuWidth = 192;
+      const menuHeight = 144;
+      const left = rect.left - menuWidth - 8 >= 8
+        ? rect.left - menuWidth - 8
+        : Math.min(rect.right + 8, window.innerWidth - menuWidth - 8);
+      const top = Math.max(8, Math.min(rect.top, window.innerHeight - menuHeight - 8));
+      setMenuPosition({ top, left });
+    }
+    setIsOpen(!isOpen);
+  }
+
   return (
     <div ref={menuRef} className="relative">
       <button
-        onClick={() => setIsOpen(!isOpen)}
+        ref={buttonRef}
+        onClick={toggleMenu}
         className="inline-flex items-center justify-center rounded-lg border-0 p-1 text-neutral-500 transition-colors hover:bg-neutral-100 focus:border-0 focus:outline-none focus-visible:border-0 focus-visible:outline-none focus:ring-0 focus-visible:ring-0"
         aria-label="Quiz actions"
       >
@@ -51,7 +68,11 @@ function QuizActionsMenu({ quiz, courseId, moduleId, dashboardPrefix, onEdit, on
       </button>
 
       {isOpen && (
-        <div className="fixed bg-white rounded-lg border border-neutral-200 shadow-lg z-50 w-48">
+        <div
+          ref={menuRef}
+          style={{ position: 'fixed', top: menuPosition.top, left: menuPosition.left, zIndex: 9999 }}
+          className="w-48 rounded-lg border border-neutral-200 bg-white shadow-lg"
+        >
           <Link
             href={`${dashboardPrefix}/courses/${courseId}/modules/${moduleId}/quizzes/${quiz.id}/questions`}
             className="block px-4 py-2 text-sm text-neutral-700 hover:bg-neutral-50 border-b border-neutral-100 first:rounded-t-lg focus:outline-none focus-visible:outline-none"
@@ -619,7 +640,6 @@ export default function ModuleQuizzesPage() {
                   <tr>
                     <th className="px-6 py-3 text-center align-middle text-xs font-semibold uppercase tracking-wide text-neutral-500 w-16">Order</th>
                     <th className="w-72 px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-neutral-500">Title</th>
-                    <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-neutral-500">Description</th>
                     <th className="px-6 py-3 text-center align-middle text-xs font-semibold uppercase tracking-wide text-neutral-500 w-24">Time Limit</th>
                     <th className="px-6 py-3 text-center align-middle text-xs font-semibold uppercase tracking-wide text-neutral-500 w-24">Pass %</th>
                     <th className="px-6 py-3 text-center align-middle text-xs font-semibold uppercase tracking-wide text-neutral-500 w-24">Attempts</th>
@@ -634,9 +654,6 @@ export default function ModuleQuizzesPage() {
                       </td>
                       <td className="w-72 max-w-72 px-6 py-4 text-sm font-medium text-primary-600 hover:text-primary-700" title={quiz.title}>
                         <span className="block truncate">{quiz.title}</span>
-                      </td>
-                      <td className="px-6 py-4 text-sm text-neutral-700 max-w-md truncate">
-                        {quiz.description ?? '—'}
                       </td>
                       <td className="px-6 py-4 text-center align-middle text-sm text-neutral-700">
                         {quiz.timeLimitMinutes != null ? `${quiz.timeLimitMinutes}m` : '—'}

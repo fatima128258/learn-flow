@@ -763,6 +763,13 @@ export default function QuizQuestionsPage() {
               <div className="rounded-lg bg-primary-50 px-3 py-2 text-sm font-semibold text-primary-700">
                 Total marks: {questions?.reduce((total, question) => total + question.marks, 0) ?? 0}
               </div>
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={() => router.push(`${dashboardPrefix}/courses/${courseId}/modules/${moduleId}/quizzes${organizationId ? `?organization=${organizationId}` : ''}`)}
+              >
+                Save Quiz
+              </Button>
               <Button size="sm" onClick={() => document.getElementById('inline-question-builder')?.scrollIntoView({ behavior: 'smooth' })}>+ Add Question</Button>
             </div>
           </div>
@@ -855,12 +862,32 @@ export default function QuizQuestionsPage() {
                       >
                         {expandedQuestion === question.id ? 'Hide Options' : 'Show Options'}
                       </Button>
-                      <Button variant="ghost" size="sm" onClick={() => openEditModal(question)}>
-                        Edit
-                      </Button>
-                      <Button variant="danger" size="sm" onClick={() => handleDeleteQuestion(question.id)}>
-                        Delete
-                      </Button>
+                      <button
+                        type="button"
+                        aria-label="Edit question"
+                        title="Edit question"
+                        onClick={() => openEditModal(question)}
+                        className="inline-flex h-9 w-9 items-center justify-center rounded-lg text-neutral-600 transition-colors hover:bg-neutral-100 hover:text-primary-700"
+                      >
+                        <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M12 20h9" />
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4L16.5 3.5z" />
+                        </svg>
+                      </button>
+                      <button
+                        type="button"
+                        aria-label="Delete question"
+                        title="Delete question"
+                        onClick={() => handleDeleteQuestion(question.id)}
+                        className="inline-flex h-9 w-9 items-center justify-center rounded-lg text-red-600 transition-colors hover:bg-red-50"
+                      >
+                        <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M3 6h18" />
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M8 6V4h8v2" />
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M19 6l-1 14H6L5 6" />
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M10 11v5M14 11v5" />
+                        </svg>
+                      </button>
                     </div>
                   </div>
 
@@ -901,20 +928,32 @@ export default function QuizQuestionsPage() {
                                 ) : null}
                               </div>
                               <div className="flex items-center gap-1">
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
+                                <button
+                                  type="button"
+                                  aria-label="Edit option"
+                                  title="Edit option"
                                   onClick={() => openEditOptionModal(question.id, option)}
+                                  className="inline-flex h-9 w-9 items-center justify-center rounded-lg text-neutral-600 transition-colors hover:bg-neutral-100 hover:text-primary-700"
                                 >
-                                  Edit
-                                </Button>
-                                <Button
-                                  variant="danger"
-                                  size="sm"
+                                  <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 20h9" />
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4L16.5 3.5z" />
+                                  </svg>
+                                </button>
+                                <button
+                                  type="button"
+                                  aria-label="Delete option"
+                                  title="Delete option"
                                   onClick={() => handleDeleteOption(question.id, option.id)}
+                                  className="inline-flex h-9 w-9 items-center justify-center rounded-lg text-red-600 transition-colors hover:bg-red-50"
                                 >
-                                  Delete
-                                </Button>
+                                  <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M3 6h18" />
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M8 6V4h8v2" />
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M19 6l-1 14H6L5 6" />
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M10 11v5M14 11v5" />
+                                  </svg>
+                                </button>
                               </div>
                             </div>
                           ))}
