@@ -9,6 +9,16 @@ function round2(value: number) {
   return Math.round(value * 100) / 100;
 }
 
+function withTimeout<T>(promise: Promise<T>, timeoutMs: number, errorCode: string) {
+  let timeoutId: ReturnType<typeof setTimeout> | undefined;
+  const timeout = new Promise<never>((_, reject) => {
+    timeoutId = setTimeout(() => reject(new Error(errorCode)), timeoutMs);
+  });
+  return Promise.race([promise, timeout]).finally(() => {
+    if (timeoutId) clearTimeout(timeoutId);
+  });
+}
+
 function toPurchaseDto(
   order: { id: string; status: string; totalAmount: { toString(): string }; currency?: string },
   enrollment: { id: string; status: string },
@@ -27,13 +37,19 @@ function toPurchaseDto(
 }
 
 export async function purchaseCourse(organizationId: string, userId: string, courseId: string) {
+  const startedAt = Date.now();
   // These checks are independent reads. Run them together so a slow remote
   // database does not make checkout wait for three sequential round trips.
-  const [course, existingEnrollment, existingOrder] = await Promise.all([
-    courseRepo.getById(organizationId, courseId),
-    enrollmentRepo.findByUserAndCourse(userId, courseId),
-    orderRepo.findPaidOrderForCourse(userId, courseId),
-  ]);
+  const [course, existingEnrollment, existingOrder] = await withTimeout(
+    Promise.all([
+      courseRepo.getById(organizationId, courseId),
+      enrollmentRepo.findByUserAndCourse(userId, courseId),
+      orderRepo.findPaidOrderForCourse(userId, courseId),
+    ]),
+    8000,
+    'PURCHASE_DATABASE_TIMEOUT',
+  );
+  console.info('[PURCHASE] checks completed', { courseId, durationMs: Date.now() - startedAt });
   if (!course) {
     throw new Error('COURSE_NOT_FOUND');
   }
@@ -72,6 +88,7 @@ export async function purchaseCourse(organizationId: string, userId: string, cou
     currency,
     providerRef: payment.providerRef,
   });
+  console.info('[PURCHASE] transaction completed', { courseId, durationMs: Date.now() - startedAt });
 
   // Do not make checkout wait for Redis or email delivery. The order and
   // enrollment are already committed, so notification delivery can continue

@@ -28,6 +28,8 @@ function handleError(res: Response, err: unknown) {
       return fail(res, 409, 'ALREADY_PURCHASED');
     case 'PAYMENT_FAILED':
       return fail(res, 402, 'PAYMENT_FAILED');
+    case 'PURCHASE_DATABASE_TIMEOUT':
+      return fail(res, 503, 'PURCHASE_DATABASE_TIMEOUT');
     default:
       return fail(res, 500, 'SERVER_ERROR');
   }
@@ -43,6 +45,7 @@ export async function purchaseCourse(req: AuthenticatedRequest, res: Response) {
       req.user.id,
       req.params.courseId,
     );
+    console.info('[PURCHASE] response sent', { courseId: req.params.courseId });
     return res.status(201).json({ success: true, data });
   } catch (err) {
     return handleError(res, err);

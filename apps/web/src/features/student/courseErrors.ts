@@ -9,6 +9,7 @@ const PURCHASE_ERRORS: Record<string, string> = {
   PAYMENT_FAILED: 'The payment could not be processed. Please try again.',
   REQUEST_TIMEOUT: 'The purchase is taking too long. Please try again. If you were charged, check My Courses before retrying.',
   BACKEND_TIMEOUT: 'The purchase server did not respond in time. Please check My Courses before trying again.',
+  PURCHASE_DATABASE_TIMEOUT: 'The purchase database is busy. Please check My Courses before trying again.',
 };
 
 export function getPurchaseErrorMessage(code: string | null | undefined): string {
