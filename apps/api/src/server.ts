@@ -171,17 +171,26 @@ export const start = (port: number | string = process.env.PORT ?? 4000) => {
     console.warn('[SERVER] Service initialization warning (non-critical):', err.message);
   });
   
-  // Start background workers
-  startNotificationWorker();
+  // Start background workers only when the queue feature is enabled.
+  // This prevents the app from repeatedly polling Redis when queue processing is
+  // intentionally disabled or a low-capacity upstream Redis service is in use.
+  const notificationWorker = startNotificationWorker();
+  if (notificationWorker) {
+    notificationWorker.on('error', (err) => {
+      console.error('[Notification Worker] Critical error:', err);
+    });
+  }
   
   // START EMAIL WORKER: Process verification and password reset emails in background
   // This allows signup/password-reset endpoints to return immediately without
   // waiting for SMTP delivery (which can take 500ms-2s per email)
   // @performance: Signup response time reduced from 1500ms+ to <50ms
   const emailWorker = createEmailWorker();
-  emailWorker.on('error', (err) => {
-    console.error('[Email Worker] Critical error:', err);
-  });
+  if (emailWorker) {
+    emailWorker.on('error', (err) => {
+      console.error('[Email Worker] Critical error:', err);
+    });
+  }
   
   return app.listen(p, () => {
     console.log(`API server listening on http://localhost:${p}`);

@@ -1,7 +1,7 @@
 import { Worker } from 'bullmq';
 import { getRedis } from '../utils/redis';
 import { sendVerificationEmail, sendPasswordResetEmail } from '../utils/email';
-import { EMAIL_QUEUE_NAME, EmailJobData } from './emailQueue';
+import { EMAIL_QUEUE_NAME, EmailJobData, isEmailQueueEnabled } from './emailQueue';
 
 /**
  * Email Worker - processes email jobs from the queue in background
@@ -9,6 +9,8 @@ import { EMAIL_QUEUE_NAME, EmailJobData } from './emailQueue';
  * without waiting for SMTP delivery (which can take 500ms-2s)
  */
 export function createEmailWorker() {
+  if (!isEmailQueueEnabled()) return null;
+
   const worker = new Worker(
     EMAIL_QUEUE_NAME,
     async (job) => {

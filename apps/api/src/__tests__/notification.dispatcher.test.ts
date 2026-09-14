@@ -1,4 +1,10 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+
+const workerCtor = vi.hoisted(() => vi.fn());
+
+vi.mock('bullmq', () => ({
+  Worker: workerCtor,
+}));
 
 const { queueMock, emailMock, authMock, notifServiceMock } = vi.hoisted(() => ({
   queueMock: {
@@ -27,6 +33,8 @@ import {
   processNotificationJob,
   NOTIFICATION_JOB_NAME,
 } from '../services/notificationDispatcher';
+import { startNotificationWorker } from '../queues/notificationWorker';
+import { createEmailWorker } from '../queues/emailWorker';
 
 const baseJob = {
   type: 'ENROLLMENT_CONFIRMATION' as const,
@@ -129,5 +137,24 @@ describe('processNotificationJob (worker handler)', () => {
       'ENROLLMENT_CONFIRMATION',
       expect.objectContaining({ to: 'student@example.com', name: 'Student User' }),
     );
+  });
+});
+
+describe('queue worker startup guardrails', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    process.env.NOTIFICATIONS_QUEUE_ENABLED = 'false';
+    process.env.EMAIL_QUEUE_ENABLED = 'false';
+  });
+
+  afterEach(() => {
+    delete process.env.NOTIFICATIONS_QUEUE_ENABLED;
+    delete process.env.EMAIL_QUEUE_ENABLED;
+  });
+
+  it('does not start BullMQ workers when the queue feature is disabled', () => {
+    expect(startNotificationWorker()).toBeNull();
+    expect(createEmailWorker()).toBeNull();
+    expect(workerCtor).not.toHaveBeenCalled();
   });
 });

@@ -1,10 +1,10 @@
 import { Worker } from 'bullmq';
 import Redis from 'ioredis';
-import { NOTIFICATION_QUEUE_NAME } from './notificationQueue';
+import { isNotificationQueueEnabled, NOTIFICATION_QUEUE_NAME } from './notificationQueue';
 import { NOTIFICATION_JOB_NAME, processNotificationJob } from '../services/notificationDispatcher';
 
 export function startNotificationWorker() {
-  if (process.env.NODE_ENV === 'test') return null;
+  if (!isNotificationQueueEnabled()) return null;
 
   const connection = new Redis(process.env.REDIS_URL || 'redis://redis:6379', {
     maxRetriesPerRequest: null,
