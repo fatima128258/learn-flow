@@ -125,7 +125,31 @@ export default function InstructorCategoriesPage() {
       {loading ? <div className="space-y-4"><Skeleton variant="text" height={30} /><Skeleton variant="text" height={30} /></div>
         : failed ? <ErrorState title={organizationId ? 'Unable to load categories' : 'No organization assigned'} message={organizationId ? errorMessage : 'Categories are available only through your organization.'} />
           : visibleCategories.length === 0 ? <EmptyState icon={search ? EmptyStateIcons.NoResults : EmptyStateIcons.NoData} title={search ? 'No matching categories' : 'No categories available'} description={search ? 'Try a different search.' : 'Create a private category above or ask your Organization Admin to create an organization category.'} />
-          : <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">{visibleCategories.map((category) => <article key={category.id} className="rounded-2xl border border-neutral-200 bg-white p-5 shadow-sm"><div className="flex items-start justify-between gap-2"><h2 className="font-semibold text-neutral-900">{category.name}</h2><span className="text-xs text-neutral-500">{category.ownerUserId ? 'Private' : 'Organization'}</span></div><p className="mt-2 text-sm text-neutral-600">{category.description || 'No description provided.'}</p></article>)}</div>}
+          : (
+            <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+              {visibleCategories.map((category) => (
+                <article
+                  key={category.id}
+                  className="flex min-h-44 flex-col rounded-2xl border border-[#ead8c6] bg-[#fffdf9] p-5 shadow-sm transition-shadow duration-200 hover:shadow-md"
+                >
+                  <div className="flex items-start justify-between gap-4">
+                    <h2 className="min-w-0 truncate text-lg font-semibold text-[#17212b]">
+                      {category.name}
+                    </h2>
+                    <span className="shrink-0 rounded-full bg-[#f5ebdd] px-2.5 py-1 text-xs font-medium text-[#7a4a2e]">
+                      {category.ownerUserId ? 'Private' : 'Organization'}
+                    </span>
+                  </div>
+                  <p className="mt-4 line-clamp-3 flex-1 text-sm leading-6 text-[#5f6368]">
+                    {category.description || 'No description provided.'}
+                  </p>
+                  <div className="mt-5 border-t border-[#ead8c6] pt-3 text-xs font-medium uppercase tracking-wide text-[#9b765c]">
+                    {category.status === 'INACTIVE' ? 'Inactive' : 'Active'}
+                  </div>
+                </article>
+              ))}
+            </div>
+          )}
       <Modal
         isOpen={showPrivateModal}
         onClose={() => { if (!creating) setShowPrivateModal(false); }}

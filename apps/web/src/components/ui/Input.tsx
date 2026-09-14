@@ -6,12 +6,13 @@ export interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> 
   error?: string;
   label?: string;
   helperText?: string;
+  endAdornment?: React.ReactNode;
   /** 'box' = classic bordered field, 'line' = minimal bottom-border field */
   variant?: InputVariant;
 }
 
 export const Input = React.forwardRef<HTMLInputElement, InputProps>(
-  ({ error, label, helperText, variant = 'box', className = '', id, ...rest }, ref) => {
+  ({ error, label, helperText, endAdornment, variant = 'box', className = '', id, ...rest }, ref) => {
     const inputId = id || label?.toLowerCase().replace(/\s+/g, '-');
     const hasError = !!error;
 
@@ -55,6 +56,7 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
             aria-describedby={error ? `${inputId}-error` : helperText ? `${inputId}-helper` : undefined}
             {...rest}
           />
+          {endAdornment}
         </div>
         {error && (
           <p id={`${inputId}-error`} className="mt-1 text-sm text-error-600">

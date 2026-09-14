@@ -853,7 +853,17 @@ export default function OrganizationsPage() {
                           {new Date(org.createdAt).toLocaleDateString()}
                         </td>
                         <td className={tableActionClass}>
-                          <div className="flex items-center justify-center">
+                          <div className="flex items-center justify-center gap-2">
+                            {(!org.admins || org.admins.length === 0) && (
+                              <Button
+                                type="button"
+                                size="sm"
+                                onClick={() => openAssignModal(org)}
+                                className="!border-0 whitespace-nowrap"
+                              >
+                                Assign Admin
+                              </Button>
+                            )}
                             <OrgActionsMenu
                               org={org}
                               onMembers={() => openMembersModal(org)}
@@ -913,7 +923,17 @@ export default function OrganizationsPage() {
                         </p>
                       ))
                     ) : (
-                      <p className="text-sm italic text-neutral-400">No admin assigned</p>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <p className="text-sm italic text-neutral-400">No admin assigned</p>
+                        <Button
+                          type="button"
+                          size="sm"
+                          onClick={() => openAssignModal(org)}
+                          className="!border-0 !px-3 !py-1 text-xs whitespace-nowrap"
+                        >
+                          Assign Admin
+                        </Button>
+                      </div>
                     )}
                   </div>
 

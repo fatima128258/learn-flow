@@ -105,6 +105,7 @@ export default function OrgUsersPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [searchInput, setSearchInput] = useState('');
+  const [viewMode, setViewMode] = useState<'table' | 'cards'>('table');
 
   const [showAddModal, setShowAddModal] = useState(false);
   const [addRole, setAddRole] = useState<'INSTRUCTOR' | 'STUDENT'>('INSTRUCTOR');
@@ -310,6 +311,32 @@ export default function OrgUsersPage() {
             <Button size="sm" variant="primary" onClick={() => openAdd('INSTRUCTOR')}>
               Add Instructor
             </Button>
+            <div className="ml-2 flex items-center rounded-lg border border-[#ead8c6] bg-[#fffdf9] p-0.5">
+              <button
+                type="button"
+                onClick={() => setViewMode('table')}
+                aria-label="Table view"
+                aria-pressed={viewMode === 'table'}
+                title="Table view"
+                className={`inline-flex h-9 w-9 items-center justify-center rounded-md transition-colors ${
+                  viewMode === 'table' ? 'bg-[#5a321f] text-white' : 'text-[#7a4a2e] hover:bg-[#f5ebdd]'
+                }`}
+              >
+                <span aria-hidden="true">☷</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setViewMode('cards')}
+                aria-label="Card view"
+                aria-pressed={viewMode === 'cards'}
+                title="Card view"
+                className={`inline-flex h-9 w-9 items-center justify-center rounded-md transition-colors ${
+                  viewMode === 'cards' ? 'bg-[#5a321f] text-white' : 'text-[#7a4a2e] hover:bg-[#f5ebdd]'
+                }`}
+              >
+                <span aria-hidden="true">▦</span>
+              </button>
+            </div>
           </div>
         </div>
 
@@ -338,7 +365,7 @@ export default function OrgUsersPage() {
               ) : (
                 <>
                   {/* Desktop table */}
-                  <div className="hidden md:block">
+                  <div className={viewMode === 'table' ? 'block' : 'hidden'}>
                     <table className="min-w-full divide-y divide-neutral-200">
                       <thead className="bg-neutral-50">
                         <tr>
@@ -380,20 +407,25 @@ export default function OrgUsersPage() {
                     </table>
                   </div>
                   {/* Mobile cards */}
-                  <div className="space-y-3 p-3 md:hidden">
+                  <div className={viewMode === 'cards' ? 'grid gap-4 p-4 sm:grid-cols-2 lg:grid-cols-3' : 'hidden'}>
                     {(filteredMembers ?? []).map((member) => (
-                      <div key={member.id} className="rounded-2xl border border-neutral-200 bg-white p-4 shadow-sm">
-                        <div className="flex items-center justify-between gap-2">
+                      <div key={member.id} className="flex min-h-52 flex-col rounded-2xl border border-[#ead8c6] bg-[#fffdf9] p-5 shadow-sm transition-shadow hover:shadow-md">
+                        <div className="flex items-start justify-between gap-3">
                           <div className="flex items-center gap-2 min-w-0">
                             <UserAvatar name={member.name} size="sm" />
-                            <p className="font-semibold text-neutral-900 truncate">{member.name ?? '—'}</p>
+                            <p className="truncate font-semibold text-[#17212b]">{member.name ?? '—'}</p>
                           </div>
                           <Badge variant={roleBadgeVariant(member.role)} size="sm">{member.role}</Badge>
                         </div>
-                        <div className="mt-3 space-y-1 border-t border-neutral-100 pt-3">
-                          <p className="text-sm text-neutral-700 break-all">{member.email}</p>
-                          <div className="flex items-center justify-between gap-3 pt-1"><Badge variant={member.status === 'ACTIVE' ? 'success' : 'warning'} size="sm">{member.status === 'ACTIVE' ? 'Active' : 'Suspended'}</Badge><MemberActionsMenu member={member} onView={() => void openMemberDetails(member)} onStatus={() => setStatusTarget(member)} /></div>
-                          <p className="text-xs text-neutral-400">{new Date(member.createdAt).toLocaleDateString()}</p>
+                        <div className="mt-5 flex-1 space-y-3 border-t border-[#ead8c6] pt-4">
+                          <p className="break-all text-sm text-[#5f6368]">{member.email}</p>
+                          <div className="flex items-center justify-between gap-3">
+                            <Badge variant={member.status === 'ACTIVE' ? 'success' : 'warning'} size="sm">{member.status === 'ACTIVE' ? 'Active' : 'Suspended'}</Badge>
+                            <MemberActionsMenu member={member} onView={() => void openMemberDetails(member)} onStatus={() => setStatusTarget(member)} />
+                          </div>
+                        </div>
+                        <div className="mt-4 border-t border-[#ead8c6] pt-3 text-xs font-medium uppercase tracking-wide text-[#9b765c]">
+                          Joined {new Date(member.createdAt).toLocaleDateString()}
                         </div>
                       </div>
                     ))}

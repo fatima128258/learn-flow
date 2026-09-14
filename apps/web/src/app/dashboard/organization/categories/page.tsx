@@ -92,27 +92,33 @@ export default function CategoriesPage() {
 
   return (
     <div className="mx-auto max-w-6xl">
-      <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <Input
-          variant="line"
-          placeholder="Search by category name"
-          value={search}
-          onChange={(event) => { setSearch(event.target.value); setPage(1); }}
-          className="max-w-md"
-        />
-        <Button onClick={() => setEditing(null)} size="sm" className="min-w-[140px] whitespace-nowrap !border-0">Add category</Button>
-      </div>
-      <Card className="rounded-2xl shadow-sm">
+      <Card padding="none" shadow="sm" className="overflow-hidden rounded-2xl border-[#ead8c6] bg-[#fffdf9]">
+        <div className="flex flex-col gap-3 border-b border-[#ead8c6] bg-[#fffdf9] px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
+          <Input
+            variant="line"
+            placeholder="Search by category name"
+            value={search}
+            onChange={(event) => { setSearch(event.target.value); setPage(1); }}
+            className="max-w-md"
+          />
+          <Button
+            onClick={() => setEditing(null)}
+            size="sm"
+            className="h-10 min-w-[140px] whitespace-nowrap !border-0"
+          >
+            Add category
+          </Button>
+        </div>
         {loading ? <div className="space-y-4"><Skeleton variant="text" height={28} /><Skeleton variant="text" height={28} /><Skeleton variant="text" height={28} /></div>
           : error ? <ErrorState title="Unable to load categories" action={{ label: 'Try again', onClick: () => void load() }} />
           : !hasCategories ? <EmptyState icon={search ? EmptyStateIcons.NoResults : EmptyStateIcons.NoData} title={search ? 'No matching categories' : 'No categories yet'} description={search ? 'Try a different search.' : 'Create your first category to organize courses.'} action={!search ? emptyAction : undefined} />
-          : <div className="overflow-x-auto">
+          : <div className="overflow-x-auto px-4 pb-4">
               <table className="min-w-full divide-y divide-neutral-200">
-                <thead className="bg-neutral-50"><tr className="text-left text-xs font-semibold uppercase tracking-wide text-neutral-900"><th className="px-4 py-3 align-middle">Category Name</th><th className="px-4 py-3 align-middle">Description</th><th className="px-4 py-3 text-center align-middle">Courses</th><th className="px-4 py-3 align-middle">Instructors</th><th className="px-4 py-3 text-center align-middle">Status</th><th className="px-4 py-3 text-center align-middle">Actions</th></tr></thead>
-                <tbody className="divide-y divide-neutral-100">{categories.map((category) => <tr key={category.id} className="cursor-pointer text-sm hover:bg-neutral-50" onClick={() => setSelectedCategory(category)}><td className="px-4 py-4 align-middle font-medium text-neutral-900">{category.name}</td><td className="max-w-xs px-4 py-4 align-middle text-neutral-600"><span className="block max-w-xs truncate">{category.description || '—'}</span></td><td className="px-4 py-4 text-center align-middle text-neutral-600">{category.courseCount}</td><td className="max-w-xs px-4 py-4 align-middle text-neutral-600"><span className="line-clamp-2">{category.instructors?.length ? category.instructors.map((instructor) => instructor.name).join(', ') : '—'}</span></td><td className="px-4 py-4 text-center align-middle"><Badge variant={category.status === 'ACTIVE' ? 'success' : 'default'} size="sm">{category.status}</Badge></td><td className="px-4 py-4 text-center align-middle" onClick={(event) => event.stopPropagation()}><div className="flex items-center justify-center"><CategoryActionsMenu onView={() => setSelectedCategory(category)} onEdit={() => setEditing(category)} onDelete={() => setDeleting(category)} /></div></td></tr>)}</tbody>
+                <thead className="bg-[#f8f2eb]"><tr className="text-left text-xs font-semibold uppercase tracking-wide text-[#5f6368]"><th className="px-4 py-3 align-middle">Category Name</th><th className="px-4 py-3 align-middle">Description</th><th className="px-4 py-3 text-center align-middle">Courses</th><th className="px-4 py-3 align-middle">Instructors</th><th className="px-4 py-3 text-center align-middle">Status</th><th className="px-4 py-3 text-center align-middle">Actions</th></tr></thead>
+                <tbody className="divide-y divide-[#f0e2d3]">{categories.map((category) => <tr key={category.id} className="cursor-pointer text-sm transition-colors hover:bg-[#fff9f0]" onClick={() => setSelectedCategory(category)}><td className="px-4 py-4 align-middle font-semibold text-[#17212b]">{category.name}</td><td className="max-w-xs px-4 py-4 align-middle text-[#5f6368]"><span className="block max-w-xs truncate">{category.description || '—'}</span></td><td className="px-4 py-4 text-center align-middle text-[#5f6368]">{category.courseCount}</td><td className="max-w-xs px-4 py-4 align-middle text-[#5f6368]"><span className="line-clamp-2">{category.instructors?.length ? category.instructors.map((instructor) => instructor.name).join(', ') : '—'}</span></td><td className="px-4 py-4 text-center align-middle"><Badge variant={category.status === 'ACTIVE' ? 'success' : 'default'} size="sm">{category.status}</Badge></td><td className="px-4 py-4 text-center align-middle" onClick={(event) => event.stopPropagation()}><div className="flex items-center justify-center"><CategoryActionsMenu onView={() => setSelectedCategory(category)} onEdit={() => setEditing(category)} onDelete={() => setDeleting(category)} /></div></td></tr>)}</tbody>
               </table>
             </div>}
-        {meta && meta.totalPages > 1 && <div className="mt-4 flex items-center justify-between border-t border-neutral-200 pt-4 text-sm text-neutral-600"><span>Page {meta.page} of {meta.totalPages}</span><div className="flex gap-2"><Button size="sm" variant="outline" disabled={page <= 1} onClick={() => setPage((value) => value - 1)}>Previous</Button><Button size="sm" variant="outline" disabled={page >= meta.totalPages} onClick={() => setPage((value) => value + 1)}>Next</Button></div></div>}
+        {meta && meta.totalPages > 1 && <div className="mx-4 mt-0 flex items-center justify-between border-t border-neutral-200 px-1 py-4 text-sm text-neutral-600"><span>Page {meta.page} of {meta.totalPages}</span><div className="flex gap-2"><Button size="sm" variant="outline" disabled={page <= 1} onClick={() => setPage((value) => value - 1)}>Previous</Button><Button size="sm" variant="outline" disabled={page >= meta.totalPages} onClick={() => setPage((value) => value + 1)}>Next</Button></div></div>}
       </Card>
       <CategoryModal
         key={editing ? editing.id : 'new-category'}
