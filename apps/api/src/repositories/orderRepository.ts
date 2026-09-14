@@ -24,9 +24,6 @@ export async function findPaidOrderForCourse(userId: string, courseId: string) {
         some: { courseId },
       },
     },
-  }, {
-    maxWait: 5000,
-    timeout: 10000,
   });
 }
 
@@ -39,27 +36,31 @@ export async function createOrderWithPurchase(data: PurchaseOrderData) {
         status: 'PAID',
         totalAmount: data.totalAmount,
         currency: data.currency,
-        items: {
-          create: {
-            courseId: data.courseId,
-            courseTitle: data.courseTitle,
-            unitPrice: data.unitPrice,
-            quantity: 1,
-            lineTotal: data.totalAmount,
-          },
-        },
-        payments: {
-          create: {
-            userId: data.userId,
-            organizationId: data.organizationId,
-            provider: 'MOCK',
-            providerRef: data.providerRef,
-            amount: data.totalAmount,
-            currency: data.currency,
-            status: 'SUCCEEDED',
-            paidAt: new Date(),
-          },
-        },
+      },
+    });
+
+    await tx.orderItem.create({
+      data: {
+        orderId: order.id,
+        courseId: data.courseId,
+        courseTitle: data.courseTitle,
+        unitPrice: data.unitPrice,
+        quantity: 1,
+        lineTotal: data.totalAmount,
+      },
+    });
+
+    await tx.payment.create({
+      data: {
+        orderId: order.id,
+        userId: data.userId,
+        organizationId: data.organizationId,
+        provider: 'MOCK',
+        providerRef: data.providerRef,
+        amount: data.totalAmount,
+        currency: data.currency,
+        status: 'SUCCEEDED',
+        paidAt: new Date(),
       },
     });
 
@@ -75,5 +76,8 @@ export async function createOrderWithPurchase(data: PurchaseOrderData) {
       order,
       enrollment,
     };
+  }, {
+    maxWait: 5000,
+    timeout: 10000,
   });
 }
