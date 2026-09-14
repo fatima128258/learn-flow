@@ -14,5 +14,6 @@ export * from './Toast';
 export * from './ToastProvider';
 export * from './Modal';
 export * from './Drawer';
+export * from './ViewToggle';
 export * from './layout/Container';
 export * from './layout/Stack';

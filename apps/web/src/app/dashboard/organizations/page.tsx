@@ -13,6 +13,7 @@ import {
   Input,
   Modal,
   Spinner,
+  ViewToggle,
 } from '../../../components/ui';
 import { getCreateOrganizationErrorMessage } from '../../../features/admin/createOrganizationError';
 import { getEditOrganizationErrorMessage } from '../../../features/admin/editOrganizationError';
@@ -731,44 +732,11 @@ export default function OrganizationsPage() {
             <Button className="!h-10 !border-0" size="sm" onClick={() => setShowCreateModal(true)}>
               Create Organization
             </Button>
-            <div className="hidden items-center rounded-lg border border-primary-200 bg-white p-0.5 sm:flex">
-              <button
-                type="button"
-                onClick={() => setViewMode('list')}
-                aria-label="List view"
-                aria-pressed={viewMode === 'list'}
-                title="List view"
-                className={`inline-flex h-9 w-9 items-center justify-center rounded-md transition-colors ${
-                  viewMode === 'list'
-                    ? 'bg-primary-600 text-white'
-                    : 'text-primary-600 hover:bg-primary-50'
-                }`}
-              >
-                <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
-                  <rect x="4" y="5" width="16" height="14" rx="1.5" />
-                  <path strokeLinecap="round" d="M7 9h10M7 12h10M7 15h10" />
-                </svg>
-              </button>
-              <button
-                type="button"
-                onClick={() => setViewMode('grid')}
-                aria-label="Grid view"
-                aria-pressed={viewMode === 'grid'}
-                title="Grid view"
-                className={`inline-flex h-9 w-9 items-center justify-center rounded-md transition-colors ${
-                  viewMode === 'grid'
-                    ? 'bg-primary-600 text-white'
-                    : 'text-primary-600 hover:bg-primary-50'
-                }`}
-              >
-                <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
-                  <rect x="4" y="4" width="6" height="6" rx="1" />
-                  <rect x="14" y="4" width="6" height="6" rx="1" />
-                  <rect x="4" y="14" width="6" height="6" rx="1" />
-                  <rect x="14" y="14" width="6" height="6" rx="1" />
-                </svg>
-              </button>
-            </div>
+            <ViewToggle
+              value={viewMode === 'list' ? 'table' : 'cards'}
+              onChange={(mode) => setViewMode(mode === 'table' ? 'list' : 'grid')}
+              storageKey="learnhub-organizations-view"
+            />
           </div>
         </div>
 
@@ -853,17 +821,7 @@ export default function OrganizationsPage() {
                           {new Date(org.createdAt).toLocaleDateString()}
                         </td>
                         <td className={tableActionClass}>
-                          <div className="flex items-center justify-center gap-2">
-                            {(!org.admins || org.admins.length === 0) && (
-                              <Button
-                                type="button"
-                                size="sm"
-                                onClick={() => openAssignModal(org)}
-                                className="!border-0 whitespace-nowrap"
-                              >
-                                Assign Admin
-                              </Button>
-                            )}
+                          <div className="flex items-center justify-center">
                             <OrgActionsMenu
                               org={org}
                               onMembers={() => openMembersModal(org)}
@@ -923,17 +881,7 @@ export default function OrganizationsPage() {
                         </p>
                       ))
                     ) : (
-                      <div className="flex flex-wrap items-center gap-2">
-                        <p className="text-sm italic text-neutral-400">No admin assigned</p>
-                        <Button
-                          type="button"
-                          size="sm"
-                          onClick={() => openAssignModal(org)}
-                          className="!border-0 !px-3 !py-1 text-xs whitespace-nowrap"
-                        >
-                          Assign Admin
-                        </Button>
-                      </div>
+                      <p className="text-sm italic text-neutral-400">No admin assigned</p>
                     )}
                   </div>
 
@@ -1112,20 +1060,28 @@ export default function OrganizationsPage() {
               <Button
                 type="button"
                 size="sm"
-                variant={assignMode === 'existing' ? 'primary' : 'outline'}
                 onClick={() => setAssignMode('existing')}
                 disabled={assigning}
-                className="!border-0"
+                className={`h-12 w-full rounded-xl border transition-colors duration-200 ${
+                  assignMode === 'existing'
+                    ? '!border-[#5a321f] !bg-[#5a321f] !text-white hover:!bg-[#7a4a2e]'
+                    : '!border-[#e8d8c8] !bg-[#f5ebdd] !text-[#7a4a2e] hover:!bg-[#ead8c6]'
+                }`}
+                aria-pressed={assignMode === 'existing'}
               >
                 Assign existing user
               </Button>
               <Button
                 type="button"
                 size="sm"
-                variant={assignMode === 'new' ? 'primary' : 'outline'}
                 onClick={() => setAssignMode('new')}
                 disabled={assigning}
-                className="!border-0"
+                className={`h-12 w-full rounded-xl border transition-colors duration-200 ${
+                  assignMode === 'new'
+                    ? '!border-[#5a321f] !bg-[#5a321f] !text-white hover:!bg-[#7a4a2e]'
+                    : '!border-[#e8d8c8] !bg-[#f5ebdd] !text-[#7a4a2e] hover:!bg-[#ead8c6]'
+                }`}
+                aria-pressed={assignMode === 'new'}
               >
                 Create new admin
               </Button>

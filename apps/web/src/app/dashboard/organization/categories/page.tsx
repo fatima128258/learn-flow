@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useSearchParams } from 'next/navigation';
-import { Badge, Button, Card, ConfirmModal, Drawer, EmptyState, EmptyStateIcons, ErrorState, Input, Modal, Skeleton, useToast } from '@/components/ui';
+import { Badge, Button, Card, ConfirmModal, Drawer, EmptyState, EmptyStateIcons, ErrorState, Input, Modal, Skeleton, ViewToggle, useToast } from '@/components/ui';
 import { ApiError, apiRequest } from '@/lib/api';
 
 type Category = {
@@ -32,6 +32,7 @@ export default function CategoriesPage() {
   const toast = useToast();
   const [categories, setCategories] = useState<Category[]>([]);
   const [search, setSearch] = useState('');
+  const [viewMode, setViewMode] = useState<'table' | 'cards'>('table');
   const [page, setPage] = useState(1);
   const [meta, setMeta] = useState<ListResponse['meta']>();
   const [loading, setLoading] = useState(true);
@@ -108,11 +109,29 @@ export default function CategoriesPage() {
           >
             Add category
           </Button>
+          <ViewToggle value={viewMode} onChange={setViewMode} storageKey="learnhub-organization-categories-view" />
         </div>
         {loading ? <div className="space-y-4"><Skeleton variant="text" height={28} /><Skeleton variant="text" height={28} /><Skeleton variant="text" height={28} /></div>
           : error ? <ErrorState title="Unable to load categories" action={{ label: 'Try again', onClick: () => void load() }} />
           : !hasCategories ? <EmptyState icon={search ? EmptyStateIcons.NoResults : EmptyStateIcons.NoData} title={search ? 'No matching categories' : 'No categories yet'} description={search ? 'Try a different search.' : 'Create your first category to organize courses.'} action={!search ? emptyAction : undefined} />
-          : <div className="overflow-x-auto px-4 pb-4">
+          : viewMode === 'cards' ? (
+            <div className="grid gap-5 p-4 sm:grid-cols-2 lg:grid-cols-3">
+              {categories.map((category) => (
+                <article key={category.id} className="flex min-h-52 flex-col rounded-2xl border border-[#ead8c6] bg-[#fff9f0] p-5 shadow-sm transition-shadow hover:shadow-md">
+                  <div className="flex items-start justify-between gap-3">
+                    <h2 className="min-w-0 truncate text-lg font-semibold text-[#17212b]">{category.name}</h2>
+                    <CategoryActionsMenu onView={() => setSelectedCategory(category)} onEdit={() => setEditing(category)} onDelete={() => setDeleting(category)} />
+                  </div>
+                  <div className="mt-3"><Badge variant={category.status === 'ACTIVE' ? 'success' : 'default'} size="sm">{category.status}</Badge></div>
+                  <p className="mt-4 line-clamp-2 flex-1 text-sm leading-6 text-[#5f6368]">{category.description || 'No description provided.'}</p>
+                  <div className="mt-4 grid grid-cols-2 gap-3 border-t border-[#ead8c6] pt-4">
+                    <div><p className="text-xs uppercase tracking-wide text-[#9b765c]">Courses</p><p className="mt-1 font-semibold text-[#17212b]">{category.courseCount}</p></div>
+                    <div><p className="text-xs uppercase tracking-wide text-[#9b765c]">Instructors</p><p className="mt-1 truncate font-semibold text-[#17212b]">{category.instructors?.length ?? 0}</p></div>
+                  </div>
+                </article>
+              ))}
+            </div>
+          ) : <div className="overflow-x-auto px-4 pb-4">
               <table className="min-w-full divide-y divide-neutral-200">
                 <thead className="bg-[#f8f2eb]"><tr className="text-left text-xs font-semibold uppercase tracking-wide text-[#5f6368]"><th className="px-4 py-3 align-middle">Category Name</th><th className="px-4 py-3 align-middle">Description</th><th className="px-4 py-3 text-center align-middle">Courses</th><th className="px-4 py-3 align-middle">Instructors</th><th className="px-4 py-3 text-center align-middle">Status</th><th className="px-4 py-3 text-center align-middle">Actions</th></tr></thead>
                 <tbody className="divide-y divide-[#f0e2d3]">{categories.map((category) => <tr key={category.id} className="cursor-pointer text-sm transition-colors hover:bg-[#fff9f0]" onClick={() => setSelectedCategory(category)}><td className="px-4 py-4 align-middle font-semibold text-[#17212b]">{category.name}</td><td className="max-w-xs px-4 py-4 align-middle text-[#5f6368]"><span className="block max-w-xs truncate">{category.description || '—'}</span></td><td className="px-4 py-4 text-center align-middle text-[#5f6368]">{category.courseCount}</td><td className="max-w-xs px-4 py-4 align-middle text-[#5f6368]"><span className="line-clamp-2">{category.instructors?.length ? category.instructors.map((instructor) => instructor.name).join(', ') : '—'}</span></td><td className="px-4 py-4 text-center align-middle"><Badge variant={category.status === 'ACTIVE' ? 'success' : 'default'} size="sm">{category.status}</Badge></td><td className="px-4 py-4 text-center align-middle" onClick={(event) => event.stopPropagation()}><div className="flex items-center justify-center"><CategoryActionsMenu onView={() => setSelectedCategory(category)} onEdit={() => setEditing(category)} onDelete={() => setDeleting(category)} /></div></td></tr>)}</tbody>

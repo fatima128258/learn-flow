@@ -9,6 +9,7 @@ import {
   ErrorState,
   Input,
   Spinner,
+  ViewToggle,
 } from '@/components/ui';
 import { tableCellClass, tableHeadClass, tableRowHoverClass } from '@/components/dashboard';
 
@@ -112,44 +113,11 @@ export const AuditLogTable: React.FC<AuditLogTableProps> = ({
           onChange={(e) => handleSearchChange(e.target.value)}
           className="max-w-md"
         />
-        <div className="hidden items-center rounded-lg border border-primary-200 bg-white p-0.5 sm:flex">
-          <button
-            type="button"
-            onClick={() => setViewMode('list')}
-            aria-label="List view"
-            aria-pressed={viewMode === 'list'}
-            title="List view"
-            className={`inline-flex h-9 w-9 items-center justify-center rounded-md border-0 transition-colors focus:border-0 focus:outline-none focus-visible:border-0 focus-visible:outline-none focus:ring-0 focus-visible:ring-0 ${
-              viewMode === 'list'
-                ? 'bg-primary-600 text-white'
-                : 'text-primary-600 hover:bg-primary-50'
-            }`}
-          >
-            <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
-              <rect x="4" y="5" width="16" height="14" rx="1.5" />
-              <path strokeLinecap="round" d="M7 9h10M7 12h10M7 15h10" />
-            </svg>
-          </button>
-          <button
-            type="button"
-            onClick={() => setViewMode('grid')}
-            aria-label="Grid view"
-            aria-pressed={viewMode === 'grid'}
-            title="Grid view"
-            className={`inline-flex h-9 w-9 items-center justify-center rounded-md border-0 transition-colors focus:border-0 focus:outline-none focus-visible:border-0 focus-visible:outline-none focus:ring-0 focus-visible:ring-0 ${
-              viewMode === 'grid'
-                ? 'bg-primary-600 text-white'
-                : 'text-primary-600 hover:bg-primary-50'
-            }`}
-          >
-            <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
-              <rect x="4" y="4" width="6" height="6" rx="1" />
-              <rect x="14" y="4" width="6" height="6" rx="1" />
-              <rect x="4" y="14" width="6" height="6" rx="1" />
-              <rect x="14" y="14" width="6" height="6" rx="1" />
-            </svg>
-          </button>
-        </div>
+        <ViewToggle
+          value={viewMode === 'list' ? 'table' : 'cards'}
+          onChange={(mode) => setViewMode(mode === 'table' ? 'list' : 'grid')}
+          storageKey={`learnhub-audit-logs-view-${apiPath}`}
+        />
       </div>
 
       <div className="overflow-hidden rounded-2xl border border-neutral-200 bg-white shadow-sm">

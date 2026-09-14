@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { Badge, Drawer, EmptyState, EmptyStateIcons, Spinner } from '../../../../components/ui';
+import { Badge, Drawer, EmptyState, EmptyStateIcons, Spinner, ViewToggle } from '../../../../components/ui';
 import { LinkButton } from '../../../../components/ui/LinkButton';
 import { getListCoursesErrorMessage } from '../../../../features/course/listCoursesErrors';
 import { getCourseStatusErrorMessage } from '../../../../features/course/courseStatusErrors';
@@ -226,6 +226,7 @@ export default function MyCoursesPage() {
   const [statusModalCourseId, setStatusModalCourseId] = useState<string | null>(null);
   const [courseDrawer, setCourseDrawer] = useState<CourseDrawerData | null>(null);
   const [courseDrawerLoading, setCourseDrawerLoading] = useState(false);
+  const [viewMode, setViewMode] = useState<'table' | 'cards'>('table');
 
   async function openCourseView(course: CourseListItem) {
     if (!organizationId) return;
@@ -399,9 +400,11 @@ export default function MyCoursesPage() {
             <TableCard
               title="Courses"
               description={`${courses.length} course${courses.length === 1 ? '' : 's'}`}
+              action={<ViewToggle value={viewMode} onChange={setViewMode} storageKey="learnhub-organization-courses-view" />}
             >
-              {/* ── Desktop table ── */}
-              <div className="hidden md:block overflow-visible">
+              {viewMode === 'table' ? (
+                <>
+              <div className="hidden overflow-visible md:block">
                 <table className="min-w-full divide-y divide-neutral-200 overflow-visible">
                   <thead className="bg-neutral-50">
                     <tr>
@@ -447,7 +450,6 @@ export default function MyCoursesPage() {
                 </table>
               </div>
 
-              {/* ── Mobile cards ── */}
               <div className="space-y-3 p-3 md:hidden">
                 {courses.map((course) => (
                   <div
@@ -481,6 +483,35 @@ export default function MyCoursesPage() {
                   </div>
                 ))}
               </div>
+                </>
+              ) : (
+                <div className="grid gap-4 p-4 sm:grid-cols-2 lg:grid-cols-3">
+                  {courses.map((course) => (
+                    <article key={course.id} className="flex min-h-52 flex-col rounded-2xl border border-neutral-200 bg-white p-5 shadow-sm transition-shadow hover:shadow-md">
+                      <div className="flex items-start justify-between gap-3">
+                        <a
+                          href={`/dashboard/organization/courses/${course.id}${organizationId ? `?organization=${organizationId}` : ''}`}
+                          className="min-w-0 font-semibold leading-snug text-primary-600 hover:underline"
+                        >
+                          {course.title}
+                        </a>
+                        <CourseActionsMenu
+                          courseId={course.id}
+                          manageHref={`/dashboard/organization/courses/${course.id}${organizationId ? `?organization=${organizationId}` : ''}`}
+                          onViewClick={() => void openCourseView(course)}
+                          onChangeStatusClick={() => setStatusModalCourseId(course.id)}
+                        />
+                      </div>
+                      <div className="mt-3"><Badge variant={statusBadgeVariant(course.status)} size="sm">{course.status}</Badge></div>
+                      <p className="mt-2 truncate text-sm text-neutral-500">{course.slug}</p>
+                      <div className="mt-auto grid grid-cols-2 gap-3 border-t border-neutral-100 pt-4 text-sm">
+                        <div><p className="text-xs uppercase tracking-wide text-neutral-400">Difficulty</p><p className="mt-1 text-neutral-700">{course.difficulty ?? '—'}</p></div>
+                        <div><p className="text-xs uppercase tracking-wide text-neutral-400">Created</p><p className="mt-1 text-neutral-700">{new Date(course.createdAt).toLocaleDateString()}</p></div>
+                      </div>
+                    </article>
+                  ))}
+                </div>
+              )}
             </TableCard>
           ) : null}
         </div>

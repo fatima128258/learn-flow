@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Button, Drawer, EmptyState, EmptyStateIcons, ErrorState, Input, Modal, Skeleton } from '@/components/ui';
+import { Badge, Button, Drawer, EmptyState, EmptyStateIcons, ErrorState, Input, Modal, Skeleton, ViewToggle } from '@/components/ui';
 import { useCurrentUser } from '@/features/auth/useCurrentUser';
 import { ApiError, apiRequest } from '@/lib/api';
 
@@ -16,6 +16,7 @@ export default function InstructorCategoriesPage() {
   const [failed, setFailed] = useState(false);
   const [errorCode, setErrorCode] = useState<string | null>(null);
   const [search, setSearch] = useState('');
+  const [viewMode, setViewMode] = useState<'table' | 'cards'>('cards');
   const [privateName, setPrivateName] = useState('');
   const [privateDescription, setPrivateDescription] = useState('');
   const [privateStatus, setPrivateStatus] = useState<'ACTIVE' | 'INACTIVE'>('ACTIVE');
@@ -119,13 +120,23 @@ export default function InstructorCategoriesPage() {
       {!loading && !failed && (
         <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <Input variant="line" className="max-w-md" value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search categories" aria-label="Search categories" />
-          <Button type="button" className="min-w-[140px] whitespace-nowrap" onClick={() => { setEditingCategory(null); setPrivateName(''); setPrivateDescription(''); setPrivateStatus('ACTIVE'); setShowPrivateModal(true); }}>Add private</Button>
+          <div className="flex items-center gap-2">
+            <Button type="button" className="min-w-[140px] whitespace-nowrap" onClick={() => { setEditingCategory(null); setPrivateName(''); setPrivateDescription(''); setPrivateStatus('ACTIVE'); setShowPrivateModal(true); }}>Add private</Button>
+            <ViewToggle value={viewMode} onChange={setViewMode} storageKey="learnhub-instructor-categories-view" />
+          </div>
         </div>
       )}
       {loading ? <div className="space-y-4"><Skeleton variant="text" height={30} /><Skeleton variant="text" height={30} /></div>
         : failed ? <ErrorState title={organizationId ? 'Unable to load categories' : 'No organization assigned'} message={organizationId ? errorMessage : 'Categories are available only through your organization.'} />
           : visibleCategories.length === 0 ? <EmptyState icon={search ? EmptyStateIcons.NoResults : EmptyStateIcons.NoData} title={search ? 'No matching categories' : 'No categories available'} description={search ? 'Try a different search.' : 'Create a private category above or ask your Organization Admin to create an organization category.'} />
-          : (
+          : viewMode === 'table' ? (
+            <div className="overflow-x-auto rounded-2xl border border-[#ead8c6] bg-[#fffdf9] shadow-sm">
+              <table className="min-w-full divide-y divide-[#f0e2d3]">
+                <thead className="bg-[#f8f2eb]"><tr className="text-left text-xs font-semibold uppercase tracking-wide text-[#5f6368]"><th className="px-5 py-3">Category</th><th className="px-5 py-3">Description</th><th className="px-5 py-3">Owner</th><th className="px-5 py-3 text-center">Status</th></tr></thead>
+                <tbody className="divide-y divide-[#f0e2d3]">{visibleCategories.map((category) => <tr key={category.id} className="text-sm transition-colors hover:bg-[#fff9f0]"><td className="px-5 py-4 font-semibold text-[#17212b]">{category.name}</td><td className="max-w-md px-5 py-4 text-[#5f6368]"><span className="block truncate">{category.description || 'No description provided.'}</span></td><td className="px-5 py-4 text-[#5f6368]">{category.ownerUserId ? 'Private' : 'Organization'}</td><td className="px-5 py-4 text-center"><Badge variant={category.status === 'ACTIVE' ? 'success' : 'default'} size="sm">{category.status ?? 'ACTIVE'}</Badge></td></tr>)}</tbody>
+              </table>
+            </div>
+          ) : (
             <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
               {visibleCategories.map((category) => (
                 <article

@@ -12,8 +12,9 @@ import {
   Drawer,
   Input,
   Modal,
-  ConfirmModal,
+  Confirm  Modal,
   Spinner,
+  ViewToggle,
 } from '@/components/ui';
 import { useCurrentUser } from '@/features/auth/useCurrentUser';
 import { getOrgAdminErrorMessage } from '@/features/orgAdmin/orgAdminErrors';
@@ -311,32 +312,7 @@ export default function OrgUsersPage() {
             <Button size="sm" variant="primary" onClick={() => openAdd('INSTRUCTOR')}>
               Add Instructor
             </Button>
-            <div className="ml-2 flex items-center rounded-lg border border-[#ead8c6] bg-[#fffdf9] p-0.5">
-              <button
-                type="button"
-                onClick={() => setViewMode('table')}
-                aria-label="Table view"
-                aria-pressed={viewMode === 'table'}
-                title="Table view"
-                className={`inline-flex h-9 w-9 items-center justify-center rounded-md transition-colors ${
-                  viewMode === 'table' ? 'bg-[#5a321f] text-white' : 'text-[#7a4a2e] hover:bg-[#f5ebdd]'
-                }`}
-              >
-                <span aria-hidden="true">☷</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => setViewMode('cards')}
-                aria-label="Card view"
-                aria-pressed={viewMode === 'cards'}
-                title="Card view"
-                className={`inline-flex h-9 w-9 items-center justify-center rounded-md transition-colors ${
-                  viewMode === 'cards' ? 'bg-[#5a321f] text-white' : 'text-[#7a4a2e] hover:bg-[#f5ebdd]'
-                }`}
-              >
-                <span aria-hidden="true">▦</span>
-              </button>
-            </div>
+            <ViewToggle value={viewMode} onChange={setViewMode} storageKey="learnhub-organization-users-view" />
           </div>
         </div>
 
