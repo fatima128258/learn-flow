@@ -328,7 +328,15 @@ export async function getLessonContent(
   if (!lesson) {
     throw new Error('LESSON_NOT_FOUND');
   }
-  await assertContentUnlocked(userId, courseId, moduleId, 'LESSON', lessonId);
+  try {
+    await assertContentUnlocked(userId, courseId, moduleId, 'LESSON', lessonId);
+  } catch (err) {
+    // Courses created before content sequencing was introduced may not have
+    // sequence rows yet. Enrollment and lesson ownership still protect access.
+    if (!(err instanceof Error) || err.message !== 'CONTENT_SEQUENCE_MISSING') {
+      throw err;
+    }
+  }
 
   return {
     enrollmentVerified: true,

@@ -32,7 +32,7 @@ type ModuleLessonsResponse = {
   courseId: string;
   courseName: string;
   lessons: LessonItem[];
-  items?: Array<{ type: 'LESSON' | 'QUIZ'; id: string; position: number; state?: 'completed' | 'current' | 'locked'; lesson?: LessonItem; quiz?: { id: string; title: string; description: string | null; timeLimitMinutes: number | null; passingPercentage: number | null } }>;
+  items?: Array<{ type: 'LESSON' | 'QUIZ'; id: string; position: number; state?: 'completed' | 'current' | 'locked'; unlocked?: boolean; lesson?: LessonItem; quiz?: { id: string; title: string; description: string | null; timeLimitMinutes: number | null; passingPercentage: number | null } }>;
 };
 
 type ModuleItem = NonNullable<ModuleLessonsResponse['items']>[number];
@@ -272,8 +272,17 @@ export default function StudentModuleLessonsPage() {
   const currentModule = progress?.modules.find(m => m.id === moduleId);
 
   useEffect(() => {
-    const firstLesson = lessonsData?.items?.find((item: ModuleItem) => item.type === 'LESSON' && item.lesson)?.lesson
-      ?? lessonsData?.lessons[0];
+    const firstLesson = lessonsData?.items?.find(
+      (item: ModuleItem) =>
+        item.type === 'LESSON' &&
+        item.lesson &&
+        item.state !== 'locked' &&
+        item.unlocked !== false,
+    )?.lesson ?? (
+      lessonsData?.items?.length
+        ? undefined
+        : lessonsData?.lessons[0]
+    );
     if (firstLesson && courseId && moduleId) {
       router.replace(`/dashboard/student/courses/${courseId}/modules/${moduleId}/lessons/${firstLesson.id}`);
     }

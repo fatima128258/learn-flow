@@ -9,7 +9,6 @@ import {
   ErrorState,
   Spinner,
 } from '@/components/ui';
-import { PageHeader } from '@/components/dashboard';
 import { useCurrentUser } from '@/features/auth/useCurrentUser';
 
 type CourseModule = {
@@ -138,16 +137,6 @@ export default function StudentCoursePage() {
 
   return (
     <div className="mx-auto max-w-6xl">
-      <PageHeader
-        subtitle="Student"
-        title="Course Details"
-          breadcrumbs={
-            <Link href="/dashboard/student" className="text-sm text-primary-600 hover:text-primary-700">
-              &larr; My Courses
-            </Link>
-          }
-        />
-
         {error ? (
           <div className="rounded-2xl border border-neutral-200 bg-white shadow-sm">
             <ErrorState

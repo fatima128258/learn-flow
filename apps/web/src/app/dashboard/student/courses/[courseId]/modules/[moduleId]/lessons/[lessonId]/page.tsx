@@ -79,6 +79,10 @@ export default function StudentLessonPage() {
           setError('Lesson not found.');
         } else if (code === 'MODULE_NOT_FOUND') {
           setError('Module not found.');
+        } else if (code === 'CONTENT_LOCKED') {
+          setError('This lesson is locked. Complete the previous course item first.');
+        } else if (code === 'CONTENT_SEQUENCE_MISSING') {
+          setError('This lesson is not available yet. Please return to the module and try again.');
         } else {
           setError('Could not load lesson. Please try again.');
         }
