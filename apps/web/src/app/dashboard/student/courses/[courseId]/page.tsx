@@ -18,6 +18,7 @@ type CourseModule = {
   description: string | null;
   order: number;
   lessonCount: number;
+  quizCount: number;
 };
 
 type CourseDetail = {
@@ -211,7 +212,11 @@ export default function StudentCoursePage() {
                         </div>
                       </div>
                       <div className="flex items-center gap-2 text-sm text-neutral-500">
-                        <span>{module.lessonCount} lesson{module.lessonCount !== 1 ? 's' : ''}</span>
+                        <span>
+                          {module.lessonCount} lesson{module.lessonCount !== 1 ? 's' : ''}
+                          <span className="mx-1 text-neutral-300">·</span>
+                          {module.quizCount} quiz{module.quizCount !== 1 ? 'zes' : ''}
+                        </span>
                         <svg className="h-5 w-5 text-neutral-400 group-hover:text-primary-500 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                         </svg>
@@ -223,7 +228,7 @@ export default function StudentCoursePage() {
                         <div className="flex flex-wrap items-center justify-between gap-3">
                           <p className="text-sm text-neutral-600">
                             {isComplete ? 'Congratulations! You completed this module.' : isFirstModule ? 'Start with this first module.' : 'Continue this module.'}
-                            {' '}{module.lessonCount} lesson{module.lessonCount !== 1 ? 's' : ''} available.
+                            {' '}{module.lessonCount} lesson{module.lessonCount !== 1 ? 's' : ''} and {module.quizCount} quiz{module.quizCount !== 1 ? 'zes' : ''} available.
                           </p>
                           <Link
                             href={`/dashboard/student/courses/${courseId}/modules/${module.id}`}

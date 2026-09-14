@@ -69,13 +69,14 @@ function toEnrolledCourseListItem(enrollment: EnrolledEnrollment, course: Enroll
   };
 }
 
-function toCourseModuleDto(module: CourseModuleRecord, lessonCount: number) {
+function toCourseModuleDto(module: CourseModuleRecord, lessonCount: number, quizCount: number) {
   return {
     id: module.id,
     title: module.title,
     description: module.description,
     order: module.order,
     lessonCount,
+    quizCount,
   };
 }
 
@@ -205,15 +206,23 @@ export async function getEnrolledCourseDetail(organizationId: string, userId: st
   
   // OPTIMIZATION: Batch count lessons per module instead of N individual queries
   const moduleIds = modules.map((m: CourseModuleRecord) => m.id);
-  const lessonCounts = await prisma.lesson.groupBy({
-    by: ['moduleId'],
-    where: { moduleId: { in: moduleIds } },
-    _count: { id: true },
-  });
+  const [lessonCounts, quizCounts] = await Promise.all([
+    prisma.lesson.groupBy({
+      by: ['moduleId'],
+      where: { moduleId: { in: moduleIds } },
+      _count: { id: true },
+    }),
+    prisma.quiz.groupBy({
+      by: ['moduleId'],
+      where: { moduleId: { in: moduleIds } },
+      _count: { id: true },
+    }),
+  ]);
   
-  const countMap = new Map(lessonCounts.map((row: any) => [row.moduleId, row._count.id]));
+  const lessonCountMap = new Map(lessonCounts.map((row: any) => [row.moduleId, row._count.id]));
+  const quizCountMap = new Map(quizCounts.map((row: any) => [row.moduleId, row._count.id]));
   const modulesWithCounts = modules.map((module: CourseModuleRecord) =>
-    toCourseModuleDto(module, countMap.get(module.id) ?? 0),
+    toCourseModuleDto(module, lessonCountMap.get(module.id) ?? 0, quizCountMap.get(module.id) ?? 0),
   );
 
   return {
@@ -241,15 +250,23 @@ export async function listCourseModules(organizationId: string, userId: string, 
   
   // OPTIMIZATION: Batch count lessons per module instead of N individual queries
   const moduleIds = modules.map((m: CourseModuleRecord) => m.id);
-  const lessonCounts = await prisma.lesson.groupBy({
-    by: ['moduleId'],
-    where: { moduleId: { in: moduleIds } },
-    _count: { id: true },
-  });
+  const [lessonCounts, quizCounts] = await Promise.all([
+    prisma.lesson.groupBy({
+      by: ['moduleId'],
+      where: { moduleId: { in: moduleIds } },
+      _count: { id: true },
+    }),
+    prisma.quiz.groupBy({
+      by: ['moduleId'],
+      where: { moduleId: { in: moduleIds } },
+      _count: { id: true },
+    }),
+  ]);
   
-  const countMap = new Map(lessonCounts.map((row: any) => [row.moduleId, row._count.id]));
+  const lessonCountMap = new Map(lessonCounts.map((row: any) => [row.moduleId, row._count.id]));
+  const quizCountMap = new Map(quizCounts.map((row: any) => [row.moduleId, row._count.id]));
   const modulesWithCounts = modules.map((module: CourseModuleRecord) =>
-    toCourseModuleDto(module, countMap.get(module.id) ?? 0),
+    toCourseModuleDto(module, lessonCountMap.get(module.id) ?? 0, quizCountMap.get(module.id) ?? 0),
   );
 
   return {
