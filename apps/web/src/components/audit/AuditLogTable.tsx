@@ -4,7 +4,6 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   Badge,
   Button,
-  Drawer,
   EmptyState,
   EmptyStateIcons,
   ErrorState,
@@ -37,146 +36,6 @@ function actorDetail(item: AuditLogItem) {
   return '';
 }
 
-// Keys whose values must never be exposed to the UI.
-const SENSITIVE_KEYS = [
-  'password',
-  'passwordHash',
-  'passwords',
-  'hash',
-  'token',
-  'accessToken',
-  'refreshToken',
-  'authToken',
-  'secret',
-  'apiKey',
-  'apiSecret',
-  'authorization',
-  'cookie',
-  'sessionId',
-];
-
-function isSensitiveKey(key: string): boolean {
-  const lower = key.toLowerCase();
-  return (
-    SENSITIVE_KEYS.some((k) => lower === k || lower.includes(k)) ||
-    lower.includes('password') ||
-    lower.includes('token') ||
-    lower.includes('secret')
-  );
-}
-
-function redactJson(input: unknown): unknown {
-  if (Array.isArray(input)) return input.map(redactJson);
-  if (input && typeof input === 'object') {
-    const out: Record<string, unknown> = {};
-    for (const [key, value] of Object.entries(input as Record<string, unknown>)) {
-      if (isSensitiveKey(key)) {
-        out[key] = '••••••••';
-      } else {
-        out[key] = redactJson(value);
-      }
-    }
-    return out;
-  }
-  return input;
-}
-
-function formatMetadata(metadata: Record<string, unknown> | null) {
-  if (metadata === null || metadata === undefined) return null;
-  const safe = redactJson(metadata);
-  return JSON.stringify(safe, null, 2);
-}
-
-function formatTimestamp(iso: string) {
-  const date = new Date(iso);
-  if (Number.isNaN(date.getTime())) return iso;
-  return date.toLocaleString('en-US', {
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
-    second: '2-digit',
-    hour12: false,
-  });
-}
-
-function DetailRow({
-  label,
-  children,
-}: {
-  label: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <div>
-      <p className="text-xs font-medium uppercase tracking-wide text-neutral-400">{label}</p>
-      <div className="mt-1 text-sm text-neutral-700">{children}</div>
-    </div>
-  );
-}
-
-interface AuditLogDrawerProps {
-  item: AuditLogItem;
-  onClose: () => void;
-}
-
-function AuditLogDrawer({ item, onClose }: AuditLogDrawerProps) {
-  const metadataFormatted = formatMetadata(item.metadata);
-
-  return (
-    <Drawer
-      isOpen={Boolean(item)}
-      onClose={onClose}
-      title={item.action}
-    >
-      <div className="space-y-5">
-        {/* Action */}
-        <DetailRow label="Action">
-          <Badge variant="info" size="sm">{item.action}</Badge>
-        </DetailRow>
-
-        {/* Actor */}
-        <DetailRow label="Actor">
-          <div className="space-y-0.5">
-            {item.actor.name && <p className="font-medium text-neutral-900">{item.actor.name}</p>}
-            {item.actor.email && <p className="break-all">{item.actor.email}</p>}
-            {item.actor.role && <p className="text-xs text-neutral-500">{item.actor.role}</p>}
-          </div>
-        </DetailRow>
-
-        {/* Organization */}
-        <DetailRow label="Organization">
-          {item.organization?.id ? (
-            <div className="space-y-0.5">
-              {item.organization.name && <p className="font-medium text-neutral-900">{item.organization.name}</p>}
-            </div>
-          ) : (
-            <p className="text-neutral-400">—</p>
-          )}
-        </DetailRow>
-
-        <DetailRow label="Timestamp">
-          {formatTimestamp(item.createdAt)}
-        </DetailRow>
-
-        {/* Metadata / Details */}
-        {metadataFormatted ? (
-          <DetailRow label="Details">
-            <pre className="max-h-72 overflow-auto rounded-lg bg-neutral-50 p-3 text-xs leading-relaxed text-neutral-700">
-              {metadataFormatted}
-            </pre>
-          </DetailRow>
-        ) : (
-          <DetailRow label="Details">
-            <p className="text-neutral-400">No additional details.</p>
-          </DetailRow>
-        )}
-      </div>
-    </Drawer>
-  );
-}
-
 interface AuditLogTableProps {
   apiPath: string;
   showOrganization?: boolean;
@@ -195,7 +54,6 @@ export const AuditLogTable: React.FC<AuditLogTableProps> = ({
   const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [selected, setSelected] = useState<AuditLogItem | null>(null);
   const requestControllerRef = useRef<AbortController | null>(null);
 
   const totalPages = meta ? Math.max(1, Math.ceil(meta.total / meta.limit)) : 1;
@@ -241,9 +99,6 @@ export const AuditLogTable: React.FC<AuditLogTableProps> = ({
     setPage(1);
     setLoading(true);
   };
-
-  const openItem = (item: AuditLogItem) => setSelected(item);
-  const closeItem = () => setSelected(null);
 
   return (
     <div>
@@ -303,16 +158,7 @@ export const AuditLogTable: React.FC<AuditLogTableProps> = ({
                   {(logs ?? []).map((log) => (
                     <tr
                       key={log.id}
-                      onClick={() => openItem(log)}
-                      className="cursor-pointer hover:bg-neutral-50 focus:outline-none focus:ring-2 focus:ring-primary-500"
-                      role="button"
-                      tabIndex={0}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter' || e.key === ' ') {
-                          e.preventDefault();
-                          openItem(log);
-                        }
-                      }}
+                      className="hover:bg-neutral-50"
                     >
                       <td className="px-6 py-4">
                         <Badge variant="info" size="sm">{log.action}</Badge>
@@ -349,16 +195,7 @@ export const AuditLogTable: React.FC<AuditLogTableProps> = ({
               {(logs ?? []).map((log) => (
                 <div
                   key={log.id}
-                  onClick={() => openItem(log)}
-                  role="button"
-                  tabIndex={0}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter' || e.key === ' ') {
-                      e.preventDefault();
-                      openItem(log);
-                    }
-                  }}
-                  className="rounded-2xl border border-neutral-200 bg-white p-4 shadow-sm cursor-pointer hover:bg-neutral-50 focus:outline-none focus:ring-2 focus:ring-primary-500"
+                  className="rounded-2xl border border-neutral-200 bg-white p-4 shadow-sm hover:bg-neutral-50"
                 >
                   <div className="flex items-start justify-between gap-2">
                     <Badge variant="info" size="sm">{log.action}</Badge>
@@ -420,7 +257,6 @@ export const AuditLogTable: React.FC<AuditLogTableProps> = ({
         ) : null}
       </div>
 
-      {selected && <AuditLogDrawer item={selected} onClose={closeItem} />}
     </div>
   );
 };

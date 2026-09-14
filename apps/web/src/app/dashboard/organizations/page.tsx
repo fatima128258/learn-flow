@@ -724,7 +724,10 @@ export default function OrganizationsPage() {
             />
           </div>
           <div className="flex items-center gap-2">
-            <div className="flex items-center rounded-lg border border-primary-200 bg-white p-0.5">
+            <Button className="!h-10 !border-0" size="sm" onClick={() => setShowCreateModal(true)}>
+              Create Organization
+            </Button>
+            <div className="hidden items-center rounded-lg border border-primary-200 bg-white p-0.5 sm:flex">
               <button
                 type="button"
                 onClick={() => setViewMode('list')}
@@ -762,9 +765,6 @@ export default function OrganizationsPage() {
                 </svg>
               </button>
             </div>
-            <Button className="!h-10 !border-0" size="sm" onClick={() => setShowCreateModal(true)}>
-              Create Organization
-            </Button>
           </div>
         </div>
 
@@ -796,7 +796,7 @@ export default function OrganizationsPage() {
               </div>
             ) : (
               <>
-            <TableCard className={viewMode === 'grid' ? 'hidden md:hidden' : ''}>
+            <TableCard className={viewMode === 'grid' ? 'hidden' : 'hidden md:block'}>
               {/* ── Desktop table (md+) ───────────────────────────────── */}
               <div className="hidden md:block">
                 <table className="min-w-full divide-y divide-neutral-200">
@@ -864,7 +864,7 @@ export default function OrganizationsPage() {
             </TableCard>
 
             {/* ── Mobile cards (< md) ───────────────────────────────── */}
-            <div className={`mt-3 grid-cols-1 gap-3 ${viewMode === 'grid' ? 'grid md:grid-cols-2 lg:grid-cols-3' : 'space-y-3 md:hidden'}`}>
+            <div className={`mt-3 grid-cols-1 gap-3 ${viewMode === 'grid' ? 'grid md:grid-cols-2 lg:grid-cols-3' : 'grid md:hidden'}`}>
               {filteredOrganizations.map((org) => (
                 <div
                   key={org.id}
