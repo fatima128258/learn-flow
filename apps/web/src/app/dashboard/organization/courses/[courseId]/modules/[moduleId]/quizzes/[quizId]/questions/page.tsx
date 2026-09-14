@@ -92,6 +92,9 @@ export default function QuizQuestionsPage() {
   const [expandedQuestion, setExpandedQuestion] = useState<string | null>(null);
   const [questionOptions, setQuestionOptions] = useState<Record<string, OptionItem[]>>({});
   const [loadingOptions, setLoadingOptions] = useState<string | null>(null);
+  const [inlineQuestionText, setInlineQuestionText] = useState('');
+  const [inlineOptions, setInlineOptions] = useState([{ text: '', isCorrect: true }]);
+  const [savingInlineQuestion, setSavingInlineQuestion] = useState(false);
 
   const [showCreateOptionModal, setShowCreateOptionModal] = useState(false);
   const [showEditOptionModal, setShowEditOptionModal] = useState(false);
@@ -199,15 +202,79 @@ export default function QuizQuestionsPage() {
         const body: ListOptionsResponse = await res.json();
         setQuestionOptions((prev) => ({ ...prev, [questionId]: body.data ?? [] }));
       }
-
-      useEffect(() => {
-        if (!questions || questions.length === 0) return;
-        questions.forEach((question) => {
-          if (!questionOptions[question.id]) void reloadOptions(question.id);
-        });
-      }, [questions]);
     } catch {
       // silent fail
+    }
+  }
+
+  useEffect(() => {
+    if (!questions || questions.length === 0) return;
+    questions.forEach((question) => {
+      if (!questionOptions[question.id]) void reloadOptions(question.id);
+    });
+  }, [questions, questionOptions]);
+
+  function addInlineOption() {
+    setInlineOptions((previous) => [...previous, { text: '', isCorrect: false }]);
+  }
+
+  async function saveInlineQuestion() {
+    const questionTextValue = inlineQuestionText.trim();
+    const options = inlineOptions.map((option) => ({ ...option, text: option.text.trim() })).filter((option) => option.text);
+    if (!questionTextValue) {
+      toast.error('Write a question first.');
+      return;
+    }
+    if (options.length < 1) {
+      toast.error('Add at least one option.');
+      return;
+    }
+    if (!organizationId || !courseId || !moduleId || !quizId) return;
+
+    setSavingInlineQuestion(true);
+    try {
+      const base = `/api/v1/organizations/${organizationId}/courses/${courseId}/modules/${moduleId}/quizzes/${quizId}`;
+      const questionResponse = await fetch(`${base}/questions`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
+          questionText: questionTextValue,
+          marks: 1,
+          order: questions?.length ?? 0,
+        }),
+      });
+      if (!questionResponse.ok) {
+        const code = (await questionResponse.json().catch(() => ({})))?.error;
+        toast.error(getQuizErrorMessage(code));
+        return;
+      }
+      const createdQuestion: QuestionApiResponse = await questionResponse.json();
+      if (!createdQuestion.data?.id) {
+        toast.error('Question was created but its ID was not returned.');
+        return;
+      }
+      for (const [index, option] of options.entries()) {
+        const optionResponse = await fetch(`${base}/questions/${createdQuestion.data.id}/options`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({ text: option.text, order: index, isCorrect: option.isCorrect }),
+        });
+        if (!optionResponse.ok) {
+          const code = (await optionResponse.json().catch(() => ({})))?.error;
+          toast.error(getQuizErrorMessage(code));
+          return;
+        }
+      }
+      setInlineQuestionText('');
+      setInlineOptions([{ text: '', isCorrect: true }]);
+      toast.success('Question and options saved successfully.');
+      await reloadQuestions();
+    } catch {
+      toast.error(getQuizErrorMessage(null));
+    } finally {
+      setSavingInlineQuestion(false);
     }
   }
 
@@ -691,7 +758,7 @@ export default function QuizQuestionsPage() {
               <div className="rounded-lg bg-primary-50 px-3 py-2 text-sm font-semibold text-primary-700">
                 Total marks: {questions?.reduce((total, question) => total + question.marks, 0) ?? 0}
               </div>
-              <Button size="sm" onClick={() => setShowCreateModal(true)}>+ Add Question</Button>
+              <Button size="sm" onClick={() => document.getElementById('inline-question-builder')?.scrollIntoView({ behavior: 'smooth' })}>+ Add Question</Button>
             </div>
           </div>
 
@@ -700,22 +767,66 @@ export default function QuizQuestionsPage() {
               <Spinner size="md" label="Loading questions..." />
               <span>Loading questions...</span>
             </div>
-          ) : questions !== null && questions.length === 0 ? (
-            <div className="mt-6">
-              <EmptyState
-                icon={EmptyStateIcons.NoData}
-                title="No questions yet"
-                description="Create your first question to start building this quiz."
-                action={{
-                  label: 'Create Question',
-                  onClick: () => setShowCreateModal(true),
-                  variant: 'primary',
-                  size: 'sm',
-                }}
-              />
-            </div>
-          ) : questions !== null && questions.length > 0 ? (
-            <div className="mt-6 space-y-3">
+          ) : questions !== null ? (
+            <div className="mt-6 space-y-5">
+              <div id="inline-question-builder" className="rounded-xl border border-primary-200 bg-primary-50/30 p-5">
+                <h2 className="text-lg font-semibold text-neutral-900">
+                  {questions.length === 0 ? 'Add your first question' : 'Add another question'}
+                </h2>
+                <div className="mt-4 space-y-4">
+                  <Textarea
+                    label="Write Question"
+                    value={inlineQuestionText}
+                    onChange={(event) => setInlineQuestionText(event.target.value)}
+                    placeholder="Write your question here..."
+                    rows={3}
+                    disabled={savingInlineQuestion}
+                    required
+                  />
+                  <div>
+                    <p className="mb-2 text-sm font-semibold text-neutral-800">Options</p>
+                    <div className="space-y-3">
+                      {inlineOptions.map((option, index) => (
+                        <div key={index} className="flex items-center gap-3">
+                          <input
+                            type="radio"
+                            name="inline-correct-answer"
+                            checked={option.isCorrect}
+                            onChange={() => setInlineOptions((previous) => previous.map((item, itemIndex) => ({ ...item, isCorrect: itemIndex === index })))}
+                            className="h-4 w-4 accent-[#5A321F]"
+                            aria-label={`Mark option ${index + 1} as correct`}
+                            disabled={savingInlineQuestion}
+                          />
+                          <Input
+                            aria-label={`Option ${index + 1}`}
+                            value={option.text}
+                            onChange={(event) => setInlineOptions((previous) => previous.map((item, itemIndex) => itemIndex === index ? { ...item, text: event.target.value } : item))}
+                            placeholder={`Option ${index + 1}`}
+                            disabled={savingInlineQuestion}
+                          />
+                          <span className="hidden text-xs text-neutral-500 sm:inline">Correct</span>
+                        </div>
+                      ))}
+                    </div>
+                    <button
+                      type="button"
+                      onClick={addInlineOption}
+                      disabled={savingInlineQuestion}
+                      className="mt-3 text-sm font-semibold text-primary-700 hover:text-primary-900"
+                    >
+                      + Add Option
+                    </button>
+                    <p className="mt-2 text-xs text-neutral-500">Select the radio button beside the correct answer.</p>
+                  </div>
+                  <div className="flex justify-end">
+                    <Button type="button" onClick={saveInlineQuestion} loading={savingInlineQuestion} disabled={savingInlineQuestion}>
+                      {savingInlineQuestion ? 'Saving...' : 'Add Question'}
+                    </Button>
+                  </div>
+                </div>
+              </div>
+              {questions.length > 0 && (
+            <div className="space-y-3">
               {questions.map((question) => (
                 <div
                   key={question.id}
@@ -821,6 +932,8 @@ export default function QuizQuestionsPage() {
                   )}
                 </div>
               ))}
+            </div>
+              )}
             </div>
           ) : null}
         </div>
