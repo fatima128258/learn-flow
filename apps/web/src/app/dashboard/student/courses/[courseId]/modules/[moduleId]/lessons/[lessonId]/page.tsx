@@ -72,6 +72,14 @@ export default function StudentLessonPage() {
     Boolean(lessonId && progress?.completedLessonIds.includes(lessonId));
 
   useEffect(() => {
+    setNextContentUrl(null);
+    setNextResolving(false);
+    setCompletedLocally(false);
+    setCourseCompleted(false);
+    setMarkError(null);
+  }, [courseId, moduleId, lessonId]);
+
+  useEffect(() => {
     if (!isCompleted || !organizationId || !courseId || !moduleId || !lessonId || nextContentUrl) return;
     if (completedLocally) return;
     let active = true;

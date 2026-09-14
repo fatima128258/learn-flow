@@ -238,8 +238,6 @@ export default function StudentSearchPage() {
                     </p>
                     <div className="mt-4 flex items-center gap-4 text-sm text-neutral-500">
                       <span>{course.enrollmentCount.toLocaleString()} enrolled</span>
-                      <span aria-hidden="true">•</span>
-                      <span>Views {course.enrollmentCount.toLocaleString()}</span>
                     </div>
                     <div className="mt-4">
                       {course.isEnrolled ? (
@@ -266,7 +264,7 @@ export default function StudentSearchPage() {
                             router.push(`/dashboard/student/courses/${course.id}/overview`);
                           }}
                         >
-                          View & Enroll
+                          Enroll
                         </Button>
                       )}
                     </div>

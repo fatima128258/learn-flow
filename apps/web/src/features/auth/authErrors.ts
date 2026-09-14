@@ -3,6 +3,8 @@ const LOGIN_ERROR_MESSAGES: Record<string, string> = {
   INVALID_CREDENTIALS: 'Invalid email or password.',
   ACCOUNT_SUSPENDED: 'Your account has been suspended. Please contact your organization administrator.',
   TOO_MANY_ATTEMPTS: 'Too many attempts. Please try again later.',
+  RATE_LIMIT_EXCEEDED: 'Too many requests. Please wait a moment and try again.',
+  SERVICE_UNAVAILABLE: 'The sign-in service is temporarily unavailable. Please try again shortly.',
   SERVER_ERROR: 'Something went wrong while signing you in. Please try again.',
 };
 

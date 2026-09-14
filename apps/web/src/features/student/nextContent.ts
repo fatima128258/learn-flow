@@ -45,9 +45,9 @@ export async function getNextContentUrl({
   const orderedModules = [...modules].sort((a, b) => a.order - b.order);
   const sequence: Array<SequenceItem & { moduleId: string }> = [];
 
-  for (const module of orderedModules) {
+  for (const courseModule of orderedModules) {
     const response = await fetch(
-      `/api/v1/organizations/${organizationId}/student/courses/${courseId}/modules/${module.id}`,
+      `/api/v1/organizations/${organizationId}/student/courses/${courseId}/modules/${courseModule.id}/lessons`,
       { credentials: 'include', cache: 'no-store' },
     );
     if (!response.ok) continue;
@@ -55,7 +55,7 @@ export async function getNextContentUrl({
     const items = Array.isArray(body.data?.items) ? body.data.items : [];
     for (const item of items) {
       if (item?.type && item?.id) {
-        sequence.push({ type: item.type, id: item.id, state: item.state, unlocked: item.unlocked, moduleId: module.id });
+        sequence.push({ type: item.type, id: item.id, state: item.state, unlocked: item.unlocked, moduleId: courseModule.id });
       }
     }
   }
@@ -72,7 +72,7 @@ export async function getNextContentUrl({
   // returns lessons but no `items` sequence. Resolve the next lesson directly.
   if (currentIndex < 0) {
     const currentModuleResponse = await fetch(
-      `/api/v1/organizations/${organizationId}/student/courses/${courseId}/modules/${moduleId}`,
+      `/api/v1/organizations/${organizationId}/student/courses/${courseId}/modules/${moduleId}/lessons`,
       { credentials: 'include', cache: 'no-store' },
     );
     if (currentModuleResponse.ok) {
@@ -129,7 +129,7 @@ export async function getNextContentUrl({
     }
 
     const response = await fetch(
-      `/api/v1/organizations/${organizationId}/student/courses/${courseId}/modules/${nextModule.id}`,
+      `/api/v1/organizations/${organizationId}/student/courses/${courseId}/modules/${nextModule.id}/lessons`,
       { credentials: 'include', cache: 'no-store' },
     );
     if (!response.ok) continue;

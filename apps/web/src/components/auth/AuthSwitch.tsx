@@ -40,10 +40,13 @@ export const AuthSwitch: React.FC<AuthSwitchProps> = ({ initialMode = 'login' })
         credentials: 'include'
       });
 
-      const responseData = await res.json();
+      const responseData = await res.json().catch(() => ({}));
 
       if (!res.ok) {
-        toast.error(getLoginErrorMessage(responseData?.error));
+        const errorCode = res.status === 503
+          ? 'SERVICE_UNAVAILABLE'
+          : responseData?.error;
+        toast.error(getLoginErrorMessage(errorCode));
         setIsSubmitting(false);
         return;
       }
