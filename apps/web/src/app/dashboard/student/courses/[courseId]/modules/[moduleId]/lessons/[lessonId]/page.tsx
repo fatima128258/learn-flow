@@ -1,7 +1,7 @@
 ﻿'use client';
 
 import { useEffect, useState } from 'react';
-import { useParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Badge, Button, ErrorState, Spinner } from '@/components/ui';
 import { useCurrentUser } from '@/features/auth/useCurrentUser';
@@ -30,6 +30,7 @@ type LessonData = {
 
 export default function StudentLessonPage() {
   const params = useParams();
+  const router = useRouter();
   const courseId = typeof params.courseId === 'string' ? params.courseId : null;
   const moduleId = typeof params.moduleId === 'string' ? params.moduleId : null;
   const lessonId = typeof params.lessonId === 'string' ? params.lessonId : null;
