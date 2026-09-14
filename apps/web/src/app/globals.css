@@ -72,6 +72,25 @@ html,
 body {
   max-width: 100%;
   overflow-x: hidden;
+  scrollbar-width: thin;
+  scrollbar-color: #9b765c transparent;
+}
+
+html::-webkit-scrollbar,
+body::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+html::-webkit-scrollbar-thumb,
+body::-webkit-scrollbar-thumb {
+  border-radius: 9999px;
+  background-color: #9b765c;
+}
+
+html::-webkit-scrollbar-track,
+body::-webkit-scrollbar-track {
+  background: transparent;
 }
 
 /* Smooth scrolling for same-page anchor navigation, disabled for users who

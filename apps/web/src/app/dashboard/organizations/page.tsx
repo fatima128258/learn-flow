@@ -893,14 +893,14 @@ export default function OrganizationsPage() {
                     </Badge>
                   </div>
 
-                  {/* Admin email — full, no truncation */}
-                  <div className="mt-3 border-t border-neutral-100 pt-3">
-                    <p className="text-xs font-medium uppercase tracking-wide text-neutral-400 mb-1">
-                      Admin email
+                  {/* Organization email — full, no truncation */}
+                  <div className="mt-3 flex flex-wrap items-baseline gap-x-2 gap-y-1 border-t border-neutral-100 pt-3">
+                    <p className="text-xs font-medium uppercase tracking-wide text-neutral-400">
+                      Org email
                     </p>
                     {org.admins && org.admins.length > 0 ? (
                       org.admins.map((admin) => (
-                        <p key={admin.id} className="text-sm text-neutral-700 break-all">
+                        <p key={admin.id} className="break-all rounded-md bg-primary-50 px-2 py-0.5 text-sm font-medium text-primary-700">
                           {admin.email}
                         </p>
                       ))
