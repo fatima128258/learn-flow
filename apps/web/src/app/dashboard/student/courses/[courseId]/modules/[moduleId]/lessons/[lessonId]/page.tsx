@@ -297,7 +297,7 @@ export default function StudentLessonPage() {
                   >
                     {nextResolving ? 'Loading next...' : 'Next'}
                   </Button>
-                  {isCompleted && !nextContentUrl && !nextResolving && courseCompleted ? (
+                  {isCompleted && courseCompleted ? (
                     <Link
                       href="/dashboard/student/certificates"
                       className="inline-flex items-center rounded-lg bg-[#5A321F] px-4 py-2 text-sm font-semibold text-white hover:bg-[#472719]"
