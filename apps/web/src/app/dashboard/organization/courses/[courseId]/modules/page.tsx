@@ -631,33 +631,35 @@ export default function CourseModulesPage() {
                 <table className="min-w-full divide-y divide-neutral-200">
                   <thead className="bg-neutral-50">
                     <tr>
-                      <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-neutral-500 w-16">Order</th>
+                      <th className="px-6 py-3 text-center align-middle text-xs font-semibold uppercase tracking-wide text-neutral-500 w-16">Order</th>
                       <th className="w-72 px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-neutral-500">Title</th>
-                      <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-neutral-500">Duration</th>
+                      <th className="px-6 py-3 text-center align-middle text-xs font-semibold uppercase tracking-wide text-neutral-500">Duration</th>
                       <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-neutral-500">Description</th>
-                      <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-neutral-500 w-20">Actions</th>
+                      <th className="px-6 py-3 text-center align-middle text-xs font-semibold uppercase tracking-wide text-neutral-500 w-20">Actions</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-neutral-200 bg-white">
                     {modules.map((module) => (
                       <tr key={module.id} className="hover:bg-neutral-50 cursor-pointer" onClick={() => void openModuleDetails(module)}>
-                        <td className="px-6 py-4 text-sm font-medium text-neutral-900">
+                        <td className="px-6 py-4 text-center align-middle text-sm font-medium text-neutral-900">
                           <Badge variant="default" size="sm">{module.order}</Badge>
                         </td>
                         <td className="w-72 max-w-72 px-6 py-4 text-sm font-medium text-primary-600 hover:text-primary-700" title={module.title}>
                           <span className="block truncate">{module.title}</span>
                         </td>
-                        <td className="px-6 py-4 text-sm text-neutral-700">{module.durationMinutes} min</td>
+                        <td className="px-6 py-4 text-center align-middle text-sm text-neutral-700">{module.durationMinutes} min</td>
                         <td className="px-6 py-4 text-sm text-neutral-700 max-w-xs truncate" title={module.description ?? ''}>{module.description ?? '—'}</td>
-                        <td className="px-6 py-4 relative pl-2" onClick={(e) => e.stopPropagation()}>
-                          <ModuleActionsMenu
-                            module={module}
-                            courseId={courseId!}
-                            organizationId={organizationId!}
-                            dashboardPrefix={dashboardPrefix}
-                            onEdit={() => openEditModal(module)}
-                            onDelete={() => handleDelete(module.id)}
-                          />
+                        <td className="px-6 py-4 text-center align-middle" onClick={(e) => e.stopPropagation()}>
+                          <div className="flex items-center justify-center">
+                            <ModuleActionsMenu
+                              module={module}
+                              courseId={courseId!}
+                              organizationId={organizationId!}
+                              dashboardPrefix={dashboardPrefix}
+                              onEdit={() => openEditModal(module)}
+                              onDelete={() => handleDelete(module.id)}
+                            />
+                          </div>
                         </td>
                       </tr>
                     ))}

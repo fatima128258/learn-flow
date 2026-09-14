@@ -27,6 +27,10 @@ import {
   PageHeader,
   tableHeadClass,
   tableCellClass,
+  tableNumericHeadClass,
+  tableNumericCellClass,
+  tableStatusClass,
+  tableActionClass,
   tableRowHoverClass,
 } from '../../../components/dashboard';
 
@@ -803,17 +807,17 @@ export default function OrganizationsPage() {
                   <thead className="bg-neutral-50">
                     <tr>
                       <th className={tableHeadClass}>Name</th>
-                      <th className={tableHeadClass}>Status</th>
+                      <th className={tableStatusClass}>Status</th>
                       <th className={tableHeadClass}>Email</th>
-                      <th className={tableHeadClass}>Members</th>
+                      <th className={tableNumericHeadClass}>Members</th>
                       <th className={tableHeadClass}>Created</th>
-                      <th className={tableHeadClass}>Action</th>
+                      <th className={tableActionClass}>Action</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-neutral-200">
                     {filteredOrganizations.map((org) => (
                       <tr key={org.id} className={tableRowHoverClass}>
-                        <td className={tableCellClass}>
+                        <td className={tableStatusClass}>
                           <button
                             type="button"
                             onClick={() => openOrganization(org)}
@@ -840,20 +844,22 @@ export default function OrganizationsPage() {
                             <span className="text-sm text-neutral-400">No admin assigned</span>
                           )}
                         </td>
-                        <td className={`${tableCellClass} text-neutral-700`}>
+                        <td className={`${tableNumericCellClass} text-neutral-700`}>
                           {typeof org.memberCount === 'number' ? org.memberCount : '—'}
                         </td>
                         <td className={`${tableCellClass} text-neutral-700`}>
                           {new Date(org.createdAt).toLocaleDateString()}
                         </td>
-                        <td className={`${tableCellClass} flex justify-center`}>
-                          <OrgActionsMenu
-                            org={org}
-                            onMembers={() => openMembersModal(org)}
-                            onAssignAdmin={() => openAssignModal(org)}
-                            onEdit={() => openEditModal(org)}
-                            onStatusChange={() => requestStatusChange(org)}
-                          />
+                        <td className={tableActionClass}>
+                          <div className="flex items-center justify-center">
+                            <OrgActionsMenu
+                              org={org}
+                              onMembers={() => openMembersModal(org)}
+                              onAssignAdmin={() => openAssignModal(org)}
+                              onEdit={() => openEditModal(org)}
+                              onStatusChange={() => requestStatusChange(org)}
+                            />
+                          </div>
                         </td>
                       </tr>
                     ))}
@@ -900,7 +906,7 @@ export default function OrganizationsPage() {
                     </p>
                     {org.admins && org.admins.length > 0 ? (
                       org.admins.map((admin) => (
-                        <p key={admin.id} className="break-all rounded-md bg-primary-50 px-2 py-0.5 text-sm font-medium text-primary-700">
+                        <p key={admin.id} className="break-all rounded-md bg-primary-50 px-2 py-0.5 text-sm font-medium text-neutral-900">
                           {admin.email}
                         </p>
                       ))
@@ -948,7 +954,11 @@ export default function OrganizationsPage() {
               <Button type="button" variant="ghost" onClick={closeCreateModal} disabled={creating}>
                 Cancel
               </Button>
-              <Button type="submit" loading={creating}>
+              <Button
+                type="submit"
+                loading={creating}
+                className="!border-0 !outline-none !ring-0 focus:!border-0 focus:!outline-none focus:!ring-0 focus-visible:!outline-none focus-visible:!ring-0"
+              >
                 Create Organization
               </Button>
             </div>

@@ -19,20 +19,20 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
       'block w-full text-base outline-none transition-all duration-200 placeholder:text-neutral-400';
 
     const boxNormal =
-      'rounded-md border border-neutral-300 bg-white px-3 py-2 text-neutral-900 shadow-sm focus:border-primary-500 focus:ring-2 focus:ring-primary-500/30';
+      'rounded-xl border border-[#e5d5c4] bg-[#fffdf9] px-4 py-3 text-[#17212b] shadow-none focus:border-[#7a4a2e] focus:ring-2 focus:ring-[#a8784f]/20';
     const boxError =
-      'rounded-md border border-error-500 bg-white px-3 py-2 text-neutral-900 shadow-sm focus:border-error-500 focus:ring-2 focus:ring-error-500/30';
+      'rounded-xl border border-error-500 bg-[#fffdf9] px-4 py-3 text-[#17212b] shadow-none focus:border-error-500 focus:ring-2 focus:ring-error-500/20';
     const lineNormal =
-      'rounded-none border-0 border-b-2 border-neutral-300 bg-transparent px-0 py-2.5 text-neutral-900 focus:border-primary-600';
+      'rounded-xl border border-[#e5d5c4] bg-[#fffdf9] px-4 py-3 text-[#17212b] shadow-none focus:border-[#7a4a2e] focus:ring-2 focus:ring-[#a8784f]/20';
     const lineError =
-      'rounded-none border-0 border-b-2 border-error-500 bg-transparent px-0 py-2.5 text-neutral-900 focus:border-error-500';
+      'rounded-xl border border-error-500 bg-[#fffdf9] px-4 py-3 text-[#17212b] shadow-none focus:border-error-500 focus:ring-2 focus:ring-error-500/20';
 
     const variantStyles = variant === 'line'
       ? hasError ? lineError : lineNormal
       : hasError ? boxError : boxNormal;
 
     const disabledStyles =
-      'disabled:bg-transparent disabled:text-neutral-400 disabled:cursor-not-allowed disabled:border-neutral-200';
+      'disabled:bg-[#f8f2eb] disabled:text-neutral-400 disabled:cursor-not-allowed disabled:border-[#ead8c6]';
 
     const inputStyles = `${baseStyles} ${variantStyles} ${disabledStyles} ${className}`.trim();
 

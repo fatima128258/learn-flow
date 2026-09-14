@@ -25,6 +25,8 @@ import {
   UserAvatar,
   tableHeadClass,
   tableCellClass,
+  tableStatusClass,
+  tableActionClass,
   tableRowHoverClass,
 } from '@/components/dashboard';
 
@@ -348,15 +350,15 @@ export default function OrgUsersPage() {
                           <th className={tableHeadClass}>Name</th>
                           <th className={tableHeadClass}>Email</th>
                           <th className={tableHeadClass}>Role</th>
-                          <th className={tableHeadClass}>Status</th>
+                          <th className={tableStatusClass}>Status</th>
                           <th className={tableHeadClass}>Created</th>
-                          <th className={tableHeadClass}>Action</th>
+                          <th className={tableActionClass}>Action</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-neutral-100">
                         {(filteredMembers ?? []).map((member) => (
                           <tr key={member.id} className={tableRowHoverClass}>
-                            <td className={tableCellClass}>
+                            <td className={tableStatusClass}>
                               <span className="flex items-center gap-3">
                                 <UserAvatar name={member.name} size="sm" />
                                 <span className="font-medium text-neutral-900">{member.name ?? '—'}</span>
@@ -372,8 +374,10 @@ export default function OrgUsersPage() {
                             <td className={`${tableCellClass} text-neutral-700`}>
                               {new Date(member.createdAt).toLocaleDateString()}
                             </td>
-                            <td className={tableCellClass}>
-                              <MemberActionsMenu member={member} onView={() => void openMemberDetails(member)} onStatus={() => setStatusTarget(member)} />
+                            <td className={tableActionClass}>
+                              <div className="flex items-center justify-center">
+                                <MemberActionsMenu member={member} onView={() => void openMemberDetails(member)} onStatus={() => setStatusTarget(member)} />
+                              </div>
                             </td>
                           </tr>
                         ))}

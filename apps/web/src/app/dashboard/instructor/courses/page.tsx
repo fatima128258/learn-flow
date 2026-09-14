@@ -19,6 +19,7 @@ import {
   TableCard,
   tableHeadClass,
   tableCellClass,
+  tableActionClass,
   tableRowHoverClass,
   CourseActionsMenu,
 } from '@/components/dashboard';
@@ -264,7 +265,7 @@ export default function InstructorCoursesPage() {
                     <th className={tableHeadClass}>Difficulty</th>
                     <th className={tableHeadClass}>Status</th>
                     <th className={tableHeadClass}>Created</th>
-                    <th className={`${tableHeadClass} w-10`}></th>
+                    <th className={`${tableActionClass} w-10`}>Action</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-neutral-100">
@@ -276,12 +277,14 @@ export default function InstructorCoursesPage() {
                         <Badge variant={statusBadgeVariant(course.status)} size="sm">{course.status}</Badge>
                       </td>
                       <td className={`${tableCellClass} text-neutral-600`}>{new Date(course.createdAt).toLocaleDateString()}</td>
-                      <td className={`${tableCellClass} text-right`}>
-                        <CourseActionsMenu
-                          courseId={course.id}
-                          manageHref={manageHref(course.id)}
-                          onChangeStatusClick={() => setStatusModalCourseId(course.id)}
-                        />
+                      <td className={tableActionClass}>
+                        <div className="flex items-center justify-center">
+                          <CourseActionsMenu
+                            courseId={course.id}
+                            manageHref={manageHref(course.id)}
+                            onChangeStatusClick={() => setStatusModalCourseId(course.id)}
+                          />
+                        </div>
                       </td>
                     </tr>
                   ))}

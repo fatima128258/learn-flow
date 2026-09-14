@@ -527,17 +527,17 @@ export default function ModuleLessonsPage() {
               <table className="min-w-full divide-y divide-neutral-200">
                 <thead className="bg-neutral-50">
                   <tr>
-                    <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-neutral-500 w-16">Order</th>
+                    <th className="px-6 py-3 text-center align-middle text-xs font-semibold uppercase tracking-wide text-neutral-500 w-16">Order</th>
                     <th className="w-64 px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-neutral-500">Title</th>
                     <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-neutral-500">Description</th>
-                    <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-neutral-500 w-24">Duration</th>
-                    <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-neutral-500 w-40">Actions</th>
+                    <th className="px-6 py-3 text-center align-middle text-xs font-semibold uppercase tracking-wide text-neutral-500 w-24">Duration</th>
+                    <th className="px-6 py-3 text-center align-middle text-xs font-semibold uppercase tracking-wide text-neutral-500 w-40">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-neutral-200 bg-white">
                   {lessons.map((lesson) => (
                     <tr key={lesson.id} className="cursor-pointer hover:bg-neutral-50" onClick={() => void openLessonDetails(lesson)}>
-                      <td className="px-6 py-4 text-sm font-medium text-neutral-900">
+                      <td className="px-6 py-4 text-center align-middle text-sm font-medium text-neutral-900">
                         <Badge variant="default" size="sm">{lesson.order}</Badge>
                       </td>
                       <td className="w-64 max-w-64 px-6 py-4 text-sm font-medium text-primary-600 hover:text-primary-700" title={lesson.title}>
@@ -546,15 +546,17 @@ export default function ModuleLessonsPage() {
                       <td className="px-6 py-4 text-sm text-neutral-700 max-w-md truncate">
                         {lesson.description ?? '—'}
                       </td>
-                      <td className="px-6 py-4 text-sm text-neutral-700">
+                      <td className="px-6 py-4 text-center align-middle text-sm text-neutral-700">
                         {lesson.duration != null ? `${lesson.duration}m` : '—'}
                       </td>
-                      <td className="px-6 py-4 relative pl-2" onClick={(event) => event.stopPropagation()}>
-                        <LessonActionsMenu
-                          lesson={lesson}
-                          onEdit={() => openEditModal(lesson)}
-                          onDelete={() => handleDelete(lesson.id)}
-                        />
+                      <td className="px-6 py-4 text-center align-middle" onClick={(event) => event.stopPropagation()}>
+                        <div className="flex items-center justify-center">
+                          <LessonActionsMenu
+                            lesson={lesson}
+                            onEdit={() => openEditModal(lesson)}
+                            onDelete={() => handleDelete(lesson.id)}
+                          />
+                        </div>
                       </td>
                     </tr>
                   ))}

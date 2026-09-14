@@ -91,7 +91,7 @@ export function CategorySelect({
       )}
       {allowPrivateCreate && (
         <div className="mt-2 flex gap-2">
-          <input className="min-w-0 flex-1 rounded-md border border-neutral-300 px-3 py-2 text-sm" value={privateName} onChange={(event) => setPrivateName(event.target.value)} placeholder="New private category" maxLength={100} disabled={disabled || creating} />
+          <input className="min-w-0 flex-1 rounded-xl border border-[#e5d5c4] bg-[#fffdf9] px-4 py-3 text-sm text-[#17212b] outline-none transition-all placeholder:text-neutral-400 focus:border-[#7a4a2e] focus:ring-2 focus:ring-[#a8784f]/20 disabled:cursor-not-allowed disabled:border-[#ead8c6] disabled:bg-[#f8f2eb]" value={privateName} onChange={(event) => setPrivateName(event.target.value)} placeholder="New private category" maxLength={100} disabled={disabled || creating} />
           <button type="button" className="rounded-md border border-primary-600 px-3 py-2 text-sm font-medium text-primary-700 disabled:opacity-50" onClick={() => void createPrivateCategory()} disabled={disabled || creating || !privateName.trim()}>{creating ? 'Creating...' : 'Add private'}</button>
         </div>
       )}

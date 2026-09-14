@@ -47,7 +47,7 @@ export function ProfileAvatarMenu({ user }: { user: CurrentUser | null | undefin
         aria-label="Open profile menu"
         aria-expanded={open}
         aria-haspopup="menu"
-        className="flex h-10 w-10 items-center justify-center rounded-full bg-primary-600 text-sm font-bold text-white shadow-sm transition-colors hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2"
+        className="!border-0 flex h-10 w-10 items-center justify-center rounded-full bg-primary-600 text-sm font-bold text-white shadow-sm transition-colors hover:bg-primary-700 focus:border-0 focus:outline-none focus:ring-0 focus:ring-offset-0"
       >
         {initial}
       </button>

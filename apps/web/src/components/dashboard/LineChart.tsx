@@ -38,7 +38,7 @@ export const LineChart: React.FC<LineChartProps> = ({
   const chartHeight = height - padding.top - padding.bottom;
 
   const maxDataValue = Math.max(...data.map((d) => d.value), 0);
-  const maxValue = Math.max(maxDataValue, 1);
+  const maxValue = Math.max(maxDataValue, 7);
   const minValue = 0;
   const valueRange = maxValue - minValue;
 
@@ -80,7 +80,7 @@ export const LineChart: React.FC<LineChartProps> = ({
     : '';
 
   // Keep a readable scale for small counts; larger ranges use five spaced ticks.
-  const yTickValues = maxValue <= 5
+  const yTickValues = maxValue <= 7
     ? Array.from({ length: maxValue + 1 }, (_, i) => maxValue - i)
     : Array.from({ length: 5 }, (_, i) => Math.round(maxValue - (i / 4) * maxValue));
   const yLabels = yTickValues.map((value, i) => {

@@ -52,6 +52,7 @@ export const AuditLogTable: React.FC<AuditLogTableProps> = ({
   const [page, setPage] = useState(1);
   const [searchInput, setSearchInput] = useState('');
   const [search, setSearch] = useState('');
+  const [viewMode, setViewMode] = useState<'list' | 'grid'>('list');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const requestControllerRef = useRef<AbortController | null>(null);
@@ -102,13 +103,52 @@ export const AuditLogTable: React.FC<AuditLogTableProps> = ({
 
   return (
     <div>
-      <div className="mb-4">
+      <div className="mb-4 flex items-center justify-between gap-4">
         <Input
           variant="line"
           placeholder="Search by action, actor name, or email"
           value={searchInput}
           onChange={(e) => handleSearchChange(e.target.value)}
+          className="max-w-md"
         />
+        <div className="hidden items-center rounded-lg border border-primary-200 bg-white p-0.5 sm:flex">
+          <button
+            type="button"
+            onClick={() => setViewMode('list')}
+            aria-label="List view"
+            aria-pressed={viewMode === 'list'}
+            title="List view"
+            className={`inline-flex h-9 w-9 items-center justify-center rounded-md transition-colors ${
+              viewMode === 'list'
+                ? 'bg-primary-600 text-white'
+                : 'text-primary-600 hover:bg-primary-50'
+            }`}
+          >
+            <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
+              <rect x="4" y="5" width="16" height="14" rx="1.5" />
+              <path strokeLinecap="round" d="M7 9h10M7 12h10M7 15h10" />
+            </svg>
+          </button>
+          <button
+            type="button"
+            onClick={() => setViewMode('grid')}
+            aria-label="Grid view"
+            aria-pressed={viewMode === 'grid'}
+            title="Grid view"
+            className={`inline-flex h-9 w-9 items-center justify-center rounded-md transition-colors ${
+              viewMode === 'grid'
+                ? 'bg-primary-600 text-white'
+                : 'text-primary-600 hover:bg-primary-50'
+            }`}
+          >
+            <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
+              <rect x="4" y="4" width="6" height="6" rx="1" />
+              <rect x="14" y="4" width="6" height="6" rx="1" />
+              <rect x="4" y="14" width="6" height="6" rx="1" />
+              <rect x="14" y="14" width="6" height="6" rx="1" />
+            </svg>
+          </button>
+        </div>
       </div>
 
       <div className="overflow-hidden rounded-2xl border border-neutral-200 bg-white shadow-sm">
@@ -142,16 +182,16 @@ export const AuditLogTable: React.FC<AuditLogTableProps> = ({
         ) : (
           <>
             {/* Desktop table */}
-            <div className="hidden md:block">
+            <div className={`${viewMode === 'list' ? 'hidden md:block' : 'hidden'}`}>
               <table className="min-w-full divide-y divide-neutral-200">
                 <thead className="bg-neutral-50">
                   <tr>
-                    <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-neutral-500">Action</th>
-                    <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-neutral-500">Actor</th>
+                    <th className="px-6 py-3 text-left align-middle text-xs font-semibold uppercase tracking-wide text-neutral-500">Action</th>
+                    <th className="px-6 py-3 text-left align-middle text-xs font-semibold uppercase tracking-wide text-neutral-500">Actor</th>
                     {showOrganization && (
-                      <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-neutral-500">Organization</th>
+                      <th className="px-6 py-3 text-left align-middle text-xs font-semibold uppercase tracking-wide text-neutral-500">Organization</th>
                     )}
-                    <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-neutral-500">Time</th>
+                    <th className="px-6 py-3 text-left align-middle text-xs font-semibold uppercase tracking-wide text-neutral-500">Time</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-neutral-200">
@@ -160,21 +200,21 @@ export const AuditLogTable: React.FC<AuditLogTableProps> = ({
                       key={log.id}
                       className="hover:bg-neutral-50"
                     >
-                      <td className="px-6 py-4">
+                      <td className="px-6 py-4 align-middle">
                         <Badge variant="info" size="sm">{log.action}</Badge>
                       </td>
-                      <td className="px-6 py-4 text-sm text-neutral-700">
+                      <td className="px-6 py-4 align-middle text-sm text-neutral-700">
                         <div>{actorLabel(log)}</div>
                         {actorDetail(log) && (
                           <div className="text-xs text-neutral-500">{actorDetail(log)}</div>
                         )}
                       </td>
                       {showOrganization && (
-                        <td className="px-6 py-4 text-sm text-neutral-500">
+                        <td className="px-6 py-4 align-middle text-sm text-neutral-500">
                           {log.organization?.name ?? (log.organization?.id ? log.organization.id.slice(0, 8) : '—')}
                         </td>
                       )}
-                      <td className="px-6 py-4 text-sm text-neutral-700">
+                      <td className="px-6 py-4 align-middle text-sm text-neutral-700">
                         {new Date(log.createdAt).toLocaleString('en-US', {
                           year: 'numeric',
                           month: '2-digit',
@@ -191,7 +231,7 @@ export const AuditLogTable: React.FC<AuditLogTableProps> = ({
               </table>
             </div>
             {/* Mobile cards */}
-            <div className="space-y-3 p-3 md:hidden">
+            <div className={`${viewMode === 'grid' ? 'grid gap-3 p-3 sm:grid-cols-2' : 'space-y-3 p-3 md:hidden'}`}>
               {(logs ?? []).map((log) => (
                 <div
                   key={log.id}

@@ -12,9 +12,9 @@ export const Textarea = React.forwardRef<HTMLTextAreaElement, TextareaProps>(
     const hasError = !!error;
 
     const baseStyles = 'block w-full text-base outline-none transition-all duration-200 placeholder:text-neutral-400';
-    const boxNormal = 'rounded-md border border-neutral-300 bg-white px-3 py-2 text-neutral-900 shadow-sm focus:border-primary-500 focus:ring-2 focus:ring-primary-500/30';
-    const boxError = 'rounded-md border border-error-500 bg-white px-3 py-2 text-neutral-900 shadow-sm focus:border-error-500 focus:ring-2 focus:ring-error-500/30';
-    const disabledStyles = 'disabled:bg-neutral-50 disabled:text-neutral-500 disabled:cursor-not-allowed disabled:border-neutral-200';
+    const boxNormal = 'rounded-xl border border-[#e5d5c4] bg-[#fffdf9] px-4 py-3 text-[#17212b] shadow-none focus:border-[#7a4a2e] focus:ring-2 focus:ring-[#a8784f]/20';
+    const boxError = 'rounded-xl border border-error-500 bg-[#fffdf9] px-4 py-3 text-[#17212b] shadow-none focus:border-error-500 focus:ring-2 focus:ring-error-500/20';
+    const disabledStyles = 'disabled:bg-[#f8f2eb] disabled:text-neutral-400 disabled:cursor-not-allowed disabled:border-[#ead8c6]';
 
     const textareaStyles = `${baseStyles} ${hasError ? boxError : boxNormal} ${disabledStyles} ${className}`;
 

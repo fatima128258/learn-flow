@@ -35,8 +35,20 @@ export const TableCard: React.FC<TableCardProps> = ({
 TableCard.displayName = 'TableCard';
 
 export const tableHeadClass =
-  'px-5 py-3 text-left text-xs font-semibold uppercase tracking-wider text-neutral-500';
+  'px-5 py-3 text-left align-middle text-xs font-semibold uppercase tracking-wider text-neutral-500';
 
-export const tableCellClass = 'px-5 py-4 text-sm';
+export const tableCellClass = 'px-5 py-4 align-middle text-sm';
+
+export const tableNumericHeadClass =
+  `${tableHeadClass} text-center`;
+
+export const tableNumericCellClass =
+  `${tableCellClass} text-center`;
+
+export const tableStatusClass =
+  `${tableCellClass} text-center`;
+
+export const tableActionClass =
+  `${tableCellClass} text-center`;
 
 export const tableRowHoverClass = 'transition-colors duration-200 hover:bg-primary-50/50';

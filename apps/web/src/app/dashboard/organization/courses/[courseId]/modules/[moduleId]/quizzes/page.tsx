@@ -598,19 +598,19 @@ export default function ModuleQuizzesPage() {
               <table className="min-w-full divide-y divide-neutral-200">
                 <thead className="bg-neutral-50">
                   <tr>
-                    <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-neutral-500 w-16">Order</th>
+                    <th className="px-6 py-3 text-center align-middle text-xs font-semibold uppercase tracking-wide text-neutral-500 w-16">Order</th>
                     <th className="w-72 px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-neutral-500">Title</th>
                     <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-neutral-500">Description</th>
-                    <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-neutral-500 w-24">Time Limit</th>
-                    <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-neutral-500 w-24">Pass %</th>
-                    <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-neutral-500 w-24">Attempts</th>
-                    <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-neutral-500 w-40">Actions</th>
+                    <th className="px-6 py-3 text-center align-middle text-xs font-semibold uppercase tracking-wide text-neutral-500 w-24">Time Limit</th>
+                    <th className="px-6 py-3 text-center align-middle text-xs font-semibold uppercase tracking-wide text-neutral-500 w-24">Pass %</th>
+                    <th className="px-6 py-3 text-center align-middle text-xs font-semibold uppercase tracking-wide text-neutral-500 w-24">Attempts</th>
+                    <th className="px-6 py-3 text-center align-middle text-xs font-semibold uppercase tracking-wide text-neutral-500 w-40">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-neutral-200 bg-white">
                   {quizzes.map((quiz) => (
                     <tr key={quiz.id} className="cursor-pointer hover:bg-neutral-50" onClick={() => void openQuizDetails(quiz)}>
-                      <td className="px-6 py-4 text-sm font-medium text-neutral-900">
+                      <td className="px-6 py-4 text-center align-middle text-sm font-medium text-neutral-900">
                         <Badge variant="default" size="sm">{quiz.order}</Badge>
                       </td>
                       <td className="w-72 max-w-72 px-6 py-4 text-sm font-medium text-primary-600 hover:text-primary-700" title={quiz.title}>
@@ -619,24 +619,26 @@ export default function ModuleQuizzesPage() {
                       <td className="px-6 py-4 text-sm text-neutral-700 max-w-md truncate">
                         {quiz.description ?? '—'}
                       </td>
-                      <td className="px-6 py-4 text-sm text-neutral-700">
+                      <td className="px-6 py-4 text-center align-middle text-sm text-neutral-700">
                         {quiz.timeLimitMinutes != null ? `${quiz.timeLimitMinutes}m` : '—'}
                       </td>
-                      <td className="px-6 py-4 text-sm text-neutral-700">
+                      <td className="px-6 py-4 text-center align-middle text-sm text-neutral-700">
                         {quiz.passingPercentage != null ? `${quiz.passingPercentage}%` : '—'}
                       </td>
-                      <td className="px-6 py-4 text-sm text-neutral-700">
+                      <td className="px-6 py-4 text-center align-middle text-sm text-neutral-700">
                         {quiz.maxAttempts != null ? quiz.maxAttempts : '—'}
                       </td>
-                      <td className="px-6 py-4 relative pl-2" onClick={(event) => event.stopPropagation()}>
-                        <QuizActionsMenu
-                          quiz={quiz}
-                          courseId={courseId!}
-                          moduleId={moduleId!}
-                          dashboardPrefix={dashboardPrefix}
-                          onEdit={() => openEditModal(quiz)}
-                          onDelete={() => handleDelete(quiz.id)}
-                        />
+                      <td className="px-6 py-4 text-center align-middle" onClick={(event) => event.stopPropagation()}>
+                        <div className="flex items-center justify-center">
+                          <QuizActionsMenu
+                            quiz={quiz}
+                            courseId={courseId!}
+                            moduleId={moduleId!}
+                            dashboardPrefix={dashboardPrefix}
+                            onEdit={() => openEditModal(quiz)}
+                            onDelete={() => handleDelete(quiz.id)}
+                          />
+                        </div>
                       </td>
                     </tr>
                   ))}

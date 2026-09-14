@@ -12,6 +12,7 @@ import {
   TableCard,
   tableHeadClass,
   tableCellClass,
+  tableActionClass,
   tableRowHoverClass,
   CourseActionsMenu,
 } from '../../../../components/dashboard';
@@ -407,7 +408,7 @@ export default function MyCoursesPage() {
                       <th className={tableHeadClass}>Status</th>
                       <th className={tableHeadClass}>Difficulty</th>
                       <th className={tableHeadClass}>Created</th>
-                      <th className={`${tableHeadClass} text-right`}></th>
+                      <th className={tableActionClass}>Action</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-neutral-200">
@@ -428,13 +429,15 @@ export default function MyCoursesPage() {
                         <td className={`${tableCellClass} text-neutral-700`}>
                           {new Date(course.createdAt).toLocaleDateString()}
                         </td>
-                        <td className={`${tableCellClass} text-right`}>
-                          <CourseActionsMenu
-                            courseId={course.id}
-                            manageHref={`/dashboard/organization/courses/${course.id}${organizationId ? `?organization=${organizationId}` : ''}`}
-                            onViewClick={() => void openCourseView(course)}
-                            onChangeStatusClick={() => setStatusModalCourseId(course.id)}
-                          />
+                        <td className={tableActionClass}>
+                          <div className="flex items-center justify-center">
+                            <CourseActionsMenu
+                              courseId={course.id}
+                              manageHref={`/dashboard/organization/courses/${course.id}${organizationId ? `?organization=${organizationId}` : ''}`}
+                              onViewClick={() => void openCourseView(course)}
+                              onChangeStatusClick={() => setStatusModalCourseId(course.id)}
+                            />
+                          </div>
                         </td>
                       </tr>
                     ))}
