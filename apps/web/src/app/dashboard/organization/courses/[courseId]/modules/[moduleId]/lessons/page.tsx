@@ -21,6 +21,8 @@ function LessonActionsMenu({ lesson, onEdit, onDelete }: {
 }) {
   const [isOpen, setIsOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
+  const buttonRef = useRef<HTMLButtonElement>(null);
+  const [menuPosition, setMenuPosition] = useState({ top: 0, left: 0 });
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -35,10 +37,25 @@ function LessonActionsMenu({ lesson, onEdit, onDelete }: {
     }
   }, [isOpen]);
 
+  function toggleMenu() {
+    if (!isOpen && buttonRef.current) {
+      const rect = buttonRef.current.getBoundingClientRect();
+      const menuWidth = 192;
+      const menuHeight = 96;
+      const left = Math.max(8, Math.min(rect.right - menuWidth, window.innerWidth - menuWidth - 8));
+      const top = rect.bottom + menuHeight <= window.innerHeight
+        ? rect.bottom + 4
+        : rect.top - menuHeight - 4;
+      setMenuPosition({ top, left });
+    }
+    setIsOpen(!isOpen);
+  }
+
   return (
     <div ref={menuRef} className="relative">
       <button
-        onClick={() => setIsOpen(!isOpen)}
+        ref={buttonRef}
+        onClick={toggleMenu}
         className="inline-flex items-center justify-center rounded-lg border-0 p-1 text-neutral-500 transition-colors hover:bg-neutral-100 focus:border-0 focus:outline-none focus-visible:border-0 focus-visible:outline-none focus:ring-0 focus-visible:ring-0"
         aria-label="Lesson actions"
       >
@@ -48,7 +65,11 @@ function LessonActionsMenu({ lesson, onEdit, onDelete }: {
       </button>
 
       {isOpen && (
-        <div className="fixed bg-white rounded-lg border border-neutral-200 shadow-lg z-50 w-48">
+        <div
+          ref={menuRef}
+          style={{ position: 'fixed', top: menuPosition.top, left: menuPosition.left, zIndex: 9999 }}
+          className="w-48 rounded-lg border border-neutral-200 bg-white shadow-lg"
+        >
           <button
             onClick={() => {
               onEdit();
