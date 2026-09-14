@@ -8,7 +8,7 @@ import * as certificateRepo from '../repositories/certificateRepository';
 import { categoryLabel } from '../utils/categoryLabel';
 import getPrisma from '../prisma';
 import * as sequenceRepo from '../repositories/contentSequenceRepository';
-import { getSequenceState, assertContentUnlocked } from './sequentialAccess';
+import { getSequenceState, assertContentUnlocked, assertModuleUnlocked } from './sequentialAccess';
 
 interface EnrolledEnrollment {
   id: string;
@@ -292,6 +292,14 @@ export async function listModuleLessons(
   const module = await moduleRepo.getById(courseId, moduleId);
   if (!module) {
     throw new Error('MODULE_NOT_FOUND');
+  }
+  try {
+    await assertModuleUnlocked(userId, courseId, moduleId);
+  } catch (err) {
+    // Preserve access for legacy courses that do not have sequence rows.
+    if (!(err instanceof Error) || err.message !== 'CONTENT_SEQUENCE_MISSING') {
+      throw err;
+    }
   }
 
   const [lessons, completedLessons] = await Promise.all([

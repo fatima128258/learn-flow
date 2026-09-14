@@ -260,6 +260,8 @@ export default function StudentModuleLessonsPage() {
         setLessonError('You are not enrolled in this course.');
       } else if (error?.message?.includes('MODULE_NOT_FOUND')) {
         setLessonError('Module not found.');
+      } else if (error?.message?.includes('CONTENT_LOCKED')) {
+        setLessonError('This module is locked. Complete the previous module to continue.');
       } else {
         setLessonError('Could not load lessons. Please try again.');
       }

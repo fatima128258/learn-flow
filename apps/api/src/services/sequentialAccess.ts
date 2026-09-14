@@ -57,6 +57,22 @@ export async function getSequenceState(userId: string, courseId: string) {
   });
 }
 
+export async function assertModuleUnlocked(userId: string, courseId: string, moduleId: string) {
+  const state = await getSequenceState(userId, courseId);
+  if (state.length === 0) throw new Error('CONTENT_SEQUENCE_MISSING');
+
+  const moduleIds = Array.from(new Set(state.map(item => item.moduleId)));
+  const moduleIndex = moduleIds.indexOf(moduleId);
+  if (moduleIndex === -1) throw new Error('MODULE_NOT_FOUND');
+
+  const previousModuleIds = new Set(moduleIds.slice(0, moduleIndex));
+  const previousModulesComplete = state
+    .filter(item => previousModuleIds.has(item.moduleId))
+    .every(item => item.completed);
+
+  if (!previousModulesComplete) throw new Error('CONTENT_LOCKED');
+}
+
 export async function assertContentUnlocked(
   userId: string,
   courseId: string,
