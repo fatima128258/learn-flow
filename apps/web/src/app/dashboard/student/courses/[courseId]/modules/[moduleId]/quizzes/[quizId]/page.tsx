@@ -390,12 +390,7 @@ export default function StudentQuizTakingPage() {
               </div>
 
               <div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:items-center sm:justify-between">
-                <Link
-                  href={`/dashboard/student/courses/${courseId}/modules/${moduleId}`}
-                  className="text-center text-sm font-semibold text-[#5a321f] hover:text-[#7a4a2e] sm:text-left"
-                >
-                  &larr; Back to Module
-                </Link>
+                <div />
                 {courseCompleted && result.passed && (
                   <Link
                     href="/dashboard/student/certificates"

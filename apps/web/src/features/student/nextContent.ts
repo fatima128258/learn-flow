@@ -68,6 +68,39 @@ export async function getNextContentUrl({
     return contentUrl(courseId, next.moduleId, next);
   }
 
+  // Legacy modules may not have ModuleContentItem rows, so their endpoint
+  // returns lessons but no `items` sequence. Resolve the next lesson directly.
+  if (currentIndex < 0) {
+    const currentModuleResponse = await fetch(
+      `/api/v1/organizations/${organizationId}/student/courses/${courseId}/modules/${moduleId}`,
+      { credentials: 'include' },
+    );
+    if (currentModuleResponse.ok) {
+      const currentModuleBody = await currentModuleResponse.json();
+      const currentItems = Array.isArray(currentModuleBody.data?.items)
+        ? currentModuleBody.data.items
+        : [];
+      const currentItemIndex = currentItems.findIndex(
+        (item: SequenceItem) => item?.type === contentType && item.id === contentId,
+      );
+      const nextItem = currentItemIndex >= 0 ? currentItems[currentItemIndex + 1] : undefined;
+      if (nextItem?.type && nextItem.id && nextItem.state !== 'locked' && nextItem.unlocked !== false) {
+        return contentUrl(courseId, moduleId, nextItem);
+      }
+
+      const legacyLessons = Array.isArray(currentModuleBody.data?.lessons)
+        ? currentModuleBody.data.lessons
+        : [];
+      const lessonIndex = legacyLessons.findIndex(
+        (lesson: { id?: string }) => contentType === 'LESSON' && lesson.id === contentId,
+      );
+      const nextLesson = lessonIndex >= 0 ? legacyLessons[lessonIndex + 1] : undefined;
+      if (nextLesson?.id) {
+        return contentUrl(courseId, moduleId, { type: 'LESSON', id: nextLesson.id });
+      }
+    }
+  }
+
   // Locked modules do not expose their content endpoint. Use the enrolled
   // course summary to find the next module's first activity instead.
   const courseResponse = await fetch(

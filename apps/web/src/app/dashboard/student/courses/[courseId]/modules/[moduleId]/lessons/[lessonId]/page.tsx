@@ -44,13 +44,16 @@ export default function StudentLessonPage() {
   const [marking, setMarking] = useState(false);
   const [markError, setMarkError] = useState<string | null>(null);
   const [nextContentUrl, setNextContentUrl] = useState<string | null>(null);
+  const [nextResolving, setNextResolving] = useState(false);
   const [completedLocally, setCompletedLocally] = useState(false);
   const [courseCompleted, setCourseCompleted] = useState(false);
   const isCompleted = completedLocally || Boolean(lessonId && progress?.completedLessonIds.includes(lessonId));
 
   useEffect(() => {
     if (!isCompleted || !organizationId || !courseId || !moduleId || !lessonId || nextContentUrl) return;
+    if (completedLocally) return;
     let active = true;
+    setNextResolving(true);
     void getNextContentUrl({
       organizationId,
       courseId,
@@ -59,11 +62,15 @@ export default function StudentLessonPage() {
       contentId: lessonId,
     }).then(url => {
       if (active) setNextContentUrl(url);
+    }).catch(() => {
+      if (active) setNextContentUrl(`/dashboard/student/courses/${courseId}/modules/${moduleId}`);
+    }).finally(() => {
+      if (active) setNextResolving(false);
     });
     return () => {
       active = false;
     };
-  }, [isCompleted, organizationId, courseId, moduleId, lessonId, nextContentUrl]);
+  }, [isCompleted, completedLocally, organizationId, courseId, moduleId, lessonId, nextContentUrl]);
 
   async function loadLesson(orgId: string, cid: string, mid: string, lid: string) {
     setLoading(true);
@@ -185,14 +192,22 @@ export default function StudentLessonPage() {
         toast.success('Congratulations! You completed the first module.');
       }
       if (completed && user.organizationId) {
-        const nextUrl = await getNextContentUrl({
-          organizationId: user.organizationId,
-          courseId,
-          moduleId,
-          contentType: 'LESSON',
-          contentId: lessonId,
-        });
-        setNextContentUrl(nextUrl);
+        // Enable navigation immediately after completion; refine the route in
+        // the background when the next-content lookup finishes.
+        setNextContentUrl(`/dashboard/student/courses/${courseId}/modules/${moduleId}`);
+        setNextResolving(false);
+        try {
+          const nextUrl = await getNextContentUrl({
+            organizationId: user.organizationId,
+            courseId,
+            moduleId,
+            contentType: 'LESSON',
+            contentId: lessonId,
+          });
+          if (nextUrl) setNextContentUrl(nextUrl);
+        } catch {
+          // The module fallback is already available for navigation.
+        }
       }
     } catch {
       setMarkError('Could not reach the server. Please try again.');
@@ -253,12 +268,7 @@ export default function StudentLessonPage() {
 
             <div className="border-t border-neutral-200 p-6">
               <div className="flex flex-wrap items-center justify-between gap-4">
-                <Link
-                  href={`/dashboard/student/courses/${courseId}/modules/${moduleId}`}
-                  className="text-sm text-primary-600 hover:text-primary-700"
-                >
-                  &larr; Back to Module
-                </Link>
+                <div />
                 <div className="flex flex-wrap items-center gap-3">
                   {markError && (
                     <span className="text-sm text-error-600">{markError}</span>
@@ -278,10 +288,18 @@ export default function StudentLessonPage() {
                   )}
                   {isCompleted && nextContentUrl ? (
                     <Link
-                      href={nextContentUrl}
-                      className="inline-flex items-center rounded-lg bg-[#5A321F] px-4 py-2 text-sm font-semibold text-white hover:bg-[#472719]"
+                      href={nextContentUrl ?? '#'}
+                      aria-disabled={nextResolving}
+                      onClick={event => {
+                        if (nextResolving) event.preventDefault();
+                      }}
+                      className={`inline-flex items-center rounded-lg px-4 py-2 text-sm font-semibold text-white ${
+                        nextResolving
+                          ? 'cursor-wait bg-[#a98b78]'
+                          : 'bg-[#5A321F] hover:bg-[#472719]'
+                      }`}
                     >
-                      Next
+                      {nextResolving ? 'Loading next...' : 'Next'}
                     </Link>
                   ) : isCompleted && courseCompleted ? (
                     <Link
