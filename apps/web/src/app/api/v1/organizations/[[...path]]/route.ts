@@ -65,6 +65,12 @@ async function proxyRequest(
     }
     
     const data = await resp.text();
+    if (TRANSIENT_STATUSES.has(resp.status)) {
+      return new NextResponse(
+        JSON.stringify({ success: false, error: 'BACKEND_UNAVAILABLE' }),
+        { status: resp.status, headers: { 'Content-Type': 'application/json' } }
+      );
+    }
     return new NextResponse(data, {
       status: resp.status,
       headers: { 'Content-Type': 'application/json' },

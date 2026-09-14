@@ -10,6 +10,7 @@ const PURCHASE_ERRORS: Record<string, string> = {
   REQUEST_TIMEOUT: 'The purchase is taking too long. Please try again. If you were charged, check My Courses before retrying.',
   BACKEND_TIMEOUT: 'The purchase server did not respond in time. Please check My Courses before trying again.',
   PURCHASE_DATABASE_TIMEOUT: 'The purchase database is busy. Please check My Courses before trying again.',
+  BACKEND_UNAVAILABLE: 'The purchase service is temporarily unavailable because the database is waking up. Please try again shortly.',
 };
 
 export function getPurchaseErrorMessage(code: string | null | undefined): string {
