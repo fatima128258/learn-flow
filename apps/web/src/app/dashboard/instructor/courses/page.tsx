@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   Badge,
@@ -104,7 +105,7 @@ function ChangeStatusModal({ course, organizationId, onClose, onSuccess }: Chang
     return () => document.removeEventListener('keydown', h);
   }, [onClose]);
 
-  return (
+  const modal = (
     <div
       className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/40 p-4"
       onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
@@ -163,6 +164,8 @@ function ChangeStatusModal({ course, organizationId, onClose, onSuccess }: Chang
       </div>
     </div>
   );
+
+  return typeof document !== 'undefined' ? createPortal(modal, document.body) : null;
 }
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
