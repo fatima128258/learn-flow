@@ -117,7 +117,9 @@ export async function getNextContentUrl({
   const laterModules = orderedCourseModules.filter(
     module => currentModuleOrder != null && module.order > currentModuleOrder,
   );
+  let nextModuleFallback: string | null = null;
   for (const nextModule of laterModules) {
+    nextModuleFallback ??= `/dashboard/student/courses/${courseId}/modules/${nextModule.id}`;
     const nextModuleSummary = moduleSummaries.find(module => module.id === nextModule.id);
     if (nextModuleSummary?.firstContentType && nextModuleSummary.firstContentId) {
       return contentUrl(courseId, nextModule.id, {
@@ -143,5 +145,5 @@ export async function getNextContentUrl({
     }
   }
 
-  return null;
+  return nextModuleFallback;
 }

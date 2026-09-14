@@ -279,29 +279,24 @@ export default function StudentLessonPage() {
                     disabled={marking || progressLoading || isCompleted}
                     onClick={() => markComplete(true)}
                   >
-                    {marking ? 'Saving...' : isCompleted ? 'Completed' : 'Mark as Read'}
+                    {marking ? 'Saving...' : isCompleted ? 'Completed' : 'Complete'}
                   </Button>
                   {isCompleted && courseCompleted && (
                     <div className="w-full rounded-lg border border-[#d9eadf] bg-[#f4fbf6] px-4 py-3 text-sm font-semibold text-[#16834b]">
                       Congratulations! You completed the course.
                     </div>
                   )}
-                  {isCompleted && nextContentUrl ? (
-                    <Link
-                      href={nextContentUrl ?? '#'}
-                      aria-disabled={nextResolving}
-                      onClick={event => {
-                        if (nextResolving) event.preventDefault();
-                      }}
-                      className={`inline-flex items-center rounded-lg px-4 py-2 text-sm font-semibold text-white ${
-                        nextResolving
-                          ? 'cursor-wait bg-[#a98b78]'
-                          : 'bg-[#5A321F] hover:bg-[#472719]'
-                      }`}
-                    >
-                      {nextResolving ? 'Loading next...' : 'Next'}
-                    </Link>
-                  ) : isCompleted && courseCompleted ? (
+                  <Button
+                    size="sm"
+                    variant="primary"
+                    disabled={!isCompleted || nextResolving || !nextContentUrl}
+                    onClick={() => {
+                      if (nextContentUrl) router.push(nextContentUrl);
+                    }}
+                  >
+                    {nextResolving ? 'Loading next...' : 'Next'}
+                  </Button>
+                  {isCompleted && !nextContentUrl && !nextResolving && courseCompleted ? (
                     <Link
                       href="/dashboard/student/certificates"
                       className="inline-flex items-center rounded-lg bg-[#5A321F] px-4 py-2 text-sm font-semibold text-white hover:bg-[#472719]"
