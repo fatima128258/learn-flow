@@ -124,14 +124,14 @@ function ChangeStatusModal({ course, organizationId, onClose, onSuccess }: Chang
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
+      className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/40 p-4"
       onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
     >
       <div
         role="dialog"
         aria-modal="true"
         aria-labelledby="change-status-title"
-        className="max-h-[calc(100vh-2rem)] w-full max-w-xl overflow-y-auto rounded-2xl border border-neutral-200 bg-white p-7 shadow-xl"
+        className="my-auto max-h-[calc(100dvh-2rem)] w-full max-w-xl overflow-y-auto rounded-2xl border border-neutral-200 bg-white p-7 shadow-xl"
       >
         <div className="mb-5 flex items-start justify-between gap-2">
           <div>
