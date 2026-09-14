@@ -2,8 +2,8 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { useParams, useSearchParams } from 'next/navigation';
-import { Badge, Card, EmptyState, EmptyStateIcons, ErrorState, Skeleton } from '@/components/ui';
-import { PageHeader } from '@/components/dashboard';
+import { Badge, EmptyState, EmptyStateIcons, ErrorState, Skeleton } from '@/components/ui';
+import { PageHeader, TableCard, tableActionClass, tableCellClass, tableHeadClass, tableRowHoverClass } from '@/components/dashboard';
 import { LinkButton } from '@/components/ui/LinkButton';
 import { ApiError, apiRequest } from '@/lib/api';
 
@@ -110,14 +110,42 @@ export default function CategoryDetailsPage() {
         actions={<LinkButton href={`/dashboard/organization/categories${organizationId ? `?organization=${encodeURIComponent(organizationId)}` : ''}`} variant="ghost">← Back to Categories</LinkButton>}
       />
       <div className="mb-6 flex items-center gap-3"><Badge variant={category.status === 'ACTIVE' ? 'success' : 'default'} size="sm">{category.status}</Badge><span className="text-sm text-neutral-500">{category.courseCount} courses</span></div>
-      <Card>
-        <h2 className="mb-4 text-lg font-semibold text-neutral-900">Courses in this Category</h2>
+      <TableCard title="Courses in this Category">
         {courses.length === 0 ? (
           <EmptyState icon={EmptyStateIcons.NoData} title="No courses assigned" description="No courses are assigned to this category yet." />
         ) : (
-          <div className="overflow-x-auto"><table className="min-w-full divide-y divide-neutral-200"><thead><tr className="text-left text-xs font-semibold uppercase tracking-wide text-neutral-500"><th className="px-4 py-3 align-middle">Course</th><th className="px-4 py-3 align-middle">Instructor</th><th className="px-4 py-3 text-center align-middle">Status</th><th className="px-4 py-3 align-middle">Created</th><th className="px-4 py-3 text-center align-middle">Price</th><th className="px-4 py-3 text-center align-middle">Actions</th></tr></thead><tbody className="divide-y divide-neutral-100">{courses.map((course) => <tr key={course.id} className="text-sm"><td className="px-4 py-4 align-middle font-medium text-neutral-900">{course.title}</td><td className="px-4 py-4 align-middle text-neutral-600">{course.instructor?.name || 'Unassigned'}</td><td className="px-4 py-4 text-center align-middle"><Badge variant={course.status === 'PUBLISHED' ? 'success' : 'default'} size="sm">{course.status}</Badge></td><td className="px-4 py-4 align-middle text-neutral-600">{new Date(course.createdAt).toLocaleDateString()}</td><td className="px-4 py-4 text-center align-middle text-neutral-600">{course.price == null ? 'Free' : `$${course.discountPrice ?? course.price}`}</td><td className="px-4 py-4 text-center align-middle"><div className="flex items-center justify-center"><LinkButton href={`/dashboard/organization/courses/${course.id}`} size="sm" variant="ghost">View</LinkButton></div></td></tr>)}</tbody></table></div>
+          <table className="min-w-full divide-y divide-neutral-200">
+            <thead className="bg-neutral-50">
+              <tr>
+                <th className={tableHeadClass}>Course</th>
+                <th className={tableHeadClass}>Instructor</th>
+                <th className={`${tableHeadClass} text-center`}>Status</th>
+                <th className={tableHeadClass}>Created</th>
+                <th className={`${tableHeadClass} text-center`}>Price</th>
+                <th className={`${tableHeadClass} text-center`}>Actions</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-neutral-100">
+              {courses.map((course) => (
+                <tr key={course.id} className={`${tableRowHoverClass} text-sm`}>
+                  <td className={`${tableCellClass} font-medium text-neutral-900`}>{course.title}</td>
+                  <td className={`${tableCellClass} text-neutral-600`}>{course.instructor?.name || 'Unassigned'}</td>
+                  <td className={tableCellClass + ' text-center'}>
+                    <Badge variant={course.status === 'PUBLISHED' ? 'success' : 'default'} size="sm">{course.status}</Badge>
+                  </td>
+                  <td className={`${tableCellClass} text-neutral-600`}>{new Date(course.createdAt).toLocaleDateString()}</td>
+                  <td className={tableCellClass + ' text-center text-neutral-600'}>{course.price == null ? 'Free' : `$${course.discountPrice ?? course.price}`}</td>
+                  <td className={tableActionClass}>
+                    <div className="flex items-center justify-center">
+                      <LinkButton href={`/dashboard/organization/courses/${course.id}`} size="sm" variant="ghost">View</LinkButton>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         )}
-      </Card>
+      </TableCard>
     </div>
   );
 }

@@ -216,7 +216,7 @@ function OrgActionsMenu({
       <button
         type="button"
         role="menuitem"
-        className="flex w-full items-center gap-2.5 px-4 py-2.5 text-sm text-neutral-700 hover:bg-neutral-50 hover:text-neutral-900"
+        className="flex w-full border-0 items-center gap-2.5 px-4 py-2.5 text-sm text-neutral-700 hover:bg-neutral-50 hover:text-neutral-900 focus:border-0 focus:outline-none focus-visible:border-0 focus-visible:outline-none focus:ring-0 focus-visible:ring-0"
         onClick={() => action(onMembers)}
       >
         <svg className="h-4 w-4 text-neutral-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
@@ -228,7 +228,7 @@ function OrgActionsMenu({
         <button
           type="button"
           role="menuitem"
-          className="flex w-full items-center gap-2.5 px-4 py-2.5 text-sm text-neutral-700 hover:bg-neutral-50 hover:text-neutral-900"
+          className="flex w-full border-0 items-center gap-2.5 px-4 py-2.5 text-sm text-neutral-700 hover:bg-neutral-50 hover:text-neutral-900 focus:border-0 focus:outline-none focus-visible:border-0 focus-visible:outline-none focus:ring-0 focus-visible:ring-0"
           onClick={() => action(onAssignAdmin)}
         >
           <svg className="h-4 w-4 text-neutral-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
@@ -240,7 +240,7 @@ function OrgActionsMenu({
       <button
         type="button"
         role="menuitem"
-        className="flex w-full items-center gap-2.5 px-4 py-2.5 text-sm text-neutral-700 hover:bg-neutral-50 hover:text-neutral-900"
+        className="flex w-full border-0 items-center gap-2.5 px-4 py-2.5 text-sm text-neutral-700 hover:bg-neutral-50 hover:text-neutral-900 focus:border-0 focus:outline-none focus-visible:border-0 focus-visible:outline-none focus:ring-0 focus-visible:ring-0"
         onClick={() => action(onEdit)}
       >
         <svg className="h-4 w-4 text-neutral-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
@@ -252,7 +252,7 @@ function OrgActionsMenu({
       <button
         type="button"
         role="menuitem"
-        className={`flex w-full items-center gap-2.5 px-4 py-2.5 text-sm hover:bg-neutral-50 ${
+        className={`flex w-full border-0 items-center gap-2.5 px-4 py-2.5 text-sm hover:bg-neutral-50 focus:border-0 focus:outline-none focus-visible:border-0 focus-visible:outline-none focus:ring-0 focus-visible:ring-0 ${
           org.status === 'ACTIVE'
             ? 'text-red-600 hover:text-red-700'
             : 'text-emerald-600 hover:text-emerald-700'
@@ -286,7 +286,7 @@ function OrgActionsMenu({
         aria-label="Organization actions"
         aria-haspopup="true"
         aria-expanded={open}
-        className="flex h-8 w-8 items-center justify-center rounded-lg text-neutral-500 transition-colors hover:bg-neutral-100 hover:text-neutral-800"
+        className="flex h-8 w-8 items-center justify-center rounded-lg border-0 text-neutral-500 transition-colors hover:bg-neutral-100 hover:text-neutral-800 focus:border-0 focus:outline-none focus-visible:border-0 focus-visible:outline-none focus:ring-0 focus-visible:ring-0"
       >
         {/* 3 vertical dots */}
         <svg className="h-5 w-5" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
@@ -818,13 +818,15 @@ export default function OrganizationsPage() {
                     {filteredOrganizations.map((org) => (
                       <tr key={org.id} className={tableRowHoverClass}>
                         <td className={tableCellClass}>
-                          <button
+                          <Button
                             type="button"
+                            variant="ghost"
+                            size="sm"
                             onClick={() => openOrganization(org)}
-                            className="font-medium text-neutral-900 transition-colors hover:text-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+                            className="!rounded-md !px-0 !py-0 font-medium text-neutral-900 transition-colors hover:text-blue-600"
                           >
                             {org.name}
-                          </button>
+                          </Button>
                         </td>
                         <td className={tableStatusClass}>
                           <Badge variant={org.status === 'ACTIVE' ? 'success' : 'error'} size="sm">
@@ -1035,7 +1037,7 @@ export default function OrganizationsPage() {
               <span className="mx-2 text-neutral-300">|</span>
               {membersData.members.length} member{membersData.members.length === 1 ? '' : 's'}
             </p>
-            <div className="overflow-hidden rounded-lg border border-neutral-200">
+            <div className="overflow-hidden rounded-2xl border border-neutral-200 bg-white shadow-sm">
               <table className="min-w-full divide-y divide-neutral-200">
                 <thead className="bg-neutral-50">
                   <tr>

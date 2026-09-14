@@ -360,17 +360,19 @@ export default function MyCoursesPage() {
 
       <div>
         <div className="mx-auto max-w-5xl">
-          <PageHeader
-            title="Courses"
-            actions={
-              <LinkButton
-                href={`/dashboard/organization/courses/new${organizationId ? `?organization=${organizationId}` : ''}`}
-                size="sm"
-              >
-                Create Course
-              </LinkButton>
-            }
-          />
+          {courses === null || courses.length > 0 ? (
+            <PageHeader
+              title="Courses"
+              actions={
+                <LinkButton
+                  href={`/dashboard/organization/courses/new${organizationId ? `?organization=${organizationId}` : ''}`}
+                  size="sm"
+                >
+                  Create Course
+                </LinkButton>
+              }
+            />
+          ) : null}
 
           {coursesLoading ? (
             <div className="flex items-center gap-3 text-neutral-700">

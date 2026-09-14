@@ -1,5 +1,6 @@
 'use client';
 import React, { useEffect, useId, useRef } from 'react';
+import { createPortal } from 'react-dom';
 
 export interface DrawerProps {
   isOpen: boolean;
@@ -45,7 +46,7 @@ export const Drawer: React.FC<DrawerProps> = ({
 
   if (!isOpen) return null;
 
-  return (
+  return createPortal(
     <div
       className="fixed inset-0 z-50 animate-fade-in"
       role="dialog"
@@ -93,7 +94,8 @@ export const Drawer: React.FC<DrawerProps> = ({
           {children}
         </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 };
 

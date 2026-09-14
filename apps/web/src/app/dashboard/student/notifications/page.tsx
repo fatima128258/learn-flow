@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from 'react';
 import { Badge, EmptyState, EmptyStateIcons, ErrorState, Spinner } from '@/components/ui';
-import { PageHeader } from '@/components/dashboard';
 import { useCurrentUser } from '@/features/auth/useCurrentUser';
 
 type NotificationDto = {
@@ -244,8 +243,6 @@ export default function StudentNotificationsPage() {
 
   return (
     <div className="mx-auto max-w-6xl">
-      <PageHeader title="Notifications" />
-      
       {/* Mark All as Read Button - Only show when there are unread notifications */}
       {hasUnread && notifications && notifications.length > 0 && (
         <div className="mb-4 flex justify-end">

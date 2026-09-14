@@ -21,13 +21,13 @@ export const TableCard: React.FC<TableCardProps> = ({
   className = '',
 }) => {
   return (
-    <div className={`dashboard-content-in overflow-hidden rounded-2xl border border-neutral-200 bg-white shadow-sm ${className}`.trim()}>
+    <div className={`dashboard-content-in min-w-0 overflow-hidden rounded-2xl border border-neutral-200 bg-white shadow-sm ${className}`.trim()}>
       {(title || description || action) && (
         <div className="border-b border-neutral-200 px-5 py-4">
           <SectionHeader title={title ?? ''} description={description} action={action} />
         </div>
       )}
-      <div className="overflow-x-auto">{children}</div>
+      <div className="min-w-0 overflow-x-auto">{children}</div>
     </div>
   );
 };

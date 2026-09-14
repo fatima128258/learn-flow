@@ -10,6 +10,7 @@ import {
   Input,
   Spinner,
 } from '@/components/ui';
+import { tableCellClass, tableHeadClass, tableRowHoverClass } from '@/components/dashboard';
 
 export type AuditLogItem = {
   id: string;
@@ -118,7 +119,7 @@ export const AuditLogTable: React.FC<AuditLogTableProps> = ({
             aria-label="List view"
             aria-pressed={viewMode === 'list'}
             title="List view"
-            className={`inline-flex h-9 w-9 items-center justify-center rounded-md transition-colors ${
+            className={`inline-flex h-9 w-9 items-center justify-center rounded-md border-0 transition-colors focus:border-0 focus:outline-none focus-visible:border-0 focus-visible:outline-none focus:ring-0 focus-visible:ring-0 ${
               viewMode === 'list'
                 ? 'bg-primary-600 text-white'
                 : 'text-primary-600 hover:bg-primary-50'
@@ -135,7 +136,7 @@ export const AuditLogTable: React.FC<AuditLogTableProps> = ({
             aria-label="Grid view"
             aria-pressed={viewMode === 'grid'}
             title="Grid view"
-            className={`inline-flex h-9 w-9 items-center justify-center rounded-md transition-colors ${
+            className={`inline-flex h-9 w-9 items-center justify-center rounded-md border-0 transition-colors focus:border-0 focus:outline-none focus-visible:border-0 focus-visible:outline-none focus:ring-0 focus-visible:ring-0 ${
               viewMode === 'grid'
                 ? 'bg-primary-600 text-white'
                 : 'text-primary-600 hover:bg-primary-50'
@@ -182,39 +183,39 @@ export const AuditLogTable: React.FC<AuditLogTableProps> = ({
         ) : (
           <>
             {/* Desktop table */}
-            <div className={`${viewMode === 'list' ? 'hidden md:block' : 'hidden'}`}>
+            <div className={`${viewMode === 'list' ? 'hidden md:block' : 'hidden'} overflow-x-auto`}>
               <table className="min-w-full divide-y divide-neutral-200">
                 <thead className="bg-neutral-50">
                   <tr>
-                    <th className="px-6 py-3 text-left align-middle text-xs font-semibold uppercase tracking-wide text-neutral-500">Action</th>
-                    <th className="px-6 py-3 text-left align-middle text-xs font-semibold uppercase tracking-wide text-neutral-500">Actor</th>
+                    <th className={tableHeadClass}>Action</th>
+                    <th className={tableHeadClass}>Actor</th>
                     {showOrganization && (
-                      <th className="px-6 py-3 text-left align-middle text-xs font-semibold uppercase tracking-wide text-neutral-500">Organization</th>
+                      <th className={tableHeadClass}>Organization</th>
                     )}
-                    <th className="px-6 py-3 text-left align-middle text-xs font-semibold uppercase tracking-wide text-neutral-500">Time</th>
+                    <th className={tableHeadClass}>Time</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-neutral-200">
                   {(logs ?? []).map((log) => (
                     <tr
                       key={log.id}
-                      className="hover:bg-neutral-50"
+                      className={tableRowHoverClass}
                     >
-                      <td className="px-6 py-4 align-middle">
+                      <td className={tableCellClass}>
                         <Badge variant="info" size="sm">{log.action}</Badge>
                       </td>
-                      <td className="px-6 py-4 align-middle text-sm text-neutral-700">
+                      <td className={`${tableCellClass} text-neutral-700`}>
                         <div>{actorLabel(log)}</div>
                         {actorDetail(log) && (
                           <div className="text-xs text-neutral-500">{actorDetail(log)}</div>
                         )}
                       </td>
                       {showOrganization && (
-                        <td className="px-6 py-4 align-middle text-sm text-neutral-500">
+                        <td className={`${tableCellClass} text-neutral-500`}>
                           {log.organization?.name ?? (log.organization?.id ? log.organization.id.slice(0, 8) : '—')}
                         </td>
                       )}
-                      <td className="px-6 py-4 align-middle text-sm text-neutral-700">
+                      <td className={`${tableCellClass} text-neutral-700`}>
                         {new Date(log.createdAt).toLocaleString('en-US', {
                           year: 'numeric',
                           month: '2-digit',

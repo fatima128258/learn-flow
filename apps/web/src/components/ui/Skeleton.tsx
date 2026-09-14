@@ -79,7 +79,7 @@ export const TableSkeleton: React.FC<TableSkeletonProps> = ({
   columns = 4,
   className = '',
 }) => (
-  <div className={`overflow-hidden rounded-lg border border-neutral-200 bg-white ${className}`} role="status" aria-label="Loading table">
+  <div className={`min-w-0 overflow-hidden rounded-2xl border border-neutral-200 bg-white shadow-sm ${className}`} role="status" aria-label="Loading table">
     <div className="flex border-b border-neutral-200 bg-neutral-50 p-4">
       {Array.from({ length: columns }).map((_, i) => (
         <Skeleton key={i} variant="text" height={16} className="mr-6 flex-1" />

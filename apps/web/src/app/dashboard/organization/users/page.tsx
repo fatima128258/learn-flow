@@ -73,12 +73,12 @@ function MemberActionsMenu({ member, onView, onStatus }: { member: MemberItem; o
   }
   const menu = open ? (
     <div className="fixed z-[60] w-36 rounded-lg border border-neutral-200 bg-white py-1 shadow-lg" style={{ top: position.top, right: position.right }} onMouseDown={(event) => event.stopPropagation()}>
-      <button type="button" className="block w-full px-3 py-2 text-left text-sm text-neutral-700 hover:bg-neutral-50" onClick={() => { setOpen(false); onView(); }}>View</button>
-      <button type="button" className="block w-full px-3 py-2 text-left text-sm text-red-600 hover:bg-red-50" onClick={() => { setOpen(false); onStatus(); }}>{member.status === 'ACTIVE' ? 'Suspend' : 'Unsuspend'}</button>
+      <button type="button" className="block w-full border-0 px-3 py-2 text-left text-sm text-neutral-700 hover:bg-neutral-50 focus:border-0 focus:outline-none focus-visible:border-0 focus-visible:outline-none focus:ring-0 focus-visible:ring-0" onClick={() => { setOpen(false); onView(); }}>View</button>
+      <button type="button" className="block w-full border-0 px-3 py-2 text-left text-sm text-red-600 hover:bg-red-50 focus:border-0 focus:outline-none focus-visible:border-0 focus-visible:outline-none focus:ring-0 focus-visible:ring-0" onClick={() => { setOpen(false); onStatus(); }}>{member.status === 'ACTIVE' ? 'Suspend' : 'Unsuspend'}</button>
     </div>
   ) : null;
   return <>
-    <button ref={buttonRef} type="button" aria-label="Member actions" className="rounded-md p-2 text-neutral-500 hover:bg-neutral-100" onClick={toggle}>
+    <button ref={buttonRef} type="button" aria-label="Member actions" className="inline-flex items-center justify-center rounded-lg border-0 p-2 text-neutral-500 hover:bg-neutral-100 focus:border-0 focus:outline-none focus-visible:border-0 focus-visible:outline-none focus:ring-0 focus-visible:ring-0" onClick={toggle}>
       <span className="sr-only">Member actions</span><span aria-hidden="true">⋮</span>
     </button>
     {typeof document !== 'undefined' && menu ? createPortal(menu, document.body) : null}
@@ -102,7 +102,6 @@ export default function OrgUsersPage() {
 
   const [members, setMembers] = useState<MemberItem[] | null>(null);
   const [filteredMembers, setFilteredMembers] = useState<MemberItem[] | null>(null);
-  const [total, setTotal] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [searchInput, setSearchInput] = useState('');
@@ -138,7 +137,6 @@ export default function OrgUsersPage() {
       const body: UsersResponse = await res.json();
       setMembers(Array.isArray(body.data) ? body.data : []);
       setFilteredMembers(Array.isArray(body.data) ? body.data : []);
-      setTotal(body.meta?.total ?? null);
     } catch {
       setError('Could not reach the API. Please try again.');
     } finally {
@@ -330,10 +328,7 @@ export default function OrgUsersPage() {
           </div>
         ) : (
           <>
-            <TableCard
-              title="Members"
-              description={total !== null ? `${total} member${total === 1 ? '' : 's'}` : undefined}
-            >
+            <TableCard>
               {members && members.length === 0 ? (
                 <EmptyState
                   icon={EmptyStateIcons.NoData}

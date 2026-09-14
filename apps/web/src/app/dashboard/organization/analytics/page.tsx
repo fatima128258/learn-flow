@@ -9,6 +9,9 @@ import {
   StatCard,
   ChartCard,
   LineChart,
+  tableCellClass,
+  tableHeadClass,
+  tableRowHoverClass,
 } from '@/components/dashboard';
 
 type OrganizationInfo = {
@@ -182,7 +185,35 @@ export default function OrgAnalyticsPage() {
 
           <ChartCard title="Enrollment History" description="Student course purchases, grouped by month">
             {enrollments.length === 0 ? <EmptyState icon={EmptyStateIcons.NoData} title="No enrollments yet" description="Student course purchases will appear here." /> : (
-              <div className="space-y-6">{Object.entries(enrollmentsByMonth).map(([month, monthlyEnrollments]) => <section key={month}><h3 className="mb-2 text-base font-semibold text-neutral-900">{month}</h3><div className="overflow-x-auto"><table className="min-w-full text-sm"><thead className="border-b border-neutral-200 text-left text-xs uppercase tracking-wide text-neutral-500"><tr><th className="px-3 py-3">Student</th><th className="px-3 py-3">Course Purchased</th><th className="px-3 py-3">Purchase Date</th></tr></thead><tbody className="divide-y divide-neutral-100">{monthlyEnrollments.map((enrollment) => <tr key={enrollment.id}><td className="px-3 py-3 font-medium text-neutral-900">{enrollment.student.name?.trim() || enrollment.student.email}</td><td className="px-3 py-3 text-neutral-700">{enrollment.course.name}</td><td className="px-3 py-3 text-neutral-600">{new Date(enrollment.enrolledAt).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric', timeZone: 'UTC' })}</td></tr>)}</tbody></table></div></section>)}</div>
+              <div className="space-y-6">
+                {Object.entries(enrollmentsByMonth).map(([month, monthlyEnrollments]) => (
+                  <section key={month}>
+                    <h3 className="mb-2 text-base font-semibold text-neutral-900">{month}</h3>
+                    <div className="overflow-hidden rounded-xl border border-neutral-200 bg-white shadow-sm">
+                      <div className="overflow-x-auto">
+                        <table className="min-w-full divide-y divide-neutral-200">
+                          <thead className="bg-neutral-50">
+                            <tr>
+                              <th className={tableHeadClass}>Student</th>
+                              <th className={tableHeadClass}>Course Purchased</th>
+                              <th className={tableHeadClass}>Purchase Date</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-neutral-100">
+                            {monthlyEnrollments.map((enrollment) => (
+                              <tr key={enrollment.id} className={tableRowHoverClass}>
+                                <td className={`${tableCellClass} font-medium text-neutral-900`}>{enrollment.student.name?.trim() || enrollment.student.email}</td>
+                                <td className={`${tableCellClass} text-neutral-700`}>{enrollment.course.name}</td>
+                                <td className={`${tableCellClass} text-neutral-600`}>{new Date(enrollment.enrolledAt).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric', timeZone: 'UTC' })}</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  </section>
+                ))}
+              </div>
             )}
           </ChartCard>
 

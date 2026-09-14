@@ -100,15 +100,15 @@ export default function CategoriesPage() {
           onChange={(event) => { setSearch(event.target.value); setPage(1); }}
           className="max-w-md"
         />
-        <Button onClick={() => setEditing(null)} className="whitespace-nowrap">Add category</Button>
+        <Button onClick={() => setEditing(null)} size="sm" className="min-w-[140px] whitespace-nowrap !border-0">Add category</Button>
       </div>
-      <Card>
+      <Card className="rounded-2xl shadow-sm">
         {loading ? <div className="space-y-4"><Skeleton variant="text" height={28} /><Skeleton variant="text" height={28} /><Skeleton variant="text" height={28} /></div>
           : error ? <ErrorState title="Unable to load categories" action={{ label: 'Try again', onClick: () => void load() }} />
           : !hasCategories ? <EmptyState icon={search ? EmptyStateIcons.NoResults : EmptyStateIcons.NoData} title={search ? 'No matching categories' : 'No categories yet'} description={search ? 'Try a different search.' : 'Create your first category to organize courses.'} action={!search ? emptyAction : undefined} />
           : <div className="overflow-x-auto">
               <table className="min-w-full divide-y divide-neutral-200">
-                <thead><tr className="text-left text-xs font-semibold uppercase tracking-wide text-neutral-500"><th className="px-4 py-3 align-middle">Category Name</th><th className="px-4 py-3 align-middle">Description</th><th className="px-4 py-3 text-center align-middle">Courses</th><th className="px-4 py-3 align-middle">Instructors</th><th className="px-4 py-3 text-center align-middle">Status</th><th className="px-4 py-3 text-center align-middle">Actions</th></tr></thead>
+                <thead className="bg-neutral-50"><tr className="text-left text-xs font-semibold uppercase tracking-wide text-neutral-900"><th className="px-4 py-3 align-middle">Category Name</th><th className="px-4 py-3 align-middle">Description</th><th className="px-4 py-3 text-center align-middle">Courses</th><th className="px-4 py-3 align-middle">Instructors</th><th className="px-4 py-3 text-center align-middle">Status</th><th className="px-4 py-3 text-center align-middle">Actions</th></tr></thead>
                 <tbody className="divide-y divide-neutral-100">{categories.map((category) => <tr key={category.id} className="cursor-pointer text-sm hover:bg-neutral-50" onClick={() => setSelectedCategory(category)}><td className="px-4 py-4 align-middle font-medium text-neutral-900">{category.name}</td><td className="max-w-xs px-4 py-4 align-middle text-neutral-600"><span className="block max-w-xs truncate">{category.description || '—'}</span></td><td className="px-4 py-4 text-center align-middle text-neutral-600">{category.courseCount}</td><td className="max-w-xs px-4 py-4 align-middle text-neutral-600"><span className="line-clamp-2">{category.instructors?.length ? category.instructors.map((instructor) => instructor.name).join(', ') : '—'}</span></td><td className="px-4 py-4 text-center align-middle"><Badge variant={category.status === 'ACTIVE' ? 'success' : 'default'} size="sm">{category.status}</Badge></td><td className="px-4 py-4 text-center align-middle" onClick={(event) => event.stopPropagation()}><div className="flex items-center justify-center"><CategoryActionsMenu onView={() => setSelectedCategory(category)} onEdit={() => setEditing(category)} onDelete={() => setDeleting(category)} /></div></td></tr>)}</tbody>
               </table>
             </div>}
@@ -187,15 +187,15 @@ function CategoryActionsMenu({ onView, onEdit, onDelete }: { onView: () => void;
 
   return (
     <div className="flex justify-end">
-      <button ref={buttonRef} type="button" aria-label="Category actions" className="rounded-md p-2 text-neutral-500 hover:bg-neutral-100 hover:text-neutral-800" onClick={toggleMenu}>
+      <button ref={buttonRef} type="button" aria-label="Category actions" className="inline-flex items-center justify-center rounded-lg border-0 p-2 text-neutral-500 hover:bg-neutral-100 hover:text-neutral-800 focus:border-0 focus:outline-none focus-visible:border-0 focus-visible:outline-none focus:ring-0 focus-visible:ring-0" onClick={toggleMenu}>
         <span className="sr-only">Category actions</span>
         <svg className="h-5 w-5" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="12" cy="5" r="1.8" /><circle cx="12" cy="12" r="1.8" /><circle cx="12" cy="19" r="1.8" /></svg>
       </button>
       {open && typeof document !== 'undefined' ? createPortal(
         <div ref={menuRef} className="fixed z-[60] w-36 rounded-lg border border-neutral-200 bg-white py-1 shadow-lg" style={{ top: position.top, right: position.right }}>
-          <button type="button" className="block w-full px-3 py-2 text-left text-sm text-neutral-700 hover:bg-neutral-50" onClick={() => { setOpen(false); onView(); }}>View details</button>
-          <button type="button" className="block w-full px-3 py-2 text-left text-sm text-neutral-700 hover:bg-neutral-50" onClick={() => { setOpen(false); onEdit(); }}>Edit</button>
-          <button type="button" className="block w-full px-3 py-2 text-left text-sm text-red-600 hover:bg-red-50" onClick={() => { setOpen(false); onDelete(); }}>Delete</button>
+          <button type="button" className="block w-full border-0 px-3 py-2 text-left text-sm text-neutral-700 hover:bg-neutral-50 focus:border-0 focus:outline-none focus-visible:border-0 focus-visible:outline-none focus:ring-0 focus-visible:ring-0" onClick={() => { setOpen(false); onView(); }}>View details</button>
+          <button type="button" className="block w-full border-0 px-3 py-2 text-left text-sm text-neutral-700 hover:bg-neutral-50 focus:border-0 focus:outline-none focus-visible:border-0 focus-visible:outline-none focus:ring-0 focus-visible:ring-0" onClick={() => { setOpen(false); onEdit(); }}>Edit</button>
+          <button type="button" className="block w-full border-0 px-3 py-2 text-left text-sm text-red-600 hover:bg-red-50 focus:border-0 focus:outline-none focus-visible:border-0 focus-visible:outline-none focus:ring-0 focus-visible:ring-0" onClick={() => { setOpen(false); onDelete(); }}>Delete</button>
         </div>,
         document.body,
       ) : null}

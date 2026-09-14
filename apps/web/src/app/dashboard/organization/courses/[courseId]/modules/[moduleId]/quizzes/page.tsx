@@ -42,7 +42,7 @@ function QuizActionsMenu({ quiz, courseId, moduleId, dashboardPrefix, onEdit, on
     <div ref={menuRef} className="relative">
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="p-1 hover:bg-neutral-100 rounded-md transition-colors"
+        className="inline-flex items-center justify-center rounded-lg border-0 p-1 text-neutral-500 transition-colors hover:bg-neutral-100 focus:border-0 focus:outline-none focus-visible:border-0 focus-visible:outline-none focus:ring-0 focus-visible:ring-0"
         aria-label="Quiz actions"
       >
         <svg className="w-5 h-5 text-neutral-500" fill="currentColor" viewBox="0 0 24 24">
@@ -54,7 +54,7 @@ function QuizActionsMenu({ quiz, courseId, moduleId, dashboardPrefix, onEdit, on
         <div className="fixed bg-white rounded-lg border border-neutral-200 shadow-lg z-50 w-48">
           <Link
             href={`${dashboardPrefix}/courses/${courseId}/modules/${moduleId}/quizzes/${quiz.id}/questions`}
-            className="block px-4 py-2 text-sm text-neutral-700 hover:bg-neutral-50 border-b border-neutral-100 first:rounded-t-lg"
+            className="block px-4 py-2 text-sm text-neutral-700 hover:bg-neutral-50 border-b border-neutral-100 first:rounded-t-lg focus:outline-none focus-visible:outline-none"
             onClick={() => setIsOpen(false)}
           >
             ❓ Questions
@@ -64,7 +64,7 @@ function QuizActionsMenu({ quiz, courseId, moduleId, dashboardPrefix, onEdit, on
               onEdit();
               setIsOpen(false);
             }}
-            className="w-full text-left px-4 py-2 text-sm text-neutral-700 hover:bg-neutral-50 border-b border-neutral-100"
+            className="w-full border-0 text-left px-4 py-2 text-sm text-neutral-700 hover:bg-neutral-50 border-b border-neutral-100 focus:border-0 focus:outline-none focus-visible:border-0 focus-visible:outline-none focus:ring-0 focus-visible:ring-0"
           >
             ✏️ Edit
           </button>
@@ -73,7 +73,7 @@ function QuizActionsMenu({ quiz, courseId, moduleId, dashboardPrefix, onEdit, on
               onDelete();
               setIsOpen(false);
             }}
-            className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 rounded-b-lg"
+            className="w-full border-0 text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 rounded-b-lg focus:border-0 focus:outline-none focus-visible:border-0 focus-visible:outline-none focus:ring-0 focus-visible:ring-0"
           >
             🗑️ Delete
           </button>
@@ -594,7 +594,8 @@ export default function ModuleQuizzesPage() {
               />
             </div>
           ) : quizzes !== null && quizzes.length > 0 ? (
-            <div className="mt-6 overflow-hidden rounded-2xl border border-neutral-200">
+            <div className="mt-6 overflow-hidden rounded-2xl border border-neutral-200 bg-white shadow-sm">
+              <div className="overflow-x-auto">
               <table className="min-w-full divide-y divide-neutral-200">
                 <thead className="bg-neutral-50">
                   <tr>
@@ -644,6 +645,7 @@ export default function ModuleQuizzesPage() {
                   ))}
                 </tbody>
               </table>
+              </div>
             </div>
           ) : null}
         </div>
