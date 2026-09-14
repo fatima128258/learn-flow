@@ -69,7 +69,10 @@ export async function purchaseCourse(organizationId: string, userId: string, cou
     providerRef: payment.providerRef,
   });
 
-  await dispatchNotification({
+  // Do not make checkout wait for Redis or email delivery. The order and
+  // enrollment are already committed, so notification delivery can continue
+  // independently without delaying the purchase response.
+  void dispatchNotification({
     type: 'COURSE_PURCHASED',
     title: `Course purchased: ${course.title}`,
     body: `Your purchase of ${course.title} was successful and you are now enrolled.`,

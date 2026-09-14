@@ -14,6 +14,7 @@ async function proxyRequest(
   const backendUrl = process.env.BACKEND_URL || 'https://learn-flow-1-1gl3.onrender.com';
   const path = pathSegments.join('/');
   const cookie = req.headers.get('cookie') || '';
+  const retryableProgressRequest = method === 'POST' && path.endsWith('/progress');
   
   // Preserve query parameters
   const url = new URL(req.url);
@@ -39,7 +40,11 @@ async function proxyRequest(
         }
       );
 
-      if (!TRANSIENT_STATUSES.has(resp.status) || method !== 'GET' || attempt === 2) {
+      if (
+        !TRANSIENT_STATUSES.has(resp.status) ||
+        (!retryableProgressRequest && method !== 'GET') ||
+        attempt === 2
+      ) {
         break;
       }
 

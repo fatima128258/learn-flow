@@ -82,6 +82,29 @@ export async function postJson<T>(path: string, body: unknown): Promise<T> {
   });
 }
 
+export async function postJsonWithTimeout<T>(
+  path: string,
+  body: unknown,
+  timeoutMs: number,
+): Promise<T> {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    return await apiRequest<T>(path, {
+      method: 'POST',
+      body: body !== undefined ? JSON.stringify(body) : undefined,
+      signal: controller.signal,
+    });
+  } catch (error) {
+    if (controller.signal.aborted) {
+      throw new ApiError(408, 'REQUEST_TIMEOUT');
+    }
+    throw error;
+  } finally {
+    clearTimeout(timeoutId);
+  }
+}
+
 export async function patchJson<T>(path: string, body: unknown): Promise<T> {
   return apiRequest<T>(path, {
     method: 'PATCH',

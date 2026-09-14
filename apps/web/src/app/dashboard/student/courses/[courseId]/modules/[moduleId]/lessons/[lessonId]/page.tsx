@@ -201,7 +201,17 @@ export default function StudentLessonPage() {
         },
       );
       if (!res.ok) {
-        setMarkError('Could not update your progress. Please try again.');
+        const errorBody = await res.json().catch(() => null) as { error?: string } | null;
+        const errorCode = errorBody?.error;
+        setMarkError(
+          res.status === 502 || res.status === 503 || res.status === 504
+            ? 'The learning server is waking up. Please click Complete again in a moment.'
+            : errorCode === 'CONTENT_LOCKED'
+              ? 'This lesson is locked. Complete the previous course item first.'
+              : errorCode === 'STUDENT_NOT_ENROLLED'
+                ? 'Your enrollment could not be verified. Please refresh and try again.'
+            : 'Could not update your progress. Please try again.',
+        );
         return;
       }
       const responseBody = await res.json().catch(() => null) as {

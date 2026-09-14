@@ -24,6 +24,9 @@ export async function findPaidOrderForCourse(userId: string, courseId: string) {
         some: { courseId },
       },
     },
+  }, {
+    maxWait: 5000,
+    timeout: 10000,
   });
 }
 

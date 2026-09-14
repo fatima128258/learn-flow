@@ -1,7 +1,7 @@
 'use client';
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { getJson, postJson } from '../../lib/api';
+import { getJson, postJsonWithTimeout } from '../../lib/api';
 import type { CourseOverview, Order } from '../../lib/types';
 
 export const courseOverviewKey = (organizationId: string, courseId: string) =>
@@ -24,9 +24,10 @@ export function usePurchaseCourse(organizationId: string, courseId: string) {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async () => {
-      const body = await postJson<{ data?: Order }>(
+      const body = await postJsonWithTimeout<{ data?: Order }>(
         `/api/v1/organizations/${organizationId}/student/courses/${courseId}/purchase`,
         undefined,
+        15000,
       );
       return body.data ?? null;
     },

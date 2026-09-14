@@ -7,6 +7,7 @@ const PURCHASE_ERRORS: Record<string, string> = {
   ALREADY_ENROLLED: 'You are already enrolled in this course.',
   ALREADY_PURCHASED: 'You have already purchased this course.',
   PAYMENT_FAILED: 'The payment could not be processed. Please try again.',
+  REQUEST_TIMEOUT: 'The purchase is taking too long. Please try again. If you were charged, check My Courses before retrying.',
 };
 
 export function getPurchaseErrorMessage(code: string | null | undefined): string {

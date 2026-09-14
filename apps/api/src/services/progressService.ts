@@ -44,7 +44,15 @@ async function verifyLessonAccess(
   if (!lesson) {
     throw new Error('LESSON_NOT_FOUND');
   }
-  await assertContentUnlocked(userId, courseId, moduleId, 'LESSON', lessonId);
+  try {
+    await assertContentUnlocked(userId, courseId, moduleId, 'LESSON', lessonId);
+  } catch (err) {
+    // Courses created before content sequencing was introduced have no
+    // sequence rows. Enrollment and lesson ownership still protect access.
+    if (!(err instanceof Error) || err.message !== 'CONTENT_SEQUENCE_MISSING') {
+      throw err;
+    }
+  }
 
   return { course, module, lesson, enrollment };
 }
@@ -356,7 +364,7 @@ export async function recordLessonProgress(
   }
 
   if (progress.courseComplete && !(courseProgress && courseProgress.completed)) {
-    await dispatchNotification({
+    void dispatchNotification({
       type: 'COURSE_COMPLETION',
       title: `Course completed: ${course?.title ?? 'Your course'}`,
       body: `Congratulations! You completed ${course?.title ?? 'your course'}.`,
