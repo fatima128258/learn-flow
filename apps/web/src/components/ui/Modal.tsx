@@ -1,5 +1,6 @@
 'use client';
 import React, { useEffect, useId, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { Button, ButtonProps } from './Button';
 
 export interface ModalProps {
@@ -94,7 +95,7 @@ export const Modal: React.FC<ModalProps> = ({
 
   if (!isOpen) return null;
 
-  return (
+  return createPortal(
     <div
       className="fixed inset-0 z-50 flex items-center justify-center p-4 animate-fade-in"
       role="dialog"
@@ -143,7 +144,8 @@ export const Modal: React.FC<ModalProps> = ({
           </div>
         )}
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 };
 
