@@ -1,12 +1,11 @@
 ﻿'use client';
 
 import { useEffect, useState } from 'react';
-import { useParams, useRouter } from 'next/navigation';
+import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import { Badge, Button, ErrorState, Spinner } from '@/components/ui';
-import { PageHeader } from '@/components/dashboard';
 import { useCurrentUser } from '@/features/auth/useCurrentUser';
-import { useProgress, useModuleLessons } from '@/features/student/useProgress';
+import { useProgress } from '@/features/student/useProgress';
 import { useToast } from '@/components/ui/ToastProvider';
 import { getNextContentUrl } from '@/features/student/nextContent';
 
@@ -29,37 +28,41 @@ type LessonData = {
   course: { id: string; title: string };
 };
 
-type ModuleItem = {
-  type: 'LESSON' | 'QUIZ';
-  id: string;
-  quiz?: { id: string };
-};
-
 export default function StudentLessonPage() {
   const params = useParams();
   const courseId = typeof params.courseId === 'string' ? params.courseId : null;
   const moduleId = typeof params.moduleId === 'string' ? params.moduleId : null;
   const lessonId = typeof params.lessonId === 'string' ? params.lessonId : null;
-  const router = useRouter();
   const { data: user, isLoading: userLoading } = useCurrentUser();
   const toast = useToast();
   const organizationId = user?.organizationId ?? '';
   const { data: progress, isLoading: progressLoading } = useProgress(organizationId, courseId ?? '');
-  const { data: moduleItems } = useModuleLessons(organizationId, courseId ?? '', moduleId ?? '');
 
   const [data, setData] = useState<LessonData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [marking, setMarking] = useState(false);
   const [markError, setMarkError] = useState<string | null>(null);
-  const [nextQuizId, setNextQuizId] = useState<string | null>(null);
-  const isCompleted = Boolean(lessonId && progress?.completedLessonIds.includes(lessonId));
+  const [nextContentUrl, setNextContentUrl] = useState<string | null>(null);
+  const [completedLocally, setCompletedLocally] = useState(false);
+  const isCompleted = completedLocally || Boolean(lessonId && progress?.completedLessonIds.includes(lessonId));
 
   useEffect(() => {
-    const lessonIndex = moduleItems?.items?.findIndex((item: ModuleItem) => item.type === 'LESSON' && item.id === lessonId) ?? -1;
-    const followingItem = lessonIndex >= 0 ? moduleItems?.items?.[lessonIndex + 1] : undefined;
-    setNextQuizId(followingItem?.type === 'QUIZ' && followingItem.quiz ? followingItem.quiz.id : null);
-  }, [moduleItems, lessonId]);
+    if (!isCompleted || !organizationId || !courseId || !moduleId || !lessonId || nextContentUrl) return;
+    let active = true;
+    void getNextContentUrl({
+      organizationId,
+      courseId,
+      moduleId,
+      contentType: 'LESSON',
+      contentId: lessonId,
+    }).then(url => {
+      if (active) setNextContentUrl(url);
+    });
+    return () => {
+      active = false;
+    };
+  }, [isCompleted, organizationId, courseId, moduleId, lessonId, nextContentUrl]);
 
   async function loadLesson(orgId: string, cid: string, mid: string, lid: string) {
     setLoading(true);
@@ -163,6 +166,7 @@ export default function StudentLessonPage() {
         setMarkError('Could not update your progress. Please try again.');
         return;
       }
+      setCompletedLocally(true);
       if (completed && data?.module.order === 1) {
         toast.success('Congratulations! You completed the first module.');
       }
@@ -174,9 +178,7 @@ export default function StudentLessonPage() {
           contentType: 'LESSON',
           contentId: lessonId,
         });
-        if (nextUrl) {
-          window.setTimeout(() => router.push(nextUrl), 1200);
-        }
+        setNextContentUrl(nextUrl);
       }
     } catch {
       setMarkError('Could not reach the server. Please try again.');
@@ -196,30 +198,6 @@ export default function StudentLessonPage() {
 
   return (
     <div className="mx-auto max-w-6xl">
-      <PageHeader
-        subtitle="Student"
-        title="Lesson"
-          breadcrumbs={
-            <div className="flex items-center gap-2 text-sm">
-              <Link href="/dashboard/student" className="text-primary-600 hover:text-primary-700">My Courses</Link>
-              <span className="text-neutral-400">/</span>
-              {data && (
-                <>
-                  <Link href={`/dashboard/student/courses/${courseId}`} className="text-primary-600 hover:text-primary-700">
-                    {data.course.title}
-                  </Link>
-                  <span className="text-neutral-400">/</span>
-                  <Link href={`/dashboard/student/courses/${courseId}/modules/${moduleId}`} className="text-primary-600 hover:text-primary-700">
-                    {data.module.title}
-                  </Link>
-                  <span className="text-neutral-400">/</span>
-                </>
-              )}
-              <span className="text-neutral-600">{data?.lesson.title ?? 'Lesson'}</span>
-            </div>
-          }
-        />
-
         {error ? (
           <div className="rounded-2xl border border-neutral-200 bg-white shadow-sm">
             <ErrorState
@@ -231,7 +209,6 @@ export default function StudentLessonPage() {
           <div className="rounded-2xl border border-neutral-200 bg-white shadow-sm">
             <div className="border-b border-neutral-200 p-6">
               <div className="flex flex-wrap items-center gap-2 mb-2">
-                {data.lesson.type && <Badge variant="primary" size="sm">{data.lesson.type}</Badge>}
                 {data.lesson.isPreview && <Badge variant="info" size="sm">Preview</Badge>}
                 {data.lesson.duration != null && (
                   <Badge variant="default" size="sm">{data.lesson.duration} min</Badge>
@@ -272,26 +249,20 @@ export default function StudentLessonPage() {
                   {markError && (
                     <span className="text-sm text-error-600">{markError}</span>
                   )}
-                  <Link
-                    href={`/dashboard/student/courses/${courseId}/progress`}
-                    className="text-sm text-primary-600 hover:text-primary-700"
-                  >
-                    View Course Progress
-                  </Link>
                   <Button
                     size="sm"
                     variant="primary"
                     disabled={marking || progressLoading || isCompleted}
                     onClick={() => markComplete(true)}
                   >
-                    {marking ? 'Saving...' : 'Mark as Read'}
+                    {marking ? 'Saving...' : isCompleted ? 'Completed' : 'Mark as Read'}
                   </Button>
-                  {isCompleted && nextQuizId && (
+                  {isCompleted && nextContentUrl && (
                     <Link
-                      href={`/dashboard/student/courses/${courseId}/modules/${moduleId}/quizzes/${nextQuizId}`}
+                      href={nextContentUrl}
                       className="inline-flex items-center rounded-lg bg-[#5A321F] px-4 py-2 text-sm font-semibold text-white hover:bg-[#472719]"
                     >
-                      Start Quiz
+                      Next
                     </Link>
                   )}
                 </div>
