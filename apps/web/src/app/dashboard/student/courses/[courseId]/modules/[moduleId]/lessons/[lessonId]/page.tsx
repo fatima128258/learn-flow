@@ -27,6 +27,12 @@ type LessonData = {
   course: { id: string; title: string };
 };
 
+type ModuleItem = {
+  type: 'LESSON' | 'QUIZ';
+  id: string;
+  quiz?: { id: string };
+};
+
 export default function StudentLessonPage() {
   const params = useParams();
   const courseId = typeof params.courseId === 'string' ? params.courseId : null;
@@ -46,7 +52,7 @@ export default function StudentLessonPage() {
   const isCompleted = Boolean(lessonId && progress?.completedLessonIds.includes(lessonId));
 
   useEffect(() => {
-    const lessonIndex = moduleItems?.items?.findIndex((item) => item.type === 'LESSON' && item.id === lessonId) ?? -1;
+    const lessonIndex = moduleItems?.items?.findIndex((item: ModuleItem) => item.type === 'LESSON' && item.id === lessonId) ?? -1;
     const followingItem = lessonIndex >= 0 ? moduleItems?.items?.[lessonIndex + 1] : undefined;
     setNextQuizId(followingItem?.type === 'QUIZ' && followingItem.quiz ? followingItem.quiz.id : null);
   }, [moduleItems, lessonId]);

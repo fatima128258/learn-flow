@@ -35,6 +35,8 @@ type ModuleLessonsResponse = {
   items?: Array<{ type: 'LESSON' | 'QUIZ'; id: string; position: number; state?: 'completed' | 'current' | 'locked'; lesson?: LessonItem; quiz?: { id: string; title: string; description: string | null; timeLimitMinutes: number | null; passingPercentage: number | null } }>;
 };
 
+type ModuleItem = NonNullable<ModuleLessonsResponse['items']>[number];
+
 function lessonTypeIcon(type: string | null) {
   switch (type?.toLowerCase()) {
     case 'video':
@@ -270,7 +272,7 @@ export default function StudentModuleLessonsPage() {
   const currentModule = progress?.modules.find(m => m.id === moduleId);
 
   useEffect(() => {
-    const firstLesson = lessonsData?.items?.find((item) => item.type === 'LESSON' && item.lesson)?.lesson
+    const firstLesson = lessonsData?.items?.find((item: ModuleItem) => item.type === 'LESSON' && item.lesson)?.lesson
       ?? lessonsData?.lessons[0];
     if (firstLesson && courseId && moduleId) {
       router.replace(`/dashboard/student/courses/${courseId}/modules/${moduleId}/lessons/${firstLesson.id}`);
