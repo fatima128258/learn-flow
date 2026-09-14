@@ -307,7 +307,7 @@ export default function OrganizationsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
-  const [createdDate, setCreatedDate] = useState('');
+  const [viewMode, setViewMode] = useState<'list' | 'grid'>('list');
 
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [newName, setNewName] = useState('');
@@ -690,8 +690,6 @@ export default function OrganizationsPage() {
   const normalizedSearch = searchTerm.trim().toLowerCase();
   const filteredOrganizations = organizations
     ? organizations.filter((org) => {
-        const matchesDate = !createdDate || org.createdAt.slice(0, 10) === createdDate;
-        if (!matchesDate) return false;
         if (!normalizedSearch) return true;
         const adminMatch = org.admins?.some((admin) => admin.email.toLowerCase().includes(normalizedSearch)) ?? false;
         return (
@@ -714,9 +712,6 @@ export default function OrganizationsPage() {
 
   return (
     <>
-      <h1 className="mb-4 px-1 text-2xl font-semibold tracking-tight text-[#17212b] sm:text-3xl">
-        Organizations
-      </h1>
       <div className="mx-auto max-w-5xl">
         <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex flex-1 flex-col gap-3 sm:flex-row sm:items-center">
@@ -727,18 +722,50 @@ export default function OrganizationsPage() {
               placeholder="Search by name, admin email"
               className="sm:max-w-sm"
             />
-            <Input
-              variant="line"
-              type="date"
-              value={createdDate}
-              onChange={(e) => setCreatedDate(e.target.value)}
-              aria-label="Search by created date"
-              className="sm:max-w-xs"
-            />
           </div>
-          <Button className="border-0" size="sm" onClick={() => setShowCreateModal(true)}>
-            Create Organization
-          </Button>
+          <div className="flex items-center gap-2">
+            <div className="flex items-center rounded-lg border border-primary-200 bg-white p-0.5">
+              <button
+                type="button"
+                onClick={() => setViewMode('list')}
+                aria-label="List view"
+                aria-pressed={viewMode === 'list'}
+                title="List view"
+                className={`inline-flex h-9 w-9 items-center justify-center rounded-md transition-colors ${
+                  viewMode === 'list'
+                    ? 'bg-primary-600 text-white'
+                    : 'text-primary-600 hover:bg-primary-50'
+                }`}
+              >
+                <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
+                  <rect x="4" y="5" width="16" height="14" rx="1.5" />
+                  <path strokeLinecap="round" d="M7 9h10M7 12h10M7 15h10" />
+                </svg>
+              </button>
+              <button
+                type="button"
+                onClick={() => setViewMode('grid')}
+                aria-label="Grid view"
+                aria-pressed={viewMode === 'grid'}
+                title="Grid view"
+                className={`inline-flex h-9 w-9 items-center justify-center rounded-md transition-colors ${
+                  viewMode === 'grid'
+                    ? 'bg-primary-600 text-white'
+                    : 'text-primary-600 hover:bg-primary-50'
+                }`}
+              >
+                <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
+                  <rect x="4" y="4" width="6" height="6" rx="1" />
+                  <rect x="14" y="4" width="6" height="6" rx="1" />
+                  <rect x="4" y="14" width="6" height="6" rx="1" />
+                  <rect x="14" y="14" width="6" height="6" rx="1" />
+                </svg>
+              </button>
+            </div>
+            <Button className="!h-10 !border-0" size="sm" onClick={() => setShowCreateModal(true)}>
+              Create Organization
+            </Button>
+          </div>
         </div>
 
         {error ? (
@@ -769,7 +796,7 @@ export default function OrganizationsPage() {
               </div>
             ) : (
               <>
-            <TableCard>
+            <TableCard className={viewMode === 'grid' ? 'hidden md:hidden' : ''}>
               {/* ── Desktop table (md+) ───────────────────────────────── */}
               <div className="hidden md:block">
                 <table className="min-w-full divide-y divide-neutral-200">
@@ -837,7 +864,7 @@ export default function OrganizationsPage() {
             </TableCard>
 
             {/* ── Mobile cards (< md) ───────────────────────────────── */}
-            <div className="mt-3 space-y-3 md:hidden">
+            <div className={`mt-3 grid-cols-1 gap-3 ${viewMode === 'grid' ? 'grid md:grid-cols-2 lg:grid-cols-3' : 'space-y-3 md:hidden'}`}>
               {filteredOrganizations.map((org) => (
                 <div
                   key={org.id}
