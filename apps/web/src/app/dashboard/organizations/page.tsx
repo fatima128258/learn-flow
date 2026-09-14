@@ -768,9 +768,9 @@ export default function OrganizationsPage() {
               </div>
             ) : (
               <>
-            <TableCard className={viewMode === 'grid' ? 'hidden' : 'hidden md:block'}>
+            <TableCard className={viewMode === 'grid' ? 'hidden' : 'block'}>
               {/* ── Desktop table (md+) ───────────────────────────────── */}
-              <div className="hidden md:block">
+              <div className="block">
                 <table className="min-w-full divide-y divide-neutral-200">
                   <thead className="bg-neutral-50">
                     <tr>
@@ -840,7 +840,7 @@ export default function OrganizationsPage() {
             </TableCard>
 
             {/* ── Mobile cards (< md) ───────────────────────────────── */}
-            <div className={`mt-3 grid-cols-1 gap-3 ${viewMode === 'grid' ? 'grid md:grid-cols-2 lg:grid-cols-3' : 'grid md:hidden'}`}>
+            <div className={`mt-3 grid-cols-1 gap-3 ${viewMode === 'grid' ? 'grid md:grid-cols-2 lg:grid-cols-3' : 'hidden'}`}>
               {filteredOrganizations.map((org) => (
                 <div
                   key={org.id}

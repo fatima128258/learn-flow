@@ -404,7 +404,7 @@ export default function MyCoursesPage() {
             >
               {viewMode === 'table' ? (
                 <>
-              <div className="hidden overflow-visible md:block">
+              <div className="block overflow-visible">
                 <table className="min-w-full divide-y divide-neutral-200 overflow-visible">
                   <thead className="bg-neutral-50">
                     <tr>
@@ -450,7 +450,7 @@ export default function MyCoursesPage() {
                 </table>
               </div>
 
-              <div className="space-y-3 p-3 md:hidden">
+              <div className="hidden">
                 {courses.map((course) => (
                   <div
                     key={course.id}

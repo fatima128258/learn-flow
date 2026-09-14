@@ -151,7 +151,7 @@ export const AuditLogTable: React.FC<AuditLogTableProps> = ({
         ) : (
           <>
             {/* Desktop table */}
-            <div className={`${viewMode === 'list' ? 'hidden md:block' : 'hidden'} overflow-x-auto`}>
+            <div className={`${viewMode === 'list' ? 'block' : 'hidden'} overflow-x-auto`}>
               <table className="min-w-full divide-y divide-neutral-200">
                 <thead className="bg-neutral-50">
                   <tr>
@@ -200,7 +200,7 @@ export const AuditLogTable: React.FC<AuditLogTableProps> = ({
               </table>
             </div>
             {/* Mobile cards */}
-            <div className={`mt-3 grid-cols-1 gap-3 ${viewMode === 'grid' ? 'grid p-3 md:grid-cols-2 lg:grid-cols-3' : 'grid p-3 md:hidden'}`}>
+            <div className={`mt-3 grid-cols-1 gap-3 ${viewMode === 'grid' ? 'grid p-3 md:grid-cols-2 lg:grid-cols-3' : 'hidden'}`}>
               {(logs ?? []).map((log) => (
                 <div
                   key={log.id}

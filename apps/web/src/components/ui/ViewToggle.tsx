@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 
 export type DataViewMode = 'table' | 'cards';
 
@@ -12,14 +12,19 @@ interface ViewToggleProps {
 
 export const ViewToggle: React.FC<ViewToggleProps> = ({ value, onChange, storageKey }) => {
   const [hydrated, setHydrated] = useState(false);
+  const onChangeRef = useRef(onChange);
+
+  useEffect(() => {
+    onChangeRef.current = onChange;
+  }, [onChange]);
 
   useEffect(() => {
     if (storageKey) {
       const stored = window.localStorage.getItem(storageKey);
-      if (stored === 'table' || stored === 'cards') onChange(stored);
+      if (stored === 'table' || stored === 'cards') onChangeRef.current(stored);
     }
     setHydrated(true);
-  }, [onChange, storageKey]);
+  }, [storageKey]);
 
   useEffect(() => {
     if (hydrated && storageKey) window.localStorage.setItem(storageKey, value);

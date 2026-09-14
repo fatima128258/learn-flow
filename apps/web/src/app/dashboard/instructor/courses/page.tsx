@@ -261,7 +261,7 @@ export default function InstructorCoursesPage() {
           >
             {viewMode === 'table' ? (
               <>
-            <div className="hidden md:block">
+            <div className="block">
               <table className="min-w-full divide-y divide-neutral-200">
                 <thead className="bg-neutral-50">
                   <tr>
@@ -296,7 +296,7 @@ export default function InstructorCoursesPage() {
               </table>
             </div>
 
-            <div className="space-y-3 p-3 md:hidden">
+            <div className="hidden">
               {courses?.map((course) => (
                 <div key={course.id} className="rounded-2xl border border-neutral-200 bg-white p-4 shadow-sm">
                   <div className="flex items-start justify-between gap-2">
