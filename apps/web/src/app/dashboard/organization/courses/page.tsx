@@ -8,7 +8,6 @@ import { getListCoursesErrorMessage } from '../../../../features/course/listCour
 import { getCourseStatusErrorMessage } from '../../../../features/course/courseStatusErrors';
 import { useToast } from '../../../../components/ui/ToastProvider';
 import {
-  PageHeader,
   TableCard,
   tableHeadClass,
   tableCellClass,
@@ -227,6 +226,7 @@ export default function MyCoursesPage() {
   const [courseDrawer, setCourseDrawer] = useState<CourseDrawerData | null>(null);
   const [courseDrawerLoading, setCourseDrawerLoading] = useState(false);
   const [viewMode, setViewMode] = useState<'table' | 'cards'>('table');
+  const [searchTerm, setSearchTerm] = useState('');
 
   async function openCourseView(course: CourseListItem) {
     if (!organizationId) return;
@@ -338,6 +338,12 @@ export default function MyCoursesPage() {
   }
 
   const activeModal = courses?.find((c) => c.id === statusModalCourseId) ?? null;
+  const filteredCourses = (courses ?? []).filter((course) => {
+    const query = searchTerm.trim().toLowerCase();
+    if (!query) return true;
+    return [course.title, course.slug, course.status, course.difficulty ?? '']
+      .some((value) => value.toLowerCase().includes(query));
+  });
 
   if (userLoading) {
     return (
@@ -361,19 +367,25 @@ export default function MyCoursesPage() {
 
       <div>
         <div className="mx-auto max-w-5xl">
-          {courses === null || courses.length > 0 ? (
-            <PageHeader
-              title="Courses"
-              actions={
-                <LinkButton
-                  href={`/dashboard/organization/courses/new${organizationId ? `?organization=${organizationId}` : ''}`}
-                  size="sm"
-                >
-                  Create Course
-                </LinkButton>
-              }
+          <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <input
+              type="search"
+              value={searchTerm}
+              onChange={(event) => setSearchTerm(event.target.value)}
+              placeholder="Search courses by title, slug, status, or difficulty"
+              aria-label="Search courses"
+              className="min-w-0 rounded-xl border border-[#e5d5c4] bg-[#fffdf9] px-4 py-3 text-sm text-[#17212b] outline-none transition-all placeholder:text-neutral-400 focus:border-[#7a4a2e] focus:ring-2 focus:ring-[#a8784f]/20 sm:max-w-md"
             />
-          ) : null}
+            <div className="flex flex-wrap items-center gap-2">
+              <LinkButton
+                href={`/dashboard/organization/courses/new${organizationId ? `?organization=${organizationId}` : ''}`}
+                size="sm"
+              >
+                Create Course
+              </LinkButton>
+              <ViewToggle value={viewMode} onChange={setViewMode} storageKey="learnhub-organization-courses-view" />
+            </div>
+          </div>
 
           {coursesLoading ? (
             <div className="flex items-center gap-3 text-neutral-700">
@@ -381,7 +393,7 @@ export default function MyCoursesPage() {
               <span>Loading courses...</span>
             </div>
           ) : courses !== null && courses.length === 0 ? (
-            <TableCard title="Courses" description="No courses yet">
+            <TableCard>
               <EmptyState
                 icon={EmptyStateIcons.NoCourses}
                 title="No courses yet"
@@ -396,12 +408,16 @@ export default function MyCoursesPage() {
                 }}
               />
             </TableCard>
+          ) : courses !== null && filteredCourses.length === 0 ? (
+            <TableCard>
+              <EmptyState
+                icon={EmptyStateIcons.NoCourses}
+                title="No matching courses"
+                description={`Nothing matched "${searchTerm}". Try a different search.`}
+              />
+            </TableCard>
           ) : courses !== null && courses.length > 0 ? (
-            <TableCard
-              title="Courses"
-              description={`${courses.length} course${courses.length === 1 ? '' : 's'}`}
-              action={<ViewToggle value={viewMode} onChange={setViewMode} storageKey="learnhub-organization-courses-view" />}
-            >
+            <TableCard>
               {viewMode === 'table' ? (
                 <>
               <div className="block overflow-visible">
@@ -417,7 +433,7 @@ export default function MyCoursesPage() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-neutral-200">
-                    {courses.map((course) => (
+                    {filteredCourses.map((course) => (
                       <tr key={course.id} className={tableRowHoverClass}>
                         <td className={`${tableCellClass} font-medium text-primary-600 hover:text-primary-700`}>
                           <a href={`/dashboard/organization/courses/${course.id}${organizationId ? `?organization=${organizationId}` : ''}`}>
@@ -451,7 +467,7 @@ export default function MyCoursesPage() {
               </div>
 
               <div className="hidden">
-                {courses.map((course) => (
+                {filteredCourses.map((course) => (
                   <div
                     key={course.id}
                     className="rounded-2xl border border-neutral-200 bg-white p-4 shadow-sm"
@@ -486,7 +502,7 @@ export default function MyCoursesPage() {
                 </>
               ) : (
                 <div className="grid gap-4 p-4 sm:grid-cols-2 lg:grid-cols-3">
-                  {courses.map((course) => (
+                  {filteredCourses.map((course) => (
                     <article key={course.id} className="flex min-h-52 flex-col rounded-2xl border border-neutral-200 bg-white p-5 shadow-sm transition-shadow hover:shadow-md">
                       <div className="flex items-start justify-between gap-3">
                         <a

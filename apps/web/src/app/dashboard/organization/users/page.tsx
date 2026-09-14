@@ -306,10 +306,10 @@ export default function OrgUsersPage() {
             className="max-w-md"
           />
           <div className="flex items-center gap-2 whitespace-nowrap">
-            <Button size="sm" className="bg-gray-600 hover:bg-gray-700 text-white border-none" onClick={() => openAdd('STUDENT')}>
+            <Button size="sm" className="h-12 bg-gray-600 text-white hover:bg-gray-700 border-none" onClick={() => openAdd('STUDENT')}>
               Add Student
             </Button>
-            <Button size="sm" variant="primary" onClick={() => openAdd('INSTRUCTOR')}>
+            <Button size="sm" variant="primary" className="h-12" onClick={() => openAdd('INSTRUCTOR')}>
               Add Instructor
             </Button>
             <ViewToggle value={viewMode} onChange={setViewMode} storageKey="learnhub-organization-users-view" />
@@ -347,7 +347,6 @@ export default function OrgUsersPage() {
                         <tr>
                           <th className={tableHeadClass}>Name</th>
                           <th className={tableHeadClass}>Email</th>
-                          <th className={tableHeadClass}>Role</th>
                           <th className={`${tableHeadClass} text-center`}>Status</th>
                           <th className={tableHeadClass}>Created</th>
                           <th className={`${tableHeadClass} text-center`}>Action</th>
@@ -363,9 +362,6 @@ export default function OrgUsersPage() {
                               </span>
                             </td>
                             <td className={`${tableCellClass} text-neutral-700`}>{member.email}</td>
-                            <td className={tableCellClass}>
-                              <Badge variant={roleBadgeVariant(member.role)} size="sm">{member.role}</Badge>
-                            </td>
                             <td className={tableStatusClass}>
                               <Badge variant={member.status === 'ACTIVE' ? 'success' : 'warning'} size="sm">{member.status === 'ACTIVE' ? 'Active' : 'Suspended'}</Badge>
                             </td>
@@ -391,13 +387,12 @@ export default function OrgUsersPage() {
                             <UserAvatar name={member.name} size="sm" />
                             <p className="truncate font-semibold text-[#17212b]">{member.name ?? '—'}</p>
                           </div>
-                          <Badge variant={roleBadgeVariant(member.role)} size="sm">{member.role}</Badge>
+                          <MemberActionsMenu member={member} onView={() => void openMemberDetails(member)} onStatus={() => setStatusTarget(member)} />
                         </div>
                         <div className="mt-5 flex-1 space-y-3 border-t border-[#ead8c6] pt-4">
                           <p className="break-all text-sm text-[#5f6368]">{member.email}</p>
                           <div className="flex items-center justify-between gap-3">
                             <Badge variant={member.status === 'ACTIVE' ? 'success' : 'warning'} size="sm">{member.status === 'ACTIVE' ? 'Active' : 'Suspended'}</Badge>
-                            <MemberActionsMenu member={member} onView={() => void openMemberDetails(member)} onStatus={() => setStatusTarget(member)} />
                           </div>
                         </div>
                         <div className="mt-4 border-t border-[#ead8c6] pt-3 text-xs font-medium uppercase tracking-wide text-[#9b765c]">
@@ -472,17 +467,25 @@ export default function OrgUsersPage() {
         {memberDetailsLoading ? (
           <div className="flex items-center gap-3 text-neutral-700"><Spinner size="md" label="Loading member details..." /><span>Loading member details...</span></div>
         ) : selectedMember ? (
-          <div className="space-y-6">
-            <div className="flex items-center gap-3"><UserAvatar name={selectedMember.name} size="lg" /><div><h3 className="font-semibold text-neutral-900">{selectedMember.name ?? '—'}</h3><p className="text-sm text-neutral-600">{selectedMember.email}</p></div></div>
-            <div className="grid grid-cols-2 gap-3 text-sm">
-              <div><p className="text-xs uppercase tracking-wide text-neutral-400">Role</p><p className="mt-1"><Badge variant={roleBadgeVariant(selectedMember.role)} size="sm">{selectedMember.role}</Badge></p></div>
-              <div><p className="text-xs uppercase tracking-wide text-neutral-400">Status</p><p className="mt-1"><Badge variant={selectedMember.status === 'ACTIVE' ? 'success' : 'warning'} size="sm">{selectedMember.status}</Badge></p></div>
-              <div><p className="text-xs uppercase tracking-wide text-neutral-400">Created</p><p className="mt-1 text-neutral-700">{new Date(selectedMember.createdAt).toLocaleString()}</p></div>
-              <div><p className="text-xs uppercase tracking-wide text-neutral-400">Updated</p><p className="mt-1 text-neutral-700">{new Date(selectedMember.updatedAt).toLocaleString()}</p></div>
+          <div className="space-y-5">
+            <div className="rounded-2xl border border-[#ead8c6] bg-[#fff9f0] p-5 shadow-sm">
+              <div className="flex items-center gap-3">
+                <UserAvatar name={selectedMember.name} size="lg" />
+                <div className="min-w-0">
+                  <h3 className="truncate text-lg font-bold text-neutral-900">{selectedMember.name ?? '—'}</h3>
+                  <p className="truncate text-sm text-neutral-700">{selectedMember.email}</p>
+                </div>
+              </div>
             </div>
-            <div className="rounded-lg bg-neutral-50 p-4">
-              <p className="text-xs uppercase tracking-wide text-neutral-400">Activity</p>
-              <p className="mt-2 text-sm text-neutral-700">{selectedMember.role === 'INSTRUCTOR' ? `Courses created: ${selectedMember.coursesCreated ?? 0}` : selectedMember.role === 'STUDENT' ? `Courses purchased: ${selectedMember.coursesPurchased ?? 0}` : 'Organization administration account'}</p>
+            <div className="grid grid-cols-1 gap-3 text-sm sm:grid-cols-2">
+              <div className="rounded-xl border border-[#ead8c6] bg-white p-4"><p className="text-xs font-bold uppercase tracking-wide text-neutral-900">Role</p><div className="mt-2"><Badge variant={roleBadgeVariant(selectedMember.role)} size="sm">{selectedMember.role}</Badge></div></div>
+              <div className="rounded-xl border border-[#ead8c6] bg-white p-4"><p className="text-xs font-bold uppercase tracking-wide text-neutral-900">Status</p><div className="mt-2"><Badge variant={selectedMember.status === 'ACTIVE' ? 'success' : 'warning'} size="sm">{selectedMember.status}</Badge></div></div>
+              <div className="rounded-xl border border-[#ead8c6] bg-white p-4"><p className="text-xs font-bold uppercase tracking-wide text-neutral-900">Created</p><p className="mt-2 break-words text-sm font-medium text-neutral-900">{new Date(selectedMember.createdAt).toLocaleString()}</p></div>
+              <div className="rounded-xl border border-[#ead8c6] bg-white p-4"><p className="text-xs font-bold uppercase tracking-wide text-neutral-900">Updated</p><p className="mt-2 break-words text-sm font-medium text-neutral-900">{new Date(selectedMember.updatedAt).toLocaleString()}</p></div>
+            </div>
+            <div className="rounded-2xl border border-[#ead8c6] bg-[#f8f2eb] p-5 shadow-sm">
+              <p className="text-xs font-bold uppercase tracking-wide text-neutral-900">Activity</p>
+              <p className="mt-2 text-sm font-medium text-neutral-900">{selectedMember.role === 'INSTRUCTOR' ? `Courses created: ${selectedMember.coursesCreated ?? 0}` : selectedMember.role === 'STUDENT' ? `Courses purchased: ${selectedMember.coursesPurchased ?? 0}` : 'Organization administration account'}</p>
             </div>
           </div>
         ) : null}

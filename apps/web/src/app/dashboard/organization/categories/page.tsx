@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useSearchParams } from 'next/navigation';
 import { Badge, Button, Card, ConfirmModal, Drawer, EmptyState, EmptyStateIcons, ErrorState, Input, Modal, Skeleton, ViewToggle, useToast } from '@/components/ui';
+import { Textarea } from '@/components/forms/Textarea';
 import { ApiError, apiRequest } from '@/lib/api';
 
 type Category = {
@@ -93,15 +94,15 @@ export default function CategoriesPage() {
 
   return (
     <div className="mx-auto max-w-6xl">
-      <Card padding="none" shadow="sm" className="overflow-hidden rounded-2xl border-[#ead8c6] bg-[#fffdf9]">
-        <div className="flex flex-col gap-3 border-b border-[#ead8c6] bg-[#fffdf9] px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
-          <Input
-            variant="line"
-            placeholder="Search by category name"
-            value={search}
-            onChange={(event) => { setSearch(event.target.value); setPage(1); }}
-            className="max-w-md"
-          />
+      <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <Input
+          variant="line"
+          placeholder="Search by category name"
+          value={search}
+          onChange={(event) => { setSearch(event.target.value); setPage(1); }}
+          className="max-w-md"
+        />
+        <div className="flex items-center gap-3">
           <Button
             onClick={() => setEditing(null)}
             size="sm"
@@ -111,7 +112,9 @@ export default function CategoriesPage() {
           </Button>
           <ViewToggle value={viewMode} onChange={setViewMode} storageKey="learnhub-organization-categories-view" />
         </div>
-        {loading ? <div className="space-y-4"><Skeleton variant="text" height={28} /><Skeleton variant="text" height={28} /><Skeleton variant="text" height={28} /></div>
+      </div>
+      <Card padding="none" shadow="sm" className="overflow-hidden rounded-2xl border-[#ead8c6] bg-[#fffdf9]">
+        {loading ? <div className="space-y-4 p-5"><Skeleton variant="text" height={28} /><Skeleton variant="text" height={28} /><Skeleton variant="text" height={28} /></div>
           : error ? <ErrorState title="Unable to load categories" action={{ label: 'Try again', onClick: () => void load() }} />
           : !hasCategories ? <EmptyState icon={search ? EmptyStateIcons.NoResults : EmptyStateIcons.NoData} title={search ? 'No matching categories' : 'No categories yet'} description={search ? 'Try a different search.' : 'Create your first category to organize courses.'} action={!search ? emptyAction : undefined} />
           : viewMode === 'cards' ? (
@@ -149,21 +152,21 @@ export default function CategoriesPage() {
       <Drawer isOpen={!!selectedCategory} onClose={() => setSelectedCategory(null)} title={selectedCategory?.name}>
         {selectedCategory ? (
           <div className="space-y-6">
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-wide text-neutral-500">Category status</p>
-              <div className="mt-2"><Badge variant={selectedCategory.status === 'ACTIVE' ? 'success' : 'default'} size="sm">{selectedCategory.status}</Badge></div>
+            <div className="rounded-2xl border border-[#ead8c6] bg-[#fff9f0] p-5 shadow-sm">
+              <p className="text-xs font-bold uppercase tracking-[0.12em] text-neutral-900">Category status</p>
+              <div className="mt-3"><Badge variant={selectedCategory.status === 'ACTIVE' ? 'success' : 'default'} size="sm">{selectedCategory.status}</Badge></div>
             </div>
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-wide text-neutral-500">Description</p>
-              <p className="mt-2 whitespace-pre-line text-sm leading-6 text-neutral-700">{selectedCategory.description || 'No description provided.'}</p>
+            <div className="rounded-2xl border border-[#ead8c6] bg-white p-5 shadow-sm">
+              <p className="text-xs font-bold uppercase tracking-[0.12em] text-neutral-900">Description</p>
+              <p className="mt-3 whitespace-pre-line text-sm leading-6 text-neutral-900">{selectedCategory.description || 'No description provided.'}</p>
             </div>
             <div className="grid grid-cols-2 gap-3">
-              <div className="rounded-lg bg-neutral-50 p-4"><p className="text-xs text-neutral-500">Courses</p><p className="mt-1 text-2xl font-semibold text-neutral-900">{selectedCategory.courseCount}</p></div>
-              <div className="rounded-lg bg-neutral-50 p-4"><p className="text-xs text-neutral-500">Instructors</p><p className="mt-1 text-2xl font-semibold text-neutral-900">{selectedCategory.instructors?.length ?? 0}</p></div>
+              <div className="rounded-2xl border border-[#ead8c6] bg-[#f8f2eb] p-4 shadow-sm"><p className="text-xs font-semibold text-neutral-900">Courses</p><p className="mt-2 text-2xl font-bold text-neutral-900">{selectedCategory.courseCount}</p></div>
+              <div className="rounded-2xl border border-[#ead8c6] bg-[#f8f2eb] p-4 shadow-sm"><p className="text-xs font-semibold text-neutral-900">Instructors</p><p className="mt-2 text-2xl font-bold text-neutral-900">{selectedCategory.instructors?.length ?? 0}</p></div>
             </div>
-            <div className="flex gap-2 border-t border-neutral-200 pt-5">
-              <Button size="sm" onClick={() => { setEditing(selectedCategory); setSelectedCategory(null); }}>Edit category</Button>
-              <Button size="sm" variant="danger" onClick={() => { setDeleting(selectedCategory); setSelectedCategory(null); }}>Delete</Button>
+            <div className="grid grid-cols-1 gap-3 border-t border-[#ead8c6] pt-5 sm:grid-cols-2">
+              <Button size="sm" className="w-full" onClick={() => { setEditing(selectedCategory); setSelectedCategory(null); }}>Edit category</Button>
+              <Button size="sm" className="w-full" variant="danger" onClick={() => { setDeleting(selectedCategory); setSelectedCategory(null); }}>Delete</Button>
             </div>
           </div>
         ) : null}
@@ -245,5 +248,5 @@ function CategoryModal({ category, organizationId, onClose, onSaved }: { categor
       toast.success(category ? 'Category updated successfully.' : 'Category created successfully.'); onSaved();
     } catch (err) { toast.error(errorMessage(err)); } finally { setSaving(false); }
   }
-  return <Modal isOpen onClose={onClose} title={category ? 'Edit category' : 'Create category'} footer={<><Button variant="ghost" onClick={onClose} disabled={saving}>Cancel</Button><Button onClick={() => void save()} loading={saving}>{category ? 'Save changes' : 'Create category'}</Button></>}><div className="space-y-4"><Input label="Name" value={name} maxLength={100} onChange={(event) => setName(event.target.value)} required /><Input label="Description" value={description} maxLength={1000} onChange={(event) => setDescription(event.target.value)} /><label className="block text-sm font-medium text-neutral-700">Status<select className="mt-1.5 block w-full rounded-md border border-neutral-300 bg-white px-3 py-2" value={status} onChange={(event) => setStatus(event.target.value as 'ACTIVE' | 'INACTIVE')}><option value="ACTIVE">Active</option><option value="INACTIVE">Inactive</option></select></label></div></Modal>;
+  return <Modal isOpen onClose={onClose} title={category ? 'Edit category' : 'Create category'} footer={<><Button variant="ghost" onClick={onClose} disabled={saving}>Cancel</Button><Button onClick={() => void save()} loading={saving}>{category ? 'Save changes' : 'Create category'}</Button></>}><div className="space-y-4"><Input label="Name" value={name} maxLength={100} onChange={(event) => setName(event.target.value)} required /><Textarea label="Description" value={description} maxLength={1000} rows={4} onChange={(event) => setDescription(event.target.value)} /><label className="block text-sm font-medium text-neutral-700">Status<select className="mt-1.5 block w-full rounded-md border border-neutral-300 bg-white px-3 py-2" value={status} onChange={(event) => setStatus(event.target.value as 'ACTIVE' | 'INACTIVE')}><option value="ACTIVE">Active</option><option value="INACTIVE">Inactive</option></select></label></div></Modal>;
 }

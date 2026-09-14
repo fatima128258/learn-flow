@@ -1,5 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 
+const TRANSIENT_STATUSES = new Set([502, 503, 504]);
+
+function wait(milliseconds: number) {
+  return new Promise((resolve) => setTimeout(resolve, milliseconds));
+}
+
 async function proxyRequest(
   req: NextRequest,
   method: string,
@@ -19,17 +25,31 @@ async function proxyRequest(
   }
   
   try {
-    const resp = await fetch(
-      `${backendUrl}/api/v1/organizations/${path}${queryString}`,
-      {
-        method,
-        headers: {
-          Cookie: cookie,
-          'Content-Type': 'application/json',
-        },
-        body: body || undefined,
+    let resp: Response | undefined;
+    for (let attempt = 0; attempt < 3; attempt += 1) {
+      resp = await fetch(
+        `${backendUrl}/api/v1/organizations/${path}${queryString}`,
+        {
+          method,
+          headers: {
+            Cookie: cookie,
+            'Content-Type': 'application/json',
+          },
+          body: body || undefined,
+        }
+      );
+
+      if (!TRANSIENT_STATUSES.has(resp.status) || method !== 'GET' || attempt === 2) {
+        break;
       }
-    );
+
+      await resp.body?.cancel();
+      await wait(250 * (attempt + 1));
+    }
+
+    if (!resp) {
+      throw new Error('Organization proxy did not receive a response');
+    }
     
     const data = await resp.text();
     return new NextResponse(data, {

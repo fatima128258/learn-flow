@@ -5,7 +5,6 @@ import { LinkButton } from '../components/ui/LinkButton';
 import { Accordion } from '../components/public/Accordion';
 import { AnimatedCounter } from '../components/public/AnimatedCounter';
 import { Reveal } from '../components/public/Reveal';
-import { TopCourses } from '../components/public/TopCourses';
 
 const stats = [
   { label: '100+', value: 'Expert Instructors' },
@@ -135,8 +134,6 @@ export default function Home() {
             </div>
           </Container>
         </section>
-
-        <TopCourses />
 
         <section id="about" className="bg-[#f8f2eb] py-14">
           <Container size="xl">

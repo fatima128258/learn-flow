@@ -18,7 +18,7 @@ export const PasswordInput = React.forwardRef<HTMLInputElement, PasswordInputPro
             type="button"
             onClick={() => setIsVisible((visible) => !visible)}
             aria-label={isVisible ? 'Hide password' : 'Show password'}
-            className="absolute right-2 top-1/2 inline-flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-lg border-0 bg-transparent text-[#7a4a2e] transition-colors hover:bg-[#f5ebdd] focus:border-0 focus:outline-none focus:ring-2 focus:ring-[#a8784f]/30 disabled:cursor-not-allowed disabled:opacity-50"
+            className="absolute right-2 top-1/2 inline-flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-lg border-0 bg-transparent text-[#7a4a2e] transition-colors hover:bg-[#f5ebdd] focus:border-0 focus:outline-none focus:ring-0 focus-visible:border-0 focus-visible:outline-none focus-visible:ring-0 disabled:cursor-not-allowed disabled:opacity-50"
             disabled={rest.disabled}
           >
             {isVisible ? (
