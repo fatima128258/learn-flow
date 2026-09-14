@@ -46,7 +46,7 @@ export const tableNumericCellClass =
   `${tableCellClass} text-center`;
 
 export const tableStatusClass =
-  `${tableCellClass} text-center`;
+  tableCellClass;
 
 export const tableActionClass =
   `${tableCellClass} text-center`;

@@ -817,7 +817,7 @@ export default function OrganizationsPage() {
                   <tbody className="divide-y divide-neutral-200">
                     {filteredOrganizations.map((org) => (
                       <tr key={org.id} className={tableRowHoverClass}>
-                        <td className={tableStatusClass}>
+                        <td className={tableCellClass}>
                           <button
                             type="button"
                             onClick={() => openOrganization(org)}

@@ -358,7 +358,7 @@ export default function OrgUsersPage() {
                       <tbody className="divide-y divide-neutral-100">
                         {(filteredMembers ?? []).map((member) => (
                           <tr key={member.id} className={tableRowHoverClass}>
-                            <td className={tableStatusClass}>
+                            <td className={tableCellClass}>
                               <span className="flex items-center gap-3">
                                 <UserAvatar name={member.name} size="sm" />
                                 <span className="font-medium text-neutral-900">{member.name ?? '—'}</span>
