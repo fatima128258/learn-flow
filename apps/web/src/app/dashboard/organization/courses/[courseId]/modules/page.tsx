@@ -3,8 +3,9 @@
 import { useEffect, useState, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { useParams, usePathname, useRouter } from 'next/navigation';
-import { Badge, Button, EmptyState, EmptyStateIcons, Spinner, Drawer } from '../../../../../../components/ui';
+import { Badge, Button, EmptyState, EmptyStateIcons, Spinner, Drawer, ViewToggle } from '../../../../../../components/ui';
 import { Input } from '../../../../../../components/ui/Input';
+import { Textarea } from '../../../../../../components/forms/Textarea';
 import { LinkButton } from '../../../../../../components/ui/LinkButton';
 import { Modal } from '../../../../../../components/ui/Modal';
 import Link from 'next/link';
@@ -117,17 +118,14 @@ type ContentItem = { type: 'LESSON' | 'QUIZ'; id: string; position: number; titl
 type ModuleDetails = ModuleListItem & { lessons: ModuleLessonSummary[]; quizzes: ModuleQuizSummary[]; content: ContentItem[] };
 
 // Module Details Drawer component
-function ModuleDetailsDrawer({ module, isOpen, onClose, onSaveContent }: {
+function ModuleDetailsDrawer({ module, isOpen, onClose }: {
   module: ModuleDetails | null;
   isOpen: boolean;
   onClose: () => void;
-  onSaveContent: (items: ContentItem[]) => Promise<void>;
 }) {
   const [content, setContent] = useState<ContentItem[]>([]);
-  const [saving, setSaving] = useState(false);
   useEffect(() => setContent(module?.content ?? []), [module]);
   if (!module) return null;
-  async function save() { setSaving(true); try { await onSaveContent(content); } finally { setSaving(false); } }
 
   return (
     <Drawer
@@ -143,8 +141,7 @@ function ModuleDetailsDrawer({ module, isOpen, onClose, onSaveContent }: {
           </div>
           <div>
             <div className="flex items-center justify-between">
-              <p className="text-xs font-medium uppercase tracking-wide text-neutral-400">Course content order</p>
-              <Button size="sm" variant="primary" disabled={saving} onClick={() => void save()}>{saving ? 'Saving...' : 'Save order'}</Button>
+              <p className="text-xs font-semibold uppercase tracking-wide text-[#17212b]">Course content order</p>
             </div>
             <div className="mt-2 space-y-2">
               {content.map((item, index) => (
@@ -162,29 +159,29 @@ function ModuleDetailsDrawer({ module, isOpen, onClose, onSaveContent }: {
         </div>
 
         <div>
-          <p className="text-xs font-medium uppercase tracking-wide text-neutral-400">Title</p>
+          <p className="text-xs font-semibold uppercase tracking-wide text-[#17212b]">Title</p>
           <p className="mt-1 text-sm font-medium text-neutral-900">{module.title}</p>
         </div>
 
         {module.description && (
           <div>
-            <p className="text-xs font-medium uppercase tracking-wide text-neutral-400">Description</p>
+            <p className="text-xs font-semibold uppercase tracking-wide text-[#17212b]">Description</p>
             <p className="mt-1 text-sm text-neutral-700 whitespace-pre-wrap break-words">{module.description}</p>
           </div>
         )}
 
         <div>
-          <p className="text-xs font-medium uppercase tracking-wide text-neutral-400">Created</p>
+          <p className="text-xs font-semibold uppercase tracking-wide text-[#17212b]">Created</p>
           <p className="mt-1 text-sm text-neutral-700">{new Date(module.createdAt).toLocaleString()}</p>
         </div>
 
         <div>
-          <p className="text-xs font-medium uppercase tracking-wide text-neutral-400">Last Updated</p>
+          <p className="text-xs font-semibold uppercase tracking-wide text-[#17212b]">Last Updated</p>
           <p className="mt-1 text-sm text-neutral-700">{new Date(module.updatedAt).toLocaleString()}</p>
         </div>
 
         <div>
-          <p className="text-xs font-medium uppercase tracking-wide text-neutral-400">Lessons ({module.lessons.length})</p>
+          <p className="text-xs font-semibold uppercase tracking-wide text-[#17212b]">Lessons ({module.lessons.length})</p>
           {module.lessons.length > 0 ? (
             <div className="mt-2 space-y-2">
               {module.lessons.map((lesson) => (
@@ -194,11 +191,11 @@ function ModuleDetailsDrawer({ module, isOpen, onClose, onSaveContent }: {
                 </div>
               ))}
             </div>
-          ) : <p className="mt-1 text-sm text-neutral-400">No lessons yet.</p>}
+          ) : <p className="mt-1 text-sm text-neutral-600">No lessons yet.</p>}
         </div>
 
         <div>
-          <p className="text-xs font-medium uppercase tracking-wide text-neutral-400">Quizzes ({module.quizzes.length})</p>
+          <p className="text-xs font-semibold uppercase tracking-wide text-[#17212b]">Quizzes ({module.quizzes.length})</p>
           {module.quizzes.length > 0 ? (
             <div className="mt-2 space-y-2">
               {module.quizzes.map((quiz) => (
@@ -208,7 +205,7 @@ function ModuleDetailsDrawer({ module, isOpen, onClose, onSaveContent }: {
                 </div>
               ))}
             </div>
-          ) : <p className="mt-1 text-sm text-neutral-400">No quizzes yet.</p>}
+          ) : <p className="mt-1 text-sm text-neutral-600">No quizzes yet.</p>}
         </div>
       </div>
     </Drawer>
@@ -267,6 +264,7 @@ export default function CourseModulesPage() {
   const [checkingAuth, setCheckingAuth] = useState(true);
   const [organizationId, setOrganizationId] = useState<string | null>(null);
   const [modules, setModules] = useState<ModuleListItem[] | null>(null);
+  const [viewMode, setViewMode] = useState<'table' | 'cards'>('table');
   const [loading, setLoading] = useState(true);
 
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -308,6 +306,12 @@ export default function CourseModulesPage() {
 
   async function openModuleDetails(module: ModuleListItem) {
     if (!organizationId || !courseId) return;
+    setModuleDetails({
+      ...module,
+      lessons: [],
+      quizzes: [],
+      content: [],
+    });
     try {
       const base = `/api/v1/organizations/${organizationId}/courses/${courseId}/modules/${module.id}`;
       const [moduleRes, lessonsRes, quizzesRes, contentRes] = await Promise.all([
@@ -600,9 +604,12 @@ export default function CourseModulesPage() {
                 Manage modules for this course.
               </p>
             </div>
-            <Button size="sm" onClick={() => setShowCreateModal(true)}>
-              Create Module
-            </Button>
+            <div className="flex flex-wrap items-center gap-2">
+              <Button size="sm" onClick={() => setShowCreateModal(true)}>
+                Create Module
+              </Button>
+              <ViewToggle value={viewMode} onChange={setViewMode} storageKey={`learnhub-${dashboardPrefix.slice(10)}-course-modules-view`} />
+            </div>
           </div>
 
           {loading ? (
@@ -626,14 +633,13 @@ export default function CourseModulesPage() {
             </div>
           ) : modules !== null && modules.length > 0 ? (
             <div className="mt-6">
-              {/* Desktop table */}
-              <div className="hidden overflow-hidden rounded-2xl border border-neutral-200 bg-white shadow-sm md:block">
+              {viewMode === 'table' ? (
+              <div className="overflow-x-auto rounded-2xl border border-neutral-200 bg-white shadow-sm">
                 <table className="min-w-full divide-y divide-neutral-200">
                   <thead className="bg-neutral-50">
                     <tr>
                       <th className="px-6 py-3 text-center align-middle text-xs font-semibold uppercase tracking-wide text-neutral-500 w-16">Order</th>
                       <th className="w-72 px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-neutral-500">Title</th>
-                      <th className="px-6 py-3 text-center align-middle text-xs font-semibold uppercase tracking-wide text-neutral-500">Duration</th>
                       <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-neutral-500">Description</th>
                       <th className="px-6 py-3 text-center align-middle text-xs font-semibold uppercase tracking-wide text-neutral-500 w-20">Actions</th>
                     </tr>
@@ -647,7 +653,6 @@ export default function CourseModulesPage() {
                         <td className="w-72 max-w-72 px-6 py-4 text-sm font-medium text-primary-600 hover:text-primary-700" title={module.title}>
                           <span className="block truncate">{module.title}</span>
                         </td>
-                        <td className="px-6 py-4 text-center align-middle text-sm text-neutral-700">{module.durationMinutes} min</td>
                         <td className="px-6 py-4 text-sm text-neutral-700 max-w-xs truncate" title={module.description ?? ''}>{module.description ?? '—'}</td>
                         <td className="px-6 py-4 text-center align-middle" onClick={(e) => e.stopPropagation()}>
                           <div className="flex flex-wrap items-center justify-center gap-2">
@@ -678,10 +683,10 @@ export default function CourseModulesPage() {
                   </tbody>
                 </table>
               </div>
-              {/* Mobile cards */}
-              <div className="space-y-3 md:hidden">
+              ) : (
+              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                 {modules.map((module) => (
-                  <div key={module.id} className="rounded-2xl border border-neutral-200 bg-white p-4 shadow-sm">
+                  <div key={module.id} className="flex min-h-52 flex-col rounded-2xl border border-neutral-200 bg-white p-5 shadow-sm transition-shadow hover:shadow-md" onClick={() => void openModuleDetails(module)}>
                     <div className="flex items-start justify-between gap-2">
                       <p className="font-semibold text-neutral-900 leading-snug">{module.title}</p>
                       <Badge variant="default" size="sm">#{module.order}</Badge>
@@ -689,16 +694,15 @@ export default function CourseModulesPage() {
                     {module.description && (
                       <p className="mt-1 text-sm text-neutral-500">{module.description}</p>
                     )}
-                    <p className="mt-2 text-sm text-neutral-600">Duration: {module.durationMinutes} min</p>
-                    <div className="mt-3 flex flex-wrap items-center gap-2 border-t border-neutral-100 pt-3">
-                      <Link href={`${dashboardPrefix}/courses/${courseId}/modules/${module.id}/lessons${organizationId ? `?organization=${organizationId}` : ''}`} className="inline-flex items-center rounded-lg px-3 py-1.5 text-sm font-medium text-primary-600 hover:bg-primary-50 transition-colors">Lessons</Link>
-                      <Link href={`${dashboardPrefix}/courses/${courseId}/modules/${module.id}/quizzes${organizationId ? `?organization=${organizationId}` : ''}`} className="inline-flex items-center rounded-lg px-3 py-1.5 text-sm font-medium text-primary-600 hover:bg-primary-50 transition-colors">Quizzes</Link>
-                      <Button variant="ghost" size="sm" onClick={() => openEditModal(module)}>Edit</Button>
-                      <Button variant="danger" size="sm" onClick={() => handleDelete(module.id)}>Delete</Button>
+                    <div className="mt-auto flex flex-wrap items-center gap-2 border-t border-neutral-100 pt-4" onClick={(event) => event.stopPropagation()}>
+                      <Link href={`${dashboardPrefix}/courses/${courseId}/modules/${module.id}/lessons${organizationId ? `?organization=${organizationId}` : ''}`} className="rounded-lg bg-primary-50 px-3 py-1.5 text-sm font-medium text-primary-600 transition-colors hover:bg-primary-100">Add lesson</Link>
+                      <Link href={`${dashboardPrefix}/courses/${courseId}/modules/${module.id}/quizzes${organizationId ? `?organization=${organizationId}` : ''}`} className="rounded-lg bg-primary-50 px-3 py-1.5 text-sm font-medium text-primary-600 transition-colors hover:bg-primary-100">Add quiz</Link>
+                      <ModuleActionsMenu module={module} courseId={courseId!} organizationId={organizationId!} dashboardPrefix={dashboardPrefix} onEdit={() => openEditModal(module)} onDelete={() => handleDelete(module.id)} />
                     </div>
                   </div>
                 ))}
               </div>
+              )}
             </div>
           ) : null}
         </div>
@@ -722,12 +726,12 @@ export default function CourseModulesPage() {
             required
           />
 
-          <Input
+          <Textarea
             label="Description"
             value={description}
-            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setDescription(e.target.value)}
+            onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setDescription(e.target.value)}
             placeholder="Optional description"
-            autoComplete="off"
+            rows={4}
             disabled={creating}
           />
 
@@ -775,12 +779,12 @@ export default function CourseModulesPage() {
             required
           />
 
-          <Input
+          <Textarea
             label="Description"
             value={description}
-            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setDescription(e.target.value)}
+            onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setDescription(e.target.value)}
             placeholder="Optional description"
-            autoComplete="off"
+            rows={4}
             disabled={updating}
           />
 
@@ -815,18 +819,6 @@ export default function CourseModulesPage() {
         isOpen={moduleDetails !== null}
         onClose={() => {
           setModuleDetails(null);
-        }}
-        onSaveContent={async (items) => {
-          if (!organizationId || !courseId || !moduleDetails) return;
-          const response = await fetch(`/api/v1/organizations/${organizationId}/courses/${courseId}/modules/${moduleDetails.id}/content`, {
-            method: 'PUT',
-            credentials: 'include',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ items: items.map(({ type, id }) => ({ type, id })) }),
-          });
-          if (!response.ok) throw new Error('Could not save content order');
-          toast.success('Content order saved.');
-          await openModuleDetails(moduleDetails);
         }}
       />
     </div>
