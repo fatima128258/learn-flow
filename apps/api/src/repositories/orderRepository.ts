@@ -39,31 +39,27 @@ export async function createOrderWithPurchase(data: PurchaseOrderData) {
         status: 'PAID',
         totalAmount: data.totalAmount,
         currency: data.currency,
-      },
-    });
-
-    await tx.orderItem.create({
-      data: {
-        orderId: order.id,
-        courseId: data.courseId,
-        courseTitle: data.courseTitle,
-        unitPrice: data.unitPrice,
-        quantity: 1,
-        lineTotal: data.totalAmount,
-      },
-    });
-
-    await tx.payment.create({
-      data: {
-        orderId: order.id,
-        userId: data.userId,
-        organizationId: data.organizationId,
-        provider: 'MOCK',
-        providerRef: data.providerRef,
-        amount: data.totalAmount,
-        currency: data.currency,
-        status: 'SUCCEEDED',
-        paidAt: new Date(),
+        items: {
+          create: {
+            courseId: data.courseId,
+            courseTitle: data.courseTitle,
+            unitPrice: data.unitPrice,
+            quantity: 1,
+            lineTotal: data.totalAmount,
+          },
+        },
+        payments: {
+          create: {
+            userId: data.userId,
+            organizationId: data.organizationId,
+            provider: 'MOCK',
+            providerRef: data.providerRef,
+            amount: data.totalAmount,
+            currency: data.currency,
+            status: 'SUCCEEDED',
+            paidAt: new Date(),
+          },
+        },
       },
     });
 

@@ -138,6 +138,12 @@ export default function StudentCourseOverviewPage() {
       router.push(`/dashboard/student/courses/${courseId}`);
     } catch (error: unknown) {
       const errorCode = error instanceof Error ? error.message : null;
+      if (errorCode === 'ALREADY_PURCHASED' || errorCode === 'ALREADY_ENROLLED') {
+        setCourse(prev => prev ? { ...prev, isEnrolled: true } : null);
+        toast.success('You already have access to this course.');
+        router.push(`/dashboard/student/courses/${courseId}`);
+        return;
+      }
       toast.error(getPurchaseErrorMessage(errorCode));
     }
   }
