@@ -47,7 +47,9 @@ export async function apiRequest<T>(
       ...options,
     });
   } catch (err) {
-    console.error(`[API] Network error: ${err instanceof Error ? err.message : 'Unknown'}`);
+    if (!(err instanceof DOMException && err.name === 'AbortError')) {
+      console.error(`[API] Network error: ${err instanceof Error ? err.message : 'Unknown'}`);
+    }
     throw new ApiError(0, 'NETWORK_ERROR');
   }
 

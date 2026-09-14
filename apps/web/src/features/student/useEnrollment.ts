@@ -57,7 +57,7 @@ export function usePurchase(organizationId: string, courseId: string) {
       const body = await postJsonWithTimeout<{ data?: { enrollmentId: string; orderId: string; courseId: string } }>(
         `/api/v1/organizations/${organizationId}/student/courses/${courseId}/purchase`,
         {},
-        15000,
+        60000,
       );
       return body.data ?? null;
     },

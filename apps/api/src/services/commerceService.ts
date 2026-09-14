@@ -27,7 +27,13 @@ function toPurchaseDto(
 }
 
 export async function purchaseCourse(organizationId: string, userId: string, courseId: string) {
-  const course = await courseRepo.getById(organizationId, courseId);
+  // These checks are independent reads. Run them together so a slow remote
+  // database does not make checkout wait for three sequential round trips.
+  const [course, existingEnrollment, existingOrder] = await Promise.all([
+    courseRepo.getById(organizationId, courseId),
+    enrollmentRepo.findByUserAndCourse(userId, courseId),
+    orderRepo.findPaidOrderForCourse(userId, courseId),
+  ]);
   if (!course) {
     throw new Error('COURSE_NOT_FOUND');
   }
@@ -36,12 +42,10 @@ export async function purchaseCourse(organizationId: string, userId: string, cou
     throw new Error('COURSE_NOT_PUBLISHED');
   }
 
-  const existingEnrollment = await enrollmentRepo.findByUserAndCourse(userId, courseId);
   if (existingEnrollment) {
     throw new Error('ALREADY_ENROLLED');
   }
 
-  const existingOrder = await orderRepo.findPaidOrderForCourse(userId, courseId);
   if (existingOrder) {
     throw new Error('ALREADY_PURCHASED');
   }
