@@ -168,10 +168,19 @@ export default function StudentLessonPage() {
         return;
       }
       const responseBody = await res.json().catch(() => null) as {
-        data?: { courseProgress?: { courseComplete?: boolean; successfulCompletion?: boolean } };
+        data?: {
+          courseProgress?: {
+            courseComplete?: boolean;
+            contentComplete?: boolean;
+            successfulCompletion?: boolean;
+          };
+        };
       } | null;
       setCompletedLocally(true);
-      setCourseCompleted(responseBody?.data?.courseProgress?.successfulCompletion === true);
+      setCourseCompleted(
+        responseBody?.data?.courseProgress?.contentComplete === true ||
+        responseBody?.data?.courseProgress?.courseComplete === true,
+      );
       if (completed && data?.module.order === 1) {
         toast.success('Congratulations! You completed the first module.');
       }
@@ -267,19 +276,19 @@ export default function StudentLessonPage() {
                       Congratulations! You completed the course.
                     </div>
                   )}
-                  {isCompleted && courseCompleted ? (
-                    <Link
-                      href="/dashboard/student/certificates"
-                      className="inline-flex items-center rounded-lg bg-[#5A321F] px-4 py-2 text-sm font-semibold text-white hover:bg-[#472719]"
-                    >
-                      Go to Certificate
-                    </Link>
-                  ) : isCompleted && nextContentUrl ? (
+                  {isCompleted && nextContentUrl ? (
                     <Link
                       href={nextContentUrl}
                       className="inline-flex items-center rounded-lg bg-[#5A321F] px-4 py-2 text-sm font-semibold text-white hover:bg-[#472719]"
                     >
                       Next
+                    </Link>
+                  ) : isCompleted && courseCompleted ? (
+                    <Link
+                      href="/dashboard/student/certificates"
+                      className="inline-flex items-center rounded-lg bg-[#5A321F] px-4 py-2 text-sm font-semibold text-white hover:bg-[#472719]"
+                    >
+                      Go to Certificate
                     </Link>
                   ) : null}
                 </div>

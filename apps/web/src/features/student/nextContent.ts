@@ -18,6 +18,11 @@ type CourseModuleSummary = {
   firstContentId?: string | null;
 };
 
+function contentUrl(courseId: string, moduleId: string, item: SequenceItem) {
+  const contentPath = item.type === 'LESSON' ? 'lessons' : 'quizzes';
+  return `/dashboard/student/courses/${courseId}/modules/${moduleId}/${contentPath}/${item.id}`;
+}
+
 export async function getNextContentUrl({
   organizationId,
   courseId,
@@ -60,8 +65,7 @@ export async function getNextContentUrl({
   );
   const next = currentIndex >= 0 ? sequence[currentIndex + 1] : undefined;
   if (next && next.state !== 'locked' && next.unlocked !== false) {
-    const contentPath = next.type === 'LESSON' ? 'lessons' : 'quizzes';
-    return `/dashboard/student/courses/${courseId}/modules/${next.moduleId}/${contentPath}/${next.id}`;
+    return contentUrl(courseId, next.moduleId, next);
   }
 
   // Locked modules do not expose their content endpoint. Use the enrolled
@@ -76,16 +80,35 @@ export async function getNextContentUrl({
   const orderedCourseModules = [...moduleSummaries].sort((a, b) => a.order - b.order);
   const currentModuleOrder = orderedModules.find(module => module.id === moduleId)?.order
     ?? orderedCourseModules.find(module => module.id === moduleId)?.order;
-  const nextModule = orderedCourseModules.find(
+  // Skip modules that do not contain any lessons or quizzes.
+  const laterModules = orderedCourseModules.filter(
     module => currentModuleOrder != null && module.order > currentModuleOrder,
   );
-  if (!nextModule) return null;
+  for (const nextModule of laterModules) {
+    const nextModuleSummary = moduleSummaries.find(module => module.id === nextModule.id);
+    if (nextModuleSummary?.firstContentType && nextModuleSummary.firstContentId) {
+      return contentUrl(courseId, nextModule.id, {
+        type: nextModuleSummary.firstContentType,
+        id: nextModuleSummary.firstContentId,
+      });
+    }
 
-  const nextModuleSummary = moduleSummaries.find(module => module.id === nextModule.id);
-  if (!nextModuleSummary?.firstContentType || !nextModuleSummary.firstContentId) {
-    return `/dashboard/student/courses/${courseId}/modules/${nextModule.id}`;
+    const response = await fetch(
+      `/api/v1/organizations/${organizationId}/student/courses/${courseId}/modules/${nextModule.id}`,
+      { credentials: 'include' },
+    );
+    if (!response.ok) continue;
+    const body = await response.json();
+    const firstItem = Array.isArray(body.data?.items)
+      ? body.data.items.find(
+          (item: SequenceItem) =>
+            item?.type && item?.id && item.state !== 'locked' && item.unlocked !== false,
+        )
+      : undefined;
+    if (firstItem) {
+      return contentUrl(courseId, nextModule.id, firstItem);
+    }
   }
 
-  const contentPath = nextModuleSummary.firstContentType === 'LESSON' ? 'lessons' : 'quizzes';
-  return `/dashboard/student/courses/${courseId}/modules/${nextModuleSummary.id}/${contentPath}/${nextModuleSummary.firstContentId}`;
+  return null;
 }
