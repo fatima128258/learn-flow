@@ -130,14 +130,11 @@ export default function ModuleLessonsPage() {
   const [updating, setUpdating] = useState(false);
 
   const [title, setTitle] = useState('');
-  const [description, setDescription] = useState('');
   const [content, setContent] = useState('');
   const [type, setType] = useState('');
-  const [duration, setDuration] = useState('');
   const [order, setOrder] = useState('');
   const [titleError, setTitleError] = useState('');
   const [orderError, setOrderError] = useState('');
-  const [durationError, setDurationError] = useState('');
 
   // Check auth and set organizationId
   useEffect(() => {
@@ -218,14 +215,11 @@ export default function ModuleLessonsPage() {
 
   function clearForm() {
     setTitle('');
-    setDescription('');
     setContent('');
     setType('');
-    setDuration('');
     setOrder('');
     setTitleError('');
     setOrderError('');
-    setDurationError('');
   }
 
   function closeCreateModal() {
@@ -244,7 +238,6 @@ export default function ModuleLessonsPage() {
   function validateForm(): string | null {
     setTitleError('');
     setOrderError('');
-    setDurationError('');
 
     if (!title.trim()) {
       setTitleError('Title is required');
@@ -255,14 +248,6 @@ export default function ModuleLessonsPage() {
     if (order.trim() === '' || isNaN(parsedOrder) || parsedOrder < 0 || !Number.isInteger(parsedOrder)) {
       setOrderError('Order must be a non-negative integer');
       return 'Order must be a non-negative integer';
-    }
-
-    if (duration.trim() !== '') {
-      const parsedDuration = parseInt(duration, 10);
-      if (isNaN(parsedDuration) || parsedDuration < 0 || !Number.isInteger(parsedDuration)) {
-        setDurationError('Duration must be a non-negative integer');
-        return 'Duration must be a non-negative integer';
-      }
     }
 
     return null;
@@ -348,10 +333,8 @@ export default function ModuleLessonsPage() {
 
       setEditingLesson(detail);
       setTitle(detail.title);
-      setDescription(detail.description ?? '');
       setContent(detail.content ?? '');
       setType(detail.type ?? '');
-      setDuration(detail.duration != null ? String(detail.duration) : '');
       setOrder(String(detail.order));
       setShowEditModal(true);
     } catch {
@@ -393,14 +376,10 @@ export default function ModuleLessonsPage() {
         title: title.trim(),
         order: parseInt(order, 10),
       };
-      if (description.trim()) body.description = description.trim();
-      else body.description = null;
       if (content.trim()) body.content = content.trim();
       else body.content = null;
       if (type.trim()) body.type = type.trim();
       else body.type = null;
-      if (duration.trim() !== '') body.duration = parseInt(duration, 10);
-      else body.duration = null;
 
       const res = await fetch(
         `${apiBase}/api/v1/organizations/${organizationId}/courses/${courseId}/modules/${moduleId}/lessons/${editingLesson.id}`,
@@ -499,10 +478,10 @@ export default function ModuleLessonsPage() {
               </p>
             </div>
             <div className="flex items-center gap-3">
-              <ViewToggle value={viewMode} onChange={setViewMode} storageKey="module-lessons-view" />
-              <Button size="sm" onClick={() => setShowCreateModal(true)}>
+              <Button size="sm" className="h-10" onClick={() => setShowCreateModal(true)}>
                 Create Lesson
               </Button>
+              <ViewToggle value={viewMode} onChange={setViewMode} storageKey="module-lessons-view" />
             </div>
           </div>
 
@@ -533,7 +512,7 @@ export default function ModuleLessonsPage() {
                   <tr>
                     <th className="px-6 py-3 text-center align-middle text-xs font-semibold uppercase tracking-wide text-neutral-500 w-16">Order</th>
                     <th className="w-64 px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-neutral-500">Title</th>
-                    <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-neutral-500">Description</th>
+                    <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-neutral-500">Type</th>
                     <th className="px-6 py-3 text-center align-middle text-xs font-semibold uppercase tracking-wide text-neutral-500 w-40">Actions</th>
                   </tr>
                 </thead>
@@ -547,7 +526,7 @@ export default function ModuleLessonsPage() {
                         <span className="block truncate">{lesson.title}</span>
                       </td>
                       <td className="px-6 py-4 text-sm text-neutral-700 max-w-md truncate">
-                        {lesson.description ?? '—'}
+                        {lesson.type || '—'}
                       </td>
                       <td className="px-6 py-4 text-center align-middle" onClick={(event) => event.stopPropagation()}>
                         <div className="flex items-center justify-center">
@@ -707,16 +686,6 @@ export default function ModuleLessonsPage() {
           />
 
           <Textarea
-            label="Description"
-            value={description}
-            onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setDescription(e.target.value)}
-            placeholder="Optional description"
-            autoComplete="off"
-            disabled={updating}
-            rows={2}
-          />
-
-          <Textarea
             label="Content"
             value={content}
             onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setContent(e.target.value)}
@@ -735,36 +704,20 @@ export default function ModuleLessonsPage() {
             disabled={updating}
           />
 
-          <div className="grid grid-cols-2 gap-4">
-            <Input
-              label="Duration (minutes)"
-              type="number"
-              min="0"
-              step="1"
-              value={duration}
-              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setDuration(e.target.value)}
-              error={durationError}
-              placeholder="e.g. 15"
-              autoComplete="off"
-              disabled={updating}
-              helperText="Non-negative integer."
-            />
-
-            <Input
-              label="Order"
-              type="number"
-              min="0"
-              step="1"
-              value={order}
-              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setOrder(e.target.value)}
-              error={orderError}
-              placeholder="e.g. 0"
-              autoComplete="off"
-              disabled={updating}
-              required
-              helperText="Non-negative integer."
-            />
-          </div>
+          <Input
+            label="Order"
+            type="number"
+            min="0"
+            step="1"
+            value={order}
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setOrder(e.target.value)}
+            error={orderError}
+            placeholder="e.g. 0"
+            autoComplete="off"
+            disabled={updating}
+            required
+            helperText="Non-negative integer."
+          />
 
           <div className="flex items-center justify-end gap-3 pt-2">
             <Button type="button" variant="ghost" onClick={closeEditModal} disabled={updating}>

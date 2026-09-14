@@ -3,7 +3,7 @@
 import { useEffect, useState, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { useParams, usePathname, useRouter } from 'next/navigation';
-import { Badge, Button, EmptyState, EmptyStateIcons, Spinner, Drawer, ViewToggle } from '../../../../../../components/ui';
+import { Badge, Button, ConfirmModal, EmptyState, EmptyStateIcons, Spinner, Drawer, ViewToggle } from '../../../../../../components/ui';
 import { Input } from '../../../../../../components/ui/Input';
 import { Textarea } from '../../../../../../components/forms/Textarea';
 import { LinkButton } from '../../../../../../components/ui/LinkButton';
@@ -269,6 +269,7 @@ export default function CourseModulesPage() {
   const [creating, setCreating] = useState(false);
   const [updating, setUpdating] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [deleteModuleId, setDeleteModuleId] = useState<string | null>(null);
 
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
@@ -551,7 +552,6 @@ export default function CourseModulesPage() {
   }
 
   async function handleDelete(moduleId: string) {
-    if (!confirm('Are you sure you want to delete this module?')) return;
     if (!organizationId || !courseId) return;
 
     setDeleting(true);
@@ -578,6 +578,7 @@ export default function CourseModulesPage() {
 
       setModules((prev) => prev ? prev.filter((m) => m.id !== moduleId) : null);
       toast.success('Module deleted.');
+      setDeleteModuleId(null);
       router.refresh();
     } catch {
       toast.error(getModuleErrorMessage(null));
@@ -673,7 +674,7 @@ export default function CourseModulesPage() {
                               organizationId={organizationId!}
                               dashboardPrefix={dashboardPrefix}
                               onEdit={() => openEditModal(module)}
-                              onDelete={() => handleDelete(module.id)}
+                              onDelete={() => setDeleteModuleId(module.id)}
                             />
                           </div>
                         </td>
@@ -689,7 +690,7 @@ export default function CourseModulesPage() {
                     <div className="flex items-start justify-between gap-2">
                       <p className="min-w-0 flex-1 font-semibold leading-snug text-neutral-900">{module.title}</p>
                       <div className="shrink-0" onClick={(event) => event.stopPropagation()}>
-                        <ModuleActionsMenu module={module} courseId={courseId!} organizationId={organizationId!} dashboardPrefix={dashboardPrefix} onEdit={() => openEditModal(module)} onDelete={() => handleDelete(module.id)} />
+                        <ModuleActionsMenu module={module} courseId={courseId!} organizationId={organizationId!} dashboardPrefix={dashboardPrefix} onEdit={() => openEditModal(module)} onDelete={() => setDeleteModuleId(module.id)} />
                       </div>
                     </div>
                     {module.description && (
@@ -777,6 +778,22 @@ export default function CourseModulesPage() {
           </div>
         </div>
       </Modal>
+
+      <ConfirmModal
+        isOpen={deleteModuleId !== null}
+        onClose={() => {
+          if (!deleting) setDeleteModuleId(null);
+        }}
+        onConfirm={() => {
+          if (deleteModuleId) void handleDelete(deleteModuleId);
+        }}
+        title="Delete Module"
+        message="Are you sure you want to delete this module? Its lessons and quizzes will also be removed."
+        confirmLabel="Delete"
+        cancelLabel="Cancel"
+        variant="danger"
+        loading={deleting}
+      />
 
       <Modal
         isOpen={showEditModal}
