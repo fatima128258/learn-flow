@@ -4,8 +4,6 @@ import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import {
-  Badge,
-  Button,
   EmptyState,
   EmptyStateIcons,
   ErrorState,
@@ -48,7 +46,6 @@ export default function StudentCoursePage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [organizationId, setOrganizationId] = useState<string | null>(null);
-  const [progressLoading, setProgressLoading] = useState(false);
   const [expandedModuleId, setExpandedModuleId] = useState<string | null>(null);
 
   // Check auth and set organizationId
@@ -130,17 +127,6 @@ export default function StudentCoursePage() {
     };
   }, [organizationId, courseId, router]);
 
-  async function handleViewProgress() {
-    if (!courseId || progressLoading) return;
-    
-    setProgressLoading(true);
-    try {
-      router.push(`/dashboard/student/courses/${courseId}/progress`);
-    } catch (error) {
-      setProgressLoading(false);
-    }
-  }
-
   if (loading) {
     return (
       <div className="mx-auto flex max-w-5xl items-center gap-3 text-neutral-700">
@@ -182,50 +168,6 @@ export default function StudentCoursePage() {
           </div>
         ) : course ? (
           <>
-            <div className="mb-8 rounded-2xl border border-neutral-200 bg-white p-6 shadow-sm">
-              <div className="flex flex-wrap items-center gap-2 mb-3">
-                {course.category && <Badge variant="primary" size="sm">{course.category}</Badge>}
-                {course.difficulty && <Badge variant="default" size="sm">{course.difficulty}</Badge>}
-                <Badge variant="success" size="sm">Enrolled</Badge>
-              </div>
-              <h1 className="text-3xl font-bold text-neutral-900">{course.title}</h1>
-              {course.description && (
-                <p className="mt-3 text-neutral-600">{course.description}</p>
-              )}
-              <div className="mt-4 flex flex-wrap items-center gap-4">
-                <div className="flex items-center gap-4 text-sm text-neutral-500">
-                  <span>{course.modules.length} module{course.modules.length !== 1 ? 's' : ''}</span>
-                  <span>
-                    {course.modules.reduce((sum, m) => sum + m.lessonCount, 0)} lesson{course.modules.reduce((sum, m) => sum + m.lessonCount, 0) !== 1 ? 's' : ''}
-                  </span>
-                </div>
-                <Button
-                  size="sm"
-                  variant="primary"
-                  onClick={handleViewProgress}
-                  loading={progressLoading}
-                  disabled={progressLoading}
-                >
-                  View Progress
-                </Button>
-              </div>
-              {course.learningObjectives.length > 0 && (
-                <div className="mt-4">
-                  <h3 className="text-sm font-semibold text-neutral-900 mb-2">What you&apos;ll learn</h3>
-                  <ul className="space-y-1">
-                    {course.learningObjectives.map((obj, i) => (
-                      <li key={i} className="flex items-start gap-2 text-sm text-neutral-700">
-                        <svg className="mt-0.5 h-4 w-4 flex-shrink-0 text-success-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                        </svg>
-                        {obj}
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              )}
-            </div>
-
             <div className="mb-4 flex items-center justify-between gap-3">
               <h2 className="text-lg font-semibold text-neutral-900">Course Content</h2>
               <span className="rounded-full bg-primary-50 px-3 py-1 text-sm font-semibold text-primary-700">
