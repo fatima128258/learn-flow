@@ -1,7 +1,7 @@
 ﻿'use client';
 
 import { useEffect, useState } from 'react';
-import { useParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import {
   Badge,
@@ -9,10 +9,10 @@ import {
   ErrorState,
   Spinner,
 } from '@/components/ui';
-import { PageHeader } from '@/components/dashboard';
 import { getQuizErrorMessage } from '@/features/course/quizErrors';
 import { useToast } from '@/components/ui/ToastProvider';
 import { useCurrentUser } from '@/features/auth/useCurrentUser';
+import { getNextContentUrl } from '@/features/student/nextContent';
 
 type QuizOption = {
   id: string;
@@ -72,6 +72,7 @@ export default function StudentQuizTakingPage() {
   const courseId = typeof params.courseId === 'string' ? params.courseId : null;
   const moduleId = typeof params.moduleId === 'string' ? params.moduleId : null;
   const quizId = typeof params.quizId === 'string' ? params.quizId : null;
+  const router = useRouter();
   const toast = useToast();
   const { data: user, isLoading: userLoading } = useCurrentUser();
 
@@ -88,6 +89,7 @@ export default function StudentQuizTakingPage() {
   const [remainingSeconds, setRemainingSeconds] = useState<number | null>(null);
   const [starting, setStarting] = useState(false);
   const [expired, setExpired] = useState(false);
+  const [courseCompleted, setCourseCompleted] = useState(false);
 
   async function loadQuiz(orgId: string, cid: string, mid: string, qid: string) {
     try {
@@ -243,6 +245,31 @@ export default function StudentQuizTakingPage() {
         return;
       }
       setResult(body.data ?? null);
+      if (body.data?.passed && organizationId && courseId && moduleId && quizId) {
+        const progressResponse = await fetch(
+          `/api/v1/organizations/${organizationId}/student/courses/${courseId}/progress`,
+          { credentials: 'include' },
+        );
+        if (progressResponse.ok) {
+          const progressBody = await progressResponse.json();
+          const completed = progressBody.data?.coursePercentage === 100 || progressBody.data?.courseComplete === true;
+          setCourseCompleted(completed);
+          if (completed) {
+            toast.success('Congratulations! You completed the entire course.');
+          }
+        }
+        const nextUrl = await getNextContentUrl({
+          organizationId,
+          courseId,
+          moduleId,
+          contentType: 'QUIZ',
+          contentId: quizId,
+        });
+        if (nextUrl) {
+          toast.success('Quiz passed! Moving to the next learning item.');
+          window.setTimeout(() => router.push(nextUrl), 1800);
+        }
+      }
     } catch {
       toast.error('Could not reach the server. Please try again.');
     } finally {
@@ -280,30 +307,6 @@ export default function StudentQuizTakingPage() {
 
   return (
     <div className="mx-auto w-full max-w-6xl px-1 sm:px-2">
-      <PageHeader
-        subtitle="Student"
-        title="Quiz"
-          breadcrumbs={
-            <div className="flex items-center gap-2 text-sm">
-              <Link href="/dashboard/student" className="text-primary-600 hover:text-primary-700">My Courses</Link>
-              <span className="text-neutral-400">/</span>
-              {quiz && (
-                <>
-                  <Link href={`/dashboard/student/courses/${courseId}`} className="text-primary-600 hover:text-primary-700">
-                    Course
-                  </Link>
-                  <span className="text-neutral-400">/</span>
-                  <Link href={`/dashboard/student/courses/${courseId}/modules/${moduleId}`} className="text-primary-600 hover:text-primary-700">
-                    Module
-                  </Link>
-                  <span className="text-neutral-400">/</span>
-                </>
-              )}
-              <span className="text-neutral-600">{quiz?.title ?? 'Quiz'}</span>
-            </div>
-          }
-        />
-
         {error && !quiz && (
           <div className="rounded-2xl border border-neutral-200 bg-white shadow-sm">
             <ErrorState
@@ -320,57 +323,81 @@ export default function StudentQuizTakingPage() {
         )}
 
         {quiz && result ? (
-          <div className="rounded-2xl border border-neutral-200 bg-white shadow-sm overflow-hidden">
-            <div className={`p-6 ${result.passed ? 'bg-success-50' : 'bg-error-50'}`}>
-              <div className={`inline-flex items-center gap-2 rounded-full px-4 py-1.5 text-sm font-medium ${result.passed ? 'bg-success-100 text-success-700' : 'bg-error-100 text-error-700'}`}>
-                <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <div className="mx-auto max-w-5xl overflow-hidden rounded-3xl border border-[#ead8c6] bg-white shadow-[0_12px_35px_rgba(90,50,31,0.08)]">
+            <div className={`relative overflow-hidden p-5 sm:p-9 ${result.passed ? 'bg-[#fff9f0]' : 'bg-[#fdf3ef]'}`}>
+              <div className="pointer-events-none absolute -right-12 -top-16 h-40 w-40 rounded-full bg-[#f5ebdd]" />
+              <div className="flex items-start gap-3">
+                <div className={`relative flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl ${result.passed ? 'bg-[#5a321f] text-white' : 'bg-[#a94442] text-white'}`}>
+                  <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   {result.passed ? (
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                   ) : (
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                   )}
-                </svg>
-                {result.passed ? 'Passed' : 'Failed'}
+                  </svg>
+                </div>
+                <div>
+                  <p className={`text-xs font-bold uppercase tracking-[0.16em] ${result.passed ? 'text-[#7a4a2e]' : 'text-[#a94442]'}`}>
+                    {result.passed ? 'Quiz passed' : 'Quiz not passed'}
+                  </p>
+                  <h1 className="mt-1 text-2xl font-bold tracking-tight text-[#17212b] sm:text-3xl">
+                    {courseCompleted ? 'Course completed!' : result.passed ? 'Congratulations!' : 'Keep practicing'}
+                  </h1>
+                </div>
               </div>
-              <h1 className="mt-3 text-2xl font-bold text-neutral-900">
-                {result.passed ? 'Congratulations!' : 'Quiz not passed'}
-              </h1>
-              <p className="mt-1 text-sm text-neutral-600">
-                You scored {result.percentage}% and {result.passed ? 'met' : 'did not meet'} the passing threshold
-                {result.passingPercentage != null ? ` of ${result.passingPercentage}%` : ''}.
+              <p className="relative mt-4 text-sm leading-6 text-[#5f6368] sm:ml-[3.5rem]">
+                {courseCompleted ? (
+                  'Amazing work! You successfully completed all modules in this course.'
+                ) : (
+                  <>
+                    You scored {result.percentage}% and {result.passed ? 'met' : 'did not meet'} the passing threshold
+                    {result.passingPercentage != null ? ` of ${result.passingPercentage}%` : ''}.
+                  </>
+                )}
               </p>
             </div>
 
-            <div className="p-6">
-              <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
-                <div className="rounded-xl border border-neutral-200 p-4 text-center">
-                  <div className="text-2xl font-bold text-neutral-900">{result.score} / {result.totalMarks}</div>
-                  <div className="text-sm text-neutral-500">Score</div>
+            <div className="p-5 sm:p-9">
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                <div className="rounded-2xl border border-[#ead8c6] bg-[#fffdf9] p-4 text-center">
+                  <div className="text-2xl font-bold text-[#5a321f]">{result.score} / {result.totalMarks}</div>
+                  <div className="mt-1 text-xs font-bold uppercase tracking-wide text-[#9b765c]">Score</div>
                 </div>
-                <p className="mt-4 text-sm text-neutral-500">
-                  Attempt {result.attemptNumber} of {quiz.maxAttempts ?? 'unlimited'}
-                  {' · '}{result.correctCount} of {result.totalQuestions} questions correct
-                  {result.attemptsRemaining != null && ` · ${result.attemptsRemaining} attempt${result.attemptsRemaining !== 1 ? 's' : ''} remaining`}
-                </p>
-                <div className="rounded-xl border border-neutral-200 p-4 text-center">
-                  <div className="text-2xl font-bold text-success-600">{result.correctCount}</div>
-                  <div className="text-sm text-neutral-500">Correct</div>
+                <div className="rounded-2xl border border-[#d9eadf] bg-[#f4fbf6] p-4 text-center">
+                  <div className="text-2xl font-bold text-[#16834b]">{result.correctCount}</div>
+                  <div className="mt-1 text-xs font-bold uppercase tracking-wide text-[#6b8d78]">Correct</div>
                 </div>
-                <div className="rounded-xl border border-neutral-200 p-4 text-center">
-                  <div className="text-2xl font-bold text-error-600">{result.incorrectCount}</div>
-                  <div className="text-sm text-neutral-500">Incorrect</div>
+                <div className="rounded-2xl border border-[#f0d7d4] bg-[#fff8f7] p-4 text-center">
+                  <div className="text-2xl font-bold text-[#c63d3d]">{result.incorrectCount}</div>
+                  <div className="mt-1 text-xs font-bold uppercase tracking-wide text-[#a47772]">Incorrect</div>
+                </div>
+                <div className="rounded-2xl border border-[#ead8c6] bg-[#f5ebdd] p-4 text-center">
+                  <div className="text-2xl font-bold text-[#5a321f]">{result.percentage}%</div>
+                  <div className="mt-1 text-xs font-bold uppercase tracking-wide text-[#9b765c]">Percentage</div>
                 </div>
               </div>
 
-              <div className="mt-6 flex flex-wrap items-center gap-3">
+              <div className="mt-4 rounded-2xl border border-[#ead8c6] bg-[#fffdf9] px-4 py-3 text-center text-sm text-[#6d625a] sm:text-left">
+                Attempt {result.attemptNumber} of {quiz.maxAttempts ?? 'unlimited'}
+                <span className="mx-2 text-neutral-300">•</span>
+                {result.correctCount} of {result.totalQuestions} questions correct
+                {result.attemptsRemaining != null && (
+                  <>
+                    <span className="mx-2 text-neutral-300">•</span>
+                    {result.attemptsRemaining} attempt{result.attemptsRemaining !== 1 ? 's' : ''} remaining
+                  </>
+                )}
+              </div>
+
+              <div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <Link
                   href={`/dashboard/student/courses/${courseId}/modules/${moduleId}`}
-                  className="text-sm text-primary-600 hover:text-primary-700"
+                  className="text-center text-sm font-semibold text-[#5a321f] hover:text-[#7a4a2e] sm:text-left"
                 >
                   &larr; Back to Module
                 </Link>
                 {!result.passed && (result.attemptsRemaining == null || result.attemptsRemaining > 0) && (
-                  <Button variant="primary" onClick={retryAttempt} loading={starting}>
+                  <Button className="w-full sm:w-auto" variant="primary" onClick={retryAttempt} loading={starting}>
                     Retry Quiz
                   </Button>
                 )}
@@ -423,13 +450,6 @@ export default function StudentQuizTakingPage() {
 
         {quiz && !result && started && question && !expired ? (
           <>
-            <div className="mb-4 rounded-2xl border border-neutral-200 bg-[#fffdf9] p-3 shadow-sm sm:p-4">
-              <Link href={`/dashboard/student/courses/${courseId}/modules/${moduleId}`} className="text-xs font-medium text-[#5a321f] hover:underline">
-                ← Back to Course
-              </Link>
-              <h1 className="mt-3 break-words text-lg font-bold text-[#17212b] sm:text-xl">{quiz.title}</h1>
-              {quiz.description && <p className="mt-1 break-words text-xs leading-5 text-[#64748b]">{quiz.description}</p>}
-            </div>
             <div className="grid min-w-0 gap-3 md:grid-cols-[180px_minmax(0,1fr)] xl:grid-cols-[170px_minmax(0,1fr)_200px]">
               <aside className="min-w-0 rounded-xl border border-neutral-200 bg-[#fffdf9] p-3">
                 <div className="flex items-center justify-between text-xs font-semibold text-[#475569]">

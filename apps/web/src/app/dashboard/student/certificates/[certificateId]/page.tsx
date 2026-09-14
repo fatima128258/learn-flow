@@ -27,6 +27,9 @@ type Certificate = {
   issuedAt: string;
   pdfUrl?: string | null;
   pdfDownloadUrl?: string | null;
+  totalMarks?: number | null;
+  obtainedMarks?: number | null;
+  percentage?: number | null;
 };
 
 function formatDate(value: string) {
@@ -203,6 +206,26 @@ export default function StudentCertificateViewPage() {
                   <p className="font-semibold text-neutral-900">{formatDate(certificate.completionDate)}</p>
                 </div>
               </div>
+
+              {certificate.totalMarks != null && certificate.obtainedMarks != null && (
+                <div className="mx-auto mt-6 grid max-w-md grid-cols-2 gap-3 text-center">
+                  <div className="rounded-xl border border-primary-100 bg-primary-50 px-4 py-3">
+                    <p className="text-xs font-semibold uppercase tracking-wide text-primary-600">Total Marks</p>
+                    <p className="mt-1 text-xl font-bold text-neutral-900">{certificate.totalMarks}</p>
+                  </div>
+                  <div className="rounded-xl border border-primary-100 bg-primary-50 px-4 py-3">
+                    <p className="text-xs font-semibold uppercase tracking-wide text-primary-600">Obtained Marks</p>
+                    <p className="mt-1 text-xl font-bold text-neutral-900">
+                      {certificate.obtainedMarks}
+                      {certificate.percentage != null && (
+                        <span className="ml-1 text-sm font-medium text-neutral-500">
+                          ({certificate.percentage.toFixed(1)}%)
+                        </span>
+                      )}
+                    </p>
+                  </div>
+                </div>
+              )}
             </div>
 
             <div className="border-t border-neutral-100 px-8 py-5">

@@ -2,14 +2,11 @@
 
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import Link from 'next/link';
 import {
-  Badge,
   Button,
   ErrorState,
   Spinner,
 } from '@/components/ui';
-import { PageHeader } from '@/components/dashboard';
 import { useToast } from '@/components/ui/ToastProvider';
 import { useEnroll, usePurchase } from '@/features/student/useEnrollment';
 import { getPurchaseErrorMessage } from '@/features/student/courseErrors';
@@ -173,20 +170,6 @@ export default function StudentCourseOverviewPage() {
 
   return (
     <div className="mx-auto max-w-6xl">
-      <PageHeader
-        subtitle="Course Catalog"
-        title={course?.title ?? 'Course Details'}
-        breadcrumbs={
-          <div className="flex items-center gap-2 text-sm">
-            <Link href="/dashboard/student/search" className="text-primary-600 hover:text-primary-700">
-              Search Courses
-            </Link>
-            <span className="text-neutral-400">/</span>
-            <span className="text-neutral-600">{course?.title ?? 'Loading...'}</span>
-          </div>
-        }
-      />
-
       {error ? (
         <div className="rounded-2xl border border-neutral-200 bg-white shadow-sm">
           <ErrorState

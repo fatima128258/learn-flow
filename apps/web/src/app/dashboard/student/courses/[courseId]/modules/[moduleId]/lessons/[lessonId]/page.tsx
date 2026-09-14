@@ -1,12 +1,14 @@
 ﻿'use client';
 
 import { useEffect, useState } from 'react';
-import { useParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Badge, Button, ErrorState, Spinner } from '@/components/ui';
 import { PageHeader } from '@/components/dashboard';
 import { useCurrentUser } from '@/features/auth/useCurrentUser';
 import { useProgress, useModuleLessons } from '@/features/student/useProgress';
+import { useToast } from '@/components/ui/ToastProvider';
+import { getNextContentUrl } from '@/features/student/nextContent';
 
 type LessonContent = {
   id: string;
@@ -38,7 +40,9 @@ export default function StudentLessonPage() {
   const courseId = typeof params.courseId === 'string' ? params.courseId : null;
   const moduleId = typeof params.moduleId === 'string' ? params.moduleId : null;
   const lessonId = typeof params.lessonId === 'string' ? params.lessonId : null;
+  const router = useRouter();
   const { data: user, isLoading: userLoading } = useCurrentUser();
+  const toast = useToast();
   const organizationId = user?.organizationId ?? '';
   const { data: progress, isLoading: progressLoading } = useProgress(organizationId, courseId ?? '');
   const { data: moduleItems } = useModuleLessons(organizationId, courseId ?? '', moduleId ?? '');
@@ -158,6 +162,21 @@ export default function StudentLessonPage() {
       if (!res.ok) {
         setMarkError('Could not update your progress. Please try again.');
         return;
+      }
+      if (completed && data?.module.order === 1) {
+        toast.success('Congratulations! You completed the first module.');
+      }
+      if (completed && user.organizationId) {
+        const nextUrl = await getNextContentUrl({
+          organizationId: user.organizationId,
+          courseId,
+          moduleId,
+          contentType: 'LESSON',
+          contentId: lessonId,
+        });
+        if (nextUrl) {
+          window.setTimeout(() => router.push(nextUrl), 1200);
+        }
       }
     } catch {
       setMarkError('Could not reach the server. Please try again.');

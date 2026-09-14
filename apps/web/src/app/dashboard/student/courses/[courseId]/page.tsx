@@ -10,6 +10,7 @@ import {
   Spinner,
 } from '@/components/ui';
 import { useCurrentUser } from '@/features/auth/useCurrentUser';
+import { useProgress } from '@/features/student/useProgress';
 
 type CourseModule = {
   id: string;
@@ -46,6 +47,7 @@ export default function StudentCoursePage() {
   const [error, setError] = useState<string | null>(null);
   const [organizationId, setOrganizationId] = useState<string | null>(null);
   const [expandedModuleId, setExpandedModuleId] = useState<string | null>(null);
+  const { data: progress } = useProgress(organizationId ?? '', courseId ?? '');
 
   // Check auth and set organizationId
   useEffect(() => {
@@ -176,6 +178,8 @@ export default function StudentCoursePage() {
                 {course.modules.map((module, index) => {
                   const isFirstModule = index === 0;
                   const isExpanded = expandedModuleId === module.id;
+                  const moduleProgress = progress?.modules.find((item) => item.id === module.id);
+                  const isComplete = moduleProgress?.complete === true;
                   return (
                   <div
                     key={module.id}
@@ -189,10 +193,18 @@ export default function StudentCoursePage() {
                         <div className={`flex h-10 w-10 items-center justify-center rounded-lg text-sm font-bold ${isExpanded ? 'bg-primary-100 text-primary-800' : 'bg-primary-50 text-primary-700'}`}>
                           {index + 1}
                         </div>
-                        <div>
-                          <h3 className="font-semibold text-neutral-900 group-hover:text-primary-600 transition-colors">
-                            {module.title}
-                          </h3>
+                        <div className="min-w-0">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <h3 className="font-semibold text-neutral-900 group-hover:text-primary-600 transition-colors">
+                              {module.title}
+                            </h3>
+                            {isComplete && (
+                              <span className="inline-flex items-center gap-1 rounded-full bg-[#e9f7ef] px-2.5 py-1 text-xs font-semibold text-[#16834b]">
+                                <span aria-hidden="true">✓</span>
+                                Module Complete
+                              </span>
+                            )}
+                          </div>
                           {module.description && (
                             <p className="mt-0.5 text-sm text-neutral-500 line-clamp-1">{module.description}</p>
                           )}
@@ -210,7 +222,7 @@ export default function StudentCoursePage() {
                       <div className="border-t border-primary-100 bg-primary-50/30 px-5 py-4">
                         <div className="flex flex-wrap items-center justify-between gap-3">
                           <p className="text-sm text-neutral-600">
-                            {isFirstModule ? 'Start with this first module.' : 'Continue this module.'}
+                            {isComplete ? 'Congratulations! You completed this module.' : isFirstModule ? 'Start with this first module.' : 'Continue this module.'}
                             {' '}{module.lessonCount} lesson{module.lessonCount !== 1 ? 's' : ''} available.
                           </p>
                           <Link
