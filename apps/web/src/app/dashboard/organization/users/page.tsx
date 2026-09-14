@@ -12,7 +12,7 @@ import {
   Drawer,
   Input,
   Modal,
-  Confirm  Modal,
+  ConfirmModal,
   Spinner,
   ViewToggle,
 } from '@/components/ui';
