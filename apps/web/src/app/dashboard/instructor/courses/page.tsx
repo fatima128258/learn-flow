@@ -308,9 +308,15 @@ export default function InstructorCoursesPage() {
                         onChangeStatusClick={() => setStatusModalCourseId(course.id)}
                       />
                     </div>
-                    <div className="mt-auto grid grid-cols-2 gap-4 border-t border-[#ead8c6] pt-4 text-sm">
-                      <div><p className="text-xs font-semibold uppercase tracking-wide text-neutral-900">Status</p><div className="mt-2"><Badge variant={statusBadgeVariant(course.status)} size="sm">{course.status}</Badge></div></div>
-                      <div><p className="text-xs font-semibold uppercase tracking-wide text-neutral-900">Created</p><p className="mt-2 font-medium text-neutral-900">{new Date(course.createdAt).toLocaleDateString()}</p></div>
+                    <div className="mt-auto space-y-3 border-t border-[#ead8c6] pt-4 text-sm">
+                      <div className="flex items-center justify-between gap-4">
+                        <p className="text-xs font-semibold uppercase tracking-wide text-neutral-900">Status</p>
+                        <Badge variant={statusBadgeVariant(course.status)} size="sm">{course.status}</Badge>
+                      </div>
+                      <div className="flex items-center justify-between gap-4">
+                        <p className="text-xs font-semibold uppercase tracking-wide text-neutral-900">Created</p>
+                        <p className="font-medium text-neutral-900">{new Date(course.createdAt).toLocaleDateString()}</p>
+                      </div>
                     </div>
                   </article>
                 ))}
