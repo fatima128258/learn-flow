@@ -37,7 +37,7 @@ export function formatAssessmentResult(data: Pick<CertificatePdfData, 'totalMark
   }
   return {
     marks: `Assessment result: ${data.obtainedMarks}/${data.totalMarks} marks (${data.percentage.toFixed(2)}%)`,
-    status: data.passed ? 'Result: Passed' : 'Result: Not passed',
+    status: data.passed ? 'Result: Passed' : 'Result: Failed',
   };
 }
 
@@ -62,8 +62,13 @@ export function buildCertificatePdf(data: CertificatePdfData): Promise<Buffer> {
     doc.rect(36, 36, PAGE_WIDTH - 72, PAGE_HEIGHT - 72).lineWidth(2).stroke(PRIMARY_COLOR);
     doc.rect(42, 42, PAGE_WIDTH - 84, PAGE_HEIGHT - 84).lineWidth(0.75).stroke(ACCENT_COLOR);
 
+    const documentTitle = data.passed === false ? 'CERTIFICATE OF COURSE COMPLETION' : 'CERTIFICATE OF COMPLETION';
+    const completionText = data.passed === false
+      ? 'has completed the course with assessment result: failed'
+      : 'has successfully completed the course';
+
     doc.fontSize(14).fillColor(NEUTRAL_MEDIUM).font('Helvetica-Bold').text(
-      'CERTIFICATE OF COMPLETION',
+      documentTitle,
       60,
       140,
       { align: 'center', characterSpacing: 1, width: PAGE_WIDTH - 120 },
@@ -84,7 +89,7 @@ export function buildCertificatePdf(data: CertificatePdfData): Promise<Buffer> {
     );
 
     doc.fontSize(13).fillColor(NEUTRAL_MEDIUM).font('Helvetica').text(
-      'has successfully completed the course',
+      completionText,
       60,
       280,
       { align: 'center', width: PAGE_WIDTH - 120 },

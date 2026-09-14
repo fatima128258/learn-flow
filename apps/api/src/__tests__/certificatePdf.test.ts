@@ -39,6 +39,15 @@ describe('buildCertificatePdf', () => {
       status: 'Result: Passed',
     });
   });
+
+  it('marks failed assessments explicitly on the certificate', () => {
+    const failedData = { ...pdfData, obtainedMarks: 4, percentage: 40, passed: false };
+
+    expect(certificatePdfService.formatAssessmentResult(failedData)).toEqual({
+      marks: 'Assessment result: 4/10 marks (40.00%)',
+      status: 'Result: Failed',
+    });
+  });
 });
 
 describe('uploadCertificatePdf', () => {
