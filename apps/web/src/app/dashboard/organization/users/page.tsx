@@ -306,10 +306,10 @@ export default function OrgUsersPage() {
             className="max-w-md"
           />
           <div className="flex items-center gap-2 whitespace-nowrap">
-            <Button size="sm" className="h-12 bg-gray-600 text-white hover:bg-gray-700 border-none" onClick={() => openAdd('STUDENT')}>
+            <Button size="sm" className="h-10 bg-gray-600 text-white hover:bg-gray-700 border-none" onClick={() => openAdd('STUDENT')}>
               Add Student
             </Button>
-            <Button size="sm" variant="primary" className="h-12" onClick={() => openAdd('INSTRUCTOR')}>
+            <Button size="sm" variant="primary" className="h-10" onClick={() => openAdd('INSTRUCTOR')}>
               Add Instructor
             </Button>
             <ViewToggle value={viewMode} onChange={setViewMode} storageKey="learnhub-organization-users-view" />

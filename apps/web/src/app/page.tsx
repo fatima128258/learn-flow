@@ -109,7 +109,7 @@ export default function Home() {
             <div className="mb-8">
               <div>
                 <span className="text-xs font-semibold uppercase tracking-[0.2em] text-[#9a6f54]">Top features</span>
-                <h2 className="mt-3 whitespace-nowrap text-3xl font-bold tracking-[-0.04em] text-[#291d1a] sm:text-4xl">
+                <h2 className="mt-3 break-words text-3xl font-bold leading-tight tracking-[-0.04em] text-[#291d1a] sm:text-4xl">
                   Learn with clarity and momentum.
                 </h2>
               </div>
@@ -144,35 +144,35 @@ export default function Home() {
                   Learning That Fits Your Life.
                 </h2>
                 <ul className="mt-6 space-y-4 text-base text-[#5d463a]">
-                  <li className="flex items-center gap-3">
+                  <li className="flex min-w-0 items-center gap-3">
                     <span className="h-2.5 w-2.5 shrink-0 rounded-full bg-[#9a6f54]" />
                     Learn at your own pace with flexible study schedules.
                   </li>
-                  <li className="flex items-center gap-3">
+                  <li className="flex min-w-0 items-center gap-3">
                     <span className="h-2.5 w-2.5 shrink-0 rounded-full bg-[#9a6f54]" />
                     Follow clear, structured lessons that keep you focused.
                   </li>
-                  <li className="flex items-center gap-3">
+                  <li className="flex min-w-0 items-center gap-3">
                     <span className="h-2.5 w-2.5 shrink-0 rounded-full bg-[#9a6f54]" />
                     Build practical skills and confidence for your next step.
                   </li>
-                  <li className="flex items-center gap-3">
+                  <li className="flex min-w-0 items-center gap-3">
                     <span className="h-2.5 w-2.5 shrink-0 rounded-full bg-[#9a6f54]" />
                     Learn from expert instructors with real-world experience.
                   </li>
-                  <li className="flex items-center gap-3">
+                  <li className="flex min-w-0 items-center gap-3">
                     <span className="h-2.5 w-2.5 shrink-0 rounded-full bg-[#9a6f54]" />
                     Track your progress and celebrate every achievement.
                   </li>
-                  <li className="flex items-center gap-3">
+                  <li className="flex min-w-0 items-center gap-3">
                     <span className="h-2.5 w-2.5 shrink-0 rounded-full bg-[#9a6f54]" />
                     Access engaging lessons from any device, anywhere.
                   </li>
-                  <li className="flex items-center gap-3">
+                  <li className="flex min-w-0 items-center gap-3">
                     <span className="h-2.5 w-2.5 shrink-0 rounded-full bg-[#9a6f54]" />
                     Practice new concepts with clear, useful guidance.
                   </li>
-                  <li className="flex items-center gap-3">
+                  <li className="flex min-w-0 items-center gap-3">
                     <span className="h-2.5 w-2.5 shrink-0 rounded-full bg-[#9a6f54]" />
                     Earn certificates that showcase your learning progress.
                   </li>
@@ -183,7 +183,7 @@ export default function Home() {
                   <div className="mb-6 flex items-center justify-between">
                     <div>
                       <p className="text-xs uppercase tracking-[0.2em] !text-[#f0d5b9]">Learn anytime</p>
-                      <h3 className="mt-2 whitespace-nowrap text-3xl font-bold tracking-[-0.04em] !text-[#fff9f0]">Learn Anytime, Anywhere</h3>
+                      <h3 className="mt-2 break-words text-3xl font-bold leading-tight tracking-[-0.04em] !text-[#fff9f0]">Learn Anytime, Anywhere</h3>
                     </div>
                     <div className="flex h-12 w-12 items-center justify-center rounded-full bg-[#f1d9b8] text-2xl text-[#31221d]">📚</div>
                   </div>
@@ -194,11 +194,11 @@ export default function Home() {
                     className="h-48 w-full rounded-[20px] object-cover transition duration-700 hover:scale-[1.03]"
                   />
 
-                  <ul className="mt-6 flex items-center justify-between gap-4 text-sm !text-[#f5e6d7]">
-                    <li className="flex items-center gap-3 whitespace-nowrap"><span className="inline-block h-2 w-2 shrink-0 rounded-full bg-[#f2b67a]" /> Flexible schedule</li>
+                  <ul className="mt-6 flex flex-col gap-3 text-sm !text-[#f5e6d7] sm:flex-row sm:items-center sm:justify-between sm:gap-4">
+                    <li className="flex items-center gap-3"><span className="inline-block h-2 w-2 shrink-0 rounded-full bg-[#f2b67a]" /> Flexible schedule</li>
                     {/* <li className="flex items-center gap-3"><span className="inline-block h-2 w-2 rounded-full bg-[#f2b67a]" /> Guided, di
                     straction-free lessons</li> */}
-                    <li className="flex items-center gap-3 whitespace-nowrap"><span className="inline-block h-2 w-2 shrink-0 rounded-full bg-[#f2b67a]" /> Works across devices</li>
+                    <li className="flex items-center gap-3"><span className="inline-block h-2 w-2 shrink-0 rounded-full bg-[#f2b67a]" /> Works across devices</li>
                   </ul>
 
                   <LinkButton

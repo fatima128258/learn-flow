@@ -296,44 +296,22 @@ export default function InstructorCoursesPage() {
               </table>
             </div>
 
-            <div className="hidden">
-              {courses?.map((course) => (
-                <div key={course.id} className="rounded-2xl border border-neutral-200 bg-white p-4 shadow-sm">
-                  <div className="flex items-start justify-between gap-2">
-                    <p className="font-semibold text-neutral-900 leading-snug">{course.title}</p>
-                    <div className="flex items-center gap-1.5">
-                      <Badge variant={statusBadgeVariant(course.status)} size="sm">{course.status}</Badge>
-                      <CourseActionsMenu
-                        courseId={course.id}
-                        manageHref={manageHref(course.id)}
-                        onChangeStatusClick={() => setStatusModalCourseId(course.id)}
-                      />
-                    </div>
-                  </div>
-                  <div className="mt-3 flex items-center justify-between border-t border-neutral-100 pt-3 text-xs text-neutral-500">
-                    <span>{course.difficulty ?? '—'}</span>
-                    <span>{new Date(course.createdAt).toLocaleDateString()}</span>
-                  </div>
-                </div>
-              ))}
-            </div>
               </>
             ) : (
               <div className="grid gap-4 p-4 sm:grid-cols-2 lg:grid-cols-3">
                 {courses?.map((course) => (
-                  <article key={course.id} className="flex min-h-52 flex-col rounded-2xl border border-neutral-200 bg-white p-5 shadow-sm transition-shadow hover:shadow-md">
+                  <article key={course.id} className="flex min-h-44 flex-col rounded-2xl border border-[#ead8c6] bg-[#fffdf9] p-5 shadow-sm transition-shadow hover:border-[#c9a98e] hover:shadow-md">
                     <div className="flex items-start justify-between gap-3">
-                      <h2 className="min-w-0 font-semibold leading-snug text-neutral-900">{course.title}</h2>
+                      <h2 className="min-w-0 font-semibold leading-snug text-[#5a321f]">{course.title}</h2>
                       <CourseActionsMenu
                         courseId={course.id}
                         manageHref={manageHref(course.id)}
                         onChangeStatusClick={() => setStatusModalCourseId(course.id)}
                       />
                     </div>
-                    <div className="mt-3"><Badge variant={statusBadgeVariant(course.status)} size="sm">{course.status}</Badge></div>
-                    <div className="mt-auto grid grid-cols-2 gap-3 border-t border-neutral-100 pt-4 text-sm">
-                      <div><p className="text-xs uppercase tracking-wide text-neutral-400">Difficulty</p><p className="mt-1 text-neutral-700">{course.difficulty ?? '—'}</p></div>
-                      <div><p className="text-xs uppercase tracking-wide text-neutral-400">Created</p><p className="mt-1 text-neutral-700">{new Date(course.createdAt).toLocaleDateString()}</p></div>
+                    <div className="mt-auto grid grid-cols-2 gap-4 border-t border-[#ead8c6] pt-4 text-sm">
+                      <div><p className="text-xs font-semibold uppercase tracking-wide text-neutral-900">Status</p><div className="mt-2"><Badge variant={statusBadgeVariant(course.status)} size="sm">{course.status}</Badge></div></div>
+                      <div><p className="text-xs font-semibold uppercase tracking-wide text-neutral-900">Created</p><p className="mt-2 font-medium text-neutral-900">{new Date(course.createdAt).toLocaleDateString()}</p></div>
                     </div>
                   </article>
                 ))}

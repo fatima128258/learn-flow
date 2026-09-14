@@ -374,12 +374,13 @@ export default function MyCoursesPage() {
               onChange={(event) => setSearchTerm(event.target.value)}
               placeholder="Search courses by title, slug, status, or difficulty"
               aria-label="Search courses"
-              className="min-w-0 rounded-xl border border-[#e5d5c4] bg-[#fffdf9] px-4 py-3 text-sm text-[#17212b] outline-none transition-all placeholder:text-neutral-400 focus:border-[#7a4a2e] focus:ring-2 focus:ring-[#a8784f]/20 sm:max-w-md"
+              className="min-w-0 rounded-xl border border-[#e5d5c4] bg-[#fffdf9] px-4 py-3 text-sm text-[#17212b] outline-none transition-all placeholder:text-neutral-400 focus:border-[#7a4a2e] focus:ring-2 focus:ring-[#a8784f]/20 sm:w-[28rem]"
             />
             <div className="flex flex-wrap items-center gap-2">
               <LinkButton
                 href={`/dashboard/organization/courses/new${organizationId ? `?organization=${organizationId}` : ''}`}
                 size="sm"
+                className="!h-10 !border-0"
               >
                 Create Course
               </LinkButton>
@@ -466,48 +467,15 @@ export default function MyCoursesPage() {
                 </table>
               </div>
 
-              <div className="hidden">
-                {filteredCourses.map((course) => (
-                  <div
-                    key={course.id}
-                    className="rounded-2xl border border-neutral-200 bg-white p-4 shadow-sm"
-                  >
-                    <div className="flex items-start justify-between gap-2">
-                      <a
-                        href={`/dashboard/organization/courses/${course.id}${organizationId ? `?organization=${organizationId}` : ''}`}
-                        className="font-semibold text-primary-600 leading-snug hover:underline"
-                      >
-                        {course.title}
-                      </a>
-                      <div className="flex items-center gap-1.5">
-                        <Badge variant={statusBadgeVariant(course.status)} size="sm">
-                          {course.status}
-                        </Badge>
-                        <CourseActionsMenu
-                          courseId={course.id}
-                          manageHref={`/dashboard/organization/courses/${course.id}${organizationId ? `?organization=${organizationId}` : ''}`}
-                          onViewClick={() => void openCourseView(course)}
-                          onChangeStatusClick={() => setStatusModalCourseId(course.id)}
-                        />
-                      </div>
-                    </div>
-                    <p className="mt-1 text-xs text-neutral-400">{course.slug}</p>
-                    <div className="mt-3 flex items-center justify-between border-t border-neutral-100 pt-3 text-xs text-neutral-500">
-                      <span>{course.difficulty ?? '—'}</span>
-                      <span>{new Date(course.createdAt).toLocaleDateString()}</span>
-                    </div>
-                  </div>
-                ))}
-              </div>
                 </>
               ) : (
                 <div className="grid gap-4 p-4 sm:grid-cols-2 lg:grid-cols-3">
                   {filteredCourses.map((course) => (
-                    <article key={course.id} className="flex min-h-52 flex-col rounded-2xl border border-neutral-200 bg-white p-5 shadow-sm transition-shadow hover:shadow-md">
+                    <article key={course.id} className="flex min-h-44 flex-col rounded-2xl border border-[#ead8c6] bg-[#fffdf9] p-5 shadow-sm transition-shadow hover:border-[#c9a98e] hover:shadow-md">
                       <div className="flex items-start justify-between gap-3">
                         <a
                           href={`/dashboard/organization/courses/${course.id}${organizationId ? `?organization=${organizationId}` : ''}`}
-                          className="min-w-0 font-semibold leading-snug text-primary-600 hover:underline"
+                          className="min-w-0 font-semibold leading-snug text-[#5a321f] hover:underline"
                         >
                           {course.title}
                         </a>
@@ -518,11 +486,9 @@ export default function MyCoursesPage() {
                           onChangeStatusClick={() => setStatusModalCourseId(course.id)}
                         />
                       </div>
-                      <div className="mt-3"><Badge variant={statusBadgeVariant(course.status)} size="sm">{course.status}</Badge></div>
-                      <p className="mt-2 truncate text-sm text-neutral-500">{course.slug}</p>
-                      <div className="mt-auto grid grid-cols-2 gap-3 border-t border-neutral-100 pt-4 text-sm">
-                        <div><p className="text-xs uppercase tracking-wide text-neutral-400">Difficulty</p><p className="mt-1 text-neutral-700">{course.difficulty ?? '—'}</p></div>
-                        <div><p className="text-xs uppercase tracking-wide text-neutral-400">Created</p><p className="mt-1 text-neutral-700">{new Date(course.createdAt).toLocaleDateString()}</p></div>
+                      <div className="mt-auto grid grid-cols-2 gap-4 border-t border-[#ead8c6] pt-4 text-sm">
+                        <div><p className="text-xs font-semibold uppercase tracking-wide text-neutral-900">Status</p><div className="mt-2"><Badge variant={statusBadgeVariant(course.status)} size="sm">{course.status}</Badge></div></div>
+                        <div><p className="text-xs font-semibold uppercase tracking-wide text-neutral-900">Created</p><p className="mt-2 font-medium text-neutral-900">{new Date(course.createdAt).toLocaleDateString()}</p></div>
                       </div>
                     </article>
                   ))}

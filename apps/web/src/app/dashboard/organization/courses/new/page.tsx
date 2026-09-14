@@ -41,7 +41,6 @@ export default function CreateCoursePage() {
   const [categoryId, setCategoryId] = useState('');
   const [price, setPrice] = useState('');
   const [discountPrice, setDiscountPrice] = useState('');
-  const [estimatedMinutes, setEstimatedMinutes] = useState('');
   const [difficulty, setDifficulty] = useState('');
   const [learningObjectives, setLearningObjectives] = useState('');
 
@@ -49,7 +48,6 @@ export default function CreateCoursePage() {
   const [thumbnailUrlError, setThumbnailUrlError] = useState('');
   const [priceError, setPriceError] = useState('');
   const [discountPriceError, setDiscountPriceError] = useState('');
-  const [estimatedMinutesError, setEstimatedMinutesError] = useState('');
 
   const [submitting, setSubmitting] = useState(false);
 
@@ -80,7 +78,6 @@ export default function CreateCoursePage() {
     setCategoryId('');
     setPrice('');
     setDiscountPrice('');
-    setEstimatedMinutes('');
     setDifficulty('');
     setLearningObjectives('');
   }
@@ -90,7 +87,6 @@ export default function CreateCoursePage() {
     setThumbnailUrlError('');
     setPriceError('');
     setDiscountPriceError('');
-    setEstimatedMinutesError('');
   }
 
   function validateForm(): string | null {
@@ -134,15 +130,6 @@ export default function CreateCoursePage() {
       return 'Discount price must be a number greater than or equal to 0';
     }
 
-    const parsedEstimatedMinutes = parseOptionalNumber(estimatedMinutes);
-    if (
-      parsedEstimatedMinutes !== undefined &&
-      (!Number.isInteger(parsedEstimatedMinutes) || parsedEstimatedMinutes <= 0)
-    ) {
-      setEstimatedMinutesError('Estimated minutes must be a whole number greater than 0');
-      return 'Estimated minutes must be a whole number greater than 0';
-    }
-
     return null;
   }
 
@@ -172,9 +159,6 @@ export default function CreateCoursePage() {
 
     const parsedDiscountPrice = parseOptionalNumber(discountPrice);
     if (parsedDiscountPrice !== undefined) payload.discountPrice = parsedDiscountPrice;
-
-    const parsedEstimatedMinutes = parseOptionalNumber(estimatedMinutes);
-    if (parsedEstimatedMinutes !== undefined) payload.estimatedMinutes = parsedEstimatedMinutes;
 
     if (difficulty.trim()) payload.difficulty = difficulty.trim();
 
@@ -277,13 +261,24 @@ export default function CreateCoursePage() {
                 disabled={submitting}
               />
 
-              <CategorySelect
-                organizationId={organizationId}
-                value={categoryId}
-                onChange={setCategoryId}
-                allowPrivateCreate={user?.role === 'INSTRUCTOR'}
-                disabled={submitting}
-              />
+              <div className="grid gap-5 md:grid-cols-2">
+                <CategorySelect
+                  organizationId={organizationId}
+                  value={categoryId}
+                  onChange={setCategoryId}
+                  allowPrivateCreate={user?.role === 'INSTRUCTOR'}
+                  disabled={submitting}
+                />
+
+                <Input
+                  label="Difficulty"
+                  value={difficulty}
+                  onChange={(e) => setDifficulty(e.target.value)}
+                  placeholder="e.g. Beginner-friendly"
+                  autoComplete="off"
+                  disabled={submitting}
+                />
+              </div>
 
               <div className="grid gap-5 md:grid-cols-2">
                 <Input
@@ -308,30 +303,6 @@ export default function CreateCoursePage() {
                   onChange={(e) => setDiscountPrice(e.target.value)}
                   error={discountPriceError}
                   placeholder="e.g. 29.99"
-                  autoComplete="off"
-                  disabled={submitting}
-                />
-              </div>
-
-              <div className="grid gap-5 md:grid-cols-2">
-                <Input
-                  label="Estimated minutes"
-                  type="number"
-                  min="1"
-                  step="1"
-                  value={estimatedMinutes}
-                  onChange={(e) => setEstimatedMinutes(e.target.value)}
-                  error={estimatedMinutesError}
-                  placeholder="e.g. 120"
-                  autoComplete="off"
-                  disabled={submitting}
-                />
-
-                <Input
-                  label="Difficulty"
-                  value={difficulty}
-                  onChange={(e) => setDifficulty(e.target.value)}
-                  placeholder="e.g. Beginner-friendly"
                   autoComplete="off"
                   disabled={submitting}
                 />

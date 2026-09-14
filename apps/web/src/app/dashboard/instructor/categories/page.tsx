@@ -132,7 +132,7 @@ export default function InstructorCategoriesPage() {
           : viewMode === 'table' ? (
             <div className="overflow-x-auto rounded-2xl border border-[#ead8c6] bg-[#fffdf9] shadow-sm">
               <table className="min-w-full divide-y divide-[#f0e2d3]">
-                <thead className="bg-[#f8f2eb]"><tr className="text-left text-xs font-semibold uppercase tracking-wide text-[#5f6368]"><th className="px-5 py-3">Category</th><th className="px-5 py-3">Description</th><th className="px-5 py-3">Owner</th><th className="px-5 py-3 text-center">Status</th></tr></thead>
+                <thead className="bg-[#f8fafc]"><tr className="text-left text-sm font-medium uppercase tracking-wide text-[#17212b]"><th className="px-6 py-5">Category</th><th className="px-6 py-5">Description</th><th className="px-6 py-5">Owner</th><th className="px-6 py-5 text-center">Status</th></tr></thead>
                 <tbody className="divide-y divide-[#f0e2d3]">{visibleCategories.map((category) => <tr key={category.id} className="text-sm transition-colors hover:bg-[#fff9f0]"><td className="px-5 py-4 font-semibold text-[#17212b]">{category.name}</td><td className="max-w-md px-5 py-4 text-[#5f6368]"><span className="block truncate">{category.description || 'No description provided.'}</span></td><td className="px-5 py-4 text-[#5f6368]">{category.ownerUserId ? 'Private' : 'Organization'}</td><td className="px-5 py-4 text-center"><Badge variant={category.status === 'ACTIVE' ? 'success' : 'default'} size="sm">{category.status ?? 'ACTIVE'}</Badge></td></tr>)}</tbody>
               </table>
             </div>

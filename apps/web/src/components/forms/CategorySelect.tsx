@@ -72,16 +72,16 @@ export function CategorySelect({
     <label className="block text-sm font-medium text-neutral-700">
       Category
       <select
-        className="mt-1.5 block w-full rounded-md border border-neutral-300 bg-white px-3 py-2"
+        className="mt-1.5 block w-full rounded-xl border border-[#e5d5c4] bg-[#fffdf9] px-4 py-3 text-[#17212b] outline-none transition-colors focus:border-[#7a4a2e] focus:ring-2 focus:ring-[#a8784f]/20 disabled:cursor-not-allowed disabled:bg-[#f8f2eb]"
         value={value}
         onChange={(event) => onChange(event.target.value)}
         disabled={disabled || loading || failed}
       >
-        <option value="">
+        <option value="" className="bg-[#fff9f0] text-[#7a4a2e]">
           {loading ? 'Loading categories...' : failed ? 'Unable to load categories' : categories.length ? 'No category' : 'No categories available'}
         </option>
         {categories.map((category) => (
-          <option key={category.id} value={category.id}>
+          <option key={category.id} value={category.id} className="bg-[#fff9f0] text-[#17212b]">
             {category.name}
           </option>
         ))}
