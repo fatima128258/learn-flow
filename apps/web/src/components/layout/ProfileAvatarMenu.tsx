@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import type { CurrentUser } from '@/lib/types';
+import { logout } from '@/lib/api';
 
 function displayName(user: CurrentUser) {
   return user.name?.trim() || user.email;
@@ -17,6 +18,7 @@ function roleLabel(role: CurrentUser['role']) {
 
 export function ProfileAvatarMenu({ user }: { user: CurrentUser | null | undefined }) {
   const [open, setOpen] = useState(false);
+  const [loggingOut, setLoggingOut] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -38,6 +40,12 @@ export function ProfileAvatarMenu({ user }: { user: CurrentUser | null | undefin
 
   const name = displayName(user);
   const initial = name.charAt(0).toUpperCase() || '?';
+
+  async function handleLogout() {
+    if (loggingOut) return;
+    setLoggingOut(true);
+    await logout();
+  }
 
   return (
     <div ref={rootRef} className="relative">
@@ -66,9 +74,22 @@ export function ProfileAvatarMenu({ user }: { user: CurrentUser | null | undefin
             </div>
           </div>
           <div className="mt-3 border-t border-neutral-100 pt-3">
+            <p className="text-xs font-medium uppercase tracking-wide text-neutral-400">Email</p>
+            <p className="mt-1 truncate text-sm text-neutral-700">{user.email}</p>
+          </div>
+          <div className="mt-3 border-t border-neutral-100 pt-3">
             <p className="text-xs font-medium uppercase tracking-wide text-neutral-400">Organization</p>
             <p className="mt-1 truncate text-sm text-neutral-700">{user.organizationName || 'No organization assigned'}</p>
           </div>
+          <button
+            type="button"
+            role="menuitem"
+            onClick={() => void handleLogout()}
+            disabled={loggingOut}
+            className="mt-4 flex w-full items-center justify-center rounded-lg bg-[#5a321f] px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-[#7a4a2e] disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            {loggingOut ? 'Logging out...' : 'Log out'}
+          </button>
         </div>
       )}
     </div>

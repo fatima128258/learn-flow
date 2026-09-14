@@ -650,7 +650,19 @@ export default function CourseModulesPage() {
                         <td className="px-6 py-4 text-center align-middle text-sm text-neutral-700">{module.durationMinutes} min</td>
                         <td className="px-6 py-4 text-sm text-neutral-700 max-w-xs truncate" title={module.description ?? ''}>{module.description ?? '—'}</td>
                         <td className="px-6 py-4 text-center align-middle" onClick={(e) => e.stopPropagation()}>
-                          <div className="flex items-center justify-center">
+                          <div className="flex flex-wrap items-center justify-center gap-2">
+                            <Link
+                              href={`${dashboardPrefix}/courses/${courseId}/modules/${module.id}/lessons${organizationId ? `?organization=${organizationId}` : ''}`}
+                              className="rounded-lg px-2.5 py-1.5 text-xs font-medium text-primary-600 transition-colors hover:bg-primary-50"
+                            >
+                              Add lesson
+                            </Link>
+                            <Link
+                              href={`${dashboardPrefix}/courses/${courseId}/modules/${module.id}/quizzes${organizationId ? `?organization=${organizationId}` : ''}`}
+                              className="rounded-lg px-2.5 py-1.5 text-xs font-medium text-primary-600 transition-colors hover:bg-primary-50"
+                            >
+                              Add quiz
+                            </Link>
                             <ModuleActionsMenu
                               module={module}
                               courseId={courseId!}

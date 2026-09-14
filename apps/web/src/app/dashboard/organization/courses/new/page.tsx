@@ -181,7 +181,7 @@ export default function CreateCoursePage() {
         toast.success('Course created as a draft.');
         const data = await res.json();
         if (data.data?.id) {
-          window.location.href = `/dashboard/organization/courses/${data.data.id}`;
+          window.location.href = `${dashboardPath}/courses/${data.data.id}/modules`;
           return;
         }
         resetForm();
@@ -318,8 +318,8 @@ export default function CreateCoursePage() {
                 disabled={submitting}
               />
 
-              <SubmitButton loading={submitting} loadingText="Creating course...">
-                Create course
+              <SubmitButton loading={submitting} loadingText="Creating draft...">
+                Create draft and add module
               </SubmitButton>
             </div>
           </form>
