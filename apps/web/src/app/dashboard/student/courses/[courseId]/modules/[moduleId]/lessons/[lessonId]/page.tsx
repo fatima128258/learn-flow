@@ -263,14 +263,6 @@ export default function StudentLessonPage() {
                   >
                     {marking ? 'Saving...' : 'Mark as Read'}
                   </Button>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    disabled={marking || progressLoading || !isCompleted}
-                    onClick={() => markComplete(false)}
-                  >
-                    Mark as Incomplete
-                  </Button>
                   {isCompleted && nextQuizId && (
                     <Link
                       href={`/dashboard/student/courses/${courseId}/modules/${moduleId}/quizzes/${nextQuizId}`}
