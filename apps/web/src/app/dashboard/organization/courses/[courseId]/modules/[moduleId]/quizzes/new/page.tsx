@@ -2,13 +2,13 @@
 
 import { useEffect, useState } from 'react';
 import { useParams, usePathname, useRouter } from 'next/navigation';
-import { Button, Spinner } from '../../../../../../../../../../components/ui';
-import { Input } from '../../../../../../../../../../components/ui/Input';
-import { Textarea } from '../../../../../../../../../../components/forms/Textarea';
-import { LinkButton } from '../../../../../../../../../../components/ui/LinkButton';
-import { useToast } from '../../../../../../../../../../components/ui/ToastProvider';
-import { getQuizErrorMessage } from '../../../../../../../../../../features/course/quizErrors';
-import { useCurrentUser } from '../../../../../../../../../../features/auth/useCurrentUser';
+import { Button, Spinner } from '@/components/ui';
+import { Input } from '@/components/ui/Input';
+import { Textarea } from '@/components/forms/Textarea';
+import { LinkButton } from '@/components/ui/LinkButton';
+import { useToast } from '@/components/ui/ToastProvider';
+import { getQuizErrorMessage } from '@/features/course/quizErrors';
+import { useCurrentUser } from '@/features/auth/useCurrentUser';
 
 export default function CreateQuizPage() {
   const params = useParams();
