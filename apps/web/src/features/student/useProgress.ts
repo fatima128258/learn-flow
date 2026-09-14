@@ -21,6 +21,8 @@ export type ProgressQuiz = {
   bestPercentage: number | null;
   latestPercentage: number | null;
   passed: boolean;
+  failed?: boolean;
+  attemptsRemaining?: number | null;
 };
 
 export type CourseProgress = {
@@ -31,6 +33,8 @@ export type CourseProgress = {
   completedLessons: number;
   coursePercentage: number;
   courseComplete: boolean;
+  contentComplete?: boolean;
+  successfulCompletion?: boolean;
   enrollmentStatus: string;
   completedLessonIds: string[];
   lastVisited: {

@@ -75,7 +75,7 @@ function CompletedCoursesSection({
           if (res.ok) {
             const data = await res.json();
             const progress = data.data;
-            if (progress?.courseComplete === true) {
+            if (progress?.contentComplete === true || progress?.courseComplete === true) {
               // Check if certificate already exists
               const hasCertificate = certificates.some(cert => cert.courseId === course.courseId);
               if (!hasCertificate) {

@@ -108,6 +108,10 @@ async function computeCourseProgress(
     select: { id: true, title: true, order: true, moduleId: true },
     orderBy: { order: 'asc' },
   });
+  const allQuizzes = await prisma.quiz.findMany({
+    where: { moduleId: { in: moduleIds } },
+    select: { id: true, moduleId: true },
+  });
 
   const lessonsByModule = new Map<string, { id: string }[]>();
   const contentItemsByModule = new Map<string, any[]>();
@@ -140,14 +144,25 @@ async function computeCourseProgress(
     }
     completedLessons += moduleCompleted;
     const contentItems = contentItemsByModule.get(module.id) ?? [];
+    const quizzes = allQuizzes.filter((quiz: { moduleId: string }) => quiz.moduleId === module.id);
+    const trackedItems = contentItems.length > 0
+      ? contentItems
+      : [
+          ...lessons.map(lesson => ({ type: 'LESSON', lessonId: lesson.id })),
+          ...quizzes.map(quiz => ({ type: 'QUIZ', quizId: quiz.id })),
+        ];
     const completedItems = contentItems.length > 0
-      ? contentItems.filter((item) =>
+      ? trackedItems.filter((item) =>
         item.type === 'LESSON'
           ? completedLessonIds.has(item.lessonId ?? '')
           : completedQuizIds.has(item.quizId ?? ''),
       ).length
-      : moduleCompleted;
-    const moduleDenominator = contentItems.length > 0 ? contentItems.length : lessons.length;
+      : trackedItems.filter((item) =>
+        item.type === 'LESSON'
+          ? completedLessonIds.has(item.lessonId ?? '')
+          : completedQuizIds.has(item.quizId ?? ''),
+      ).length;
+    const moduleDenominator = trackedItems.length;
     const percentage =
       moduleDenominator > 0 ? round2((completedItems / moduleDenominator) * 100) : 0;
     return {
@@ -173,6 +188,9 @@ async function computeCourseProgress(
     completedContentItems = items.filter((item: any) =>
       item.type === 'LESSON' ? completedLessonIds.has(item.lessonId) : completedQuizIds.has(item.quizId),
     ).length;
+  } else {
+    totalContentItems = totalLessons + allQuizzes.length;
+    completedContentItems = completedLessons + allQuizzes.filter((quiz: { id: string }) => completedQuizIds.has(quiz.id)).length;
   }
   const denominator = totalContentItems > 0 ? totalContentItems : totalLessons;
   const numerator = totalContentItems > 0 ? completedContentItems : completedLessons;
@@ -181,7 +199,13 @@ async function computeCourseProgress(
     denominator > 0 ? round2((numerator / denominator) * 100) : 0;
   const courseComplete = denominator > 0 && numerator === denominator;
 
-  const attemptsByQuiz = new Map<string, { attempts: number; best: number | null; latest: number | null; passed: boolean }>();
+  const attemptsByQuiz = new Map<string, {
+    attempts: number;
+    best: number | null;
+    latest: number | null;
+    passed: boolean;
+    maxAttempts: number | null;
+  }>();
   for (const attempt of attempts) {
     const entry = attemptsByQuiz.get(attempt.quizId);
     if (!entry) {
@@ -190,12 +214,16 @@ async function computeCourseProgress(
         best: attempt.percentage ?? 0,
         latest: attempt.percentage ?? 0,
         passed: attempt.passed === true,
+        maxAttempts: attempt.quiz?.maxAttempts ?? null,
       });
     } else {
       entry.attempts += 1;
       entry.latest = attempt.percentage ?? 0;
       entry.best = entry.best == null ? (attempt.percentage ?? 0) : Math.max(entry.best, attempt.percentage ?? 0);
       if (entry.passed === false && attempt.passed === true) entry.passed = true;
+      if (entry.maxAttempts == null && attempt.quiz?.maxAttempts != null) {
+        entry.maxAttempts = attempt.quiz.maxAttempts;
+      }
     }
   }
 
@@ -206,8 +234,19 @@ async function computeCourseProgress(
         bestPercentage: stat.best,
         latestPercentage: stat.latest,
         passed: stat.passed,
+        failed: !stat.passed,
+        attemptsRemaining: stat.maxAttempts == null
+          ? null
+          : Math.max(0, stat.maxAttempts - stat.attempts),
       }))
     : [];
+  const quizIds = new Set(
+    (items.length > 0
+      ? items.filter((item: any) => item.type === 'QUIZ' && item.quizId).map((item: any) => item.quizId as string)
+      : allQuizzes.map((quiz: { id: string }) => quiz.id)),
+  );
+  const allQuizzesPassed = Array.from(quizIds).every(quizId => passedQuizIds.has(quizId));
+  const successfulCompletion = courseComplete && allQuizzesPassed;
 
   return {
     courseId: course.id,
@@ -219,6 +258,8 @@ async function computeCourseProgress(
     completedContentItems: numerator,
     coursePercentage: round0(coursePercentage),
     courseComplete,
+    contentComplete: courseComplete,
+    successfulCompletion,
     enrollmentStatus: 'ACTIVE',
     completedLessonIds: Array.from(completedLessonIds),
     lastVisited: courseProgress
@@ -337,6 +378,7 @@ export async function recordLessonProgress(
     courseProgress: {
       coursePercentage: progress.coursePercentage,
       courseComplete: progress.courseComplete,
+      successfulCompletion: progress.successfulCompletion,
       completedLessons: progress.completedLessons,
       totalLessons: progress.totalLessons,
     },

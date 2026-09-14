@@ -111,11 +111,16 @@ export default function StudentCoursePage() {
           setLoading(false);
           return;
         }
-        const body = await res.json();
+        const body = await res.json() as { data?: CourseDetail | null };
         if (!active) return;
-        const loadedCourse = body.data as CourseDetail | null;
+        const loadedCourse = body.data ?? null;
+        if (!loadedCourse || !Array.isArray(loadedCourse.modules)) {
+          setError('Could not load course details. Please try again.');
+          setLoading(false);
+          return;
+        }
         setCourse(loadedCourse);
-        setExpandedModuleId(loadedCourse?.modules[0]?.id ?? null);
+        setExpandedModuleId(loadedCourse.modules[0]?.id ?? null);
         setLoading(false);
       } catch {
         if (active) {
@@ -270,7 +275,21 @@ export default function StudentCoursePage() {
               </div>
             )}
           </>
-        ) : null}
+        ) : (
+          <div className="rounded-2xl border border-neutral-200 bg-white shadow-sm">
+            <ErrorState
+              title="Unable to load course"
+              message="Course details are unavailable. Please try again."
+              action={{
+                label: 'Retry',
+                onClick: () => {
+                  setError(null);
+                  setLoading(true);
+                },
+              }}
+            />
+          </div>
+        )}
       </div>
   );
 }

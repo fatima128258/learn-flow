@@ -108,7 +108,9 @@ async function verifyStudentEligibility(organizationId: string, userId: string, 
     progressRepo.getCourseProgress(userId, courseId),
     progressService.getCourseProgress(organizationId, userId, courseId),
   ]);
-  if (!computedProgress.courseComplete) {
+  const contentComplete =
+    computedProgress.contentComplete ?? computedProgress.courseComplete;
+  if (!contentComplete) {
     throw new Error('COURSE_NOT_COMPLETED');
   }
 

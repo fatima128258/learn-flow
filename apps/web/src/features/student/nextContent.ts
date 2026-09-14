@@ -35,10 +35,8 @@ export async function getNextContentUrl({
     `/api/v1/organizations/${organizationId}/student/courses/${courseId}/progress`,
     { credentials: 'include' },
   );
-  if (!progressResponse.ok) return null;
-
-  const progressBody = await progressResponse.json();
-  const modules = (progressBody.data?.modules ?? []) as ModuleSummary[];
+  const progressBody = progressResponse.ok ? await progressResponse.json() : null;
+  const modules = (progressBody?.data?.modules ?? []) as ModuleSummary[];
   const orderedModules = [...modules].sort((a, b) => a.order - b.order);
   const sequence: Array<SequenceItem & { moduleId: string }> = [];
 
@@ -68,12 +66,6 @@ export async function getNextContentUrl({
 
   // Locked modules do not expose their content endpoint. Use the enrolled
   // course summary to find the next module's first activity instead.
-  const currentModule = orderedModules.find(module => module.id === moduleId);
-  const nextModule = orderedModules.find(
-    module => currentModule && module.order > currentModule.order,
-  );
-  if (!nextModule) return null;
-
   const courseResponse = await fetch(
     `/api/v1/organizations/${organizationId}/student/courses/${courseId}`,
     { credentials: 'include' },
@@ -81,8 +73,18 @@ export async function getNextContentUrl({
   if (!courseResponse.ok) return null;
   const courseBody = await courseResponse.json();
   const moduleSummaries = (courseBody.data?.modules ?? []) as CourseModuleSummary[];
+  const orderedCourseModules = [...moduleSummaries].sort((a, b) => a.order - b.order);
+  const currentModuleOrder = orderedModules.find(module => module.id === moduleId)?.order
+    ?? orderedCourseModules.find(module => module.id === moduleId)?.order;
+  const nextModule = orderedCourseModules.find(
+    module => currentModuleOrder != null && module.order > currentModuleOrder,
+  );
+  if (!nextModule) return null;
+
   const nextModuleSummary = moduleSummaries.find(module => module.id === nextModule.id);
-  if (!nextModuleSummary?.firstContentType || !nextModuleSummary.firstContentId) return null;
+  if (!nextModuleSummary?.firstContentType || !nextModuleSummary.firstContentId) {
+    return `/dashboard/student/courses/${courseId}/modules/${nextModule.id}`;
+  }
 
   const contentPath = nextModuleSummary.firstContentType === 'LESSON' ? 'lessons' : 'quizzes';
   return `/dashboard/student/courses/${courseId}/modules/${nextModuleSummary.id}/${contentPath}/${nextModuleSummary.firstContentId}`;

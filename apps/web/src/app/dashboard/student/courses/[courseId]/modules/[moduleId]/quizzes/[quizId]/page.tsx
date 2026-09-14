@@ -252,7 +252,7 @@ export default function StudentQuizTakingPage() {
         );
         if (progressResponse.ok) {
           const progressBody = await progressResponse.json();
-          const completed = progressBody.data?.coursePercentage === 100 || progressBody.data?.courseComplete === true;
+          const completed = progressBody.data?.successfulCompletion === true;
           setCourseCompleted(completed);
           if (completed) {
             toast.success('Congratulations! You completed the entire course.');

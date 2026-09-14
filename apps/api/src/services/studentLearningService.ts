@@ -229,11 +229,16 @@ export async function getEnrolledCourseDetail(organizationId: string, userId: st
   const lessonCountMap = new Map(lessonCounts.map((row: any) => [row.moduleId, row._count.id]));
   const quizCountMap = new Map(quizCounts.map((row: any) => [row.moduleId, row._count.id]));
   const modulesWithCounts = await Promise.all(modules.map(async (module: CourseModuleRecord) => {
-    const firstSequenceItem = (await sequenceRepo.listByModule(module.id))[0] as {
+    let firstSequenceItem: {
       type?: 'LESSON' | 'QUIZ';
       lessonId?: string | null;
       quizId?: string | null;
     } | undefined;
+    try {
+      firstSequenceItem = (await sequenceRepo.listByModule(module.id))[0] as typeof firstSequenceItem;
+    } catch {
+      firstSequenceItem = undefined;
+    }
     const firstContent = firstSequenceItem?.type
       ? {
           type: firstSequenceItem.type,

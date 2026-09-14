@@ -62,6 +62,7 @@ const categoryFallback = (title: string) => {
 export default function StudentDashboardPage() {
   const { data: user, isLoading: userLoading } = useCurrentUser();
   const [organizationId, setOrganizationId] = useState<string | null>(null);
+  const [courseProgress, setCourseProgress] = useState<Record<string, number>>({});
 
   // Extract organizationId from user and perform role check
   useEffect(() => {
@@ -96,6 +97,39 @@ export default function StudentDashboardPage() {
   } = useMyCourses(organizationId || '');
 
   const { data: stats } = useMyStats(organizationId || '');
+
+  useEffect(() => {
+    if (!organizationId || courses.length === 0) {
+      setCourseProgress({});
+      return;
+    }
+
+    let active = true;
+    async function loadCourseProgress() {
+      const entries = await Promise.all(
+        courses.map(async course => {
+          try {
+            const response = await fetch(
+              `/api/v1/organizations/${organizationId}/student/courses/${course.courseId}/progress`,
+              { credentials: 'include' },
+            );
+            if (!response.ok) return [course.courseId, 0] as const;
+            const body = await response.json();
+            const percentage = Number(body.data?.coursePercentage);
+            return [course.courseId, Number.isFinite(percentage) ? Math.round(percentage) : 0] as const;
+          } catch {
+            return [course.courseId, 0] as const;
+          }
+        }),
+      );
+      if (active) setCourseProgress(Object.fromEntries(entries));
+    }
+
+    void loadCourseProgress();
+    return () => {
+      active = false;
+    };
+  }, [courses, organizationId]);
 
   const categoryCount = new Set(courses.map((c) => c.category).filter(Boolean)).size;
   const totalMinutes = courses.reduce<number>(
@@ -187,6 +221,11 @@ export default function StudentDashboardPage() {
                     {course.description && (
                       <p className="mt-2 line-clamp-2 text-sm text-neutral-600">{course.description}</p>
                     )}
+                    <div className="mt-4 flex items-center justify-end border-t border-neutral-100 pt-4">
+                      <span className="text-lg font-bold text-[#5A321F]">
+                        {courseProgress[course.courseId] ?? 0}%
+                      </span>
+                    </div>
                   </div>
                 </div>
               </Link>

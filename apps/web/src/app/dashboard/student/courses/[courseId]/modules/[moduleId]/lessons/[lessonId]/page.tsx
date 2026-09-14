@@ -168,10 +168,10 @@ export default function StudentLessonPage() {
         return;
       }
       const responseBody = await res.json().catch(() => null) as {
-        data?: { courseProgress?: { courseComplete?: boolean } };
+        data?: { courseProgress?: { courseComplete?: boolean; successfulCompletion?: boolean } };
       } | null;
       setCompletedLocally(true);
-      setCourseCompleted(responseBody?.data?.courseProgress?.courseComplete === true);
+      setCourseCompleted(responseBody?.data?.courseProgress?.successfulCompletion === true);
       if (completed && data?.module.order === 1) {
         toast.success('Congratulations! You completed the first module.');
       }

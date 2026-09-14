@@ -222,7 +222,9 @@ function resetMocks() {
   vi.mocked(authService.getUserById).mockReset();
 }
 
-function setupEligibleFixtures(overrides: { completed?: boolean; existing?: boolean } = {}) {
+function setupEligibleFixtures(
+  overrides: { completed?: boolean; successfulCompletion?: boolean; existing?: boolean } = {},
+) {
   prismaMock.userOrganization.findUnique.mockResolvedValue(membershipRecord());
   prismaMock.course.findFirst.mockResolvedValue(courseRecord());
   prismaMock.enrollment.findUnique.mockResolvedValue(enrollmentRecord());
@@ -231,6 +233,7 @@ function setupEligibleFixtures(overrides: { completed?: boolean; existing?: bool
   );
   vi.mocked(progressService.getCourseProgress).mockResolvedValue({
     courseComplete: overrides.completed ?? true,
+    successfulCompletion: overrides.successfulCompletion ?? overrides.completed ?? true,
   } as Awaited<ReturnType<typeof progressService.getCourseProgress>>);
   prismaMock.certificate.findUnique.mockResolvedValue(
     overrides.existing ? certificateRecord() : null,
@@ -404,11 +407,13 @@ describe('POST /api/v1/organizations/:organizationId/student/courses/:courseId/c
     });
   });
 
-  it('generates a certificate from computed completion when a failed quiz is exhausted', async () => {
+  it('generates a certificate with marks when a quiz is failed and exhausted', async () => {
     await authenticateAs('STUDENT');
     setupEligibleFixtures({ completed: false });
     vi.mocked(progressService.getCourseProgress).mockResolvedValue({
       courseComplete: true,
+      contentComplete: true,
+      successfulCompletion: false,
     } as Awaited<ReturnType<typeof progressService.getCourseProgress>>);
     prismaMock.certificate.create.mockResolvedValue(certificateRecord());
     prismaMock.certificate.update.mockResolvedValue(certificateRecord());
@@ -427,9 +432,11 @@ describe('POST /api/v1/organizations/:organizationId/student/courses/:courseId/c
     const res = await request(app).post(GENERATE_PATH).set('Cookie', cookie());
 
     expect(res.status).toBe(201);
-    expect(res.body.data.passed).toBe(false);
+    expect(res.body.data.totalMarks).toBe(10);
     expect(res.body.data.obtainedMarks).toBe(4);
     expect(res.body.data.percentage).toBe(40);
+    expect(res.body.data.passed).toBe(false);
+    expect(prismaMock.certificate.create).toHaveBeenCalledTimes(1);
   });
 });
 

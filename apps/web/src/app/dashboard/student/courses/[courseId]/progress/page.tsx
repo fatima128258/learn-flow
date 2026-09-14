@@ -31,6 +31,8 @@ type ProgressQuiz = {
   bestPercentage: number | null;
   latestPercentage: number | null;
   passed: boolean;
+  failed?: boolean;
+  attemptsRemaining?: number | null;
 };
 
 type CourseProgress = {
@@ -41,6 +43,8 @@ type CourseProgress = {
   completedLessons: number;
   coursePercentage: number;
   courseComplete: boolean;
+  contentComplete?: boolean;
+  successfulCompletion?: boolean;
   enrollmentStatus: string;
   lastVisited: {
     moduleId: string | null;
@@ -132,8 +136,8 @@ export default function StudentCourseProgressPage() {
           }
           actions={
             progress ? (
-              <Badge variant={progress.courseComplete ? 'success' : 'default'} size="sm">
-                {progress.courseComplete ? 'Completed' : 'In Progress'}
+              <Badge variant={progress.successfulCompletion ? 'success' : 'default'} size="sm">
+                {progress.successfulCompletion ? 'Completed' : progress.courseComplete ? 'Content Complete' : 'In Progress'}
               </Badge>
             ) : undefined
           }
@@ -192,7 +196,14 @@ export default function StudentCourseProgressPage() {
                 <div className="mt-6 rounded-lg border-2 border-success-200 bg-success-50 p-4">
                   <h3 className="text-lg font-semibold text-success-900">🎉 Congratulations!</h3>
                   <p className="mt-1 text-sm text-success-700">
-                    You have successfully completed all lessons in this course.
+                    You have completed all course content.
+                  </p>
+                </div>
+              )}
+              {progress.courseComplete && progress.successfulCompletion === false && (
+                <div className="mt-4 rounded-lg border border-warning-200 bg-warning-50 p-4">
+                  <p className="text-sm font-medium text-warning-900">
+                    Course content is complete, but one or more quizzes still need to be passed before certification.
                   </p>
                 </div>
               )}
@@ -249,12 +260,17 @@ export default function StudentCourseProgressPage() {
                           {quiz.attempts} attempt{quiz.attempts !== 1 ? 's' : ''}
                         </span>
                         <Badge variant={quiz.passed ? 'success' : 'warning'} size="sm">
-                          {quiz.passed ? 'Passed' : 'Not passed'}
+                          {quiz.passed ? 'Passed' : quiz.attemptsRemaining === 0 ? 'Failed' : 'Not passed'}
                         </Badge>
                       </div>
-                      <span className="text-sm font-semibold text-neutral-900">
-                        Best: {quiz.bestPercentage == null ? '—' : `${Math.round(quiz.bestPercentage)}%`}
-                      </span>
+                      <div className="text-right text-sm font-semibold text-neutral-900">
+                        <div>Best: {quiz.bestPercentage == null ? '—' : `${Math.round(quiz.bestPercentage)}%`}</div>
+                        {quiz.attemptsRemaining != null && (
+                          <div className="mt-1 text-xs font-normal text-neutral-500">
+                            {quiz.attemptsRemaining} attempt{quiz.attemptsRemaining !== 1 ? 's' : ''} remaining
+                          </div>
+                        )}
+                      </div>
                     </div>
                   ))}
                 </div>
