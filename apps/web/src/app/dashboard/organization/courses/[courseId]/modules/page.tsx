@@ -605,7 +605,7 @@ export default function CourseModulesPage() {
               </p>
             </div>
             <div className="flex flex-wrap items-center gap-2">
-              <Button size="sm" onClick={() => setShowCreateModal(true)}>
+              <Button size="sm" className="h-10" onClick={() => setShowCreateModal(true)}>
                 Create Module
               </Button>
               <ViewToggle value={viewMode} onChange={setViewMode} storageKey={`learnhub-${dashboardPrefix.slice(10)}-course-modules-view`} />
@@ -655,19 +655,7 @@ export default function CourseModulesPage() {
                         </td>
                         <td className="px-6 py-4 text-sm text-neutral-700 max-w-xs truncate" title={module.description ?? ''}>{module.description ?? '—'}</td>
                         <td className="px-6 py-4 text-center align-middle" onClick={(e) => e.stopPropagation()}>
-                          <div className="flex flex-wrap items-center justify-center gap-2">
-                            <Link
-                              href={`${dashboardPrefix}/courses/${courseId}/modules/${module.id}/lessons${organizationId ? `?organization=${organizationId}` : ''}`}
-                              className="rounded-lg px-2.5 py-1.5 text-xs font-medium text-primary-600 transition-colors hover:bg-primary-50"
-                            >
-                              Add lesson
-                            </Link>
-                            <Link
-                              href={`${dashboardPrefix}/courses/${courseId}/modules/${module.id}/quizzes${organizationId ? `?organization=${organizationId}` : ''}`}
-                              className="rounded-lg px-2.5 py-1.5 text-xs font-medium text-primary-600 transition-colors hover:bg-primary-50"
-                            >
-                              Add quiz
-                            </Link>
+                          <div className="flex items-center justify-center">
                             <ModuleActionsMenu
                               module={module}
                               courseId={courseId!}
@@ -694,9 +682,7 @@ export default function CourseModulesPage() {
                     {module.description && (
                       <p className="mt-1 text-sm text-neutral-500">{module.description}</p>
                     )}
-                    <div className="mt-auto flex flex-wrap items-center gap-2 border-t border-neutral-100 pt-4" onClick={(event) => event.stopPropagation()}>
-                      <Link href={`${dashboardPrefix}/courses/${courseId}/modules/${module.id}/lessons${organizationId ? `?organization=${organizationId}` : ''}`} className="rounded-lg bg-primary-50 px-3 py-1.5 text-sm font-medium text-primary-600 transition-colors hover:bg-primary-100">Add lesson</Link>
-                      <Link href={`${dashboardPrefix}/courses/${courseId}/modules/${module.id}/quizzes${organizationId ? `?organization=${organizationId}` : ''}`} className="rounded-lg bg-primary-50 px-3 py-1.5 text-sm font-medium text-primary-600 transition-colors hover:bg-primary-100">Add quiz</Link>
+                    <div className="mt-auto flex items-center justify-end border-t border-neutral-100 pt-4" onClick={(event) => event.stopPropagation()}>
                       <ModuleActionsMenu module={module} courseId={courseId!} organizationId={organizationId!} dashboardPrefix={dashboardPrefix} onEdit={() => openEditModal(module)} onDelete={() => handleDelete(module.id)} />
                     </div>
                   </div>
