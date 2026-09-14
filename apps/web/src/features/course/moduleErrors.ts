@@ -5,6 +5,8 @@ const ERROR_MESSAGES: Record<string, string> = {
   COURSE_NOT_FOUND: 'This course was not found in your organization.',
   MODULE_NOT_FOUND: 'This module was not found in the course.',
   MODULE_ORDER_TAKEN: 'A module with this order already exists in the course. Please choose another order.',
+  CONTENT_REQUIRED: 'Add a first lesson or quiz before creating the module.',
+  INVALID_CONTENT_TYPE: 'Choose either a lesson or a quiz for the module.',
 };
 
 export function getModuleErrorMessage(code?: unknown): string {

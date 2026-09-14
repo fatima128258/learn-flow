@@ -2,6 +2,7 @@ import { Prisma } from '@prisma/client';
 import * as moduleRepo from '../repositories/moduleRepository';
 import * as courseRepo from '../repositories/courseRepository';
 import { assertCanManage, type ContentActor } from './contentAccess';
+import getPrisma from '../prisma';
 
 interface ModuleRecord {
   id: string;
@@ -113,13 +114,44 @@ export async function createModule(
 
   const title = requireTitle(input.title);
   const order = requireOrder(input.order);
+  const initialContent = (input.initialContent ?? {}) as Record<string, unknown>;
+  const contentType = initialContent.type;
+  if (!contentType || !initialContent.title) {
+    throw new Error('CONTENT_REQUIRED');
+  }
+  const contentTitle = requireTitle(initialContent.title);
+  if (contentType !== 'LESSON' && contentType !== 'QUIZ') {
+    throw new Error('INVALID_CONTENT_TYPE');
+  }
 
   try {
-    const module = await moduleRepo.createModule({
-      courseId,
-      title,
-      description: optionalString(input.description),
-      order,
+    const db = getPrisma();
+    const module = await db.$transaction(async (tx) => {
+      const createdModule = await tx.module.create({
+        data: { courseId, title, description: optionalString(input.description), order },
+      });
+      if (contentType === 'LESSON') {
+        const lesson = await tx.lesson.create({
+          data: { moduleId: createdModule.id, title: contentTitle, order: 0 },
+        });
+        await tx.moduleContentItem.create({
+          data: { moduleId: createdModule.id, type: 'LESSON', lessonId: lesson.id, position: 0 },
+        });
+      } else {
+        const quiz = await tx.quiz.create({
+          data: {
+            moduleId: createdModule.id,
+            title: contentTitle,
+            timeLimitMinutes: 30,
+            maxAttempts: 3,
+            order: 0,
+          },
+        });
+        await tx.moduleContentItem.create({
+          data: { moduleId: createdModule.id, type: 'QUIZ', quizId: quiz.id, position: 0 },
+        });
+      }
+      return createdModule;
     });
     return withDuration(toModuleDto(module));
   } catch (err) {

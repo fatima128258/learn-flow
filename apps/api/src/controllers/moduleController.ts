@@ -28,6 +28,10 @@ function handleError(res: Response, err: unknown) {
       return fail(res, 404, 'MODULE_NOT_FOUND');
     case 'MODULE_ORDER_TAKEN':
       return fail(res, 409, 'MODULE_ORDER_TAKEN');
+    case 'CONTENT_REQUIRED':
+      return fail(res, 400, 'CONTENT_REQUIRED');
+    case 'INVALID_CONTENT_TYPE':
+      return fail(res, 400, 'INVALID_CONTENT_TYPE');
     case 'FORBIDDEN':
       return fail(res, 403, 'FORBIDDEN');
     default:
