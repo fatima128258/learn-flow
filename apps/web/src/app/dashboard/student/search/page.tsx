@@ -227,7 +227,12 @@ export default function StudentSearchPage() {
                   )}
                   
                   <div className="p-6">
-                    <h3 className="text-lg font-semibold text-neutral-900 line-clamp-2">{course.title}</h3>
+                    <h3
+                      className="truncate text-lg font-semibold text-neutral-900"
+                      title={course.title}
+                    >
+                      {course.title}
+                    </h3>
                     <p className="mt-1 text-sm text-neutral-500">
                       {course.instructor?.name ? `Instructor: ${course.instructor.name}` : 'Instructor unavailable'}
                     </p>

@@ -178,7 +178,10 @@ export default function StudentDashboardPage() {
                         <Badge variant="default" size="sm">{course.difficulty}</Badge>
                       )}
                     </div>
-                    <h3 className="line-clamp-2 text-lg font-semibold text-neutral-900 transition-colors group-hover:text-primary-600">
+                    <h3
+                      className="truncate text-lg font-semibold text-neutral-900 transition-colors group-hover:text-primary-600"
+                      title={course.title}
+                    >
                       {course.title}
                     </h3>
                     {course.description && (

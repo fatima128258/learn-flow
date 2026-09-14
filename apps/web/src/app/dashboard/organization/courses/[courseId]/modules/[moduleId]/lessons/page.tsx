@@ -1,8 +1,9 @@
 ﻿'use client';
 
 import { useEffect, useState, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { useParams, usePathname, useRouter } from 'next/navigation';
-import { Badge, Button, Drawer, EmptyState, EmptyStateIcons, Spinner } from '../../../../../../../../components/ui';
+import { Badge, Button, ConfirmModal, Drawer, EmptyState, EmptyStateIcons, Spinner } from '../../../../../../../../components/ui';
 import { Input } from '../../../../../../../../components/ui/Input';
 import { Textarea } from '../../../../../../../../components/forms/Textarea';
 import { LinkButton } from '../../../../../../../../components/ui/LinkButton';
@@ -42,9 +43,10 @@ function LessonActionsMenu({ lesson, onEdit, onDelete }: {
       const rect = buttonRef.current.getBoundingClientRect();
       const menuWidth = 192;
       const menuHeight = 96;
-      const left = rect.left - menuWidth - 8 >= 8
+      const preferredLeft = rect.left - menuWidth - 8;
+      const left = preferredLeft >= 8
         ? rect.left - menuWidth - 8
-        : Math.min(rect.right + 8, window.innerWidth - menuWidth - 8);
+        : Math.max(8, Math.min(rect.right + 8, window.innerWidth - menuWidth - 8));
       const top = Math.max(8, Math.min(rect.top, window.innerHeight - menuHeight - 8));
       setMenuPosition({ top, left });
     }
@@ -64,7 +66,7 @@ function LessonActionsMenu({ lesson, onEdit, onDelete }: {
         </svg>
       </button>
 
-      {isOpen && (
+      {isOpen && typeof document !== 'undefined' && createPortal(
         <div
           ref={menuRef}
           style={{ position: 'fixed', top: menuPosition.top, left: menuPosition.left, zIndex: 9999 }}
@@ -88,7 +90,8 @@ function LessonActionsMenu({ lesson, onEdit, onDelete }: {
           >
             🗑️ Delete
           </button>
-        </div>
+        </div>,
+        document.body,
       )}
     </div>
   );
@@ -156,6 +159,8 @@ export default function ModuleLessonsPage() {
   const [order, setOrder] = useState('');
   const [titleError, setTitleError] = useState('');
   const [orderError, setOrderError] = useState('');
+  const [deleteTarget, setDeleteTarget] = useState<{ id: string; title: string } | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   // Check auth and set organizationId
   useEffect(() => {
@@ -438,9 +443,9 @@ export default function ModuleLessonsPage() {
   }
 
   async function handleDelete(lessonId: string) {
-    if (!confirm('Are you sure you want to delete this lesson?')) return;
     if (!organizationId || !courseId || !moduleId) return;
 
+    setDeleting(true);
     try {
       const apiBase = '';
       const res = await fetch(
@@ -463,9 +468,12 @@ export default function ModuleLessonsPage() {
       }
 
       toast.success('Lesson deleted successfully.');
+      setDeleteTarget(null);
       await reloadLessons();
     } catch {
       toast.error(getLessonErrorMessage(null));
+    } finally {
+      setDeleting(false);
     }
   }
 
@@ -554,7 +562,7 @@ export default function ModuleLessonsPage() {
                           <LessonActionsMenu
                             lesson={lesson}
                             onEdit={() => openEditModal(lesson)}
-                            onDelete={() => handleDelete(lesson.id)}
+                            onDelete={() => setDeleteTarget({ id: lesson.id, title: lesson.title })}
                           />
                         </div>
                       </td>
@@ -581,7 +589,7 @@ export default function ModuleLessonsPage() {
                       <LessonActionsMenu
                         lesson={lesson}
                         onEdit={() => openEditModal(lesson)}
-                        onDelete={() => handleDelete(lesson.id)}
+                        onDelete={() => setDeleteTarget({ id: lesson.id, title: lesson.title })}
                       />
                     </div>
                   </div>
@@ -622,6 +630,17 @@ export default function ModuleLessonsPage() {
           </div>
         )}
       </Drawer>
+
+      <ConfirmModal
+        isOpen={Boolean(deleteTarget)}
+        onClose={() => { if (!deleting) setDeleteTarget(null); }}
+        onConfirm={() => { if (deleteTarget) void handleDelete(deleteTarget.id); }}
+        title="Delete lesson?"
+        message={deleteTarget ? `Are you sure you want to delete "${deleteTarget.title}"? This action cannot be undone.` : ''}
+        confirmLabel="Delete lesson"
+        variant="danger"
+        loading={deleting}
+      />
 
       <Modal
         isOpen={showCreateModal}

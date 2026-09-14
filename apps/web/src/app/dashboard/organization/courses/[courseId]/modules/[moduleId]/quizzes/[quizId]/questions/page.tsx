@@ -93,6 +93,7 @@ export default function QuizQuestionsPage() {
   const [questionOptions, setQuestionOptions] = useState<Record<string, OptionItem[]>>({});
   const [loadingOptions, setLoadingOptions] = useState<string | null>(null);
   const [inlineQuestionText, setInlineQuestionText] = useState('');
+  const [inlineMarks, setInlineMarks] = useState('1');
   const [inlineOptions, setInlineOptions] = useState([{ text: '', isCorrect: true }]);
   const [savingInlineQuestion, setSavingInlineQuestion] = useState(false);
 
@@ -225,6 +226,11 @@ export default function QuizQuestionsPage() {
       toast.error('Write a question first.');
       return;
     }
+    const marksValue = Number(inlineMarks);
+    if (!Number.isInteger(marksValue) || marksValue < 1) {
+      toast.error('Enter marks of at least 1 for this question.');
+      return;
+    }
     if (options.length < 1) {
       toast.error('Add at least one option.');
       return;
@@ -240,7 +246,7 @@ export default function QuizQuestionsPage() {
         credentials: 'include',
         body: JSON.stringify({
           questionText: questionTextValue,
-          marks: 1,
+          marks: marksValue,
           order: questions?.length ?? 0,
         }),
       });
@@ -268,6 +274,7 @@ export default function QuizQuestionsPage() {
         }
       }
       setInlineQuestionText('');
+      setInlineMarks('1');
       setInlineOptions([{ text: '', isCorrect: true }]);
       toast.success('Question and options saved successfully.');
       setExpandedQuestion(createdQuestion.data.id);
@@ -795,6 +802,17 @@ export default function QuizQuestionsPage() {
                     disabled={savingInlineQuestion}
                     required
                   />
+                  <Input
+                    label="Marks for this question"
+                    type="number"
+                    min={1}
+                    step={1}
+                    value={inlineMarks}
+                    onChange={(event) => setInlineMarks(event.target.value)}
+                    placeholder="e.g. 5"
+                    disabled={savingInlineQuestion}
+                    required
+                  />
                   <div>
                     <p className="mb-2 text-sm font-semibold text-neutral-800">Options</p>
                     <div className="space-y-3">
@@ -847,7 +865,7 @@ export default function QuizQuestionsPage() {
                   <div className="flex items-center justify-between px-5 py-4">
                     <div className="flex items-start gap-3">
                       <div>
-                        <p className="text-sm font-semibold text-neutral-900">Question {question.order}</p>
+                        <p className="text-sm font-semibold text-neutral-900">Question {question.order + 1}</p>
                         <p className="mt-1 text-sm text-neutral-900">{question.questionText}</p>
                         <p className="mt-0.5 text-xs text-neutral-500">
                           {question.marks} {question.marks === 1 ? 'mark' : 'marks'}

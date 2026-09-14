@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useRef } from 'react';
 import { useParams, usePathname, useRouter } from 'next/navigation';
-import { Badge, Button, Drawer, EmptyState, EmptyStateIcons, Spinner } from '../../../../../../../../components/ui';
+import { Badge, Button, ConfirmModal, Drawer, EmptyState, EmptyStateIcons, Spinner } from '../../../../../../../../components/ui';
 import { Input } from '../../../../../../../../components/ui/Input';
 import { Textarea } from '../../../../../../../../components/forms/Textarea';
 import { LinkButton } from '../../../../../../../../components/ui/LinkButton';
@@ -12,6 +12,7 @@ import { getQuizErrorMessage } from '../../../../../../../../features/course/qui
 import { useToast } from '../../../../../../../../components/ui/ToastProvider';
 
 import { useCurrentUser } from '../../../../../../../../features/auth/useCurrentUser';
+import { ViewToggle, DataViewMode } from '../../../../../../../../components/ui/ViewToggle';
 
 // 3-dot menu component for quizzes
 function QuizActionsMenu({ quiz, courseId, moduleId, dashboardPrefix, onEdit, onDelete }: {
@@ -171,6 +172,7 @@ export default function ModuleQuizzesPage() {
   const [organizationId, setOrganizationId] = useState<string | null>(null);
   const [quizzes, setQuizzes] = useState<QuizListItem[] | null>(null);
   const [loading, setLoading] = useState(true);
+  const [viewMode, setViewMode] = useState<DataViewMode>('table');
 
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
@@ -191,6 +193,8 @@ export default function ModuleQuizzesPage() {
   const [timeLimitError, setTimeLimitError] = useState('');
   const [passingPercentageError, setPassingPercentageError] = useState('');
   const [maxAttemptsError, setMaxAttemptsError] = useState('');
+  const [deleteTarget, setDeleteTarget] = useState<{ id: string; title: string } | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   // Check auth and set organizationId
   useEffect(() => {
@@ -545,9 +549,9 @@ export default function ModuleQuizzesPage() {
   }
 
   async function handleDelete(quizId: string) {
-    if (!confirm('Are you sure you want to delete this quiz?')) return;
     if (!organizationId || !courseId || !moduleId) return;
 
+    setDeleting(true);
     try {
       const apiBase = '';
       const res = await fetch(
@@ -570,9 +574,12 @@ export default function ModuleQuizzesPage() {
       }
 
       toast.success('Quiz deleted successfully.');
+      setDeleteTarget(null);
       await reloadQuizzes();
     } catch {
       toast.error(getQuizErrorMessage(null));
+    } finally {
+      setDeleting(false);
     }
   }
 
@@ -605,12 +612,16 @@ export default function ModuleQuizzesPage() {
                 Manage quizzes for this module.
               </p>
             </div>
-            <Button
-              size="sm"
-              onClick={() => router.push(`${dashboardPrefix}/courses/${courseId}/modules/${moduleId}/quizzes/new${organizationId ? `?organization=${organizationId}` : ''}`)}
-            >
-              Create Quiz
-            </Button>
+            <div className="flex items-center gap-3">
+              <Button
+                size="sm"
+                className="h-10"
+                onClick={() => router.push(`${dashboardPrefix}/courses/${courseId}/modules/${moduleId}/quizzes/new${organizationId ? `?organization=${organizationId}` : ''}`)}
+              >
+                Create Quiz
+              </Button>
+              <ViewToggle value={viewMode} onChange={setViewMode} storageKey="module-quizzes-view" />
+            </div>
           </div>
 
           {loading ? (
@@ -632,7 +643,7 @@ export default function ModuleQuizzesPage() {
                 }}
               />
             </div>
-          ) : quizzes !== null && quizzes.length > 0 ? (
+          ) : quizzes !== null && quizzes.length > 0 && viewMode === 'table' ? (
             <div className="mt-6 overflow-hidden rounded-2xl border border-neutral-200 bg-white shadow-sm">
               <div className="overflow-x-auto">
               <table className="min-w-full divide-y divide-neutral-200">
@@ -640,7 +651,7 @@ export default function ModuleQuizzesPage() {
                   <tr>
                     <th className="px-6 py-3 text-center align-middle text-xs font-semibold uppercase tracking-wide text-neutral-500 w-16">Order</th>
                     <th className="w-72 px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-neutral-500">Title</th>
-                    <th className="px-6 py-3 text-center align-middle text-xs font-semibold uppercase tracking-wide text-neutral-500 w-24">Time Limit</th>
+                    <th className="w-32 whitespace-nowrap px-6 py-3 text-center align-middle text-xs font-semibold uppercase tracking-wide text-neutral-500">Time Limit</th>
                     <th className="px-6 py-3 text-center align-middle text-xs font-semibold uppercase tracking-wide text-neutral-500 w-24">Pass %</th>
                     <th className="px-6 py-3 text-center align-middle text-xs font-semibold uppercase tracking-wide text-neutral-500 w-24">Attempts</th>
                     <th className="px-6 py-3 text-center align-middle text-xs font-semibold uppercase tracking-wide text-neutral-500 w-40">Actions</th>
@@ -655,8 +666,8 @@ export default function ModuleQuizzesPage() {
                       <td className="w-72 max-w-72 px-6 py-4 text-sm font-medium text-primary-600 hover:text-primary-700" title={quiz.title}>
                         <span className="block truncate">{quiz.title}</span>
                       </td>
-                      <td className="px-6 py-4 text-center align-middle text-sm text-neutral-700">
-                        {quiz.timeLimitMinutes != null ? `${quiz.timeLimitMinutes}m` : '—'}
+                      <td className="w-32 whitespace-nowrap px-6 py-4 text-center align-middle text-sm text-neutral-700">
+                        {quiz.timeLimitMinutes != null ? `${quiz.timeLimitMinutes} min` : 'No limit'}
                       </td>
                       <td className="px-6 py-4 text-center align-middle text-sm text-neutral-700">
                         {quiz.passingPercentage != null ? `${quiz.passingPercentage}%` : '—'}
@@ -672,7 +683,7 @@ export default function ModuleQuizzesPage() {
                             moduleId={moduleId!}
                             dashboardPrefix={dashboardPrefix}
                             onEdit={() => openEditModal(quiz)}
-                            onDelete={() => handleDelete(quiz.id)}
+                            onDelete={() => setDeleteTarget({ id: quiz.id, title: quiz.title })}
                           />
                         </div>
                       </td>
@@ -681,6 +692,47 @@ export default function ModuleQuizzesPage() {
                 </tbody>
               </table>
               </div>
+            </div>
+          ) : quizzes !== null && quizzes.length > 0 && viewMode === 'cards' ? (
+            <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {quizzes.map((quiz) => (
+                <div
+                  key={quiz.id}
+                  className="cursor-pointer rounded-xl border border-neutral-200 bg-white p-5 shadow-sm transition-shadow hover:shadow-md"
+                  onClick={() => void openQuizDetails(quiz)}
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <p className="text-xs font-semibold uppercase tracking-wide text-neutral-500">Quiz {quiz.order}</p>
+                      <h2 className="mt-1 truncate text-lg font-semibold text-primary-600" title={quiz.title}>{quiz.title}</h2>
+                    </div>
+                    <div onClick={(event) => event.stopPropagation()}>
+                      <QuizActionsMenu
+                        quiz={quiz}
+                        courseId={courseId!}
+                        moduleId={moduleId!}
+                        dashboardPrefix={dashboardPrefix}
+                        onEdit={() => openEditModal(quiz)}
+                        onDelete={() => setDeleteTarget({ id: quiz.id, title: quiz.title })}
+                      />
+                    </div>
+                  </div>
+                  <div className="mt-4 grid grid-cols-2 gap-3 border-t border-neutral-100 pt-4 text-sm">
+                    <div>
+                      <p className="text-xs uppercase tracking-wide text-neutral-400">Time limit</p>
+                      <p className="mt-1 font-medium text-neutral-700">{quiz.timeLimitMinutes != null ? `${quiz.timeLimitMinutes} min` : 'No limit'}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs uppercase tracking-wide text-neutral-400">Pass score</p>
+                      <p className="mt-1 font-medium text-neutral-700">{quiz.passingPercentage != null ? `${quiz.passingPercentage}%` : '—'}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs uppercase tracking-wide text-neutral-400">Attempts</p>
+                      <p className="mt-1 font-medium text-neutral-700">{quiz.maxAttempts ?? 'Unlimited'}</p>
+                    </div>
+                  </div>
+                </div>
+              ))}
             </div>
           ) : null}
         </div>
@@ -720,7 +772,7 @@ export default function ModuleQuizzesPage() {
                   {selectedQuiz.questions.map((question) => (
                     <div key={question.id} className="rounded-lg border border-neutral-200 p-4">
                       <div className="flex items-start justify-between gap-3">
-                        <p className="text-sm font-semibold text-neutral-900">{question.order}. {question.questionText}</p>
+                        <p className="text-sm font-semibold text-neutral-900">{question.order + 1}. {question.questionText}</p>
                         <Badge variant="default" size="sm">{question.marks} {question.marks === 1 ? 'mark' : 'marks'}</Badge>
                       </div>
                       <div className="mt-3 space-y-2">
@@ -740,6 +792,17 @@ export default function ModuleQuizzesPage() {
           </div>
         ) : null}
       </Drawer>
+
+      <ConfirmModal
+        isOpen={Boolean(deleteTarget)}
+        onClose={() => { if (!deleting) setDeleteTarget(null); }}
+        onConfirm={() => { if (deleteTarget) void handleDelete(deleteTarget.id); }}
+        title="Delete quiz?"
+        message={deleteTarget ? `Are you sure you want to delete "${deleteTarget.title}"? This action cannot be undone.` : ''}
+        confirmLabel="Delete quiz"
+        variant="danger"
+        loading={deleting}
+      />
 
       <Modal
         isOpen={showCreateModal}
