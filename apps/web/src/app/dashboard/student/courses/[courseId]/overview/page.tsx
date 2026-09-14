@@ -189,23 +189,23 @@ export default function StudentCourseOverviewPage() {
               <h1 className="text-3xl font-bold text-neutral-900">Playlist: {course.title}</h1>
 
               <div className="mt-6">
-                <h2 className="text-sm font-semibold uppercase tracking-wide text-neutral-500">Description</h2>
-                <p className="mt-2 text-neutral-700">{course.description || 'No description available.'}</p>
+                <h2 className="text-sm font-bold uppercase tracking-wide text-neutral-900">Description</h2>
+                <p className="mt-2 text-neutral-900">{course.description || 'No description available.'}</p>
               </div>
 
               <div className="mt-6">
-                <h2 className="text-sm font-semibold uppercase tracking-wide text-neutral-500">Instructor</h2>
-                <p className="mt-2 text-neutral-700">{course.instructor?.name || 'Instructor unavailable'}</p>
+                <h2 className="text-sm font-bold uppercase tracking-wide text-neutral-900">Instructor</h2>
+                <p className="mt-2 text-neutral-900">{course.instructor?.name || 'Instructor unavailable'}</p>
               </div>
 
               <div className="mt-6 grid gap-4 sm:grid-cols-2">
                 <div>
-                  <h2 className="text-sm font-semibold uppercase tracking-wide text-neutral-500">Category</h2>
-                  <p className="mt-2 text-neutral-700">{course.category || 'Not specified'}</p>
+                  <h2 className="text-sm font-bold uppercase tracking-wide text-neutral-900">Category</h2>
+                  <p className="mt-2 text-neutral-900">{course.category || 'Not specified'}</p>
                 </div>
                 <div>
-                  <h2 className="text-sm font-semibold uppercase tracking-wide text-neutral-500">Difficulty Level</h2>
-                  <p className="mt-2 text-neutral-700">{course.difficulty || 'Not specified'}</p>
+                  <h2 className="text-sm font-bold uppercase tracking-wide text-neutral-900">Difficulty Level</h2>
+                  <p className="mt-2 text-neutral-900">{course.difficulty || 'Not specified'}</p>
                 </div>
               </div>
             </div>
