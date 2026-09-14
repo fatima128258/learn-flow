@@ -584,7 +584,10 @@ export default function ModuleQuizzesPage() {
                 Manage quizzes for this module.
               </p>
             </div>
-            <Button size="sm" onClick={() => setShowCreateModal(true)}>
+            <Button
+              size="sm"
+              onClick={() => router.push(`${dashboardPrefix}/courses/${courseId}/modules/${moduleId}/quizzes/new${organizationId ? `?organization=${organizationId}` : ''}`)}
+            >
               Create Quiz
             </Button>
           </div>
@@ -602,7 +605,7 @@ export default function ModuleQuizzesPage() {
                 description="Create your first quiz to start assessing learner knowledge."
                 action={{
                   label: 'Create Quiz',
-                  onClick: () => setShowCreateModal(true),
+                  onClick: () => router.push(`${dashboardPrefix}/courses/${courseId}/modules/${moduleId}/quizzes/new${organizationId ? `?organization=${organizationId}` : ''}`),
                   variant: 'primary',
                   size: 'sm',
                 }}
