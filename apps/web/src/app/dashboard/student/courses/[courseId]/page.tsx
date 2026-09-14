@@ -49,6 +49,7 @@ export default function StudentCoursePage() {
   const [error, setError] = useState<string | null>(null);
   const [organizationId, setOrganizationId] = useState<string | null>(null);
   const [progressLoading, setProgressLoading] = useState(false);
+  const [expandedModuleId, setExpandedModuleId] = useState<string | null>(null);
 
   // Check auth and set organizationId
   useEffect(() => {
@@ -111,7 +112,9 @@ export default function StudentCoursePage() {
         }
         const body = await res.json();
         if (!active) return;
-        setCourse(body.data ?? null);
+        const loadedCourse = body.data as CourseDetail | null;
+        setCourse(loadedCourse);
+        setExpandedModuleId(loadedCourse?.modules[0]?.id ?? null);
         setLoading(false);
       } catch {
         if (active) {
@@ -191,9 +194,6 @@ export default function StudentCoursePage() {
               )}
               <div className="mt-4 flex flex-wrap items-center gap-4">
                 <div className="flex items-center gap-4 text-sm text-neutral-500">
-                  {course.estimatedMinutes && (
-                    <span>Estimated time: {Math.round(course.estimatedMinutes / 60)}h {course.estimatedMinutes % 60}m</span>
-                  )}
                   <span>{course.modules.length} module{course.modules.length !== 1 ? 's' : ''}</span>
                   <span>
                     {course.modules.reduce((sum, m) => sum + m.lessonCount, 0)} lesson{course.modules.reduce((sum, m) => sum + m.lessonCount, 0) !== 1 ? 's' : ''}
@@ -226,7 +226,12 @@ export default function StudentCoursePage() {
               )}
             </div>
 
-            <h2 className="mb-4 text-lg font-semibold text-neutral-900">Course Content</h2>
+            <div className="mb-4 flex items-center justify-between gap-3">
+              <h2 className="text-lg font-semibold text-neutral-900">Course Content</h2>
+              <span className="rounded-full bg-primary-50 px-3 py-1 text-sm font-semibold text-primary-700">
+                {course.modules.length} module{course.modules.length !== 1 ? 's' : ''} total
+              </span>
+            </div>
             {course.modules.length === 0 ? (
               <div className="rounded-2xl border border-neutral-200 bg-white shadow-sm">
                 <EmptyState
@@ -237,14 +242,20 @@ export default function StudentCoursePage() {
               </div>
             ) : (
               <div className="space-y-3">
-                {course.modules.map((module, index) => (
-                  <Link
+                {course.modules.map((module, index) => {
+                  const isFirstModule = index === 0;
+                  const isExpanded = expandedModuleId === module.id;
+                  return (
+                  <div
                     key={module.id}
-                    href={`/dashboard/student/courses/${courseId}/modules/${module.id}`}
+                    className={`rounded-2xl border bg-white shadow-sm transition-all ${
+                      isExpanded ? 'border-primary-200 ring-1 ring-primary-100' : 'border-neutral-200'
+                    }`}
                   >
-                    <div className="group flex items-center justify-between rounded-2xl border border-neutral-200 bg-white p-5 shadow-sm transition-all hover:border-primary-200 hover:shadow-md cursor-pointer">
+                    <Link href={`/dashboard/student/courses/${courseId}/modules/${module.id}`}>
+                    <div className="group flex cursor-pointer items-center justify-between p-5 transition-all hover:bg-primary-50/30">
                       <div className="flex items-center gap-4">
-                        <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary-50 text-sm font-bold text-primary-700">
+                        <div className={`flex h-10 w-10 items-center justify-center rounded-lg text-sm font-bold ${isExpanded ? 'bg-primary-100 text-primary-800' : 'bg-primary-50 text-primary-700'}`}>
                           {index + 1}
                         </div>
                         <div>
@@ -263,8 +274,26 @@ export default function StudentCoursePage() {
                         </svg>
                       </div>
                     </div>
-                  </Link>
-                ))}
+                    </Link>
+                    {isExpanded && (
+                      <div className="border-t border-primary-100 bg-primary-50/30 px-5 py-4">
+                        <div className="flex flex-wrap items-center justify-between gap-3">
+                          <p className="text-sm text-neutral-600">
+                            {isFirstModule ? 'Start with this first module.' : 'Continue this module.'}
+                            {' '}{module.lessonCount} lesson{module.lessonCount !== 1 ? 's' : ''} available.
+                          </p>
+                          <Link
+                            href={`/dashboard/student/courses/${courseId}/modules/${module.id}`}
+                            className="inline-flex items-center rounded-lg bg-[#5A321F] px-4 py-2 text-sm font-semibold text-white hover:bg-[#472719]"
+                          >
+                            Open Module
+                          </Link>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                  );
+                })}
               </div>
             )}
           </>

@@ -11,6 +11,7 @@ import { getLessonErrorMessage } from '../../../../../../../../features/course/l
 import { useToast } from '../../../../../../../../components/ui/ToastProvider';
 
 import { useCurrentUser } from '../../../../../../../../features/auth/useCurrentUser';
+import { ViewToggle, DataViewMode } from '../../../../../../../../components/ui/ViewToggle';
 
 // 3-dot menu component for lessons
 function LessonActionsMenu({ lesson, onEdit, onDelete }: {
@@ -119,6 +120,7 @@ export default function ModuleLessonsPage() {
   const [organizationId, setOrganizationId] = useState<string | null>(null);
   const [lessons, setLessons] = useState<LessonListItem[] | null>(null);
   const [loading, setLoading] = useState(true);
+  const [viewMode, setViewMode] = useState<DataViewMode>('table');
 
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
@@ -496,9 +498,12 @@ export default function ModuleLessonsPage() {
                 Manage lessons for this module.
               </p>
             </div>
-            <Button size="sm" onClick={() => setShowCreateModal(true)}>
-              Create Lesson
-            </Button>
+            <div className="flex items-center gap-3">
+              <ViewToggle value={viewMode} onChange={setViewMode} storageKey="module-lessons-view" />
+              <Button size="sm" onClick={() => setShowCreateModal(true)}>
+                Create Lesson
+              </Button>
+            </div>
           </div>
 
           {loading ? (
@@ -520,7 +525,7 @@ export default function ModuleLessonsPage() {
                 }}
               />
             </div>
-          ) : lessons !== null && lessons.length > 0 ? (
+          ) : lessons !== null && lessons.length > 0 && viewMode === 'table' ? (
             <div className="mt-6 overflow-hidden rounded-2xl border border-neutral-200 bg-white shadow-sm">
               <div className="overflow-x-auto">
               <table className="min-w-full divide-y divide-neutral-200">
@@ -529,7 +534,6 @@ export default function ModuleLessonsPage() {
                     <th className="px-6 py-3 text-center align-middle text-xs font-semibold uppercase tracking-wide text-neutral-500 w-16">Order</th>
                     <th className="w-64 px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-neutral-500">Title</th>
                     <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-neutral-500">Description</th>
-                    <th className="px-6 py-3 text-center align-middle text-xs font-semibold uppercase tracking-wide text-neutral-500 w-24">Duration</th>
                     <th className="px-6 py-3 text-center align-middle text-xs font-semibold uppercase tracking-wide text-neutral-500 w-40">Actions</th>
                   </tr>
                 </thead>
@@ -545,9 +549,6 @@ export default function ModuleLessonsPage() {
                       <td className="px-6 py-4 text-sm text-neutral-700 max-w-md truncate">
                         {lesson.description ?? '—'}
                       </td>
-                      <td className="px-6 py-4 text-center align-middle text-sm text-neutral-700">
-                        {lesson.duration != null ? `${lesson.duration}m` : '—'}
-                      </td>
                       <td className="px-6 py-4 text-center align-middle" onClick={(event) => event.stopPropagation()}>
                         <div className="flex items-center justify-center">
                           <LessonActionsMenu
@@ -562,6 +563,37 @@ export default function ModuleLessonsPage() {
                 </tbody>
               </table>
               </div>
+            </div>
+          ) : lessons !== null && lessons.length > 0 && viewMode === 'cards' ? (
+            <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {lessons.map((lesson) => (
+                <div
+                  key={lesson.id}
+                  className="cursor-pointer rounded-xl border border-neutral-200 bg-white p-5 shadow-sm transition-shadow hover:shadow-md"
+                  onClick={() => void openLessonDetails(lesson)}
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <p className="text-xs font-semibold uppercase tracking-wide text-neutral-500">Lesson {lesson.order}</p>
+                      <h2 className="mt-1 truncate text-lg font-semibold text-primary-600" title={lesson.title}>{lesson.title}</h2>
+                    </div>
+                    <div onClick={(event) => event.stopPropagation()}>
+                      <LessonActionsMenu
+                        lesson={lesson}
+                        onEdit={() => openEditModal(lesson)}
+                        onDelete={() => handleDelete(lesson.id)}
+                      />
+                    </div>
+                  </div>
+                  <p className="mt-4 line-clamp-3 text-sm text-neutral-600">
+                    {lesson.description || 'No description available.'}
+                  </p>
+                  <div className="mt-4 flex items-center justify-between border-t border-neutral-100 pt-3 text-xs text-neutral-500">
+                    <span>{lesson.type || 'Lesson'}</span>
+                    <span>Order {lesson.order}</span>
+                  </div>
+                </div>
+              ))}
             </div>
           ) : null}
         </div>

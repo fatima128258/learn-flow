@@ -6,8 +6,6 @@ import Link from 'next/link';
 import {
   Badge,
   Button,
-  EmptyState,
-  EmptyStateIcons,
   ErrorState,
   Spinner,
 } from '@/components/ui';
@@ -44,15 +42,6 @@ function formatPrice(value: number | null): string {
   if (value === null || value === undefined) return 'Free';
   if (value === 0) return 'Free';
   return `$${Number(value).toFixed(2)}`;
-}
-
-function formatDuration(minutes: number | null): string {
-  if (minutes === null) return 'Self-paced';
-  const hours = Math.floor(minutes / 60);
-  const mins = minutes % 60;
-  if (hours === 0) return `${mins}m`;
-  if (mins === 0) return `${hours}h`;
-  return `${hours}h ${mins}m`;
 }
 
 function PriceDisplay({ price, discountPrice }: { price: number | null; discountPrice: number | null }) {
@@ -212,63 +201,36 @@ export default function StudentCourseOverviewPage() {
         </div>
       ) : course ? (
         <>
-          {/* Course Header */}
           <div className="mb-8 overflow-hidden rounded-2xl border border-neutral-200 bg-white shadow-sm">
             <div className="p-6">
-              <div className="flex flex-wrap items-center gap-2 mb-3">
-                {course.category && <Badge variant="primary" size="sm">{course.category}</Badge>}
-                {course.difficulty && <Badge variant="default" size="sm">{course.difficulty}</Badge>}
-                <Badge
-                  variant={course.isEnrolled ? 'success' : 'info'}
-                  size="sm"
-                >
-                  {course.isEnrolled ? 'Enrolled' : 'Available'}
-                </Badge>
+              <h1 className="text-3xl font-bold text-neutral-900">Playlist: {course.title}</h1>
+
+              <div className="mt-6">
+                <h2 className="text-sm font-semibold uppercase tracking-wide text-neutral-500">Description</h2>
+                <p className="mt-2 text-neutral-700">{course.description || 'No description available.'}</p>
               </div>
 
-              <h1 className="text-3xl font-bold text-neutral-900">{course.title}</h1>
-
-              {course.instructor?.name && (
-                <p className="mt-2 text-sm text-neutral-600">
-                  Instructor: <span className="font-medium">{course.instructor.name}</span>
-                </p>
-              )}
-
-              {course.description && (
-                <p className="mt-4 text-neutral-700">{course.description}</p>
-              )}
-
-              <div className="mt-4 flex flex-wrap items-center gap-4 text-sm text-neutral-500">
-                <span>{formatDuration(course.estimatedMinutes)}</span>
-                <span>•</span>
-                <span>{course.moduleCount} module{course.moduleCount !== 1 ? 's' : ''}</span>
-                <span>•</span>
-                <span>{course.lessonCount} lesson{course.lessonCount !== 1 ? 's' : ''}</span>
-                <span>•</span>
-                <span>{course.quizCount} quiz{course.quizCount !== 1 ? 'zes' : ''}</span>
+              <div className="mt-6">
+                <h2 className="text-sm font-semibold uppercase tracking-wide text-neutral-500">Instructor</h2>
+                <p className="mt-2 text-neutral-700">{course.instructor?.name || 'Instructor unavailable'}</p>
               </div>
 
-              {course.learningObjectives.length > 0 && (
-                <div className="mt-6">
-                  <h3 className="text-sm font-semibold text-neutral-900 mb-2">What you&apos;ll learn</h3>
-                  <ul className="grid gap-2 sm:grid-cols-2">
-                    {course.learningObjectives.slice(0, 6).map((obj, i) => (
-                      <li key={i} className="flex items-start gap-2 text-sm text-neutral-700">
-                        <svg className="mt-0.5 h-4 w-4 flex-shrink-0 text-success-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                        </svg>
-                        {obj}
-                      </li>
-                    ))}
-                  </ul>
+              <div className="mt-6 grid gap-4 sm:grid-cols-2">
+                <div>
+                  <h2 className="text-sm font-semibold uppercase tracking-wide text-neutral-500">Category</h2>
+                  <p className="mt-2 text-neutral-700">{course.category || 'Not specified'}</p>
                 </div>
-              )}
+                <div>
+                  <h2 className="text-sm font-semibold uppercase tracking-wide text-neutral-500">Difficulty Level</h2>
+                  <p className="mt-2 text-neutral-700">{course.difficulty || 'Not specified'}</p>
+                </div>
+              </div>
             </div>
 
-            {/* Enrollment/Purchase Card */}
             <div className="border-t border-neutral-200 bg-neutral-50 px-6 py-4">
               <div className="flex flex-wrap items-center justify-between gap-4">
-                <div className="flex items-center gap-3">
+                <div>
+                  <p className="mb-1 text-sm font-semibold uppercase tracking-wide text-neutral-500">Price</p>
                   <PriceDisplay price={course.price} discountPrice={course.discountPrice} />
                 </div>
 
@@ -302,30 +264,6 @@ export default function StudentCourseOverviewPage() {
             </div>
           </div>
 
-          {/* Course Content Preview */}
-          <div className="rounded-2xl border border-neutral-200 bg-white p-6 shadow-sm">
-            <h2 className="text-lg font-semibold text-neutral-900">Course Content</h2>
-            <p className="mt-1 text-sm text-neutral-500">
-              {course.moduleCount} modules • {course.lessonCount} lessons • {course.quizCount} quizzes
-            </p>
-
-            <div className="mt-6 space-y-4">
-              {course.moduleCount === 0 ? (
-                <EmptyState
-                  icon={EmptyStateIcons.NoData}
-                  title="No content yet"
-                  description="The instructor hasn't added any modules to this course yet."
-                />
-              ) : (
-                <div className="rounded-xl border border-neutral-200 bg-neutral-50 p-4 text-center text-sm text-neutral-600">
-                  <p>Course content will be visible after enrollment.</p>
-                  <p className="mt-1 text-xs text-neutral-500">
-                    {course.moduleCount} modules, {course.lessonCount} lessons, {course.quizCount} quizzes available.
-                  </p>
-                </div>
-              )}
-            </div>
-          </div>
         </>
       ) : null}
     </div>

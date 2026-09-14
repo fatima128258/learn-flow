@@ -3,7 +3,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import {
-  Badge,
   Button,
   EmptyState,
   EmptyStateIcons,
@@ -11,7 +10,6 @@ import {
   Input,
 } from '@/components/ui';
 import { useCurrentUser } from '@/features/auth/useCurrentUser';
-import { getCoursePricing } from '@/lib/coursePricing';
 
 type CourseHit = {
   id: string;
@@ -30,23 +28,8 @@ type CourseHit = {
   status: string;
   publishedAt: string | null;
   isEnrolled: boolean;
+  enrollmentCount: number;
 };
-
-function formatPrice(value: number | null) {
-  if (value === null || value === undefined) return 'Free';
-  if (value === 0) return 'Free';
-  return `$${Number(value).toFixed(2)}`;
-}
-
-function PriceDisplay({ price, discountPrice }: { price: number | null; discountPrice: number | null }) {
-  const { originalPrice, currentPrice, hasDiscount } = getCoursePricing(price, discountPrice);
-  return (
-    <span className="flex items-center gap-2">
-      <span>{formatPrice(currentPrice)}</span>
-      {hasDiscount && <span className="text-xs text-neutral-400 line-through">{formatPrice(originalPrice)}</span>}
-    </span>
-  );
-}
 
 export default function StudentSearchPage() {
   const { data: user, isLoading: userLoading } = useCurrentUser();
@@ -244,25 +227,14 @@ export default function StudentSearchPage() {
                   )}
                   
                   <div className="p-6">
-                    <div className="mb-3 flex flex-wrap items-center gap-2">
-                      {course.category && <Badge variant="primary" size="sm">{course.category}</Badge>}
-                      {course.difficulty && <Badge variant="default" size="sm">{course.difficulty}</Badge>}
-                      {course.isEnrolled && <Badge variant="success" size="sm">Enrolled</Badge>}
-                    </div>
                     <h3 className="text-lg font-semibold text-neutral-900 line-clamp-2">{course.title}</h3>
                     <p className="mt-1 text-sm text-neutral-500">
-                      {course.instructor?.name ? `Instructor: ${course.instructor.name}` : 'Self-paced'}
+                      {course.instructor?.name ? `Instructor: ${course.instructor.name}` : 'Instructor unavailable'}
                     </p>
-                    {course.description && (
-                      <p className="mt-2 text-sm text-neutral-600 line-clamp-2">{course.description}</p>
-                    )}
-                    <div className="mt-4 flex items-center justify-between text-sm text-neutral-500">
-                      <span>
-                        {course.estimatedMinutes
-                          ? `${Math.round(course.estimatedMinutes / 60)}h ${course.estimatedMinutes % 60}m`
-                          : 'Self-paced'}
-                      </span>
-                      <PriceDisplay price={course.price} discountPrice={course.discountPrice} />
+                    <div className="mt-4 flex items-center gap-4 text-sm text-neutral-500">
+                      <span>{course.enrollmentCount.toLocaleString()} enrolled</span>
+                      <span aria-hidden="true">•</span>
+                      <span>Views {course.enrollmentCount.toLocaleString()}</span>
                     </div>
                     <div className="mt-4">
                       {course.isEnrolled ? (

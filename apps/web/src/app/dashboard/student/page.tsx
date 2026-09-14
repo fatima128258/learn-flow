@@ -184,12 +184,7 @@ export default function StudentDashboardPage() {
                     {course.description && (
                       <p className="mt-2 line-clamp-2 text-sm text-neutral-600">{course.description}</p>
                     )}
-                    <div className="mt-4 flex items-center justify-between border-t border-neutral-100 pt-4 text-sm text-neutral-500">
-                      <span>
-                        {course.estimatedMinutes
-                          ? `${Math.round(course.estimatedMinutes / 60)}h ${course.estimatedMinutes % 60}m`
-                          : 'Self-paced'}
-                      </span>
+                    <div className="mt-4 flex items-center justify-end border-t border-neutral-100 pt-4 text-sm text-neutral-500">
                       <Badge variant="success" size="sm">Enrolled</Badge>
                     </div>
                   </div>

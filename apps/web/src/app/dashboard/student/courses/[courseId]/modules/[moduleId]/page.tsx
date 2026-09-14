@@ -1,7 +1,7 @@
 ﻿'use client';
 
 import { useEffect, useState } from 'react';
-import { useParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import {
   Badge,
@@ -205,6 +205,7 @@ export default function StudentModuleLessonsPage() {
   const params = useParams();
   const courseId = typeof params.courseId === 'string' ? params.courseId : null;
   const moduleId = typeof params.moduleId === 'string' ? params.moduleId : null;
+  const router = useRouter();
   const { data: user, isLoading: userLoading } = useCurrentUser();
 
   const [lessonError, setLessonError] = useState<string | null>(null);
@@ -267,6 +268,14 @@ export default function StudentModuleLessonsPage() {
 
   // Helper to find module progress data
   const currentModule = progress?.modules.find(m => m.id === moduleId);
+
+  useEffect(() => {
+    const firstLesson = lessonsData?.items?.find((item) => item.type === 'LESSON' && item.lesson)?.lesson
+      ?? lessonsData?.lessons[0];
+    if (firstLesson && courseId && moduleId) {
+      router.replace(`/dashboard/student/courses/${courseId}/modules/${moduleId}/lessons/${firstLesson.id}`);
+    }
+  }, [lessonsData, courseId, moduleId, router]);
 
   // Check if course is 100% complete
   const isCourseComplete = progress?.coursePercentage === 100;

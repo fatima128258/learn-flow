@@ -105,6 +105,9 @@ export async function searchPublishedCourses(
             },
           }
         : {}),
+      _count: {
+        select: { enrollments: true },
+      },
     },
     orderBy: options.orderBy ?? { publishedAt: 'desc' },
     skip: options.skip,

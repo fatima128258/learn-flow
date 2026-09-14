@@ -38,6 +38,7 @@ function toCourseSearchDto(course: {
   status: string;
   publishedAt: Date | null;
   enrollments?: { id: string }[];
+  _count?: { enrollments: number };
 }, isEnrolled = false) {
   return {
     id: course.id,
@@ -59,6 +60,7 @@ function toCourseSearchDto(course: {
     status: course.status,
     publishedAt: course.publishedAt,
     isEnrolled,
+    enrollmentCount: course._count?.enrollments ?? 0,
   };
 }
 

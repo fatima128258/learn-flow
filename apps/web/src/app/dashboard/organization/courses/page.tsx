@@ -127,11 +127,10 @@ function ChangeStatusModal({ course, organizationId, onClose, onSuccess }: Chang
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
       onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
     >
-      <div className="w-full max-w-md rounded-2xl border border-neutral-200 bg-white p-6 shadow-xl">
-        <div className="mb-4 flex items-start justify-between gap-2">
+      <div className="w-full max-w-xl rounded-2xl border border-neutral-200 bg-white p-7 shadow-xl">
+        <div className="mb-5 flex items-start justify-between gap-2">
           <div>
-            <h2 className="text-base font-semibold text-neutral-900">Change Course Status</h2>
-            <p className="mt-0.5 text-sm text-neutral-500 line-clamp-1">{course.title}</p>
+            <h2 className="text-lg font-medium text-[#64748b] line-clamp-1">{course.title}</h2>
           </div>
           <button
             onClick={onClose}
@@ -144,24 +143,24 @@ function ChangeStatusModal({ course, organizationId, onClose, onSuccess }: Chang
           </button>
         </div>
 
-        <div className="mb-4 flex items-center gap-2 rounded-lg bg-neutral-50 px-3 py-2 text-sm text-neutral-600">
+        <div className="mb-5 flex items-center gap-2 rounded-xl bg-[#f7f9fc] px-4 py-3 text-base text-[#64748b]">
           <span>Current:</span>
-          <Badge variant={statusBadgeVariant(course.status)} size="sm">{course.status}</Badge>
+          <span className="rounded-full bg-[#fff1bd] px-3 py-1 text-sm font-medium text-[#b77900]">{course.status}</span>
         </div>
 
-        <fieldset className="space-y-2">
-          <legend className="mb-2 text-sm font-medium text-neutral-700">Select new status</legend>
+        <fieldset className="space-y-2.5">
+          <legend className="mb-3 text-base font-semibold text-[#475569]">Select new status</legend>
           {STATUS_OPTIONS.map((opt) => {
             const isCurrent = opt.value === course.status;
             const isSelected = opt.value === selected;
             return (
               <label
                 key={opt.value}
-                className={`flex cursor-pointer items-start gap-3 rounded-lg border p-3 transition-colors ${
+                className={`flex cursor-pointer items-start gap-4 rounded-xl border px-4 py-4 transition-colors ${
                   isSelected
-                    ? 'border-primary-500 bg-primary-50'
-                    : 'border-neutral-200 hover:border-neutral-300 hover:bg-neutral-50'
-                } ${isCurrent ? 'opacity-60' : ''}`}
+                    ? 'border-[#c8a98f] bg-[#fffaf3]'
+                    : 'border-[#dbe3ed] bg-white hover:border-[#c8a98f] hover:bg-[#fffaf3]'
+                }`}
               >
                 <input
                   type="radio"
@@ -169,30 +168,30 @@ function ChangeStatusModal({ course, organizationId, onClose, onSuccess }: Chang
                   value={opt.value}
                   checked={isSelected}
                   onChange={() => setSelected(opt.value)}
-                  className="mt-0.5 h-4 w-4 accent-primary-600"
+                  className="mt-0.5 h-5 w-5 accent-[#8d6b57]"
                 />
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2">
-                    <span className="text-sm font-medium text-neutral-900">{opt.label}</span>
+                    <span className="text-base font-semibold text-[#273449]">{opt.label}</span>
                     {isCurrent && (
-                      <span className="rounded-full bg-neutral-200 px-1.5 py-0.5 text-xs text-neutral-500">
+                      <span className="rounded-full bg-[#edf1f5] px-2 py-0.5 text-sm text-[#aeb9c7]">
                         current
                       </span>
                     )}
                   </div>
-                  <p className="mt-0.5 text-xs text-neutral-500">{opt.description}</p>
+                  <p className="mt-1 text-sm text-[#71819a]">{opt.description}</p>
                 </div>
               </label>
             );
           })}
         </fieldset>
 
-        <div className="mt-5 flex justify-end gap-2">
+        <div className="mt-6 flex justify-end gap-3">
           <button
             type="button"
             onClick={onClose}
             disabled={saving}
-            className="rounded-lg border border-neutral-300 bg-white px-4 py-2 text-sm font-medium text-neutral-700 hover:bg-neutral-50 disabled:opacity-50"
+            className="rounded-lg border-0 bg-transparent px-4 py-2 text-base font-medium text-[#475569] hover:bg-neutral-50 disabled:opacity-50"
           >
             Cancel
           </button>
@@ -200,7 +199,7 @@ function ChangeStatusModal({ course, organizationId, onClose, onSuccess }: Chang
             type="button"
             onClick={handleConfirm}
             disabled={!isDirty || saving}
-            className="inline-flex items-center gap-2 rounded-lg bg-primary-600 px-4 py-2 text-sm font-medium text-white hover:bg-primary-700 disabled:cursor-not-allowed disabled:opacity-50"
+            className="inline-flex items-center gap-2 rounded-lg bg-[#5a321f] px-5 py-2 text-base font-semibold text-white hover:bg-[#472719] disabled:cursor-not-allowed disabled:bg-[#b9a89f]"
           >
             {saving && <Spinner size="sm" />}
             {saving ? 'Saving…' : 'Confirm'}

@@ -279,7 +279,7 @@ export default function StudentQuizTakingPage() {
     : `${Math.floor(remainingSeconds / 60).toString().padStart(2, '0')}:${(remainingSeconds % 60).toString().padStart(2, '0')}`;
 
   return (
-    <div className="mx-auto max-w-6xl">
+    <div className="mx-auto w-full max-w-6xl px-1 sm:px-2">
       <PageHeader
         subtitle="Student"
         title="Quiz"
@@ -423,65 +423,100 @@ export default function StudentQuizTakingPage() {
 
         {quiz && !result && started && question && !expired ? (
           <>
-            <div className="mb-6 flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-neutral-200 bg-white p-5 shadow-sm">
-              <div>
-                <p className="text-sm font-medium text-neutral-500">Question {currentQuestion + 1} of {totalQuestions}</p>
-                <h2 className="mt-1 text-xl font-semibold text-neutral-900">{quiz.title}</h2>
-              </div>
-              {formattedTime && <Badge variant={remainingSeconds != null && remainingSeconds < 60 ? 'warning' : 'info'} size="sm">Timer {formattedTime}</Badge>}
+            <div className="mb-4 rounded-2xl border border-neutral-200 bg-[#fffdf9] p-3 shadow-sm sm:p-4">
+              <Link href={`/dashboard/student/courses/${courseId}/modules/${moduleId}`} className="text-xs font-medium text-[#5a321f] hover:underline">
+                ← Back to Course
+              </Link>
+              <h1 className="mt-3 break-words text-lg font-bold text-[#17212b] sm:text-xl">{quiz.title}</h1>
+              {quiz.description && <p className="mt-1 break-words text-xs leading-5 text-[#64748b]">{quiz.description}</p>}
             </div>
-            <div className="rounded-2xl border border-neutral-200 bg-white p-6 shadow-sm">
-                  <div className="mb-4 flex items-start justify-between gap-3">
-                    <h3 className="font-semibold text-neutral-900">
-                      <span className="mr-2 text-neutral-400">{currentQuestion + 1}.</span>
-                      {question.questionText}
-                    </h3>
-                    <Badge variant="default" size="sm">{question.marks} pt{question.marks !== 1 ? 's' : ''}</Badge>
-                  </div>
-
-                  <div className="space-y-2">
-                    {question.options.map((option) => {
-                      const selected = answers[question.id] === option.id;
-                      return (
-                        <button
-                          key={option.id}
-                          type="button"
-                          onClick={() => selectOption(question.id, option.id)}
-                          className={`w-full rounded-xl border p-3 text-left transition-colors ${selected
-                            ? 'border-primary-500 bg-primary-50 ring-2 ring-primary-500'
-                            : 'border-neutral-200 bg-white hover:border-primary-300 hover:bg-neutral-50'
-                          }`}
-                        >
-                          <span className="flex items-center gap-3">
-                            <span className={`flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full border ${
-                              selected ? 'border-primary-500 bg-primary-500' : 'border-neutral-300 bg-white'
-                            }`}>
-                              {selected && <span className="h-2 w-2 rounded-full bg-white" />}
-                            </span>
-                            <span className="text-sm text-neutral-800">{option.text}</span>
-                          </span>
-                        </button>
-                      );
-                    })}
-                  </div>
+            <div className="grid min-w-0 gap-3 md:grid-cols-[180px_minmax(0,1fr)] xl:grid-cols-[170px_minmax(0,1fr)_200px]">
+              <aside className="min-w-0 rounded-xl border border-neutral-200 bg-[#fffdf9] p-3">
+                <div className="flex items-center justify-between text-xs font-semibold text-[#475569]">
+                  <span>Questions</span>
+                  <span>{answeredCount} / {totalQuestions}</span>
                 </div>
+                <div className="mt-3 grid grid-cols-6 gap-2 sm:grid-cols-8 md:grid-cols-5">
+                  {quiz.questions.map((item, index) => (
+                    <button
+                      key={item.id}
+                      type="button"
+                      onClick={() => setCurrentQuestion(index)}
+                      className={`h-8 min-w-0 rounded-md border text-xs font-medium ${
+                        index === currentQuestion
+                          ? 'border-[#5a321f] bg-[#5a321f] text-white'
+                          : answers[item.id]
+                            ? 'border-emerald-300 bg-emerald-50 text-emerald-700'
+                            : 'border-neutral-200 bg-white text-neutral-600'
+                      }`}
+                    >
+                      {index + 1}
+                    </button>
+                  ))}
+                </div>
+              </aside>
 
-            <div className="mt-6 flex items-center justify-between rounded-2xl border border-neutral-200 bg-white p-5 shadow-sm">
-              <span className="text-sm text-neutral-500">Answered {answeredCount} of {totalQuestions}</span>
-              <div className="flex gap-3">
-                <Button variant="secondary" onClick={() => setCurrentQuestion((index) => Math.max(0, index - 1))} disabled={currentQuestion === 0 || submitting}>
-                  Previous
-                </Button>
-                {isLastQuestion ? (
-                  <Button variant="primary" onClick={submitAttempt} loading={submitting} disabled={answeredCount !== totalQuestions}>
-                    Submit Quiz
+              <main className="min-w-0 rounded-xl border border-neutral-200 bg-white p-4 shadow-sm sm:p-5">
+                <div className="mb-5 flex flex-wrap items-center justify-between gap-2">
+                  <span className="rounded-full bg-[#f5ebdd] px-3 py-1 text-xs font-medium text-[#5a321f]">
+                    Question {currentQuestion + 1} of {totalQuestions}
+                  </span>
+                  <span className="text-xs text-[#64748b]">{question.marks} mark{question.marks !== 1 ? 's' : ''}</span>
+                </div>
+                <h2 className="break-words text-base font-semibold leading-6 text-[#17212b]">{question.questionText}</h2>
+                <div className="mt-5 space-y-2">
+                  {question.options.map((option, index) => {
+                    const selected = answers[question.id] === option.id;
+                    return (
+                      <button
+                        key={option.id}
+                        type="button"
+                        onClick={() => selectOption(question.id, option.id)}
+                        className={`min-h-11 w-full rounded-lg border px-3 py-2.5 text-left transition-colors ${
+                          selected ? 'border-[#c8a98f] bg-[#fff7ee]' : 'border-neutral-200 bg-white hover:border-[#c8a98f]'
+                        }`}
+                      >
+                        <span className="flex items-center gap-3 break-words text-xs text-[#475569]">
+                          <span className={`flex h-4 w-4 items-center justify-center rounded-full border ${selected ? 'border-[#5a321f] bg-[#5a321f]' : 'border-neutral-300'}`}>
+                            {selected && <span className="h-1.5 w-1.5 rounded-full bg-white" />}
+                          </span>
+                          <span className="font-semibold">{String.fromCharCode(65 + index)}.</span>
+                          <span>{option.text}</span>
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+                <div className="mt-8 flex flex-wrap items-center justify-between gap-3 border-t border-neutral-100 pt-4">
+                  <Button variant="secondary" size="sm" onClick={() => setCurrentQuestion((index) => Math.max(0, index - 1))} disabled={currentQuestion === 0 || submitting}>
+                    ← Previous
                   </Button>
-                ) : (
-                  <Button variant="primary" onClick={() => setCurrentQuestion((index) => index + 1)} disabled={!answers[question.id] || submitting}>
-                    Next
-                  </Button>
-                )}
-              </div>
+                  {isLastQuestion ? (
+                    <Button variant="primary" size="sm" onClick={submitAttempt} loading={submitting} disabled={answeredCount !== totalQuestions}>
+                      Submit Quiz
+                    </Button>
+                  ) : (
+                    <Button variant="primary" size="sm" onClick={() => setCurrentQuestion((index) => index + 1)} disabled={!answers[question.id] || submitting}>
+                      Next →
+                    </Button>
+                  )}
+                </div>
+              </main>
+
+              <aside className="min-w-0 rounded-xl border border-neutral-200 bg-[#fffdf9] p-4 md:col-span-2 xl:col-span-1">
+                <div className="flex items-center gap-2 text-xs font-semibold text-[#475569]">
+                  <span className="text-lg text-[#5a321f]">◷</span> Time Remaining
+                </div>
+                <p className="mt-1 text-xl font-bold text-[#5a321f]">{formattedTime ?? '--:--'}</p>
+                <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-[#f1e8dc]">
+                  <div className="h-full rounded-full bg-[#5a321f]" style={{ width: `${remainingSeconds != null && quiz.timeLimitMinutes ? Math.min(100, (remainingSeconds / (quiz.timeLimitMinutes * 60)) * 100) : 0}%` }} />
+                </div>
+                <div className="mt-5 space-y-2 border-t border-neutral-100 pt-4 text-xs text-[#64748b]">
+                  <div className="flex justify-between"><span>Total Questions</span><b>{totalQuestions}</b></div>
+                  <div className="flex justify-between"><span>Answered</span><b>{answeredCount}</b></div>
+                  <div className="flex justify-between"><span>Remaining</span><b>{totalQuestions - answeredCount}</b></div>
+                </div>
+              </aside>
             </div>
           </>
         ) : null}

@@ -270,7 +270,12 @@ export default function QuizQuestionsPage() {
       setInlineQuestionText('');
       setInlineOptions([{ text: '', isCorrect: true }]);
       toast.success('Question and options saved successfully.');
+      setExpandedQuestion(createdQuestion.data.id);
+      await reloadOptions(createdQuestion.data.id);
       await reloadQuestions();
+      window.setTimeout(() => {
+        document.getElementById('inline-question-builder')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }, 0);
     } catch {
       toast.error(getQuizErrorMessage(null));
     } finally {
@@ -768,8 +773,8 @@ export default function QuizQuestionsPage() {
               <span>Loading questions...</span>
             </div>
           ) : questions !== null ? (
-            <div className="mt-6 space-y-5">
-              <div id="inline-question-builder" className="rounded-xl border border-primary-200 bg-primary-50/30 p-5">
+            <div className="mt-6 flex flex-col space-y-5">
+              <div id="inline-question-builder" className="order-last rounded-xl border border-primary-200 bg-primary-50/30 p-5">
                 <h2 className="text-lg font-semibold text-neutral-900">
                   {questions.length === 0 ? 'Add your first question' : 'Add another question'}
                 </h2>
@@ -826,7 +831,7 @@ export default function QuizQuestionsPage() {
                 </div>
               </div>
               {questions.length > 0 && (
-            <div className="space-y-3">
+            <div className="order-first space-y-3">
               {questions.map((question) => (
                 <div
                   key={question.id}
@@ -881,28 +886,19 @@ export default function QuizQuestionsPage() {
                         </div>
                       ) : questionOptions[question.id] && questionOptions[question.id].length > 0 ? (
                         <div className="space-y-2">
-                          {questionOptions[question.id].map((option) => (
+                          {questionOptions[question.id].map((option, optionIndex) => (
                             <div
                               key={option.id}
                               className="flex items-center justify-between rounded-lg border border-neutral-200 bg-white px-4 py-3"
                             >
                               <div className="flex items-center gap-3">
-                                <Badge variant={option.isCorrect ? 'success' : 'default'} size="sm">
-                                  {option.order}
-                                </Badge>
+                                <span className={`flex h-5 w-5 items-center justify-center rounded-full border text-xs font-semibold ${option.isCorrect ? 'border-primary-700 bg-primary-700 text-white' : 'border-neutral-300 text-neutral-500'}`}>
+                                  {String.fromCharCode(65 + optionIndex)}
+                                </span>
                                 <span className="text-sm text-neutral-900">{option.text}</span>
                                 {option.isCorrect ? (
                                   <Badge variant="success" size="sm">Correct</Badge>
                                 ) : null}
-                                <div className="mt-6 flex justify-end border-t border-neutral-200 pt-5">
-                                  <LinkButton
-                                    href={`${dashboardPrefix}/courses/${courseId}/modules/${moduleId}/quizzes${organizationId ? `?organization=${organizationId}` : ''}`}
-                                    size="sm"
-                                    variant="primary"
-                                  >
-                                    Save Quiz
-                                  </LinkButton>
-                                </div>
                               </div>
                               <div className="flex items-center gap-1">
                                 <Button

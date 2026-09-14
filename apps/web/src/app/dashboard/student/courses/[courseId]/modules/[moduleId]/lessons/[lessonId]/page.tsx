@@ -6,7 +6,7 @@ import Link from 'next/link';
 import { Badge, Button, ErrorState, Spinner } from '@/components/ui';
 import { PageHeader } from '@/components/dashboard';
 import { useCurrentUser } from '@/features/auth/useCurrentUser';
-import { useProgress } from '@/features/student/useProgress';
+import { useProgress, useModuleLessons } from '@/features/student/useProgress';
 
 type LessonContent = {
   id: string;
@@ -35,13 +35,21 @@ export default function StudentLessonPage() {
   const { data: user, isLoading: userLoading } = useCurrentUser();
   const organizationId = user?.organizationId ?? '';
   const { data: progress, isLoading: progressLoading } = useProgress(organizationId, courseId ?? '');
+  const { data: moduleItems } = useModuleLessons(organizationId, courseId ?? '', moduleId ?? '');
 
   const [data, setData] = useState<LessonData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [marking, setMarking] = useState(false);
   const [markError, setMarkError] = useState<string | null>(null);
+  const [nextQuizId, setNextQuizId] = useState<string | null>(null);
   const isCompleted = Boolean(lessonId && progress?.completedLessonIds.includes(lessonId));
+
+  useEffect(() => {
+    const lessonIndex = moduleItems?.items?.findIndex((item) => item.type === 'LESSON' && item.id === lessonId) ?? -1;
+    const followingItem = lessonIndex >= 0 ? moduleItems?.items?.[lessonIndex + 1] : undefined;
+    setNextQuizId(followingItem?.type === 'QUIZ' && followingItem.quiz ? followingItem.quiz.id : null);
+  }, [moduleItems, lessonId]);
 
   async function loadLesson(orgId: string, cid: string, mid: string, lid: string) {
     setLoading(true);
@@ -247,7 +255,7 @@ export default function StudentLessonPage() {
                     disabled={marking || progressLoading || isCompleted}
                     onClick={() => markComplete(true)}
                   >
-                    {marking ? 'Saving...' : 'Mark as Complete'}
+                    {marking ? 'Saving...' : 'Mark as Read'}
                   </Button>
                   <Button
                     size="sm"
@@ -257,6 +265,14 @@ export default function StudentLessonPage() {
                   >
                     Mark as Incomplete
                   </Button>
+                  {isCompleted && nextQuizId && (
+                    <Link
+                      href={`/dashboard/student/courses/${courseId}/modules/${moduleId}/quizzes/${nextQuizId}`}
+                      className="inline-flex items-center rounded-lg bg-[#5A321F] px-4 py-2 text-sm font-semibold text-white hover:bg-[#472719]"
+                    >
+                      Start Quiz
+                    </Link>
+                  )}
                 </div>
               </div>
             </div>
