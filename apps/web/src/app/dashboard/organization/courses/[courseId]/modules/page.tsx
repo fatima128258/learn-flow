@@ -176,11 +176,6 @@ function ModuleDetailsDrawer({ module, isOpen, onClose }: {
         </div>
 
         <div>
-          <p className="text-xs font-semibold uppercase tracking-wide text-[#17212b]">Last Updated</p>
-          <p className="mt-1 text-sm text-neutral-700">{new Date(module.updatedAt).toLocaleString()}</p>
-        </div>
-
-        <div>
           <p className="text-xs font-semibold uppercase tracking-wide text-[#17212b]">Lessons ({module.lessons.length})</p>
           {module.lessons.length > 0 ? (
             <div className="mt-2 space-y-2">
@@ -676,15 +671,14 @@ export default function CourseModulesPage() {
                 {modules.map((module) => (
                   <div key={module.id} className="flex min-h-52 flex-col rounded-2xl border border-neutral-200 bg-white p-5 shadow-sm transition-shadow hover:shadow-md" onClick={() => void openModuleDetails(module)}>
                     <div className="flex items-start justify-between gap-2">
-                      <p className="font-semibold text-neutral-900 leading-snug">{module.title}</p>
-                      <Badge variant="default" size="sm">#{module.order}</Badge>
+                      <p className="min-w-0 flex-1 font-semibold leading-snug text-neutral-900">{module.title}</p>
+                      <div className="shrink-0" onClick={(event) => event.stopPropagation()}>
+                        <ModuleActionsMenu module={module} courseId={courseId!} organizationId={organizationId!} dashboardPrefix={dashboardPrefix} onEdit={() => openEditModal(module)} onDelete={() => handleDelete(module.id)} />
+                      </div>
                     </div>
                     {module.description && (
                       <p className="mt-1 text-sm text-neutral-500">{module.description}</p>
                     )}
-                    <div className="mt-auto flex items-center justify-end border-t border-neutral-100 pt-4" onClick={(event) => event.stopPropagation()}>
-                      <ModuleActionsMenu module={module} courseId={courseId!} organizationId={organizationId!} dashboardPrefix={dashboardPrefix} onEdit={() => openEditModal(module)} onDelete={() => handleDelete(module.id)} />
-                    </div>
                   </div>
                 ))}
               </div>

@@ -90,6 +90,13 @@ function optionalPositiveInt(value: unknown) {
   return parsed;
 }
 
+function requirePositiveInt(value: unknown) {
+  if (value === undefined || value === null || value === '') {
+    throw new Error('MISSING_FIELDS');
+  }
+  return optionalPositiveInt(value);
+}
+
 function optionalNonNegativeFloat(value: unknown) {
   if (value === undefined || value === null || value === '') return null;
   const parsed = Number(value);
@@ -140,9 +147,9 @@ export async function createQuiz(organizationId: string, courseId: string, modul
       moduleId,
       title,
       description: optionalString(input.description),
-      timeLimitMinutes: optionalPositiveInt(input.timeLimitMinutes),
+      timeLimitMinutes: requirePositiveInt(input.timeLimitMinutes),
       passingPercentage: optionalNonNegativeFloat(input.passingPercentage),
-      maxAttempts: optionalPositiveInt(input.maxAttempts),
+      maxAttempts: requirePositiveInt(input.maxAttempts),
       order,
     });
     await sequenceRepo.append(moduleId, { type: 'QUIZ', id: quiz.id });
@@ -183,7 +190,7 @@ export async function updateQuiz(organizationId: string, courseId: string, modul
   }
 
   if (input.timeLimitMinutes !== undefined) {
-    updateData.timeLimitMinutes = optionalPositiveInt(input.timeLimitMinutes);
+    updateData.timeLimitMinutes = requirePositiveInt(input.timeLimitMinutes);
   }
 
   if (input.passingPercentage !== undefined) {
@@ -191,7 +198,7 @@ export async function updateQuiz(organizationId: string, courseId: string, modul
   }
 
   if (input.maxAttempts !== undefined) {
-    updateData.maxAttempts = optionalPositiveInt(input.maxAttempts);
+    updateData.maxAttempts = requirePositiveInt(input.maxAttempts);
   }
 
   if (input.order !== undefined) {

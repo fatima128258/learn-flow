@@ -331,7 +331,11 @@ export default function ModuleQuizzesPage() {
       return 'Order must be a non-negative integer';
     }
 
-    if (timeLimitMinutes.trim() !== '') {
+    if (timeLimitMinutes.trim() === '') {
+      setTimeLimitError('Time limit is required');
+      return 'Time limit is required';
+    }
+    {
       const parsed = parseInt(timeLimitMinutes, 10);
       if (isNaN(parsed) || parsed < 1 || !Number.isInteger(parsed)) {
         setTimeLimitError('Time limit must be a positive integer');
@@ -347,7 +351,11 @@ export default function ModuleQuizzesPage() {
       }
     }
 
-    if (maxAttempts.trim() !== '') {
+    if (maxAttempts.trim() === '') {
+      setMaxAttemptsError('Max attempts is required');
+      return 'Max attempts is required';
+    }
+    {
       const parsed = parseInt(maxAttempts, 10);
       if (isNaN(parsed) || parsed < 1 || !Number.isInteger(parsed)) {
         setMaxAttemptsError('Max attempts must be a positive integer');
@@ -374,9 +382,9 @@ export default function ModuleQuizzesPage() {
         order: parseInt(order, 10),
       };
       if (description.trim()) body.description = description.trim();
-      if (timeLimitMinutes.trim() !== '') body.timeLimitMinutes = parseInt(timeLimitMinutes, 10);
+      body.timeLimitMinutes = parseInt(timeLimitMinutes, 10);
       if (passingPercentage.trim() !== '') body.passingPercentage = parseFloat(passingPercentage);
-      if (maxAttempts.trim() !== '') body.maxAttempts = parseInt(maxAttempts, 10);
+      body.maxAttempts = parseInt(maxAttempts, 10);
 
       const res = await fetch(
         `${apiBase}/api/v1/organizations/${organizationId}/courses/${courseId}/modules/${moduleId}/quizzes`,
@@ -400,6 +408,13 @@ export default function ModuleQuizzesPage() {
         } else {
           toast.error(getQuizErrorMessage(code));
         }
+        return;
+      }
+
+      const createdBody: { data?: { id?: string } } = await res.json();
+      if (createdBody.data?.id) {
+        toast.success('Quiz created. Add questions and options to continue.');
+        router.push(`${dashboardPrefix}/courses/${courseId}/modules/${moduleId}/quizzes/${createdBody.data.id}/questions${organizationId ? `?organization=${organizationId}` : ''}`);
         return;
       }
 
@@ -761,7 +776,8 @@ export default function ModuleQuizzesPage() {
               placeholder="e.g. 30"
               autoComplete="off"
               disabled={creating}
-              helperText="Optional."
+              required
+              helperText="Required. Minimum 1 minute."
             />
 
             <Input
@@ -790,7 +806,8 @@ export default function ModuleQuizzesPage() {
               placeholder="e.g. 3"
               autoComplete="off"
               disabled={creating}
-              helperText="Optional."
+              required
+              helperText="Required. Minimum 1 attempt."
             />
           </div>
 
@@ -860,7 +877,8 @@ export default function ModuleQuizzesPage() {
               placeholder="e.g. 30"
               autoComplete="off"
               disabled={updating}
-              helperText="Optional."
+              required
+              helperText="Required. Minimum 1 minute."
             />
 
             <Input
@@ -889,7 +907,8 @@ export default function ModuleQuizzesPage() {
               placeholder="e.g. 3"
               autoComplete="off"
               disabled={updating}
-              helperText="Optional."
+              required
+              helperText="Required. Minimum 1 attempt."
             />
           </div>
 

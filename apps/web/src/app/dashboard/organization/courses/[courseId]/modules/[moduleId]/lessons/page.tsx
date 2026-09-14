@@ -281,10 +281,8 @@ export default function ModuleLessonsPage() {
         title: title.trim(),
         order: parseInt(order, 10),
       };
-      if (description.trim()) body.description = description.trim();
       if (content.trim()) body.content = content.trim();
       if (type.trim()) body.type = type.trim();
-      if (duration.trim() !== '') body.duration = parseInt(duration, 10);
 
       const res = await fetch(
         `${apiBase}/api/v1/organizations/${organizationId}/courses/${courseId}/modules/${moduleId}/lessons`,
@@ -612,16 +610,6 @@ export default function ModuleLessonsPage() {
           />
 
           <Textarea
-            label="Description"
-            value={description}
-            onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setDescription(e.target.value)}
-            placeholder="Optional description"
-            autoComplete="off"
-            disabled={creating}
-            rows={2}
-          />
-
-          <Textarea
             label="Content"
             value={content}
             onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setContent(e.target.value)}
@@ -631,28 +619,14 @@ export default function ModuleLessonsPage() {
             rows={4}
           />
 
-          <Input
-            label="Type"
-            value={type}
-            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setType(e.target.value)}
-            placeholder="e.g. video, reading, quiz"
-            autoComplete="off"
-            disabled={creating}
-          />
-
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid gap-4 sm:grid-cols-2">
             <Input
-              label="Duration (minutes)"
-              type="number"
-              min="0"
-              step="1"
-              value={duration}
-              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setDuration(e.target.value)}
-              error={durationError}
-              placeholder="e.g. 15"
+              label="Type"
+              value={type}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setType(e.target.value)}
+              placeholder="e.g. video, reading, quiz"
               autoComplete="off"
               disabled={creating}
-              helperText="Non-negative integer."
             />
 
             <Input

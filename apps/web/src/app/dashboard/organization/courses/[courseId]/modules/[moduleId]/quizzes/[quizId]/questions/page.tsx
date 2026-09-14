@@ -155,6 +155,7 @@ export default function QuizQuestionsPage() {
         const body: ListQuestionsResponse = await res.json();
         if (!active) return;
         setQuestions(body.data ?? []);
+        if (body.data?.length) setExpandedQuestion(body.data[0].id);
       } catch {
         if (active) toast.error(getQuizErrorMessage(null));
       } finally {
@@ -198,6 +199,13 @@ export default function QuizQuestionsPage() {
         const body: ListOptionsResponse = await res.json();
         setQuestionOptions((prev) => ({ ...prev, [questionId]: body.data ?? [] }));
       }
+
+      useEffect(() => {
+        if (!questions || questions.length === 0) return;
+        questions.forEach((question) => {
+          if (!questionOptions[question.id]) void reloadOptions(question.id);
+        });
+      }, [questions]);
     } catch {
       // silent fail
     }
@@ -661,20 +669,20 @@ export default function QuizQuestionsPage() {
     <div>
       <div className="mx-auto max-w-5xl">
         <div className="mb-4 flex items-center justify-between">
-          <p className="text-sm font-medium uppercase tracking-wide text-primary-600">Quiz Questions</p>
+          <p className="text-sm font-medium uppercase tracking-wide text-primary-600">          Create Quiz</p>
           <LinkButton
-            href={`${dashboardPrefix}/courses/${courseId}/modules/${moduleId}/quizzes${organizationId ? `?organization=${organizationId}` : ''}`}
+            href={`${dashboardPrefix}/courses/${courseId}/modules${organizationId ? `?organization=${organizationId}` : ''}`}
             variant="ghost"
             size="sm"
           >
-            Back to Quizzes
+            Back to Course Builder
           </LinkButton>
         </div>
 
         <div className="rounded-2xl border border-neutral-200 bg-white p-6 shadow-sm">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
-              <h1 className="text-2xl font-bold text-neutral-900">Questions</h1>
+              <h1 className="text-2xl font-bold text-neutral-900">Quiz Questions</h1>
               <p className="mt-1 text-sm text-neutral-500">
                 Manage questions and answer options for this quiz.
               </p>
@@ -683,7 +691,7 @@ export default function QuizQuestionsPage() {
               <div className="rounded-lg bg-primary-50 px-3 py-2 text-sm font-semibold text-primary-700">
                 Total marks: {questions?.reduce((total, question) => total + question.marks, 0) ?? 0}
               </div>
-              <Button size="sm" onClick={() => setShowCreateModal(true)}>Create Question</Button>
+              <Button size="sm" onClick={() => setShowCreateModal(true)}>+ Add Question</Button>
             </div>
           </div>
 
@@ -715,9 +723,9 @@ export default function QuizQuestionsPage() {
                 >
                   <div className="flex items-center justify-between px-5 py-4">
                     <div className="flex items-start gap-3">
-                      <Badge variant="default" size="sm">{question.order}</Badge>
                       <div>
-                        <p className="text-sm font-medium text-neutral-900">{question.questionText}</p>
+                        <p className="text-sm font-semibold text-neutral-900">Question {question.order}</p>
+                        <p className="mt-1 text-sm text-neutral-900">{question.questionText}</p>
                         <p className="mt-0.5 text-xs text-neutral-500">
                           {question.marks} {question.marks === 1 ? 'mark' : 'marks'}
                         </p>
@@ -729,7 +737,7 @@ export default function QuizQuestionsPage() {
                         size="sm"
                         onClick={() => toggleOptions(question.id)}
                       >
-                        {expandedQuestion === question.id ? 'Hide Options' : 'Options'}
+                        {expandedQuestion === question.id ? 'Hide Options' : 'Show Options'}
                       </Button>
                       <Button variant="ghost" size="sm" onClick={() => openEditModal(question)}>
                         Edit
@@ -744,14 +752,14 @@ export default function QuizQuestionsPage() {
                     <div className="border-t border-neutral-200 bg-neutral-50 px-5 py-4">
                       <div className="mb-3 flex items-center justify-between">
                         <p className="text-xs font-semibold uppercase tracking-wide text-neutral-500">
-                          Answer Options
+                          Options
                         </p>
                         <Button
                           variant="primary"
                           size="sm"
                           onClick={() => openCreateOptionModal(question.id)}
                         >
-                          Add Option
+                          + Add Option
                         </Button>
                       </div>
 
@@ -775,6 +783,15 @@ export default function QuizQuestionsPage() {
                                 {option.isCorrect ? (
                                   <Badge variant="success" size="sm">Correct</Badge>
                                 ) : null}
+                                <div className="mt-6 flex justify-end border-t border-neutral-200 pt-5">
+                                  <LinkButton
+                                    href={`${dashboardPrefix}/courses/${courseId}/modules/${moduleId}/quizzes${organizationId ? `?organization=${organizationId}` : ''}`}
+                                    size="sm"
+                                    variant="primary"
+                                  >
+                                    Save Quiz
+                                  </LinkButton>
+                                </div>
                               </div>
                               <div className="flex items-center gap-1">
                                 <Button
