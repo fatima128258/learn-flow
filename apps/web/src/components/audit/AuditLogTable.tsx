@@ -231,15 +231,42 @@ export const AuditLogTable: React.FC<AuditLogTableProps> = ({
               </table>
             </div>
             {/* Mobile cards */}
-            <div className={`${viewMode === 'grid' ? 'grid gap-3 p-3 sm:grid-cols-2' : 'space-y-3 p-3 md:hidden'}`}>
+            <div className={`mt-3 grid-cols-1 gap-3 ${viewMode === 'grid' ? 'grid p-3 md:grid-cols-2 lg:grid-cols-3' : 'grid p-3 md:hidden'}`}>
               {(logs ?? []).map((log) => (
                 <div
                   key={log.id}
-                  className="rounded-2xl border border-neutral-200 bg-white p-4 shadow-sm hover:bg-neutral-50"
+                  className="rounded-2xl border border-neutral-200 bg-white p-4 shadow-sm"
                 >
                   <div className="flex items-start justify-between gap-2">
+                    <p className="min-w-0 text-base font-semibold leading-snug text-neutral-900">
+                      {actorLabel(log)}
+                    </p>
+                  </div>
+
+                  <div className="mt-3">
                     <Badge variant="info" size="sm">{log.action}</Badge>
-                    <span className="text-xs text-neutral-400">{new Date(log.createdAt).toLocaleString('en-US', {
+                  </div>
+
+                  <div className="mt-3 space-y-2 border-t border-neutral-100 pt-3">
+                    {actorDetail(log) && (
+                      <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
+                        <p className="text-xs font-medium uppercase tracking-wide text-neutral-400">Actor</p>
+                        <p className="break-all text-sm text-neutral-700">{actorDetail(log)}</p>
+                      </div>
+                    )}
+                    {showOrganization && (
+                      <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
+                        <p className="text-xs font-medium uppercase tracking-wide text-neutral-400">Organization</p>
+                        <p className="break-all text-sm font-medium text-neutral-900">
+                          {log.organization?.name ?? (log.organization?.id ? log.organization.id.slice(0, 8) : '—')}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="mt-3 flex items-center justify-between gap-3 border-t border-neutral-100 pt-3 text-xs text-neutral-500">
+                    <span>Audit event</span>
+                    <span className="text-right">{new Date(log.createdAt).toLocaleString('en-US', {
                       year: 'numeric',
                       month: '2-digit',
                       day: '2-digit',
@@ -248,21 +275,6 @@ export const AuditLogTable: React.FC<AuditLogTableProps> = ({
                       second: '2-digit',
                       hour12: false,
                     })}</span>
-                  </div>
-                  <div className="mt-3 space-y-2 border-t border-neutral-100 pt-3">
-                    <div>
-                      <p className="text-xs font-medium uppercase tracking-wide text-neutral-400">Actor</p>
-                      <p className="text-sm text-neutral-700 break-all">{actorLabel(log)}</p>
-                      {actorDetail(log) && (
-                        <p className="text-xs text-neutral-500 break-all">{actorDetail(log)}</p>
-                      )}
-                    </div>
-                    {showOrganization && (log.organization?.id || log.organization?.name) && (
-                      <div>
-                        <p className="text-xs font-medium uppercase tracking-wide text-neutral-400">Organization</p>
-                        <p className="text-sm text-neutral-500">{log.organization?.name ?? log.organization?.id?.slice(0, 8)}</p>
-                      </div>
-                    )}
                   </div>
                 </div>
               ))}

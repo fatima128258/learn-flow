@@ -807,11 +807,11 @@ export default function OrganizationsPage() {
                   <thead className="bg-neutral-50">
                     <tr>
                       <th className={tableHeadClass}>Name</th>
-                      <th className={tableStatusClass}>Status</th>
+                      <th className={`${tableHeadClass} text-center`}>Status</th>
                       <th className={tableHeadClass}>Email</th>
                       <th className={tableNumericHeadClass}>Members</th>
                       <th className={tableHeadClass}>Created</th>
-                      <th className={tableActionClass}>Action</th>
+                      <th className={`${tableHeadClass} text-center`}>Action</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-neutral-200">
@@ -826,7 +826,7 @@ export default function OrganizationsPage() {
                             {org.name}
                           </button>
                         </td>
-                        <td className={tableCellClass}>
+                        <td className={tableStatusClass}>
                           <Badge variant={org.status === 'ACTIVE' ? 'success' : 'error'} size="sm">
                             {org.status}
                           </Badge>
@@ -1093,6 +1093,7 @@ export default function OrganizationsPage() {
                 variant={assignMode === 'existing' ? 'primary' : 'outline'}
                 onClick={() => setAssignMode('existing')}
                 disabled={assigning}
+                className="!border-0"
               >
                 Assign existing user
               </Button>
@@ -1102,6 +1103,7 @@ export default function OrganizationsPage() {
                 variant={assignMode === 'new' ? 'primary' : 'outline'}
                 onClick={() => setAssignMode('new')}
                 disabled={assigning}
+                className="!border-0"
               >
                 Create new admin
               </Button>
@@ -1140,10 +1142,10 @@ export default function OrganizationsPage() {
             </p>
 
             <div className="flex items-center justify-end gap-3 pt-2">
-              <Button type="button" variant="ghost" onClick={closeAssignModal} disabled={assigning}>
+              <Button type="button" variant="ghost" onClick={closeAssignModal} disabled={assigning} className="!border-0">
                 Cancel
               </Button>
-              <Button type="submit" loading={assigning}>
+              <Button type="submit" loading={assigning} className="!border-0">
                 Assign Admin
               </Button>
             </div>

@@ -265,7 +265,7 @@ export default function InstructorCoursesPage() {
                     <th className={tableHeadClass}>Difficulty</th>
                     <th className={tableHeadClass}>Status</th>
                     <th className={tableHeadClass}>Created</th>
-                    <th className={`${tableActionClass} w-10`}>Action</th>
+                    <th className={`${tableHeadClass} text-center w-10`}>Action</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-neutral-100">

@@ -408,7 +408,7 @@ export default function MyCoursesPage() {
                       <th className={tableHeadClass}>Status</th>
                       <th className={tableHeadClass}>Difficulty</th>
                       <th className={tableHeadClass}>Created</th>
-                      <th className={tableActionClass}>Action</th>
+                      <th className={`${tableHeadClass} text-center`}>Action</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-neutral-200">

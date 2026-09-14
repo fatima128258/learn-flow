@@ -350,9 +350,9 @@ export default function OrgUsersPage() {
                           <th className={tableHeadClass}>Name</th>
                           <th className={tableHeadClass}>Email</th>
                           <th className={tableHeadClass}>Role</th>
-                          <th className={tableStatusClass}>Status</th>
+                          <th className={`${tableHeadClass} text-center`}>Status</th>
                           <th className={tableHeadClass}>Created</th>
-                          <th className={tableActionClass}>Action</th>
+                          <th className={`${tableHeadClass} text-center`}>Action</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-neutral-100">
@@ -368,7 +368,7 @@ export default function OrgUsersPage() {
                             <td className={tableCellClass}>
                               <Badge variant={roleBadgeVariant(member.role)} size="sm">{member.role}</Badge>
                             </td>
-                            <td className={tableCellClass}>
+                            <td className={tableStatusClass}>
                               <Badge variant={member.status === 'ACTIVE' ? 'success' : 'warning'} size="sm">{member.status === 'ACTIVE' ? 'Active' : 'Suspended'}</Badge>
                             </td>
                             <td className={`${tableCellClass} text-neutral-700`}>

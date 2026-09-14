@@ -122,6 +122,11 @@ table td {
   vertical-align: middle;
 }
 
+table th {
+  color: var(--color-text);
+  font-weight: 400;
+}
+
 /* Focus Styles */
 :focus-visible {
   outline: 2px solid var(--color-border-focus);
