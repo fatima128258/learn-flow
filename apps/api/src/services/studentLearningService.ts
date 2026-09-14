@@ -69,7 +69,12 @@ function toEnrolledCourseListItem(enrollment: EnrolledEnrollment, course: Enroll
   };
 }
 
-function toCourseModuleDto(module: CourseModuleRecord, lessonCount: number, quizCount: number) {
+function toCourseModuleDto(
+  module: CourseModuleRecord,
+  lessonCount: number,
+  quizCount: number,
+  firstContent?: { type: 'LESSON' | 'QUIZ'; id: string },
+) {
   return {
     id: module.id,
     title: module.title,
@@ -77,6 +82,8 @@ function toCourseModuleDto(module: CourseModuleRecord, lessonCount: number, quiz
     order: module.order,
     lessonCount,
     quizCount,
+    firstContentType: firstContent?.type ?? null,
+    firstContentId: firstContent?.id ?? null,
   };
 }
 
@@ -221,9 +228,27 @@ export async function getEnrolledCourseDetail(organizationId: string, userId: st
   
   const lessonCountMap = new Map(lessonCounts.map((row: any) => [row.moduleId, row._count.id]));
   const quizCountMap = new Map(quizCounts.map((row: any) => [row.moduleId, row._count.id]));
-  const modulesWithCounts = modules.map((module: CourseModuleRecord) =>
-    toCourseModuleDto(module, lessonCountMap.get(module.id) ?? 0, quizCountMap.get(module.id) ?? 0),
-  );
+  const modulesWithCounts = await Promise.all(modules.map(async (module: CourseModuleRecord) => {
+    const firstSequenceItem = (await sequenceRepo.listByModule(module.id))[0] as {
+      type?: 'LESSON' | 'QUIZ';
+      lessonId?: string | null;
+      quizId?: string | null;
+    } | undefined;
+    const firstContent = firstSequenceItem?.type
+      ? {
+          type: firstSequenceItem.type,
+          id: firstSequenceItem.type === 'LESSON'
+            ? firstSequenceItem.lessonId ?? ''
+            : firstSequenceItem.quizId ?? '',
+        }
+      : undefined;
+    return toCourseModuleDto(
+      module,
+      lessonCountMap.get(module.id) ?? 0,
+      quizCountMap.get(module.id) ?? 0,
+      firstContent?.id ? firstContent : undefined,
+    );
+  }));
 
   return {
     enrollmentId: enrollment.id,

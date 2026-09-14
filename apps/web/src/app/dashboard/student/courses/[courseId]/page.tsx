@@ -19,6 +19,8 @@ type CourseModule = {
   order: number;
   lessonCount: number;
   quizCount: number;
+  firstContentType: 'LESSON' | 'QUIZ' | null;
+  firstContentId: string | null;
 };
 
 type CourseDetail = {
@@ -187,6 +189,9 @@ export default function StudentCoursePage() {
                       progress?.modules.find((item) => item.id === previousModule.id)?.complete === true,
                     );
                   const isLocked = index > 0 && (progressLoading || !previousModulesComplete);
+                  const moduleHref = module.firstContentType === 'LESSON' && module.firstContentId
+                    ? `/dashboard/student/courses/${courseId}/modules/${module.id}/lessons/${module.firstContentId}`
+                    : `/dashboard/student/courses/${courseId}/modules/${module.id}`;
                   const moduleCard = (
                     <>
                       <div className="group flex items-center justify-between p-5 transition-all">
@@ -253,7 +258,7 @@ export default function StudentCoursePage() {
                   >
                     {isLocked ? moduleCard : (
                       <Link
-                        href={`/dashboard/student/courses/${courseId}/modules/${module.id}`}
+                        href={moduleHref}
                         className="block cursor-pointer hover:bg-primary-50/30"
                       >
                         {moduleCard}

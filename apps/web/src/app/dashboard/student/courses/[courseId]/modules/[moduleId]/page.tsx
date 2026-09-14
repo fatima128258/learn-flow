@@ -293,6 +293,16 @@ export default function StudentModuleLessonsPage() {
   // Check if course is 100% complete
   const isCourseComplete = progress?.coursePercentage === 100;
 
+  const contentItems = lessonsData?.items?.length
+    ? lessonsData.items
+    : lessonsData?.lessons.map((lesson: LessonItem, i: number) => ({
+        type: 'LESSON' as const,
+        id: lesson.id,
+        position: i,
+        lesson,
+      })) ?? [];
+  const firstContentItem = contentItems[0];
+
   // Get lesson completion status from progress data
   const getLessonCompletionStatus = (lessonId: string): boolean => {
     if (!progress) return false;
@@ -390,7 +400,40 @@ export default function StudentModuleLessonsPage() {
               </p>
             </div>
 
-            {!lessonsData.items?.length && lessonsData.lessons.length === 0 ? (
+            {firstContentItem?.type === 'QUIZ' && firstContentItem.quiz && (
+              <div className="mb-6 rounded-2xl border border-primary-200 bg-primary-50/40 p-6 shadow-sm">
+                <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
+                  <div>
+                    <div className="mb-2 flex flex-wrap items-center gap-2">
+                      <Badge variant="info" size="sm">First activity</Badge>
+                      {firstContentItem.state === 'completed' && (
+                        <Badge variant="success" size="sm">✓ Completed</Badge>
+                      )}
+                    </div>
+                    <h2 className="text-xl font-bold text-neutral-900">{firstContentItem.quiz.title}</h2>
+                    {firstContentItem.quiz.description && (
+                      <p className="mt-1 max-w-2xl text-sm text-neutral-600">{firstContentItem.quiz.description}</p>
+                    )}
+                    <div className="mt-3 flex flex-wrap gap-3 text-sm text-neutral-600">
+                      {firstContentItem.quiz.timeLimitMinutes != null && (
+                        <span>{firstContentItem.quiz.timeLimitMinutes} min time limit</span>
+                      )}
+                      {firstContentItem.quiz.passingPercentage != null && (
+                        <span>Pass score: {firstContentItem.quiz.passingPercentage}%</span>
+                      )}
+                    </div>
+                  </div>
+                  <Link
+                    href={`/dashboard/student/courses/${courseId}/modules/${moduleId}/quizzes/${firstContentItem.quiz.id}`}
+                    className="inline-flex shrink-0 items-center justify-center rounded-lg bg-[#5A321F] px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-[#472719]"
+                  >
+                    {firstContentItem.state === 'completed' ? 'Review Quiz' : 'Start Quiz'}
+                  </Link>
+                </div>
+              </div>
+            )}
+
+            {!contentItems.length ? (
               <div className="rounded-2xl border border-neutral-200 bg-white shadow-sm">
                 <EmptyState
                   icon={EmptyStateIcons.NoData}
@@ -400,7 +443,7 @@ export default function StudentModuleLessonsPage() {
               </div>
             ) : (
               <div className="space-y-2">
-                {(lessonsData.items?.length ? lessonsData.items : lessonsData.lessons.map((lesson: LessonItem, i: number) => ({ type: 'LESSON' as const, id: lesson.id, position: i, lesson }))).map((item: NonNullable<ModuleLessonsResponse['items']>[number], index: number) => (
+                {contentItems.slice(firstContentItem?.type === 'QUIZ' ? 1 : 0).map((item: NonNullable<ModuleLessonsResponse['items']>[number], index: number) => (
                     item.type === 'QUIZ' ? <QuizRow key={item.id} quiz={item.quiz} state={item.state} index={index} courseId={courseId!} moduleId={moduleId!} /> : <LessonRow
                       key={item.id}
                       lesson={item.lesson!}
