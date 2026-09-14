@@ -38,7 +38,7 @@ export async function getNextContentUrl({
 }): Promise<string | null> {
   const progressResponse = await fetch(
     `/api/v1/organizations/${organizationId}/student/courses/${courseId}/progress`,
-    { credentials: 'include' },
+    { credentials: 'include', cache: 'no-store' },
   );
   const progressBody = progressResponse.ok ? await progressResponse.json() : null;
   const modules = (progressBody?.data?.modules ?? []) as ModuleSummary[];
@@ -48,7 +48,7 @@ export async function getNextContentUrl({
   for (const module of orderedModules) {
     const response = await fetch(
       `/api/v1/organizations/${organizationId}/student/courses/${courseId}/modules/${module.id}`,
-      { credentials: 'include' },
+      { credentials: 'include', cache: 'no-store' },
     );
     if (!response.ok) continue;
     const body = await response.json();
@@ -73,7 +73,7 @@ export async function getNextContentUrl({
   if (currentIndex < 0) {
     const currentModuleResponse = await fetch(
       `/api/v1/organizations/${organizationId}/student/courses/${courseId}/modules/${moduleId}`,
-      { credentials: 'include' },
+      { credentials: 'include', cache: 'no-store' },
     );
     if (currentModuleResponse.ok) {
       const currentModuleBody = await currentModuleResponse.json();
@@ -105,7 +105,7 @@ export async function getNextContentUrl({
   // course summary to find the next module's first activity instead.
   const courseResponse = await fetch(
     `/api/v1/organizations/${organizationId}/student/courses/${courseId}`,
-    { credentials: 'include' },
+    { credentials: 'include', cache: 'no-store' },
   );
   if (!courseResponse.ok) return null;
   const courseBody = await courseResponse.json();
@@ -128,7 +128,7 @@ export async function getNextContentUrl({
 
     const response = await fetch(
       `/api/v1/organizations/${organizationId}/student/courses/${courseId}/modules/${nextModule.id}`,
-      { credentials: 'include' },
+      { credentials: 'include', cache: 'no-store' },
     );
     if (!response.ok) continue;
     const body = await response.json();

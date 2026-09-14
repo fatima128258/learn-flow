@@ -239,7 +239,7 @@ export async function getEnrolledCourseDetail(organizationId: string, userId: st
     } catch {
       firstSequenceItem = undefined;
     }
-    const firstContent = firstSequenceItem?.type
+    let firstContent = firstSequenceItem?.type
       ? {
           type: firstSequenceItem.type,
           id: firstSequenceItem.type === 'LESSON'
@@ -247,6 +247,25 @@ export async function getEnrolledCourseDetail(organizationId: string, userId: st
             : firstSequenceItem.quizId ?? '',
         }
       : undefined;
+    if (!firstContent?.id) {
+      const [firstLesson, firstQuiz] = await Promise.all([
+        prisma.lesson.findFirst({
+          where: { moduleId: module.id },
+          orderBy: { order: 'asc' },
+          select: { id: true },
+        }),
+        prisma.quiz.findFirst({
+          where: { moduleId: module.id },
+          orderBy: { order: 'asc' },
+          select: { id: true },
+        }),
+      ]);
+      if (firstLesson) {
+        firstContent = { type: 'LESSON', id: firstLesson.id };
+      } else if (firstQuiz) {
+        firstContent = { type: 'QUIZ', id: firstQuiz.id };
+      }
+    }
     return toCourseModuleDto(
       module,
       lessonCountMap.get(module.id) ?? 0,

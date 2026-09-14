@@ -63,7 +63,7 @@ export default function StudentLessonPage() {
     }).then(url => {
       if (active) setNextContentUrl(url);
     }).catch(() => {
-      if (active) setNextContentUrl(`/dashboard/student/courses/${courseId}/modules/${moduleId}`);
+      if (active) setNextContentUrl(null);
     }).finally(() => {
       if (active) setNextResolving(false);
     });
@@ -79,7 +79,7 @@ export default function StudentLessonPage() {
       const apiBase = '';
       const res = await fetch(
         `${apiBase}/api/v1/organizations/${orgId}/student/courses/${cid}/modules/${mid}/lessons/${lid}`,
-        { credentials: 'include' }
+        { credentials: 'include', cache: 'no-store' }
       );
       if (!res.ok) {
         let code: unknown = null;
@@ -194,7 +194,7 @@ export default function StudentLessonPage() {
       if (completed && user.organizationId) {
         // Enable navigation immediately after completion; refine the route in
         // the background when the next-content lookup finishes.
-        setNextContentUrl(`/dashboard/student/courses/${courseId}/modules/${moduleId}`);
+        setNextContentUrl(null);
         setNextResolving(false);
         try {
           const nextUrl = await getNextContentUrl({
