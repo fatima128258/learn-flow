@@ -79,7 +79,6 @@ export default function DashboardPage() {
   if (userLoading) {
     return (
       <div className="mx-auto max-w-6xl">
-        <PageHeader title={`Welcome, ${welcomeName}`} />
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
           <StatCardSkeleton />
           <StatCardSkeleton />
@@ -110,7 +109,7 @@ export default function DashboardPage() {
     <div className="mx-auto max-w-6xl">
         <PageHeader
           title={`Welcome, ${welcomeName}`}
-          className="-mt-4 mb-3 py-0"
+          className="-mt-4 mb-0 !py-1"
         />
 
         {busy ? (
