@@ -5,7 +5,7 @@ import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Badge, Button, ErrorState, Spinner } from '@/components/ui';
 import { useCurrentUser } from '@/features/auth/useCurrentUser';
-import { useProgress } from '@/features/student/useProgress';
+import { useModuleLessons, useProgress } from '@/features/student/useProgress';
 import { useToast } from '@/components/ui/ToastProvider';
 import { getNextContentUrl } from '@/features/student/nextContent';
 
@@ -38,6 +38,7 @@ export default function StudentLessonPage() {
   const toast = useToast();
   const organizationId = user?.organizationId ?? '';
   const { data: progress, isLoading: progressLoading } = useProgress(organizationId, courseId ?? '');
+  const { data: moduleLessons } = useModuleLessons(organizationId, courseId ?? '', moduleId ?? '');
 
   const [data, setData] = useState<LessonData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -48,7 +49,27 @@ export default function StudentLessonPage() {
   const [nextResolving, setNextResolving] = useState(false);
   const [completedLocally, setCompletedLocally] = useState(false);
   const [courseCompleted, setCourseCompleted] = useState(false);
-  const isCompleted = completedLocally || Boolean(lessonId && progress?.completedLessonIds.includes(lessonId));
+  const moduleLessonCompleted = Boolean(
+    lessonId &&
+    moduleLessons?.items?.some(
+      (item: { type?: string; id?: string; lesson?: { id?: string; isCompleted?: boolean } }) =>
+        item.type === 'LESSON' &&
+        (item.id === lessonId || item.lesson?.id === lessonId) &&
+        item.lesson?.isCompleted === true,
+    ),
+  );
+  const legacyLessonCompleted = Boolean(
+    lessonId &&
+    moduleLessons?.lessons?.some(
+      (lesson: { id?: string; isCompleted?: boolean }) =>
+        lesson.id === lessonId && lesson.isCompleted === true,
+    ),
+  );
+  const isCompleted =
+    completedLocally ||
+    moduleLessonCompleted ||
+    legacyLessonCompleted ||
+    Boolean(lessonId && progress?.completedLessonIds.includes(lessonId));
 
   useEffect(() => {
     if (!isCompleted || !organizationId || !courseId || !moduleId || !lessonId || nextContentUrl) return;
@@ -217,6 +238,26 @@ export default function StudentLessonPage() {
     }
   }
 
+  async function goToNextContent() {
+    if (!organizationId || !courseId || !moduleId || !lessonId || !isCompleted) return;
+    setNextResolving(true);
+    try {
+      const url = nextContentUrl ?? await getNextContentUrl({
+        organizationId,
+        courseId,
+        moduleId,
+        contentType: 'LESSON',
+        contentId: lessonId,
+      });
+      if (url) {
+        setNextContentUrl(url);
+        router.push(url);
+      }
+    } finally {
+      setNextResolving(false);
+    }
+  }
+
   if (loading) {
     return (
       <div className="mx-auto flex max-w-5xl items-center gap-3 text-neutral-700">
@@ -277,7 +318,7 @@ export default function StudentLessonPage() {
                   <Button
                     size="sm"
                     variant="primary"
-                    disabled={marking || progressLoading || isCompleted}
+                    disabled={marking}
                     onClick={() => markComplete(true)}
                   >
                     {marking ? 'Saving...' : isCompleted ? 'Completed' : 'Complete'}
@@ -290,10 +331,8 @@ export default function StudentLessonPage() {
                   <Button
                     size="sm"
                     variant="primary"
-                    disabled={!isCompleted || nextResolving || !nextContentUrl}
-                    onClick={() => {
-                      if (nextContentUrl) router.push(nextContentUrl);
-                    }}
+                    disabled={!isCompleted || marking}
+                    onClick={goToNextContent}
                   >
                     {nextResolving ? 'Loading next...' : 'Next'}
                   </Button>
