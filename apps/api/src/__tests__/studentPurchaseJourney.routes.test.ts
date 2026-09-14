@@ -317,7 +317,23 @@ describe('Student purchase journey (register → verify → login → browse →
     );
 
     // ---- 7. My enrolled courses now lists it -------------------------------
-    prismaMock.enrollment.findMany.mockResolvedValue([enrollmentRecord()]);
+    prismaMock.enrollment.findMany.mockResolvedValue([
+      {
+        ...enrollmentRecord(),
+        course: {
+          ...courseRecord(),
+          id: COURSE_ID,
+          title: 'JavaScript Essentials',
+          slug: 'javascript-essentials',
+          description: 'A complete beginning-to-end JavaScript course.',
+          thumbnailUrl: null,
+          category: { id: 'cat-1', name: 'Development', slug: 'development' },
+          difficulty: 'Beginner',
+          estimatedMinutes: 240,
+          learningObjectives: ['Write modern JS'],
+        },
+      },
+    ]);
     setPublishedCourse();
 
     const enrolledRes = await request(app)

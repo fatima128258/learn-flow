@@ -204,7 +204,7 @@ export async function getMe(req: AuthenticatedRequest, res: Response) {
 
     const organizationName = req.__authCache?.userOrganizations
       ?.find((membership) => membership.organizationId === req.user?.organizationId)
-      ?.organization.name ?? null;
+      ?.organization?.name ?? null;
 
     return res.json({
       user: userDto({
