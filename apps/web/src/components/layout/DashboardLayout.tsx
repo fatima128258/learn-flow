@@ -78,6 +78,12 @@ const ChatIcon: React.FC = () => (
   </svg>
 );
 
+const TasksIcon: React.FC = () => (
+  <svg className="h-5 w-5 flex-shrink-0" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M9 5h6m-7 4h8m-8 4h5m-7 7h12a2 2 0 002-2V6a2 2 0 00-2-2h-1.17A3 3 0 0014 2h-4a3 3 0 00-2.83 2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+  </svg>
+);
+
 const CertificateIcon: React.FC = () => (
   <svg className="h-5 w-5 flex-shrink-0" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
@@ -155,6 +161,7 @@ export const NavIcons = {
   search: <SearchIcon />,
   notifications: <NotificationsIcon />,
   chat: <ChatIcon />,
+  tasks: <TasksIcon />,
   certificates: <CertificateIcon />,
   settings: <SettingsIcon />,
   profile: <ProfileIcon />,
