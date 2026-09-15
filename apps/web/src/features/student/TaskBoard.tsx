@@ -1,9 +1,9 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import type React from 'react';
 import { ApiError, deleteJson, getJson, patchJson, postJson } from '@/lib/api';
-import { Button, ConfirmModal, Input, Modal, Spinner } from '@/components/ui';
+import { Button, ConfirmModal, Drawer, Input, Spinner } from '@/components/ui';
 import { useToast } from '@/components/ui/ToastProvider';
 
 type TaskStatus = 'PENDING' | 'IN_PROGRESS' | 'COMPLETED';
@@ -46,6 +46,8 @@ export default function TaskBoard() {
   const [form, setForm] = useState<TaskForm>(emptyForm);
   const [deleting, setDeleting] = useState<Task | null>(null);
   const [draggedId, setDraggedId] = useState<string | null>(null);
+  const [movingTaskId, setMovingTaskId] = useState<string | null>(null);
+  const moveVersions = useRef(new Map<string, number>());
 
   useEffect(() => {
     getJson<{ data: Task[] }>('/api/v1/student/tasks')
@@ -101,17 +103,37 @@ export default function TaskBoard() {
   }
 
   async function moveTask(id: string, status: TaskStatus) {
-    const previous = tasks;
     const task = tasks.find((item) => item.id === id);
     if (!task || task.status === status) return;
+
+    const version = (moveVersions.current.get(id) ?? 0) + 1;
+    moveVersions.current.set(id, version);
+    const previousTask = task;
+    setMovingTaskId(id);
     setTasks((current) => current.map((item) => item.id === id ? { ...item, status, completedAt: status === 'COMPLETED' ? new Date().toISOString() : null } : item));
+
     try {
       const response = await patchJson<{ data: Task }>(`/api/v1/student/tasks/${id}`, { status });
-      setTasks((current) => current.map((item) => item.id === id ? response.data : item));
+      if (moveVersions.current.get(id) === version) {
+        setTasks((current) => current.map((item) => item.id === id ? response.data : item));
+      }
     } catch {
-      setTasks(previous);
-      toast.error('Task status could not be updated.');
+      if (moveVersions.current.get(id) === version) {
+        setTasks((current) => current.map((item) => item.id === id ? previousTask : item));
+        toast.error('Task status could not be updated.');
+      }
+    } finally {
+      if (moveVersions.current.get(id) === version) {
+        setMovingTaskId(null);
+      }
     }
+  }
+
+  function handleDrop(event: React.DragEvent<HTMLElement>, status: TaskStatus) {
+    event.preventDefault();
+    const id = draggedId;
+    setDraggedId(null);
+    if (id) void moveTask(id, status);
   }
 
   async function removeTask() {
@@ -137,11 +159,20 @@ export default function TaskBoard() {
       </div>
       <div className="grid gap-5 lg:grid-cols-3">
         {grouped.map((column) => (
-          <section key={column.status} onDragOver={(event) => event.preventDefault()} onDrop={() => { if (draggedId) void moveTask(draggedId, column.status); setDraggedId(null); }} className={`min-h-[18rem] rounded-2xl border-2 ${column.color} bg-[#fffdf9] p-4`}>
+          <section key={column.status} onDragOver={(event) => event.preventDefault()} onDrop={(event) => handleDrop(event, column.status)} className={`min-h-[18rem] rounded-2xl border-2 ${column.color} bg-[#fffdf9] p-4`}>
             <div className="mb-4 flex items-center justify-between"><h2 className="font-semibold text-neutral-900">{column.title}</h2><span className="rounded-full bg-neutral-100 px-2 py-1 text-xs text-neutral-600">{column.tasks.length}</span></div>
             <div className="space-y-3">
               {column.tasks.length === 0 ? <p className="rounded-xl border border-dashed border-neutral-200 p-6 text-center text-sm text-neutral-500">{column.empty}</p> : column.tasks.map((task) => (
-                <article key={task.id} draggable onDragStart={() => setDraggedId(task.id)} className={`rounded-xl border border-neutral-200 bg-white p-4 shadow-sm ${task.status === 'COMPLETED' ? 'opacity-75' : ''}`}>
+                <article
+                  key={task.id}
+                  draggable={movingTaskId !== task.id}
+                  onDragStart={(event) => {
+                    event.dataTransfer.effectAllowed = 'move';
+                    setDraggedId(task.id);
+                  }}
+                  onDragEnd={() => setDraggedId(null)}
+                  className={`rounded-xl border border-neutral-200 bg-white p-4 shadow-sm ${task.status === 'COMPLETED' ? 'opacity-75' : ''} ${movingTaskId === task.id ? 'cursor-wait opacity-60' : 'cursor-grab active:cursor-grabbing'}`}
+                >
                   <div className="flex items-start justify-between gap-2"><h3 className="font-semibold text-neutral-900">{task.title}</h3><span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${task.priority === 'HIGH' ? 'bg-red-100 text-red-700' : task.priority === 'LOW' ? 'bg-neutral-100 text-neutral-600' : 'bg-amber-100 text-amber-700'}`}>{task.priority}</span></div>
                   {task.description && <p className="mt-2 whitespace-pre-wrap text-sm text-neutral-600">{task.description}</p>}
                   <div className="mt-3 flex items-center justify-between gap-2 text-xs text-neutral-500"><span>{task.dueDate ? `Due ${new Date(task.dueDate).toLocaleDateString()}` : 'No due date'}</span><div className="flex gap-2"><button type="button" onClick={() => openEdit(task)} className="font-medium text-primary-700 hover:underline">Edit</button><button type="button" onClick={() => setDeleting(task)} className="font-medium text-red-600 hover:underline">Delete</button></div></div>
@@ -151,13 +182,17 @@ export default function TaskBoard() {
           </section>
         ))}
       </div>
-      <Modal isOpen={formOpen} onClose={() => setFormOpen(false)} title={editing ? 'Edit Task' : 'Add Task'} footer={<><Button variant="ghost" onClick={() => setFormOpen(false)} disabled={saving}>Cancel</Button><Button type="submit" form="task-form" loading={saving}>{editing ? 'Save Changes' : 'Create Task'}</Button></>}>
-        <form id="task-form" onSubmit={saveTask} className="space-y-4">
+      <Drawer isOpen={formOpen} onClose={() => { if (!saving) setFormOpen(false); }} title={editing ? 'Edit Task' : 'Add Task'}>
+        <form id="task-form" onSubmit={saveTask} className="flex min-h-full flex-col gap-4">
           <Input label="Title" required value={form.title} onChange={(event) => setForm((current) => ({ ...current, title: event.target.value }))} maxLength={200} />
           <div><label htmlFor="task-description" className="mb-1.5 block text-sm font-medium text-neutral-700">Description</label><textarea id="task-description" value={form.description} onChange={(event) => setForm((current) => ({ ...current, description: event.target.value }))} maxLength={5000} rows={4} className="w-full rounded-xl border border-[#e5d5c4] bg-[#fffdf9] px-4 py-3 text-sm outline-none focus:border-[#7a4a2e]" /></div>
           <div className="grid gap-4 sm:grid-cols-3"><label className="text-sm font-medium text-neutral-700">Status<select value={form.status} onChange={(event) => setForm((current) => ({ ...current, status: event.target.value as TaskStatus }))} className="mt-1.5 w-full rounded-xl border border-[#e5d5c4] bg-[#fffdf9] px-3 py-3 text-sm"><option value="PENDING">Pending</option><option value="IN_PROGRESS">In Progress</option><option value="COMPLETED">Completed</option></select></label><label className="text-sm font-medium text-neutral-700">Priority<select value={form.priority} onChange={(event) => setForm((current) => ({ ...current, priority: event.target.value as Priority }))} className="mt-1.5 w-full rounded-xl border border-[#e5d5c4] bg-[#fffdf9] px-3 py-3 text-sm"><option value="LOW">Low</option><option value="MEDIUM">Medium</option><option value="HIGH">High</option></select></label><Input label="Due date" type="date" value={form.dueDate} onChange={(event) => setForm((current) => ({ ...current, dueDate: event.target.value }))} /></div>
+          <div className="mt-auto flex justify-end gap-3 border-t border-neutral-200 pt-5">
+            <Button variant="ghost" type="button" onClick={() => setFormOpen(false)} disabled={saving}>Cancel</Button>
+            <Button type="submit" loading={saving}>{editing ? 'Save Changes' : 'Create Task'}</Button>
+          </div>
         </form>
-      </Modal>
+      </Drawer>
       <ConfirmModal isOpen={Boolean(deleting)} onClose={() => setDeleting(null)} onConfirm={() => void removeTask()} title="Delete task?" message="This task will be permanently deleted." confirmLabel="Delete" variant="danger" />
     </div>
   );

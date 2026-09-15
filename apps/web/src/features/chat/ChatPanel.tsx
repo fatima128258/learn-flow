@@ -66,6 +66,8 @@ export function ChatPanel({ organizationId, userId, initialConversationId, cours
   const [connected, setConnected] = useState(false);
   const [participantOnline, setParticipantOnline] = useState(false);
   const [deliveredMessageIds, setDeliveredMessageIds] = useState<Set<string>>(new Set());
+  const [openMessageMenuId, setOpenMessageMenuId] = useState<string | null>(null);
+  const [replyTo, setReplyTo] = useState<ChatMessage | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [actionLoading, setActionLoading] = useState(false);
   const socketRef = useRef<Socket | null>(null);
@@ -257,6 +259,7 @@ export function ChatPanel({ organizationId, userId, initialConversationId, cours
         setMessages((current) => [...current, result.data]);
       }
       setText('');
+      setReplyTo(null);
     } catch (sendError) {
       setError(sendError instanceof ApiError && sendError.code === 'CONVERSATION_BLOCKED' ? 'Chat blocked.' : 'Message could not be sent.');
     } finally { setSending(false); }
@@ -267,6 +270,8 @@ export function ChatPanel({ organizationId, userId, initialConversationId, cours
     try {
       await deleteJson(apiPath(organizationId, `/conversations/${active.id}/messages/${messageId}`));
       setMessages((current) => current.map((message) => message.id === messageId ? { ...message, content: '[deleted]', deletedAt: new Date().toISOString() } : message));
+      setReplyTo((current) => current?.id === messageId ? null : current);
+      setOpenMessageMenuId(null);
     } catch { setError('Message could not be deleted.'); }
   }
 
@@ -293,21 +298,23 @@ export function ChatPanel({ organizationId, userId, initialConversationId, cours
   return (
     <div className="flex h-[calc(100dvh-8rem)] min-h-0 overflow-hidden rounded-[18px] border border-[#dfe2df] bg-[#f5f2ee] shadow-sm">
       <aside className={`${active ? 'hidden md:flex' : 'flex'} min-h-0 w-full flex-col border-r border-[#dfe2df] bg-[#f5f3f2] md:w-[420px]`}>
-        <div className="flex border-b border-[#dfe2df] bg-[#f7f4f2]">
+        <div className="border-b border-[#dfe2df] bg-[#f7f4f2] px-4 py-3">
+          <div className="flex rounded-xl border border-[#d9d1ca] bg-[#eee9e5] p-1">
           <button
             type="button"
             onClick={() => setTab('active')}
-            className={`flex-1 py-5 text-center text-[1.9rem] font-light tracking-[-0.04em] transition-colors ${tab === 'active' ? 'border-b-[3px] border-[#2e7a74] text-[#2e7a74]' : 'text-[#6c726f]'}`}
+            className={`flex-1 rounded-lg px-3 py-2 text-center text-sm font-semibold transition-colors ${tab === 'active' ? 'bg-white text-[#2e7a74] shadow-sm' : 'text-[#6c726f] hover:text-[#2e7a74]'}`}
           >
-            Active Contacts
+            Active
           </button>
           <button
             type="button"
             onClick={() => setTab('blocked')}
-            className={`flex-1 py-5 text-center text-[1.9rem] font-light tracking-[-0.04em] transition-colors ${tab === 'blocked' ? 'border-b-[3px] border-[#2e7a74] text-[#2e7a74]' : 'text-[#6c726f]'}`}
+            className={`flex-1 rounded-lg px-3 py-2 text-center text-sm font-semibold transition-colors ${tab === 'blocked' ? 'bg-white text-[#2e7a74] shadow-sm' : 'text-[#6c726f] hover:text-[#2e7a74]'}`}
           >
-            Blocked Contacts
+            Blocked
           </button>
+          </div>
         </div>
 
         <div className="p-4">
@@ -357,7 +364,6 @@ export function ChatPanel({ organizationId, userId, initialConversationId, cours
                   <span className={`inline-block h-2.5 w-2.5 rounded-full ${participantOnline ? 'bg-green-500' : 'bg-neutral-400'}`} />
                   <span className="text-xs font-medium text-neutral-500">{participantOnline ? 'Online' : 'Offline'}</span>
                 </div>
-                <p className="truncate text-xs text-neutral-500">{active.course?.title}</p>
               </div>
             </div>
             <div className="flex items-center gap-2">
@@ -365,23 +371,18 @@ export function ChatPanel({ organizationId, userId, initialConversationId, cours
                 type="button"
                 disabled={actionLoading}
                 onClick={() => void updateConversation(active.blockedAt ? 'unblock' : 'block')}
-                className="inline-flex items-center gap-2 rounded-xl border border-[#d6b6a1] bg-[#f4e9e1] px-3 py-2 text-xs font-semibold text-[#6b3e2d] transition-colors hover:bg-[#ead8c8] disabled:opacity-50"
+                className={`inline-flex items-center rounded-xl border px-3 py-2 text-xs font-semibold transition-colors disabled:opacity-50 ${active.blockedAt
+                  ? 'border-[#b9d8d2] bg-[#e6f3f0] text-[#246b63] hover:bg-[#d5ebe6]'
+                  : 'border-[#e4c9a8] bg-[#fff3e4] text-[#94602a] hover:bg-[#fbe7cf]'}`}
               >
-                <svg aria-hidden="true" viewBox="0 0 24 24" className="h-4 w-4 fill-none stroke-current stroke-[1.8]">
-                  <circle cx="12" cy="12" r="8" />
-                  <path d="M8 8l8 8M16 8l-8 8" strokeLinecap="round" />
-                </svg>
                 {active.blockedAt ? 'Unblock' : 'Block'}
               </button>
               <button
                 type="button"
                 disabled={actionLoading}
                 onClick={() => void updateConversation('delete')}
-                className="inline-flex items-center gap-2 rounded-xl border border-[#d6b6a1] bg-[#f4e9e1] px-3 py-2 text-xs font-semibold text-[#6b3e2d] transition-colors hover:bg-[#ead8c8] disabled:opacity-50"
+                className="inline-flex items-center rounded-xl border border-[#e5b8b0] bg-[#fff0ed] px-3 py-2 text-xs font-semibold text-[#a34f3d] transition-colors hover:bg-[#fbe0dc] disabled:opacity-50"
               >
-                <svg aria-hidden="true" viewBox="0 0 24 24" className="h-4 w-4 fill-none stroke-current stroke-[1.8]">
-                  <path d="M4 7h16M10 11v6m4-6v6M6 7l1 13h10l1-13M9 7l1-3h4l1 3" strokeLinecap="round" strokeLinejoin="round" />
-                </svg>
                 Delete
               </button>
             </div>
@@ -409,8 +410,43 @@ export function ChatPanel({ organizationId, userId, initialConversationId, cours
                         </div>
                       )}
                       <div className={`max-w-[68%] ${isOutgoing ? 'items-end' : 'items-start'} flex flex-col`}>
-                        <div className={`rounded-[20px] px-4 py-2 text-[15px] leading-6 shadow-sm ${isOutgoing ? 'rounded-br-md bg-[#f0dfc8] text-neutral-900' : 'rounded-bl-md bg-[#f2f2f2] text-neutral-900'}`}>
+                        <div className="group relative">
+                          <div className={`rounded-[20px] px-4 py-2 text-[15px] leading-6 shadow-sm ${isOutgoing ? 'rounded-br-md bg-[#f0dfc8] text-neutral-900' : 'rounded-bl-md bg-[#f2f2f2] text-neutral-900'}`}>
                           <p className={message.deletedAt ? 'italic opacity-70' : undefined}>{message.deletedAt ? 'This message was deleted' : message.content}</p>
+                          {!message.deletedAt && (
+                            <div className={`absolute top-1/2 -translate-y-1/2 opacity-0 transition-opacity group-hover:opacity-100 ${isOutgoing ? '-left-8' : '-right-8'}`}>
+                              <button
+                                type="button"
+                                aria-label="Message actions"
+                                aria-expanded={openMessageMenuId === message.id}
+                                onClick={() => setOpenMessageMenuId((current) => current === message.id ? null : message.id)}
+                                className="flex h-7 w-7 items-center justify-center rounded-full bg-white text-sm text-neutral-500 shadow-sm ring-1 ring-[#e4ddd6] hover:text-neutral-800"
+                              >
+                                ▾
+                              </button>
+                              {openMessageMenuId === message.id && (
+                                <div className={`absolute top-8 z-20 w-28 rounded-lg border border-[#e4ddd6] bg-white p-1 text-left text-xs shadow-lg ${isOutgoing ? 'right-0' : 'left-0'}`}>
+                                  <button
+                                    type="button"
+                                    onClick={() => { setReplyTo(message); setOpenMessageMenuId(null); }}
+                                    className="block w-full rounded px-2 py-2 text-left text-neutral-700 hover:bg-[#f5eee8]"
+                                  >
+                                    Reply
+                                  </button>
+                                  {isOutgoing && (
+                                    <button
+                                      type="button"
+                                      onClick={() => void deleteMessage(message.id)}
+                                      className="block w-full rounded px-2 py-2 text-left text-[#a34f3d] hover:bg-[#fff0ed]"
+                                    >
+                                      Delete
+                                    </button>
+                                  )}
+                                </div>
+                              )}
+                            </div>
+                          )}
+                          </div>
                         </div>
                         <div className={`mt-1 flex items-center gap-2 text-[10px] ${isOutgoing ? 'justify-end text-neutral-500' : 'justify-start text-neutral-500'}`}>
                           <span>{formatMessageTime(message.createdAt)}</span>
@@ -440,8 +476,17 @@ export function ChatPanel({ organizationId, userId, initialConversationId, cours
           </div>
           {error && <p className="border-t border-[#e8dfd4] bg-[#f7f5f3] px-4 py-2 text-sm text-red-600">{error}</p>}
           {active.blockedAt ? <p className="border-t border-[#e8dfd4] bg-[#f7f5f3] p-4 text-center text-sm font-medium text-red-600">Chat blocked</p> : (
-            <form onSubmit={(event) => { event.preventDefault(); void sendMessage(); }} className="flex items-center gap-3 border-t border-[#e8dfd4] bg-[#f7f5f3] p-3">
-              <button type="button" className="flex h-10 w-10 items-center justify-center rounded-full border border-[#d9c8b7] bg-[#f3e7dd] text-xl font-light text-[#5d3526]">+</button>
+            <form onSubmit={(event) => { event.preventDefault(); void sendMessage(); }} className="border-t border-[#e8dfd4] bg-[#f7f5f3] p-3">
+              {replyTo && (
+                <div className="mb-2 flex items-start justify-between rounded-lg border-l-2 border-[#c58c63] bg-[#f0e5dc] px-3 py-2 text-xs text-neutral-600">
+                  <div className="min-w-0">
+                    <p className="font-semibold text-[#7a4a2a]">Replying to {replyTo.senderId === userId ? 'yourself' : participant(active, userId)}</p>
+                    <p className="truncate">{replyTo.content}</p>
+                  </div>
+                  <button type="button" onClick={() => setReplyTo(null)} className="ml-3 text-base text-neutral-500 hover:text-neutral-800" aria-label="Cancel reply">×</button>
+                </div>
+              )}
+              <div className="flex items-center gap-3">
               <input value={text} onChange={(event) => setText(event.target.value)} placeholder="Type a message..." className="min-w-0 flex-1 rounded-full border border-[#d9c8b7] bg-white px-4 py-3 text-sm text-neutral-700 placeholder:text-neutral-400 focus:border-[#c7a58a] focus:outline-none" maxLength={5000} />
               <button type="submit" disabled={sending || !text.trim()} className="flex items-center justify-center rounded-full bg-[#593421] px-5 py-3 text-sm font-semibold text-white shadow-sm transition-opacity disabled:opacity-50">
                 <svg aria-hidden="true" viewBox="0 0 24 24" className="h-4 w-4 fill-current">
@@ -449,6 +494,7 @@ export function ChatPanel({ organizationId, userId, initialConversationId, cours
                 </svg>
                 <span className="ml-2">Send</span>
               </button>
+              </div>
             </form>
           )}
         </> : <div className="m-auto text-center text-neutral-500">Select a conversation</div>}
