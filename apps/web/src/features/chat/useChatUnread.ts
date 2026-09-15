@@ -1,9 +1,9 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import { io } from 'socket.io-client';
 import { getJson } from '@/lib/api';
 import type { ChatListResponse } from './types';
+import { acquireChatSocket } from './chatSocket';
 
 export function useChatUnread(organizationId?: string, userId?: string) {
   const [counts, setCounts] = useState<Record<string, number>>({});
@@ -24,7 +24,7 @@ export function useChatUnread(organizationId?: string, userId?: string) {
       ])));
     };
 
-    const socket = io(socketUrl, { withCredentials: true, transports: ['websocket', 'polling'] });
+    const { socket, release } = acquireChatSocket(socketUrl);
     socket.on('chat:unread', (event: { conversationId: string; unreadCount: number }) => {
       socketEventVersion += 1;
       setCounts((current) => ({ ...current, [event.conversationId]: event.unreadCount }));
@@ -40,7 +40,7 @@ export function useChatUnread(organizationId?: string, userId?: string) {
 
     return () => {
       cancelled = true;
-      socket.disconnect();
+      release();
     };
   }, [organizationId, socketUrl, userId]);
 

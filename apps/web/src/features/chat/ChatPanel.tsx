@@ -1,9 +1,10 @@
 'use client';
 
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { io, type Socket } from 'socket.io-client';
+import type { Socket } from 'socket.io-client';
 import { ApiError, deleteJson, getJson, postJson } from '@/lib/api';
 import type { ChatConversation, ChatListResponse, ChatMessage, ChatMessagesResponse } from './types';
+import { acquireChatSocket } from './chatSocket';
 
 function apiPath(orgId: string, suffix: string) {
   return `/api/v1/organizations/${orgId}${suffix}`;
@@ -14,8 +15,25 @@ function participant(conversation: ChatConversation, userId: string) {
   return person?.name || person?.email || (conversation.studentId === userId ? 'Instructor' : 'Student');
 }
 
-function formatTime(value: string) {
-  return new Intl.DateTimeFormat(undefined, { dateStyle: 'short', timeStyle: 'short' }).format(new Date(value));
+function formatMessageTime(value: string) {
+  return new Intl.DateTimeFormat(undefined, { hour: 'numeric', minute: '2-digit' }).format(new Date(value));
+}
+
+function isSameCalendarDay(first: Date, second: Date) {
+  return first.getFullYear() === second.getFullYear()
+    && first.getMonth() === second.getMonth()
+    && first.getDate() === second.getDate();
+}
+
+function formatDateSeparator(value: string) {
+  const date = new Date(value);
+  const today = new Date();
+  const yesterday = new Date(today);
+  yesterday.setDate(today.getDate() - 1);
+
+  if (isSameCalendarDay(date, today)) return 'Today';
+  if (isSameCalendarDay(date, yesterday)) return 'Yesterday';
+  return new Intl.DateTimeFormat(undefined, { dateStyle: 'long' }).format(date);
 }
 
 function formatConversationTime(value: string) {
@@ -42,6 +60,7 @@ export function ChatPanel({ organizationId, userId, initialConversationId, cours
   const [text, setText] = useState('');
   const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(true);
+  const [messagesLoading, setMessagesLoading] = useState(false);
   const [sending, setSending] = useState(false);
   const [connected, setConnected] = useState(false);
   const [participantOnline, setParticipantOnline] = useState(false);
@@ -51,6 +70,7 @@ export function ChatPanel({ organizationId, userId, initialConversationId, cours
   const socketRef = useRef<Socket | null>(null);
   const activeIdRef = useRef(activeId);
   const activeConversationRef = useRef<ChatConversation | null>(null);
+  const messagesRequestRef = useRef(0);
   const active = conversations.find((conversation) => conversation.id === activeId) ?? null;
 
   useEffect(() => { activeIdRef.current = activeId; }, [activeId]);
@@ -67,16 +87,30 @@ export function ChatPanel({ organizationId, userId, initialConversationId, cours
   }), [conversations, search, userId]);
 
   async function loadMessages(conversationId: string) {
-    const response = await getJson<ChatMessagesResponse>(
-      apiPath(organizationId, `/conversations/${conversationId}/messages?limit=50`),
-    );
-    setMessages([...response.data.messages].reverse());
-    setDeliveredMessageIds(new Set(response.data.messages.map((message) => message.id)));
-    await postJson(apiPath(organizationId, `/conversations/${conversationId}/read`), undefined);
-    socketRef.current?.emit('conversation:read', conversationId);
-    setConversations((current) => current.map((conversation) =>
-      conversation.id === conversationId ? { ...conversation, unreadCount: 0 } : conversation,
-    ));
+    const requestId = messagesRequestRef.current + 1;
+    messagesRequestRef.current = requestId;
+    setMessagesLoading(true);
+    try {
+      const response = await getJson<ChatMessagesResponse>(
+        apiPath(organizationId, `/conversations/${conversationId}/messages?limit=50`),
+      );
+      if (requestId !== messagesRequestRef.current) return;
+      setMessages([...response.data.messages].reverse());
+      setDeliveredMessageIds(new Set(response.data.messages.map((message) => message.id)));
+
+      // Read synchronization is independent from history rendering. A slow or
+      // unavailable read endpoint must not keep the chat page in its loading state.
+      void postJson(apiPath(organizationId, `/conversations/${conversationId}/read`), undefined)
+        .then(() => {
+          socketRef.current?.emit('conversation:read', conversationId);
+          setConversations((current) => current.map((conversation) =>
+            conversation.id === conversationId ? { ...conversation, unreadCount: 0 } : conversation,
+          ));
+        })
+        .catch(() => setError('Messages loaded, but could not be marked as read.'));
+    } finally {
+      if (requestId === messagesRequestRef.current) setMessagesLoading(false);
+    }
   }
 
   useEffect(() => {
@@ -99,10 +133,14 @@ export function ChatPanel({ organizationId, userId, initialConversationId, cours
         }
         const nextId = requested || response.data[0]?.id || '';
         setActiveId(nextId);
-        if (nextId) await loadMessages(nextId);
+        setLoading(false);
+        if (nextId) void loadMessages(nextId).catch(() => setError('Unable to load messages.'));
       })
-      .catch(() => setError('Unable to load conversations.'))
-      .finally(() => { if (!cancelled) setLoading(false); });
+      .catch(() => {
+        if (cancelled) return;
+        setError('Unable to load conversations.');
+        setLoading(false);
+      });
     return () => { cancelled = true; };
   }, [organizationId, initialConversationId, courseId]);
 
@@ -112,7 +150,7 @@ export function ChatPanel({ organizationId, userId, initialConversationId, cours
     const socketUrl = process.env.NEXT_PUBLIC_SOCKET_URL
       || process.env.NEXT_PUBLIC_BACKEND_URL
       || 'https://learn-flow-1-1gl3.onrender.com';
-    const socket = io(socketUrl, { withCredentials: true, transports: ['websocket', 'polling'] });
+    const { socket, release } = acquireChatSocket(socketUrl);
     socketRef.current = socket;
     socket.on('connect', () => {
       setConnected(true);
@@ -183,7 +221,7 @@ export function ChatPanel({ organizationId, userId, initialConversationId, cours
         socket.emit('conversation:read', message.conversationId);
       }
     });
-    return () => { socket.disconnect(); socketRef.current = null; };
+    return () => { release(); socketRef.current = null; };
   }, []);
 
   async function selectConversation(id: string) {
@@ -307,8 +345,46 @@ export function ChatPanel({ organizationId, userId, initialConversationId, cours
             </div>
           </header>
           <div className="flex-1 space-y-3 overflow-y-auto bg-neutral-50 p-4">
-            {messages.map((message) => <div key={message.id} className={`group flex ${message.senderId === userId ? 'justify-end' : 'justify-start'}`}><div className={`max-w-[80%] rounded-2xl px-4 py-2 text-sm ${message.senderId === userId ? 'bg-primary-700 text-white' : 'bg-white text-neutral-800 shadow-sm'}`}><p className={message.deletedAt ? 'italic opacity-70' : undefined}>{message.deletedAt ? 'This message was deleted' : message.content}</p><div className="mt-1 flex items-center justify-between gap-3 text-[10px] opacity-70"><span>{formatTime(message.createdAt)}</span>{message.senderId === userId && !message.deletedAt && <><span className={message.readAt ? 'text-sky-300' : 'text-white'}>{deliveredMessageIds.has(message.id) ? '✓✓' : '✓'}</span><button type="button" onClick={() => void deleteMessage(message.id)}>Delete</button></>}</div></div></div>)}
-            {messages.length === 0 && <p className="m-auto text-sm text-neutral-500">Start the conversation.</p>}
+            {messagesLoading ? <p className="m-auto text-sm text-neutral-500">Loading messages...</p>
+              : messages.map((message, index) => {
+                const previousMessage = messages[index - 1];
+                const showDateSeparator = !previousMessage
+                  || !isSameCalendarDay(new Date(previousMessage.createdAt), new Date(message.createdAt));
+                return (
+                  <div key={message.id}>
+                    {showDateSeparator && (
+                      <div className="my-3 flex justify-center">
+                        <span className="rounded-full bg-neutral-200 px-3 py-1 text-xs font-medium text-neutral-600">
+                          {formatDateSeparator(message.createdAt)}
+                        </span>
+                      </div>
+                    )}
+                    <div className={`group flex ${message.senderId === userId ? 'justify-end' : 'justify-start'}`}>
+                      <div className={`max-w-[80%] rounded-2xl border px-4 py-2 text-sm shadow-sm transition-colors ${message.senderId === userId ? 'border-[#d8bfa8] bg-[#f7efe7] text-neutral-800' : 'border-[#d8d2c8] bg-[#f8f5f1] text-neutral-800'}`}>
+                        <p className={message.deletedAt ? 'italic opacity-70' : undefined}>{message.deletedAt ? 'This message was deleted' : message.content}</p>
+                        <div className="mt-1 flex items-center justify-end gap-2 text-[10px] text-neutral-500">
+                          <span>{formatMessageTime(message.createdAt)}</span>
+                          {message.senderId === userId && !message.deletedAt && <>
+                            <span className={message.readAt ? 'text-sky-600' : 'text-neutral-500'}>{deliveredMessageIds.has(message.id) ? '✓✓' : '✓'}</span>
+                            <button
+                              type="button"
+                              onClick={() => void deleteMessage(message.id)}
+                              className="rounded p-1 transition-colors hover:bg-black/5"
+                              aria-label="Delete message"
+                              title="Delete message"
+                            >
+                              <svg aria-hidden="true" viewBox="0 0 24 24" className="h-3.5 w-3.5 fill-none stroke-current stroke-2">
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M4 7h16M10 11v6m4-6v6M6 7l1 13h10l1-13M9 7l1-3h4l1 3" />
+                              </svg>
+                            </button>
+                          </>}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            {!messagesLoading && messages.length === 0 && <p className="m-auto text-sm text-neutral-500">Start the conversation.</p>}
           </div>
           {error && <p className="border-t border-neutral-200 px-4 py-2 text-sm text-red-600">{error}</p>}
           {active.blockedAt ? <p className="border-t border-neutral-200 p-4 text-center text-sm font-medium text-red-600">Chat blocked</p> : <form onSubmit={(event) => { event.preventDefault(); void sendMessage(); }} className="flex gap-2 border-t border-neutral-200 p-3"><input value={text} onChange={(event) => setText(event.target.value)} placeholder="Type a message..." className="min-w-0 flex-1 rounded-lg border border-neutral-200 px-3 py-2 text-sm outline-none focus:border-primary-500" maxLength={5000} /><button type="submit" disabled={sending || !text.trim()} className="rounded-lg bg-primary-700 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50">{sending ? 'Sending...' : 'Send'}</button></form>}

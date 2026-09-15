@@ -128,7 +128,7 @@ export default function TaskBoard() {
     <div className="mx-auto max-w-7xl">
       <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
         <div><h1 className="text-2xl font-bold text-neutral-900">My Tasks</h1><p className="mt-1 text-sm text-neutral-500">Organize your learning goals and stay on track.</p></div>
-        <Button onClick={openCreate}>+ Add Task</Button>
+        <Button onClick={openCreate}> Add Task</Button>
       </div>
       <div className="grid gap-5 lg:grid-cols-3">
         {grouped.map((column) => (

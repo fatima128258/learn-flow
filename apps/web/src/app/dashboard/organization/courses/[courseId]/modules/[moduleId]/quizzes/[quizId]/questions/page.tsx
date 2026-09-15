@@ -844,7 +844,7 @@ export default function QuizQuestionsPage() {
                       disabled={savingInlineQuestion}
                       className="mt-3 text-sm font-semibold text-primary-700 hover:text-primary-900"
                     >
-                      + Add Option
+                       Add Option
                     </button>
                     <p className="mt-2 text-xs text-neutral-500">Select the radio button beside the correct answer.</p>
                   </div>
@@ -920,7 +920,7 @@ export default function QuizQuestionsPage() {
                           size="sm"
                           onClick={() => openCreateOptionModal(question.id)}
                         >
-                          + Add Option
+                           Add Option
                         </Button>
                       </div>
 

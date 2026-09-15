@@ -46,6 +46,7 @@ model User {
   notifications  Notification[]
   orders         Order[]
   carts          Cart[]
+  tasks          Task[]
   passwordResets PasswordResetToken[]
   payments       Payment[]
   quizAttempts   QuizAttempt[]
@@ -55,6 +56,35 @@ model User {
   studentConversations Conversation[] @relation("ConversationStudent")
   instructorConversations Conversation[] @relation("ConversationInstructor")
   sentMessages Message[] @relation("MessageSender")
+}
+
+enum TaskStatus {
+  PENDING
+  IN_PROGRESS
+  COMPLETED
+}
+
+enum TaskPriority {
+  LOW
+  MEDIUM
+  HIGH
+}
+
+model Task {
+  id          String       @id @default(cuid())
+  studentId   String
+  title       String
+  description String?
+  status      TaskStatus   @default(PENDING)
+  dueDate     DateTime?
+  priority    TaskPriority @default(MEDIUM)
+  completedAt DateTime?
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  student     User         @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@index([studentId])
+  @@index([studentId, status])
 }
 
 model UserOrganization {

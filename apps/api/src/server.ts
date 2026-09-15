@@ -32,6 +32,7 @@ import { isAllowedOrigin, getAllowedOrigins } from './config/origins';
 import { collectHealthReport } from './services/healthService';
 import { initializeServices } from './services/serviceInitializer';
 import chatRouter from './routes/chatRoutes';
+import studentTaskRouter from './routes/studentTaskRoutes';
 
 export const app = express();
 
@@ -123,6 +124,7 @@ app.get('/api/ready', async (req, res) => {
 });
 
 app.use('/api/v1/auth', authRoutes);
+app.use('/api/v1/student', studentTaskRouter);
 app.use('/api/v1/admin', adminRouter);
 app.use('/api/v1/organizations', courseRouter);
 app.use('/api/v1/instructor', instructorRouter);
