@@ -348,7 +348,7 @@ export default function MyCoursesPage() {
   const filteredCourses = (courses ?? []).filter((course) => {
     const query = searchTerm.trim().toLowerCase();
     if (!query) return true;
-    return [course.title, course.slug, course.status, course.difficulty ?? '']
+    return [course.title, course.status, course.difficulty ?? '']
       .some((value) => value.toLowerCase().includes(query));
   });
 
@@ -379,7 +379,7 @@ export default function MyCoursesPage() {
               type="search"
               value={searchTerm}
               onChange={(event) => setSearchTerm(event.target.value)}
-              placeholder="Search courses by title, slug, status, or difficulty"
+              placeholder="Search courses by title, status, or difficulty"
               aria-label="Search courses"
               className="min-w-0 rounded-xl border border-[#e5d5c4] bg-[#fffdf9] px-4 py-3 text-sm text-[#17212b] outline-none transition-all placeholder:text-neutral-400 focus:border-[#7a4a2e] focus:ring-2 focus:ring-[#a8784f]/20 sm:w-[28rem]"
             />
@@ -433,7 +433,6 @@ export default function MyCoursesPage() {
                   <thead className="bg-neutral-50">
                     <tr>
                       <th className={tableHeadClass}>Title</th>
-                      <th className={tableHeadClass}>Slug</th>
                       <th className={tableHeadClass}>Status</th>
                       <th className={tableHeadClass}>Difficulty</th>
                       <th className={tableHeadClass}>Created</th>
@@ -448,7 +447,6 @@ export default function MyCoursesPage() {
                             {course.title}
                           </a>
                         </td>
-                        <td className={`${tableCellClass} text-neutral-700`}>{course.slug}</td>
                         <td className={tableCellClass}>
                           <Badge variant={statusBadgeVariant(course.status)} size="sm">
                             {course.status}

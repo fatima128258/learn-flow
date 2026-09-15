@@ -1,14 +1,10 @@
 import { Worker } from 'bullmq';
-import Redis from 'ioredis';
 import { isNotificationQueueEnabled, NOTIFICATION_QUEUE_NAME } from './notificationQueue';
 import { NOTIFICATION_JOB_NAME, processNotificationJob } from '../services/notificationDispatcher';
+import { getRedis } from '../utils/redis';
 
 export function startNotificationWorker() {
   if (!isNotificationQueueEnabled()) return null;
-
-  const connection = new Redis(process.env.REDIS_URL || 'redis://redis:6379', {
-    maxRetriesPerRequest: null,
-  });
 
   const worker = new Worker(
     NOTIFICATION_QUEUE_NAME,
@@ -18,7 +14,9 @@ export function startNotificationWorker() {
       }
     },
     {
-      connection,
+      // Reuse the application's Redis client so workers inherit its bounded
+      // reconnect policy instead of creating an unbounded reconnect loop.
+      connection: getRedis(),
       concurrency: 5,
     },
   );
