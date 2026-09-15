@@ -7,7 +7,6 @@ export type ChatMessage = {
   deletedAt: string | null;
   createdAt: string;
   updatedAt: string;
-  deletedAt?: string | null;
 };
 
 export type ChatConversation = {

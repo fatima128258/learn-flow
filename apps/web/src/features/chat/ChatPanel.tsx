@@ -39,6 +39,11 @@ export function ChatPanel({ organizationId, userId, initialConversationId, cours
 
   useEffect(() => { activeIdRef.current = activeId; }, [activeId]);
 
+  useEffect(() => {
+    if (!activeId || !socketRef.current?.connected) return;
+    socketRef.current.emit('conversation:join', activeId);
+  }, [activeId]);
+
   const active = conversations.find((conversation) => conversation.id === activeId) ?? null;
   const filtered = useMemo(() => conversations.filter((conversation) => {
     const value = `${conversation.course?.title ?? ''} ${participant(conversation, userId)}`.toLowerCase();

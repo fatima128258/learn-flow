@@ -42,7 +42,29 @@ async function participant(orgId: string | undefined, id: string, userId: string
   const c = await repo.findConversation(id, orgId);
   if (!c) throw new Error('CONVERSATION_NOT_FOUND');
   if (c.studentId !== userId && c.instructorId !== userId) throw new Error('FORBIDDEN');
+  const db = getPrisma();
+  if (c.studentId === userId) {
+    const enrollment = await db.enrollment.findFirst({
+      where: {
+        userId,
+        courseId: c.courseId,
+        organizationId: c.organizationId,
+        status: 'ACTIVE',
+      },
+    });
+    if (!enrollment) throw new Error('ENROLLMENT_REQUIRED');
+  } else {
+    const course = await db.course.findFirst({
+      where: { id: c.courseId, organizationId: c.organizationId, instructorUserId: userId },
+    });
+    if (!course) throw new Error('FORBIDDEN');
+  }
   return c;
+}
+
+export async function authorizeSocketConversation(id: string, userId: string) {
+  const conversation = await participant(undefined, id, userId);
+  return conversation.organizationId;
 }
 export async function messages(orgId: string | undefined, id: string, userId: string, limit = 50, cursor?: string) {
   await participant(orgId, id, userId);
