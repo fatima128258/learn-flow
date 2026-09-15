@@ -7,6 +7,7 @@ export interface ToastProps {
   variant?: ToastVariant;
   title?: string;
   message: string;
+  action?: React.ReactNode;
   duration?: number;
   onClose?: () => void;
 }
@@ -57,6 +58,7 @@ export const Toast: React.FC<ToastProps> = ({
   variant = 'info',
   title,
   message,
+  action,
   duration = 5000,
   onClose,
 }) => {
@@ -94,6 +96,7 @@ export const Toast: React.FC<ToastProps> = ({
           <p className={`text-sm text-[#614d45] ${title ? 'mt-1' : ''}`}>
             {message}
           </p>
+          {action && <div className="mt-3 flex flex-wrap gap-2">{action}</div>}
         </div>
         <div className="ml-4 flex flex-shrink-0">
           <button

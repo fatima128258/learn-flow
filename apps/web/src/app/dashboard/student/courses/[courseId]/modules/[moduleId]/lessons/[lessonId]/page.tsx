@@ -226,12 +226,39 @@ export default function StudentLessonPage() {
       // Reflect the server's accepted state, rather than assuming every
       // progress mutation marks the lesson complete.
       setCompletedLocally(completed);
-      setCourseCompleted(
+      const completedCourse =
         responseBody?.data?.courseProgress?.contentComplete === true ||
-        responseBody?.data?.courseProgress?.courseComplete === true,
-      );
+        responseBody?.data?.courseProgress?.courseComplete === true;
+      setCourseCompleted(completedCourse);
       if (completed) {
-        toast.success('Congratulations! You completed this lesson.');
+        toast.toast({
+          variant: 'success',
+          title: completedCourse ? 'Course completed!' : 'Lesson completed!',
+          message: completedCourse
+            ? 'Congratulations! You completed the course.'
+            : 'Congratulations! You completed this lesson.',
+          duration: 0,
+          action: (
+            <>
+              <button
+                type="button"
+                onClick={() => void goToNextContent()}
+                disabled={nextResolving}
+                className="rounded-md bg-[#5A321F] px-3 py-1.5 text-xs font-semibold text-white hover:bg-[#472719] disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {nextResolving ? 'Loading next...' : 'Next'}
+              </button>
+              {completedCourse && (
+                <Link
+                  href="/dashboard/student/certificates"
+                  className="rounded-md border border-[#5A321F] px-3 py-1.5 text-xs font-semibold text-[#5A321F] hover:bg-[#f7eee8]"
+                >
+                  Go to Certificate
+                </Link>
+              )}
+            </>
+          ),
+        });
       }
       if (completed && user.organizationId) {
         // Enable navigation immediately after completion; refine the route in
@@ -345,27 +372,6 @@ export default function StudentLessonPage() {
                   >
                     {marking ? 'Saving...' : isCompleted ? 'Completed' : 'Complete'}
                   </Button>
-                  {isCompleted && courseCompleted && (
-                    <div className="w-full rounded-lg border border-[#d9eadf] bg-[#f4fbf6] px-4 py-3 text-sm font-semibold text-[#16834b]">
-                      Congratulations! You completed the course.
-                    </div>
-                  )}
-                  <Button
-                    size="sm"
-                    variant="primary"
-                    disabled={!isCompleted || marking}
-                    onClick={goToNextContent}
-                  >
-                    {nextResolving ? 'Loading next...' : 'Next'}
-                  </Button>
-                  {isCompleted && courseCompleted ? (
-                    <Link
-                      href="/dashboard/student/certificates"
-                      className="inline-flex items-center rounded-lg bg-[#5A321F] px-4 py-2 text-sm font-semibold text-white hover:bg-[#472719]"
-                    >
-                      Go to Certificate
-                    </Link>
-                  ) : null}
                 </div>
               </div>
             </div>

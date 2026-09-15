@@ -7,6 +7,7 @@ export interface ToastInput {
   variant?: ToastVariant;
   title?: string;
   message: string;
+  action?: React.ReactNode;
   duration?: number;
 }
 
@@ -96,6 +97,7 @@ export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ childre
             variant={t.variant}
             title={t.title}
             message={t.message}
+            action={t.action}
             duration={0}
             onClose={() => dismiss(t.id)}
           />

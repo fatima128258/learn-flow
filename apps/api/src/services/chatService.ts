@@ -36,13 +36,20 @@ export async function open(orgId: string, courseId: string, userId: string, role
     : repo.createConversation(orgId, courseId, studentId, instructorId);
 }
 
-export async function list(orgId: string, userId: string) { return repo.listConversations(orgId, userId); }
+export async function list(orgId: string, userId: string, role?: string) {
+  return repo.listConversations(orgId, userId, role === 'ORG_ADMIN');
+}
 
-async function participant(orgId: string | undefined, id: string, userId: string) {
+async function participant(orgId: string | undefined, id: string, userId: string, role?: string) {
   const c = await repo.findConversation(id, orgId);
   if (!c) throw new Error('CONVERSATION_NOT_FOUND');
-  if (c.studentId !== userId && c.instructorId !== userId) throw new Error('FORBIDDEN');
   const db = getPrisma();
+  if (role === 'ORG_ADMIN' || (c.studentId !== userId && c.instructorId !== userId)) {
+    const admin = await db.userOrganization.findFirst({ where: { userId, organizationId: c.organizationId, role: 'ORG_ADMIN', status: 'ACTIVE' } });
+    if (!admin) throw new Error('FORBIDDEN');
+    return c;
+  }
+  if (c.studentId !== userId && c.instructorId !== userId) throw new Error('FORBIDDEN');
   if (c.studentId === userId) {
     const enrollment = await db.enrollment.findFirst({
       where: {
@@ -63,23 +70,27 @@ async function participant(orgId: string | undefined, id: string, userId: string
 }
 
 export async function authorizeSocketConversation(id: string, userId: string) {
-  const conversation = await participant(undefined, id, userId);
+  const membership = await getPrisma().userOrganization.findFirst({
+    where: { userId, status: 'ACTIVE' },
+    select: { role: true },
+  });
+  const conversation = await participant(undefined, id, userId, membership?.role);
   return conversation.organizationId;
 }
-export async function messages(orgId: string | undefined, id: string, userId: string, limit = 50, cursor?: string) {
-  await participant(orgId, id, userId);
+export async function messages(orgId: string | undefined, id: string, userId: string, limit = 50, cursor?: string, role?: string) {
+  await participant(orgId, id, userId, role);
   const rows = await repo.listMessages(id, Math.min(Math.max(limit, 1), 100), cursor);
   const hasMore = rows.length > Math.min(Math.max(limit, 1), 100);
   return { messages: hasMore ? rows.slice(0, -1) : rows, nextCursor: hasMore ? rows[rows.length - 1].id : null };
 }
-export async function send(orgId: string | undefined, id: string, userId: string, content: string) {
-  const c = await participant(orgId, id, userId);
+export async function send(orgId: string | undefined, id: string, userId: string, content: string, role?: string) {
+  const c = await participant(orgId, id, userId, role);
   if (c.blockedAt) throw new Error('CONVERSATION_BLOCKED');
   if (typeof content !== 'string' || !content.trim() || content.trim().length > 5000) throw new Error('INVALID_CONTENT');
   return repo.createMessage(id, userId, content.trim());
 }
-export async function read(orgId: string | undefined, id: string, userId: string) { await participant(orgId, id, userId); return repo.markRead(id, userId); }
-export async function block(orgId: string, id: string, userId: string) { await participant(orgId, id, userId); return repo.blockConversation(id, orgId, userId); }
-export async function unblock(orgId: string, id: string, userId: string) { await participant(orgId, id, userId); return repo.unblockConversation(id, orgId, userId); }
-export async function removeConversation(orgId: string, id: string, userId: string) { await participant(orgId, id, userId); return repo.deleteConversation(id, orgId, userId); }
+export async function read(orgId: string | undefined, id: string, userId: string, role?: string) { await participant(orgId, id, userId, role); return repo.markRead(id, userId); }
+export async function block(orgId: string, id: string, userId: string, role?: string) { await participant(orgId, id, userId, role); return repo.blockConversation(id, orgId, userId); }
+export async function unblock(orgId: string, id: string, userId: string, role?: string) { await participant(orgId, id, userId, role); return repo.unblockConversation(id, orgId, userId); }
+export async function removeConversation(orgId: string, id: string, userId: string, role?: string) { await participant(orgId, id, userId, role); return repo.deleteConversation(id, orgId, userId); }
 export async function removeMessage(orgId: string, id: string, userId: string) { return repo.deleteMessage(id, orgId, userId); }

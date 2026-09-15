@@ -11,8 +11,8 @@ export const restoreConversation = (id: string) =>
   db().conversation.update({ where: { id }, data: { deletedAt: null, blockedAt: null, blockedById: null, updatedAt: new Date() } });
 export const createConversation = (organizationId: string, courseId: string, studentId: string, instructorId: string) =>
   db().conversation.create({ data: { organizationId, courseId, studentId, instructorId } });
-export const listConversations = (organizationId: string, userId: string) => db().conversation.findMany({
-  where: { organizationId, deletedAt: null, OR: [{ studentId: userId }, { instructorId: userId }] },
+export const listConversations = (organizationId: string, userId: string, organizationAdmin = false) => db().conversation.findMany({
+  where: { organizationId, deletedAt: null, ...(organizationAdmin ? {} : { OR: [{ studentId: userId }, { instructorId: userId }] }) },
   include: { course: { select: { id: true, title: true } }, student: { select: { id: true, name: true, email: true } }, instructor: { select: { id: true, name: true, email: true } }, messages: { orderBy: { createdAt: 'desc' }, take: 1 } },
   orderBy: { updatedAt: 'desc' },
 });
