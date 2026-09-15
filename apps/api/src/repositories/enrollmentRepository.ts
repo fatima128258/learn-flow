@@ -54,6 +54,7 @@ export async function listByUser(userId: string) {
           instructorUser: {
             select: {
               name: true,
+              email: true,
             },
           },
         },

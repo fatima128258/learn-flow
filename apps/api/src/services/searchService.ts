@@ -23,7 +23,7 @@ function optionalNumber(value: unknown): number | undefined {
 function toCourseSearchDto(course: {
   id: string;
   organizationId: string;
-  instructorUser?: { id: string; name: string | null } | null;
+  instructorUser?: { id: string; name: string | null; email: string } | null;
   instructorUserId: string;
   title: string;
   slug: string;
@@ -45,7 +45,7 @@ function toCourseSearchDto(course: {
     organizationId: course.organizationId,
     instructor: {
       id: course.instructorUser?.id ?? course.instructorUserId,
-      name: course.instructorUser?.name ?? null,
+      name: course.instructorUser?.name?.trim() || course.instructorUser?.email || 'Course instructor',
     },
     title: course.title,
     slug: course.slug,

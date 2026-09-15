@@ -230,8 +230,8 @@ export default function StudentLessonPage() {
         responseBody?.data?.courseProgress?.contentComplete === true ||
         responseBody?.data?.courseProgress?.courseComplete === true,
       );
-      if (completed && data?.module.order === 1) {
-        toast.success('Congratulations! You completed the first module.');
+      if (completed) {
+        toast.success('Congratulations! You completed this lesson.');
       }
       if (completed && user.organizationId) {
         // Enable navigation immediately after completion; refine the route in
@@ -304,6 +304,7 @@ export default function StudentLessonPage() {
                 {data.lesson.duration != null && (
                   <Badge variant="default" size="sm">{data.lesson.duration} min</Badge>
                 )}
+                {isCompleted && <Badge variant="success" size="sm">Completed</Badge>}
               </div>
               <h1 className="text-2xl font-bold text-neutral-900">{data.lesson.title}</h1>
               {data.lesson.description && (

@@ -453,10 +453,9 @@ export default function StudentQuizTakingPage() {
             <div className="grid min-w-0 gap-3 md:grid-cols-[180px_minmax(0,1fr)] xl:grid-cols-[170px_minmax(0,1fr)_200px]">
               <aside className="min-w-0 rounded-2xl border border-[#ead8c6] bg-[#fffdf9] p-4">
                 <div className="flex items-center justify-between gap-2">
-                  <span className="text-sm font-semibold text-[#475569]">Question progress</span>
+                  <span className="text-sm font-semibold text-[#475569]">Questions</span>
                   <span className="text-sm font-bold text-[#5a321f]">{answeredCount} of {totalQuestions}</span>
                 </div>
-                <p className="mt-1 text-xs text-[#8a7a6b]">Select a question to continue</p>
                 <div className="mt-4 flex flex-wrap gap-2">
                   {quiz.questions.map((item, index) => (
                     <button
@@ -469,7 +468,7 @@ export default function StudentQuizTakingPage() {
                           ? 'border-[#5a321f] bg-[#5a321f] text-white'
                           : answers[item.id]
                             ? 'border-emerald-300 bg-emerald-50 text-emerald-700'
-                            : 'border-neutral-200 bg-white text-neutral-600'
+                          : 'border-[#ead8c6] bg-[#f5ebdd] text-[#5a321f]'
                       }`}
                     >
                       {index + 1}
