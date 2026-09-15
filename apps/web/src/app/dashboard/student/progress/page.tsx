@@ -3,7 +3,6 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { EmptyState, EmptyStateIcons, ErrorState, Spinner } from '@/components/ui';
-import { PageHeader } from '@/components/dashboard';
 import { useCurrentUser } from '@/features/auth/useCurrentUser';
 import { useStudentProgress, type CourseProgress } from '@/features/student/useProgress';
 
@@ -18,30 +17,23 @@ function ProgressBar({ value }: { value: number }) {
 
 function CourseCard({ course }: { course: CourseProgress }) {
   const [expanded, setExpanded] = useState(false);
-  const totalItems = course.totalContentItems ?? 0;
-  const completedItems = course.completedContentItems ?? 0;
 
   return (
     <article className="overflow-hidden rounded-2xl border border-neutral-200 bg-white shadow-sm">
       {course.courseThumbnail ? (
-        <img src={course.courseThumbnail} alt="" className="h-36 w-full object-cover" />
+        <img src={course.courseThumbnail} alt="" className="h-24 w-full object-cover" />
       ) : (
         <div className="h-8 bg-gradient-to-r from-primary-100 to-accent-100" aria-hidden="true" />
       )}
-      <div className="p-6">
+      <div className="p-4">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
             <h2 className="text-xl font-semibold text-neutral-900">{course.courseTitle}</h2>
-            <p className="mt-1 text-sm text-neutral-500">
-              {course.courseComplete ? 'Course Completed' : course.courseStatus ?? 'In progress'}
-            </p>
           </div>
           <span className="text-2xl font-bold text-primary-700">{course.coursePercentage}%</span>
         </div>
-        <div className="mt-5"><ProgressBar value={course.coursePercentage} /></div>
-        <p className="mt-3 text-sm text-neutral-600">{completedItems} / {totalItems} items completed</p>
-
-        <div className="mt-5 flex flex-wrap gap-3">
+        <div className="mt-4"><ProgressBar value={course.coursePercentage} /></div>
+        <div className="mt-4 flex flex-wrap gap-2">
           {!course.courseComplete && course.lastVisited?.lessonId && course.lastVisited.moduleId ? (
             <Link
               href={`/dashboard/student/courses/${course.courseId}/modules/${course.lastVisited.moduleId}/lessons/${course.lastVisited.lessonId}`}
@@ -60,7 +52,7 @@ function CourseCard({ course }: { course: CourseProgress }) {
           <button
             type="button"
             onClick={() => setExpanded((value) => !value)}
-            className="rounded-lg border border-neutral-300 px-4 py-2 text-sm font-medium text-neutral-700 hover:bg-neutral-50"
+            className="rounded-lg bg-primary-600 px-4 py-2 text-sm font-medium text-white hover:bg-primary-700"
             aria-expanded={expanded}
           >
             {expanded ? 'Hide modules' : 'View modules'}
@@ -122,7 +114,6 @@ export default function StudentProgressPage() {
 
   return (
     <div className="mx-auto max-w-6xl">
-      <PageHeader title="My Progress" subtitle="Track your learning progress across all your courses." />
       {isError ? (
         <div className="rounded-2xl border border-neutral-200 bg-white shadow-sm">
           <ErrorState title="Unable to load your progress" message={error instanceof Error ? error.message : 'Please try again.'} action={{ label: 'Try Again', onClick: () => { void refetch(); } }} />
@@ -132,7 +123,7 @@ export default function StudentProgressPage() {
           <EmptyState icon={EmptyStateIcons.NoCourses} title="No courses yet" description="You haven't enrolled in any courses yet." action={{ label: 'Explore Courses', onClick: () => { window.location.href = '/dashboard/student/search'; } }} />
         </div>
       ) : (
-        <div className="grid gap-5 lg:grid-cols-2">{courses.map((course) => <CourseCard key={course.courseId} course={course} />)}</div>
+        <div className="grid gap-4 lg:grid-cols-3">{courses.map((course) => <CourseCard key={course.courseId} course={course} />)}</div>
       )}
     </div>
   );

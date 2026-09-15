@@ -401,7 +401,9 @@ export async function createManagedUser(organizationId: string, input: {
   });
 
   if (createdNew) {
-    await dispatchNotification({
+    // Do not keep the user-creation response open while email/Redis notification
+    // delivery waits on an external service.
+    void dispatchNotification({
       type: 'WELCOME',
       title: `🎉 Welcome, ${user.name || 'Student'}!`,
       body: `Your learning journey begins now! Explore courses, complete lessons, and unlock certificates. Let's achieve great things together! 🚀`,
