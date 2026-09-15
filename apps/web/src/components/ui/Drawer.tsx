@@ -1,5 +1,5 @@
 'use client';
-import React, { useEffect, useId, useRef } from 'react';
+import React, { useEffect, useId, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 
 export interface DrawerProps {
@@ -17,9 +17,14 @@ export const Drawer: React.FC<DrawerProps> = ({
   children,
   closeOnOverlayClick = true,
 }) => {
+  const [mounted, setMounted] = useState(false);
   const panelRef = useRef<HTMLDivElement>(null);
   const previouslyFocusedRef = useRef<HTMLElement | null>(null);
   const titleId = useId();
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   useEffect(() => {
     const handleEscape = (e: KeyboardEvent) => {
@@ -44,7 +49,7 @@ export const Drawer: React.FC<DrawerProps> = ({
     };
   }, [isOpen, onClose]);
 
-  if (!isOpen) return null;
+  if (!mounted || !isOpen) return null;
 
   return createPortal(
     <div

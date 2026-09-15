@@ -13,14 +13,13 @@ type Task = {
   title: string;
   description: string | null;
   status: TaskStatus;
-  dueDate: string | null;
   priority: Priority;
   createdAt: string;
   updatedAt: string;
   completedAt: string | null;
 };
-type TaskForm = { title: string; description: string; status: TaskStatus; dueDate: string; priority: Priority };
-const emptyForm: TaskForm = { title: '', description: '', status: 'PENDING', dueDate: '', priority: 'MEDIUM' };
+type TaskForm = { title: string; description: string; status: TaskStatus; priority: Priority };
+const emptyForm: TaskForm = { title: '', description: '', status: 'PENDING', priority: 'MEDIUM' };
 const columns: Array<{ status: TaskStatus; title: string; empty: string; color: string }> = [
   { status: 'PENDING', title: 'Pending', empty: 'No pending tasks', color: 'border-amber-200' },
   { status: 'IN_PROGRESS', title: 'In Progress', empty: 'No tasks in progress', color: 'border-blue-200' },
@@ -73,7 +72,6 @@ export default function TaskBoard() {
       title: task.title,
       description: task.description ?? '',
       status: task.status,
-      dueDate: task.dueDate ? task.dueDate.slice(0, 10) : '',
       priority: task.priority,
     });
     setFormOpen(true);
@@ -84,7 +82,7 @@ export default function TaskBoard() {
     if (!form.title.trim()) return;
     setSaving(true);
     try {
-      const payload = { ...form, title: form.title.trim(), description: form.description.trim() || null, dueDate: form.dueDate || null };
+      const payload = { ...form, title: form.title.trim(), description: form.description.trim() || null };
       if (editing) {
         const response = await patchJson<{ data: Task }>(`/api/v1/student/tasks/${editing.id}`, payload);
         setTasks((current) => current.map((task) => task.id === editing.id ? response.data : task));
@@ -175,7 +173,7 @@ export default function TaskBoard() {
                 >
                   <div className="flex items-start justify-between gap-2"><h3 className="font-semibold text-neutral-900">{task.title}</h3><span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${task.priority === 'HIGH' ? 'bg-red-100 text-red-700' : task.priority === 'LOW' ? 'bg-neutral-100 text-neutral-600' : 'bg-amber-100 text-amber-700'}`}>{task.priority}</span></div>
                   {task.description && <p className="mt-2 whitespace-pre-wrap text-sm text-neutral-600">{task.description}</p>}
-                  <div className="mt-3 flex items-center justify-between gap-2 text-xs text-neutral-500"><span>{task.dueDate ? `Due ${new Date(task.dueDate).toLocaleDateString()}` : 'No due date'}</span><div className="flex gap-2"><button type="button" onClick={() => openEdit(task)} className="font-medium text-primary-700 hover:underline">Edit</button><button type="button" onClick={() => setDeleting(task)} className="font-medium text-red-600 hover:underline">Delete</button></div></div>
+                  <div className="mt-3 flex justify-end gap-2 text-xs text-neutral-500"><button type="button" onClick={() => openEdit(task)} className="font-medium text-primary-700 hover:underline">Edit</button><button type="button" onClick={() => setDeleting(task)} className="font-medium text-red-600 hover:underline">Delete</button></div>
                 </article>
               ))}
             </div>
@@ -186,9 +184,9 @@ export default function TaskBoard() {
         <form id="task-form" onSubmit={saveTask} className="flex min-h-full flex-col gap-4">
           <Input label="Title" required value={form.title} onChange={(event) => setForm((current) => ({ ...current, title: event.target.value }))} maxLength={200} />
           <div><label htmlFor="task-description" className="mb-1.5 block text-sm font-medium text-neutral-700">Description</label><textarea id="task-description" value={form.description} onChange={(event) => setForm((current) => ({ ...current, description: event.target.value }))} maxLength={5000} rows={4} className="w-full rounded-xl border border-[#e5d5c4] bg-[#fffdf9] px-4 py-3 text-sm outline-none focus:border-[#7a4a2e]" /></div>
-          <div className="grid gap-4 sm:grid-cols-3"><label className="text-sm font-medium text-neutral-700">Status<select value={form.status} onChange={(event) => setForm((current) => ({ ...current, status: event.target.value as TaskStatus }))} className="mt-1.5 w-full rounded-xl border border-[#e5d5c4] bg-[#fffdf9] px-3 py-3 text-sm"><option value="PENDING">Pending</option><option value="IN_PROGRESS">In Progress</option><option value="COMPLETED">Completed</option></select></label><label className="text-sm font-medium text-neutral-700">Priority<select value={form.priority} onChange={(event) => setForm((current) => ({ ...current, priority: event.target.value as Priority }))} className="mt-1.5 w-full rounded-xl border border-[#e5d5c4] bg-[#fffdf9] px-3 py-3 text-sm"><option value="LOW">Low</option><option value="MEDIUM">Medium</option><option value="HIGH">High</option></select></label><Input label="Due date" type="date" value={form.dueDate} onChange={(event) => setForm((current) => ({ ...current, dueDate: event.target.value }))} /></div>
+          <div className="grid w-full grid-cols-2 gap-4"><label className="text-sm font-medium text-neutral-700">Status<select value={form.status} onChange={(event) => setForm((current) => ({ ...current, status: event.target.value as TaskStatus }))} className="mt-1.5 w-full rounded-xl border border-[#e5d5c4] bg-[#fffdf9] px-3 py-3 text-sm"><option value="PENDING">Pending</option><option value="IN_PROGRESS">In Progress</option><option value="COMPLETED">Completed</option></select></label><label className="text-sm font-medium text-neutral-700">Priority<select value={form.priority} onChange={(event) => setForm((current) => ({ ...current, priority: event.target.value as Priority }))} className="mt-1.5 w-full rounded-xl border border-[#e5d5c4] bg-[#fffdf9] px-3 py-3 text-sm"><option value="LOW">Low</option><option value="MEDIUM">Medium</option><option value="HIGH">High</option></select></label></div>
           <div className="mt-auto flex justify-end gap-3 border-t border-neutral-200 pt-5">
-            <Button variant="ghost" type="button" onClick={() => setFormOpen(false)} disabled={saving}>Cancel</Button>
+            <Button variant="outline" type="button" onClick={() => setFormOpen(false)} disabled={saving} className="border-[#7a4a2e] bg-[#fffaf5] text-[#7a4a2e] hover:bg-[#f5e8dc]">Cancel</Button>
             <Button type="submit" loading={saving}>{editing ? 'Save Changes' : 'Create Task'}</Button>
           </div>
         </form>

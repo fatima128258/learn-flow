@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { Socket } from 'socket.io-client';
 import { ApiError, deleteJson, getJson, postJson } from '@/lib/api';
+import { ConfirmModal } from '@/components/ui';
 import type { ChatConversation, ChatListResponse, ChatMessage, ChatMessagesResponse } from './types';
 import { acquireChatSocket } from './chatSocket';
 
@@ -70,6 +71,7 @@ export function ChatPanel({ organizationId, userId, initialConversationId, cours
   const [replyTo, setReplyTo] = useState<ChatMessage | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [actionLoading, setActionLoading] = useState(false);
+  const [pendingConversationAction, setPendingConversationAction] = useState<'block' | 'delete' | null>(null);
   const socketRef = useRef<Socket | null>(null);
   const activeIdRef = useRef(activeId);
   const activeConversationRef = useRef<ChatConversation | null>(null);
@@ -286,7 +288,11 @@ export function ChatPanel({ organizationId, userId, initialConversationId, cours
 
   async function updateConversation(action: 'block' | 'unblock' | 'delete') {
     if (!active || actionLoading) return;
-    if (action !== 'unblock' && !window.confirm(action === 'delete' ? 'Delete this chat for both participants?' : 'Block this chat for both participants?')) return;
+    if (action !== 'unblock' && !pendingConversationAction) {
+      setPendingConversationAction(action);
+      return;
+    }
+    if (pendingConversationAction === action) setPendingConversationAction(null);
     setActionLoading(true);
     try {
       if (action === 'delete') {
@@ -305,6 +311,7 @@ export function ChatPanel({ organizationId, userId, initialConversationId, cours
   }
 
   return (
+    <>
     <div className="flex h-[calc(100dvh-8rem)] min-h-0 overflow-hidden rounded-[18px] border border-[#dfe2df] bg-[#f5f2ee] shadow-sm">
       <aside className={`${active ? 'hidden md:flex' : 'flex'} min-h-0 w-full flex-col border-r border-[#dfe2df] bg-[#f5f3f2] md:w-[420px]`}>
         <div className="border-b border-[#dfe2df] bg-[#f7f4f2] px-4 py-3">
@@ -503,5 +510,20 @@ export function ChatPanel({ organizationId, userId, initialConversationId, cours
         </> : <div className="m-auto text-center text-neutral-500">Select a conversation</div>}
       </section>
     </div>
+    <ConfirmModal
+      isOpen={Boolean(pendingConversationAction)}
+      onClose={() => setPendingConversationAction(null)}
+      onConfirm={() => {
+        if (pendingConversationAction) void updateConversation(pendingConversationAction);
+      }}
+      title={pendingConversationAction === 'delete' ? 'Delete chat?' : 'Block user?'}
+      message={pendingConversationAction === 'delete'
+        ? 'Are you sure you want to delete this chat for both participants?'
+        : 'Are you sure you want to block this user?'}
+      confirmLabel={pendingConversationAction === 'delete' ? 'Delete' : 'Block'}
+      variant="danger"
+      loading={actionLoading}
+    />
+    </>
   );
 }
