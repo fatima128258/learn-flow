@@ -174,6 +174,7 @@ export async function listOrganizationEnrollments(params: { organizationId: stri
 export async function listStudentProgressEnrollments(params: {
   organizationId: string;
   instructorUserId?: string;
+  studentId?: string;
   search?: string;
   courseId?: string;
   skip?: number;
@@ -186,6 +187,7 @@ export async function listStudentProgressEnrollments(params: {
     e."organizationId" = ${params.organizationId}
     AND c."organizationId" = ${params.organizationId}
     AND (${instructor}::text IS NULL OR c."instructorUserId" = ${instructor})
+    AND (${params.studentId ?? null}::text IS NULL OR e."userId" = ${params.studentId ?? null})
     AND (${courseId}::text IS NULL OR c.id = ${courseId})
     AND (${search}::text IS NULL OR u.name ILIKE ${`%${search ?? ''}%`} OR u.email ILIKE ${`%${search ?? ''}%`} OR c.title ILIKE ${`%${search ?? ''}%`})
   `;
@@ -200,12 +202,36 @@ export async function listStudentProgressEnrollments(params: {
     course_id: string;
     course_name: string;
     enrolled_at: Date;
+    progress?: number;
+    course_completed?: boolean;
   }>>`
     SELECT e.id, e."userId" user_id, u.name student_name, u.email student_email,
-      c.id course_id, c.title course_name, e."enrolledAt" enrolled_at
+      c.id course_id, c.title course_name, e."enrolledAt" enrolled_at,
+      CASE WHEN cp.completed OR e.status = 'COMPLETED' THEN 100
+        WHEN totals.total = 0 THEN 0
+        ELSE ROUND(COALESCE(done.completed, 0)::numeric * 100 / totals.total)
+      END progress,
+      (cp.completed OR e.status = 'COMPLETED') course_completed
     FROM "Enrollment" e
     JOIN "User" u ON u.id = e."userId"
     JOIN "Course" c ON c.id = e."courseId"
+    LEFT JOIN "CourseProgress" cp ON cp."userId" = e."userId"
+      AND cp."courseId" = e."courseId"
+      AND cp."organizationId" = ${params.organizationId}
+    LEFT JOIN LATERAL (
+      SELECT COUNT(*)::int total
+      FROM "Lesson" l
+      JOIN "Module" m ON m.id = l."moduleId"
+      WHERE m."courseId" = c.id
+    ) totals ON true
+    LEFT JOIN LATERAL (
+      SELECT COUNT(*)::int completed
+      FROM "LessonProgress" lp
+      WHERE lp."userId" = e."userId"
+        AND lp."courseId" = c.id
+        AND lp."organizationId" = ${params.organizationId}
+        AND lp.completed
+    ) done ON true
     WHERE ${where}
     ORDER BY e."enrolledAt" DESC
     ${pagination}

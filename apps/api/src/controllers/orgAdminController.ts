@@ -36,6 +36,8 @@ function handleError(res: Response, err: unknown) {
       return fail(res, 404, 'ORGANIZATION_NOT_FOUND');
     case 'USER_NOT_FOUND':
       return fail(res, 404, 'USER_NOT_FOUND');
+    case 'ENROLLMENT_NOT_FOUND':
+      return fail(res, 404, 'ENROLLMENT_NOT_FOUND');
     case 'ACCOUNT_ALREADY_SUSPENDED':
     case 'ACCOUNT_ALREADY_ACTIVE':
       return fail(res, 400, message);
@@ -81,6 +83,20 @@ export async function listStudentProgress(req: AuthenticatedRequest, res: Respon
       req.user?.role === 'INSTRUCTOR' ? req.user.id : undefined,
     );
     return res.json({ success: true, data: data.items, meta: data.meta });
+  } catch (err) {
+    return handleError(res, err);
+  }
+}
+
+export async function getStudentProgressDetail(req: AuthenticatedRequest, res: Response) {
+  try {
+    const data = await service.getStudentProgressDetail(
+      tenantOrganizationId(req),
+      req.params.studentId,
+      req.params.courseId,
+      req.user?.role === 'INSTRUCTOR' ? req.user.id : undefined,
+    );
+    return res.json({ success: true, data });
   } catch (err) {
     return handleError(res, err);
   }

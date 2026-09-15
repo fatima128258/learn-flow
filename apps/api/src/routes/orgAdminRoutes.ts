@@ -5,6 +5,7 @@ import {
   analytics,
   listEnrollments,
   listStudentProgress,
+  getStudentProgressDetail,
   getOrganization,
   listUsers,
   getUser,
@@ -21,6 +22,7 @@ orgAdminRouter.get('/dashboard', dashboard);
 orgAdminRouter.get('/analytics', analytics);
 orgAdminRouter.get('/enrollments', listEnrollments);
 orgAdminRouter.get('/student-progress', listStudentProgress);
+orgAdminRouter.get('/student-progress/:studentId/:courseId', getStudentProgressDetail);
 orgAdminRouter.get('/organization', getOrganization);
 orgAdminRouter.get('/users', listUsers);
 orgAdminRouter.post('/instructors', createInstructor);

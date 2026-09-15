@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { requireAuth, requireOrganizationContext, requireRole, requireVerifiedEmail } from '../middleware/auth';
 import { instructorDashboard } from '../controllers/courseController';
-import { listStudentProgress } from '../controllers/orgAdminController';
+import { listStudentProgress, getStudentProgressDetail } from '../controllers/orgAdminController';
 
 const instructorRouter = Router();
 
@@ -21,6 +21,15 @@ instructorRouter.get(
   requireOrganizationContext,
   requireRole('INSTRUCTOR'),
   listStudentProgress,
+);
+
+instructorRouter.get(
+  '/student-progress/:studentId/:courseId',
+  requireAuth,
+  requireVerifiedEmail,
+  requireOrganizationContext,
+  requireRole('INSTRUCTOR'),
+  getStudentProgressDetail,
 );
 
 export default instructorRouter;

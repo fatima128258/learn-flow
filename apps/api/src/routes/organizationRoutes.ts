@@ -17,6 +17,7 @@ adminRouter.use(requireAuth, requirePlatformAdmin);
 adminRouter.get('/dashboard', dashboard);
 
 const organizationRouter = Router();
+const requireOrganizationAdmin = [requireAuth, requirePlatformAdmin];
 organizationRouter.get(
   '/:organizationId/categories/:categoryId',
   requireAuth,
@@ -33,13 +34,12 @@ organizationRouter.patch(
   requireRole('INSTRUCTOR'),
   updatePrivateCategory,
 );
-organizationRouter.use(requireAuth, requirePlatformAdmin);
-organizationRouter.get('/', list);
-organizationRouter.post('/', create);
-organizationRouter.get('/:id', getById);
-organizationRouter.get('/:id/members', listMembers);
-organizationRouter.patch('/:id', update);
-organizationRouter.patch('/:id/status', updateStatus);
-organizationRouter.post('/:id/admins', assignAdmin);
+organizationRouter.get('/', ...requireOrganizationAdmin, list);
+organizationRouter.post('/', ...requireOrganizationAdmin, create);
+organizationRouter.get('/:id', ...requireOrganizationAdmin, getById);
+organizationRouter.get('/:id/members', ...requireOrganizationAdmin, listMembers);
+organizationRouter.patch('/:id', ...requireOrganizationAdmin, update);
+organizationRouter.patch('/:id/status', ...requireOrganizationAdmin, updateStatus);
+organizationRouter.post('/:id/admins', ...requireOrganizationAdmin, assignAdmin);
 
 export { adminRouter, organizationRouter };

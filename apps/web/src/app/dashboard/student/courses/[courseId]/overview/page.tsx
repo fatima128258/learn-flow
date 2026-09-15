@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
+import { createPortal } from 'react-dom';
 import {
   Button,
   ErrorState,
@@ -271,7 +272,7 @@ export default function StudentCourseOverviewPage() {
 
         </>
       ) : null}
-      {showCheckout && course && (
+      {showCheckout && course && createPortal(
         <div
           className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 p-4"
           role="dialog"
@@ -332,7 +333,8 @@ export default function StudentCourseOverviewPage() {
               </div>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body,
       )}
     </div>
   );

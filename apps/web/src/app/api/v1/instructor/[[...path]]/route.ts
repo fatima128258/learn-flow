@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 
 const TRANSIENT_STATUSES = new Set([502, 503, 504]);
 const BACKEND_TIMEOUT_MS = 30_000;
+const STUDENT_PROGRESS_TIMEOUT_MS = 60_000;
 
 export async function GET(
   request: NextRequest,
@@ -12,12 +13,15 @@ export async function GET(
       || process.env.NEXT_PUBLIC_BACKEND_URL
       || 'https://learn-flow-1-1gl3.onrender.com';
     const { path = [] } = await context.params;
+    const backendTimeoutMs = path.join('/') === 'student-progress'
+      ? STUDENT_PROGRESS_TIMEOUT_MS
+      : BACKEND_TIMEOUT_MS;
     const incomingUrl = new URL(request.url);
     const query = incomingUrl.searchParams.toString();
     const forwardUrl = `${backendUrl}/api/v1/instructor/${path.join('/')}${query ? `?${query}` : ''}`;
     for (let attempt = 0; attempt < 3; attempt += 1) {
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), BACKEND_TIMEOUT_MS);
+      const timeoutId = setTimeout(() => controller.abort(), backendTimeoutMs);
       try {
         const response = await fetch(forwardUrl, {
           headers: {

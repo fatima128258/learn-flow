@@ -214,11 +214,24 @@ export async function listStudentProgress(
     ...(shouldFilterProgress ? {} : { skip: (page - 1) * limit, take: limit }),
   });
   const withProgress = await Promise.all(result.items.map(async (item) => {
-    const progress = await progressService.getCourseProgress(
-      organizationId,
-      item.user_id,
-      item.course_id,
-    );
+    if (typeof item.progress === 'number' && typeof item.course_completed === 'boolean') {
+      return {
+        enrollmentId: item.id,
+        studentId: item.user_id,
+        studentName: item.student_name,
+        studentEmail: item.student_email,
+        courseId: item.course_id,
+        courseName: item.course_name,
+        progress: item.progress,
+        courseCompleted: item.course_completed,
+        certificateEligible: item.course_completed,
+        enrollmentDate: item.enrolled_at,
+        lastVisited: null,
+        modules: [],
+        quizzes: [],
+      };
+    }
+    const progress = await progressService.getCourseProgress(organizationId, item.user_id, item.course_id);
     return {
       enrollmentId: item.id,
       studentId: item.user_id,
@@ -251,6 +264,42 @@ export async function listStudentProgress(
   return {
     items,
     meta: { page, limit, total, totalPages: Math.ceil(total / limit) },
+  };
+}
+
+export async function getStudentProgressDetail(
+  organizationId: string,
+  studentId: string,
+  courseId: string,
+  instructorUserId?: string,
+) {
+  const result = await orgAdminRepo.listStudentProgressEnrollments({
+    organizationId,
+    instructorUserId,
+    studentId,
+    courseId,
+    skip: 0,
+    take: 100,
+  });
+  const enrollment = result.items.find((item) => item.user_id === studentId);
+  if (!enrollment) {
+    throw new Error('ENROLLMENT_NOT_FOUND');
+  }
+  const progress = await progressService.getCourseProgress(organizationId, studentId, courseId);
+  return {
+    enrollmentId: enrollment.id,
+    studentId: enrollment.user_id,
+    studentName: enrollment.student_name,
+    studentEmail: enrollment.student_email,
+    courseId: enrollment.course_id,
+    courseName: enrollment.course_name,
+    progress: progress.coursePercentage,
+    courseCompleted: progress.courseComplete,
+    certificateEligible: progress.certificateEligible,
+    enrollmentDate: enrollment.enrolled_at,
+    lastVisited: progress.lastVisited,
+    modules: progress.modules,
+    quizzes: progress.quizzes,
   };
 }
 

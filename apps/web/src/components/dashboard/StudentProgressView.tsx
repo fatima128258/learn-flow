@@ -30,8 +30,10 @@ export function StudentProgressView({ apiPath }: Props) {
   const [page, setPage] = useState(1);
   const [meta, setMeta] = useState({ total: 0, totalPages: 0 });
   const [selected, setSelected] = useState<StudentProgressItem | null>(null);
+  const [detailLoading, setDetailLoading] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
+  const [retryKey, setRetryKey] = useState(0);
 
   useEffect(() => {
     let active = true;
@@ -55,7 +57,7 @@ export function StudentProgressView({ apiPath }: Props) {
       }
     }, 250);
     return () => { active = false; window.clearTimeout(timer); };
-  }, [apiPath, page, query, progressFilter]);
+  }, [apiPath, page, query, progressFilter, retryKey]);
 
   function ProgressCell({ item }: { item: StudentProgressItem }) {
     return (
@@ -66,8 +68,26 @@ export function StudentProgressView({ apiPath }: Props) {
     );
   }
 
+  async function openDetails(item: StudentProgressItem) {
+    setSelected(item);
+    setDetailLoading(true);
+    try {
+      const response = await fetch(`${apiPath}/${item.studentId}/${item.courseId}`, {
+        credentials: 'include',
+        cache: 'no-store',
+      });
+      if (!response.ok) throw new Error('Unable to load student progress details');
+      const body = await response.json();
+      setSelected(body.data ?? item);
+    } catch {
+      setSelected(item);
+    } finally {
+      setDetailLoading(false);
+    }
+  }
+
   if (error) {
-    return <ErrorState title="Unable to load student progress" message="Please try again." action={{ label: 'Retry', onClick: () => setPage((value) => value) }} />;
+    return <ErrorState title="Unable to load student progress" message="The server may be waking up. Please try again." action={{ label: 'Retry', onClick: () => setRetryKey((value) => value + 1) }} />;
   }
 
   return (
@@ -105,7 +125,7 @@ export function StudentProgressView({ apiPath }: Props) {
               <thead className="bg-neutral-50"><tr><th className={tableHeadClass}>Student</th><th className={tableHeadClass}>Enrolled Course</th><th className={tableHeadClass}>Progress</th><th className={tableHeadClass}>Enrollment Date</th></tr></thead>
               <tbody className="divide-y divide-neutral-100">
                 {items.map((item) => (
-                  <tr key={item.enrollmentId} className={`${tableRowHoverClass} cursor-pointer`} onClick={() => setSelected(item)}>
+                  <tr key={item.enrollmentId} className={`${tableRowHoverClass} cursor-pointer`} onClick={() => { void openDetails(item); }}>
                     <td className={tableCellClass}><div className="font-medium text-neutral-900">{item.studentName || 'Unnamed student'}</div></td>
                     <td className={tableCellClass}>{item.courseName}</td>
                     <td className={tableCellClass}><ProgressCell item={item} /></td>
@@ -118,11 +138,11 @@ export function StudentProgressView({ apiPath }: Props) {
         </TableCard>
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {items.map((item) => <button key={item.enrollmentId} type="button" onClick={() => setSelected(item)} className="rounded-2xl border border-[#ead8c6] bg-[#fffdf9] p-5 text-left shadow-sm hover:shadow-md"><div className="font-semibold text-[#5a321f]">{item.studentName || 'Unnamed student'}</div><div className="mt-1 text-sm text-neutral-600">{item.courseName}</div><div className="mt-4"><ProgressCell item={item} /></div><div className="mt-4 text-xs text-neutral-500">Enrolled {new Date(item.enrollmentDate).toLocaleDateString()}</div></button>)}
+          {items.map((item) => <button key={item.enrollmentId} type="button" onClick={() => { void openDetails(item); }} className="rounded-2xl border border-[#ead8c6] bg-[#fffdf9] p-5 text-left shadow-sm hover:shadow-md"><div className="font-semibold text-[#5a321f]">{item.studentName || 'Unnamed student'}</div><div className="mt-1 text-sm text-neutral-600">{item.courseName}</div><div className="mt-4"><ProgressCell item={item} /></div><div className="mt-4 text-xs text-neutral-500">Enrolled {new Date(item.enrollmentDate).toLocaleDateString()}</div></button>)}
         </div>
       )}
       {meta.totalPages > 1 && <div className="flex items-center justify-between text-sm text-neutral-600"><span>{meta.total} enrollments</span><div className="flex gap-2"><button type="button" disabled={page === 1} onClick={() => setPage((value) => value - 1)} className="rounded-lg border px-3 py-2 disabled:opacity-40">Previous</button><span className="px-2 py-2">{page} / {meta.totalPages}</span><button type="button" disabled={page >= meta.totalPages} onClick={() => setPage((value) => value + 1)} className="rounded-lg border px-3 py-2 disabled:opacity-40">Next</button></div></div>}
-      {selected && <div className="fixed inset-0 z-50 flex justify-end bg-black/30" onClick={() => setSelected(null)}><aside className="h-full w-full max-w-xl overflow-y-auto bg-white p-6 shadow-xl" onClick={(event) => event.stopPropagation()}><button type="button" onClick={() => setSelected(null)} className="float-right text-2xl text-neutral-400" aria-label="Close">x</button><h2 className="text-xl font-semibold text-neutral-900">{selected.studentName || 'Unnamed student'}</h2><p className="mt-1 text-sm text-neutral-500">{selected.studentEmail}</p><h3 className="mt-6 font-semibold">{selected.courseName}</h3><ProgressCell item={selected} /><div className="mt-6 space-y-3"><h3 className="font-semibold">Module progress</h3>{selected.modules.map((module) => <div key={module.id} className="flex items-center justify-between rounded-lg bg-neutral-50 px-3 py-2 text-sm"><span>{module.title}</span><span className="font-medium">{module.percentage}% {module.complete ? '✓' : ''}</span></div>)}</div><div className="mt-6 space-y-2"><h3 className="font-semibold">Quiz status</h3>{selected.quizzes.map((quiz) => <div key={quiz.quizId} className="flex justify-between text-sm"><span>{quiz.attempted ? (quiz.passed ? 'Passed' : 'Failed') : 'Not attempted'}</span><span>{quiz.attemptsUsed} used, {quiz.attemptsRemaining ?? 'unlimited'} remaining</span></div>)}</div></aside></div>}
+      {selected && <div className="fixed inset-0 z-50 flex justify-end bg-black/30" onClick={() => setSelected(null)}><aside className="h-full w-full max-w-xl overflow-y-auto bg-white p-6 shadow-xl" onClick={(event) => event.stopPropagation()}><button type="button" onClick={() => setSelected(null)} className="float-right text-2xl text-neutral-400" aria-label="Close">x</button><h2 className="text-xl font-semibold text-neutral-900">{selected.studentName || 'Unnamed student'}</h2><p className="mt-1 text-sm text-neutral-500">{selected.studentEmail}</p><h3 className="mt-6 font-semibold">{selected.courseName}</h3><ProgressCell item={selected} />{detailLoading ? <div className="mt-6"><Spinner size="md" label="Loading progress details..." /></div> : <><div className="mt-6 space-y-3"><h3 className="font-semibold">Module progress</h3>{selected.modules.map((module) => <div key={module.id} className="flex items-center justify-between rounded-lg bg-neutral-50 px-3 py-2 text-sm"><span>{module.title}</span><span className="font-medium">{module.percentage}% {module.complete ? '✓' : ''}</span></div>)}</div><div className="mt-6 space-y-2"><h3 className="font-semibold">Quiz status</h3>{selected.quizzes.map((quiz) => <div key={quiz.quizId} className="flex justify-between text-sm"><span>{quiz.attempted ? (quiz.passed ? 'Passed' : 'Failed') : 'Not attempted'}</span><span>{quiz.attemptsUsed} used, {quiz.attemptsRemaining ?? 'unlimited'} remaining</span></div>)}</div></>}</aside></div>}
     </div>
   );
 }
