@@ -74,6 +74,7 @@ export async function listCourses(req: AuthenticatedRequest, res: Response) {
     if (!req.user) {
       return fail(res, 401, 'NOT_AUTHENTICATED');
     }
+    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
     const result = await service.listCourses(
       tenantOrganizationId(req),
       {
@@ -146,6 +147,7 @@ export async function updateCourseStatus(req: AuthenticatedRequest, res: Respons
     if (!req.user) {
       return fail(res, 401, 'NOT_AUTHENTICATED');
     }
+    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
     const data = await service.updateCourseStatus(
       tenantOrganizationId(req),
       req.params.courseId,
