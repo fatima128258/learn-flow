@@ -256,26 +256,15 @@ export async function requestPasswordReset(input: string | { email: string; ip?:
     used: false,
   });
 
-  if (isEmailQueueEnabled()) {
-    getEmailQueue()
-      .add('send-password-reset-code', {
-        type: 'password-reset-code',
-        email: normalizedEmail,
-        code,
-      })
-      .catch((err) => {
-        console.error('Failed to queue password reset verification code:', err);
-        repo.deletePasswordResetTokenById(resetRecord.id).catch((cleanupError) => {
-          console.error('Failed to clean up password reset code after queue failure:', cleanupError instanceof Error ? cleanupError.message : cleanupError);
-        });
-      });
-  } else {
-    try {
-      await sendPasswordResetCodeEmail(normalizedEmail, code);
-    } catch (err) {
-      await repo.deletePasswordResetTokenById(resetRecord.id);
-      throw err;
-    }
+  try {
+    // Password reset must not report success until the verification code has
+    // been handed to the configured email provider. Queueing this request
+    // fire-and-forget can leave users with a stored code but no delivered email
+    // when the worker or Redis is unavailable.
+    await sendPasswordResetCodeEmail(normalizedEmail, code);
+  } catch (err) {
+    await repo.deletePasswordResetTokenById(resetRecord.id);
+    throw err;
   }
 
   return { success: true };
@@ -289,7 +278,7 @@ export async function verifyPasswordResetCode({ email, code, ip = '127.0.0.1' }:
   if (!user) throw new Error('INVALID_CODE');
 
   const records = await repo.findPasswordResetTokensByUserId(user.id);
-  const resetRecord = records.find((record) => !record.used && record.expiresAt.getTime() > Date.now()) ?? null;
+  const resetRecord = records.find((record) => !record.used) ?? null;
   if (!resetRecord || !resetRecord.codeHash) throw new Error('INVALID_CODE');
 
   if (resetRecord.expiresAt.getTime() < Date.now()) {
@@ -317,6 +306,7 @@ export async function verifyPasswordResetCode({ email, code, ip = '127.0.0.1' }:
   const verificationExpiresAt = new Date(Date.now() + PASSWORD_RESET_CODE_TTL * 1000);
   await repo.updatePasswordResetToken(resetRecord.id, {
     tokenHash: resetAuthorizationHash,
+    codeHash: null,
     attempts: 0,
     verifiedAt: new Date(),
     expiresAt: verificationExpiresAt,

@@ -49,23 +49,33 @@ async function getAvailableCourses() {
 async function enrollInCourse() {
   console.log('=== STEP 3: PURCHASE/ENROLL IN COURSE ===\n');
   
-  const res = await fetch(`${API_BASE}/api/v1/organizations/${ORG_ID}/student/courses/${COURSE_ID}/purchase`, {
+  const res = await fetch(`${API_BASE}/api/v1/organizations/${ORG_ID}/student/courses/${COURSE_ID}/checkout`, {
     method: 'POST',
     headers: { Cookie: `learnflow_session=${sessionCookie}` },
   });
 
-  console.log(`Purchase response status: ${res.status}`);
+  console.log(`Checkout response status: ${res.status}`);
   
   if (!res.ok) {
     const err = await res.json();
-    console.error(`❌ Purchase failed: ${JSON.stringify(err)}`);
+    console.error(`❌ Checkout failed: ${JSON.stringify(err)}`);
     return false;
   }
 
   const body = await res.json();
-  console.log(`✅ Purchase/Enrollment successful`);
-  console.log(`  - Order ID: ${body.data?.orderId}`);
-  console.log(`  - Enrollment ID: ${body.data?.enrollmentId}`);
+  const payment = await fetch(`${API_BASE}/api/v1/organizations/${ORG_ID}/student/orders/${body.data?.id}/pay`, {
+    method: 'POST',
+    headers: { Cookie: `learnflow_session=${sessionCookie}` },
+  });
+  if (!payment.ok) {
+    const err = await payment.json();
+    console.error(`❌ Mock payment failed: ${JSON.stringify(err)}`);
+    return false;
+  }
+  const paid = await payment.json();
+  console.log(`✅ Mock payment/Enrollment successful`);
+  console.log(`  - Order ID: ${paid.data?.orderId}`);
+  console.log(`  - Enrollment ID: ${paid.data?.enrollmentId}`);
   console.log();
   return true;
 }

@@ -3,6 +3,10 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 const mocks = vi.hoisted(() => ({
   authRepo: {
     findUserByEmail: vi.fn(),
+    findPasswordResetTokensByUserId: vi.fn(),
+    createPasswordResetToken: vi.fn(),
+    updatePasswordResetToken: vi.fn(),
+    deletePasswordResetTokenById: vi.fn(),
     createUser: vi.fn(),
     createEmailVerificationToken: vi.fn(),
     createSession: vi.fn(),
@@ -22,6 +26,7 @@ const mocks = vi.hoisted(() => ({
   email: {
     sendVerificationEmail: vi.fn(),
     sendPasswordResetEmail: vi.fn(),
+    sendPasswordResetCodeEmail: vi.fn(),
   },
   emailQueue: {
     getEmailQueue: vi.fn(),
@@ -42,7 +47,8 @@ vi.mock('argon2', () => ({
   },
 }));
 
-import { registerUser } from '../services/authService';
+import { registerUser, requestPasswordReset, verifyPasswordResetCode } from '../services/authService';
+import { hashToken } from '../utils/tokens';
 
 describe('registerUser email fallback', () => {
   beforeEach(() => {
@@ -61,6 +67,11 @@ describe('registerUser email fallback', () => {
     mocks.authRepo.createEmailVerificationToken.mockResolvedValue({ id: 'verification-1' });
     mocks.authRepo.createSession.mockResolvedValue({ id: 'session-1' });
     mocks.email.sendVerificationEmail.mockResolvedValue(true);
+    mocks.email.sendPasswordResetCodeEmail.mockResolvedValue(true);
+    mocks.authRepo.findPasswordResetTokensByUserId.mockResolvedValue([]);
+    mocks.authRepo.createPasswordResetToken.mockResolvedValue({ id: 'reset-1' });
+    mocks.authRepo.updatePasswordResetToken.mockResolvedValue({ id: 'reset-1' });
+    mocks.authRepo.deletePasswordResetTokenById.mockResolvedValue({ id: 'reset-1' });
   });
 
   it('sends a verification email when the email queue is disabled', async () => {
@@ -97,5 +108,86 @@ describe('registerUser email fallback', () => {
       expect(mocks.email.sendVerificationEmail).toHaveBeenCalledTimes(1);
     });
     expect(mocks.email.sendPasswordResetEmail).not.toHaveBeenCalled();
+  });
+
+  it('awaits the password reset code email before reporting success', async () => {
+    mocks.authRepo.findUserByEmail.mockResolvedValue({
+      id: 'user-1',
+      email: 'student@example.com',
+    });
+
+    await requestPasswordReset({ email: ' Student@Example.com ', ip: '127.0.0.1' });
+
+    expect(mocks.email.sendPasswordResetCodeEmail).toHaveBeenCalledTimes(1);
+    expect(mocks.email.sendPasswordResetCodeEmail).toHaveBeenCalledWith(
+      'student@example.com',
+      expect.stringMatching(/^\d{6}$/),
+    );
+    expect(mocks.authRepo.createPasswordResetToken).toHaveBeenCalledTimes(1);
+  });
+
+  it('removes the reset record and surfaces email delivery failures', async () => {
+    mocks.authRepo.findUserByEmail.mockResolvedValue({
+      id: 'user-1',
+      email: 'student@example.com',
+    });
+    mocks.email.sendPasswordResetCodeEmail.mockRejectedValue(new Error('EMAIL_DELIVERY_FAILED'));
+
+    await expect(requestPasswordReset({ email: 'student@example.com', ip: '127.0.0.1' }))
+      .rejects.toThrow('EMAIL_DELIVERY_FAILED');
+    expect(mocks.authRepo.deletePasswordResetTokenById).toHaveBeenCalledWith('reset-1');
+  });
+
+  it('verifies an active reset code and invalidates the code after verification', async () => {
+    const resetRecord: {
+      id: string;
+      codeHash: string | null;
+      tokenHash: string;
+      attempts: number;
+      used: boolean;
+      expiresAt: Date;
+    } = {
+      id: 'reset-1',
+      codeHash: hashToken('123456'),
+      tokenHash: 'old-token-hash',
+      attempts: 0,
+      used: false,
+      expiresAt: new Date(Date.now() + 60_000),
+    };
+    mocks.authRepo.findUserByEmail.mockResolvedValue({ id: 'user-1', email: 'student@example.com' });
+    mocks.authRepo.findPasswordResetTokensByUserId.mockResolvedValue([resetRecord]);
+    await verifyPasswordResetCode({ email: 'student@example.com', code: '123456', ip: '127.0.0.1' });
+
+    expect(mocks.authRepo.updatePasswordResetToken).toHaveBeenCalledWith('reset-1', expect.objectContaining({
+      codeHash: null,
+      verifiedAt: expect.any(Date),
+    }));
+
+    resetRecord.codeHash = null;
+    await expect(verifyPasswordResetCode({
+      email: 'student@example.com',
+      code: '123456',
+      ip: '127.0.0.1',
+    })).rejects.toThrow('INVALID_CODE');
+  });
+
+  it('rejects expired reset codes and marks them unusable', async () => {
+    mocks.authRepo.findUserByEmail.mockResolvedValue({ id: 'user-1', email: 'student@example.com' });
+    mocks.authRepo.findPasswordResetTokensByUserId.mockResolvedValue([{
+      id: 'reset-1',
+      codeHash: 'code-hash',
+      attempts: 0,
+      used: false,
+      expiresAt: new Date(Date.now() - 1_000),
+    }]);
+
+    await expect(verifyPasswordResetCode({
+      email: 'student@example.com',
+      code: '123456',
+      ip: '127.0.0.1',
+    })).rejects.toThrow('CODE_EXPIRED');
+    expect(mocks.authRepo.updatePasswordResetToken).toHaveBeenCalledWith('reset-1', expect.objectContaining({
+      used: true,
+    }));
   });
 });

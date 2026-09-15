@@ -241,7 +241,8 @@ function setupProgressFixtures(
   );
   prismaMock.quizAttempt.findMany.mockResolvedValue(options.attempts ?? []);
   prismaMock.quiz.findMany.mockResolvedValue(
-    Array.from(new Set((options.attempts ?? []).map((attempt: any) => ({ id: attempt.quizId })))),
+    Array.from(new Set((options.attempts ?? []).map((attempt: any) => attempt.quizId)))
+      .map((id) => ({ id })),
   );
   prismaMock.courseProgress.findUnique.mockResolvedValue(options.courseProgress ?? null);
 }
@@ -457,6 +458,55 @@ describe('GET /api/v1/organizations/:organizationId/student/courses/:courseId/pr
       bestPercentage: 100,
       latestPercentage: 100,
       passed: true,
+    });
+  });
+
+  it('does not count a failed quiz as completed course progress', async () => {
+    await authenticateAs('STUDENT');
+    prismaMock.userOrganization.findUnique.mockResolvedValue(membershipRecord());
+    setupProgressFixtures({
+      completedRows: [
+        { lessonId: 'lesson-1', moduleId: 'module-1' },
+        { lessonId: 'lesson-2', moduleId: 'module-1' },
+        { lessonId: 'lesson-3', moduleId: 'module-2' },
+        { lessonId: 'lesson-4', moduleId: 'module-2' },
+      ],
+      attempts: [
+        {
+          id: 'failed-1',
+          quizId: 'quiz-1',
+          attemptNumber: 1,
+          percentage: 40,
+          passed: false,
+          submittedAt: now,
+          quiz: { id: 'quiz-1', moduleId: 'module-1', maxAttempts: 2 },
+        },
+        {
+          id: 'failed-2',
+          quizId: 'quiz-1',
+          attemptNumber: 2,
+          percentage: 40,
+          passed: false,
+          submittedAt: now,
+          quiz: { id: 'quiz-1', moduleId: 'module-1', maxAttempts: 2 },
+        },
+      ],
+    });
+
+    const res = await request(app)
+      .get('/api/v1/organizations/org-a/student/courses/course-1/progress')
+      .set('Cookie', cookie());
+
+    expect(res.status).toBe(200);
+    expect(res.body.data.coursePercentage).toBe(80);
+    expect(res.body.data.courseComplete).toBe(false);
+    expect(res.body.data.certificateEligible).toBe(false);
+    expect(res.body.data.quizzes[0]).toMatchObject({
+      attempted: true,
+      passed: false,
+      failed: true,
+      attemptsUsed: 2,
+      attemptsExhausted: true,
     });
   });
 });

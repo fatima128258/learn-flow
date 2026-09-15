@@ -26,8 +26,18 @@ function handleError(res: Response, err: unknown) {
       return fail(res, 409, 'ALREADY_ENROLLED');
     case 'ALREADY_PURCHASED':
       return fail(res, 409, 'ALREADY_PURCHASED');
+    case 'CHECKOUT_ALREADY_EXISTS':
+      return fail(res, 409, 'CHECKOUT_ALREADY_EXISTS');
+    case 'ORDER_NOT_FOUND':
+      return fail(res, 404, 'ORDER_NOT_FOUND');
+    case 'ORDER_NOT_PENDING':
+      return fail(res, 409, 'ORDER_NOT_PENDING');
+    case 'PAYMENT_NOT_PENDING':
+      return fail(res, 409, 'PAYMENT_NOT_PENDING');
     case 'PAYMENT_FAILED':
       return fail(res, 402, 'PAYMENT_FAILED');
+    case 'LEGACY_PURCHASE_DISABLED':
+      return fail(res, 410, 'LEGACY_PURCHASE_DISABLED');
     case 'PURCHASE_DATABASE_TIMEOUT':
       return fail(res, 503, 'PURCHASE_DATABASE_TIMEOUT');
     default:
@@ -35,18 +45,29 @@ function handleError(res: Response, err: unknown) {
   }
 }
 
-export async function purchaseCourse(req: AuthenticatedRequest, res: Response) {
+export async function createCheckout(req: AuthenticatedRequest, res: Response) {
   try {
-    if (!req.user) {
-      return fail(res, 401, 'NOT_AUTHENTICATED');
-    }
-    const data = await service.purchaseCourse(
+    if (!req.user) return fail(res, 401, 'NOT_AUTHENTICATED');
+    const data = await service.createCheckoutOrder(
       tenantOrganizationId(req),
       req.user.id,
       req.params.courseId,
     );
-    console.info('[PURCHASE] response sent', { courseId: req.params.courseId });
     return res.status(201).json({ success: true, data });
+  } catch (err) {
+    return handleError(res, err);
+  }
+}
+
+export async function payOrder(req: AuthenticatedRequest, res: Response) {
+  try {
+    if (!req.user) return fail(res, 401, 'NOT_AUTHENTICATED');
+    const data = await service.payOrder(
+      tenantOrganizationId(req),
+      req.user.id,
+      req.params.orderId,
+    );
+    return res.status(200).json({ success: true, data });
   } catch (err) {
     return handleError(res, err);
   }

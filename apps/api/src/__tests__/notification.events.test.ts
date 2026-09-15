@@ -131,22 +131,10 @@ describe('notification events wiring', () => {
     );
   });
 
-  it('dispatches COURSE_PURCHASED after a successful purchase', async () => {
-    courseRepoMock.getById.mockResolvedValue(courseRecord({ price: 100, discountPrice: 75 }));
-    enrollmentRepoMock.findByUserAndCourse.mockResolvedValue(null);
-    orderRepoMock.findPaidOrderForCourse.mockResolvedValue(null);
-    paymentServiceMock.processMockPayment.mockResolvedValue({ success: true, providerRef: 'mock_ref' });
-    orderRepoMock.createOrderWithPurchase.mockResolvedValue({
-      order: { id: 'order-1' },
-      enrollment: { id: 'enroll-1' },
-    });
-
-    await commerceService.purchaseCourse('org-a', 'user-1', 'course-1');
-
-    expect(dispatchMock.dispatchNotification).toHaveBeenCalledTimes(1);
-    expect(dispatchMock.dispatchNotification).toHaveBeenCalledWith(
-      expect.objectContaining({ type: 'COURSE_PURCHASED', userId: 'user-1', organizationId: 'org-a' }),
-    );
+  it('does not support the removed direct purchase operation', async () => {
+    await expect(commerceService.purchaseCourse('org-a', 'user-1', 'course-1'))
+      .rejects.toThrow('LEGACY_PURCHASE_DISABLED');
+    expect(dispatchMock.dispatchNotification).not.toHaveBeenCalled();
   });
 
   it('dispatches COURSE_COMPLETION only when a course is newly completed', async () => {

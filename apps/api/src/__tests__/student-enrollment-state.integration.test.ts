@@ -67,6 +67,22 @@ async function loginUser(e: string, password: string): Promise<string> {
   return setCookie(res);
 }
 
+async function checkoutAndPay(organizationId: string, courseId: string, cookie: string) {
+  const checkout = await request(app)
+    .post(`/api/v1/organizations/${organizationId}/student/courses/${courseId}/checkout`)
+    .set('Cookie', cookie)
+    .set('Origin', ORIGIN);
+  expect(checkout.status, checkout.body?.error).toBe(201);
+  expect(checkout.body.data.status).toBe('PENDING');
+  const payment = await request(app)
+    .post(`/api/v1/organizations/${organizationId}/student/orders/${checkout.body.data.id}/pay`)
+    .set('Cookie', cookie)
+    .set('Origin', ORIGIN);
+  expect(payment.status, payment.body?.error).toBe(200);
+  expect(payment.body.data.orderStatus).toBe('PAID');
+  return payment;
+}
+
 beforeAll(async () => {
   await prisma.$queryRaw`SELECT 1`;
 }, 30_000);
@@ -280,11 +296,7 @@ describe('Student Enrollment State Integration Test', () => {
   }, 30_000);
 
   it('8. Student A: Purchase paid course', async () => {
-    const res = await request(app)
-      .post(`/api/v1/organizations/${ctx.orgId}/student/courses/${ctx.paidCourseId}/purchase`)
-      .set('Cookie', ctx.studentACookie)
-      .set('Origin', ORIGIN)
-      .send({});
+    const res = await checkoutAndPay(ctx.orgId, ctx.paidCourseId, ctx.studentACookie);
     
     expect(res.status, res.body?.error).toBe(201);
     expect(res.body.data.enrollmentId).toBeTruthy();
@@ -294,7 +306,7 @@ describe('Student Enrollment State Integration Test', () => {
 
   it('9. Student A: Cannot purchase same course again', async () => {
     const res = await request(app)
-      .post(`/api/v1/organizations/${ctx.orgId}/student/courses/${ctx.paidCourseId}/purchase`)
+      .post(`/api/v1/organizations/${ctx.orgId}/student/courses/${ctx.paidCourseId}/checkout`)
       .set('Cookie', ctx.studentACookie)
       .set('Origin', ORIGIN)
       .send({});

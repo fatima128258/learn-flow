@@ -338,6 +338,9 @@ export async function requireOrgAdmin(req: AuthenticatedRequest, res: Response, 
     // organization admins must remain pinned to their own session organization.
     const rawOrgId = platformAdminMembership ? (req.headers['x-organization-id'] || req.params.organizationId) : undefined;
     const orgId = Array.isArray(rawOrgId) ? rawOrgId[0] : rawOrgId;
+    if (platformAdminMembership && (!orgId || typeof orgId !== 'string')) {
+      return res.status(403).json({ success: false, error: 'ORG_ADMIN_REQUIRED' });
+    }
     const finalOrgId = (orgId && typeof orgId === 'string' ? orgId : req.user.organizationId) || undefined;
 
     if (!finalOrgId || typeof finalOrgId !== 'string') {

@@ -103,6 +103,22 @@ async function loginUser(e: string, password: string): Promise<string> {
   return setCookie(res);
 }
 
+async function checkoutAndPay(organizationId: string, courseId: string, cookie: string) {
+  const checkout = await request(app)
+    .post(`/api/v1/organizations/${organizationId}/student/courses/${courseId}/checkout`)
+    .set('Cookie', cookie)
+    .set('Origin', ORIGIN);
+  expect(checkout.status, checkout.body?.error).toBe(201);
+  expect(checkout.body.data.status).toBe('PENDING');
+  const payment = await request(app)
+    .post(`/api/v1/organizations/${organizationId}/student/orders/${checkout.body.data.id}/pay`)
+    .set('Cookie', cookie)
+    .set('Origin', ORIGIN);
+  expect(payment.status, payment.body?.error).toBe(200);
+  expect(payment.body.data.orderStatus).toBe('PAID');
+  return payment;
+}
+
 async function createUser(name: string, email: string, password: string, emailVerified = true) {
   const hash = await argon2.hash(password);
   return await prisma.user.create({
@@ -632,11 +648,7 @@ describe('Complete Course System Production Audit', () => {
   }, 30_000);
   // PHASE 5: STUDENT ENROLLMENT AND PURCHASE FLOWS
   it('✅ PHASE 5.1: Student A purchases paid course', async () => {
-    const res = await request(app)
-      .post(`/api/v1/organizations/${ctx.organizationId}/student/courses/${ctx.courseId}/purchase`)
-      .set('Cookie', ctx.studentACookie)
-      .set('Origin', ORIGIN)
-      .send({});
+    const res = await checkoutAndPay(ctx.organizationId, ctx.courseId, ctx.studentACookie);
     
     expect(res.status, `Course purchase failed: ${res.body?.error}`).toBe(201);
     expect(res.body.data.enrollmentId).toBeTruthy();
@@ -679,7 +691,7 @@ describe('Complete Course System Production Audit', () => {
 
   it('✅ PHASE 5.3: Verify duplicate purchase prevention', async () => {
     const res = await request(app)
-      .post(`/api/v1/organizations/${ctx.organizationId}/student/courses/${ctx.courseId}/purchase`)
+      .post(`/api/v1/organizations/${ctx.organizationId}/student/courses/${ctx.courseId}/checkout`)
       .set('Cookie', ctx.studentACookie)
       .set('Origin', ORIGIN)
       .send({});

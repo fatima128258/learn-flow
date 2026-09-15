@@ -97,20 +97,9 @@ async function computeCourseProgress(
     attempts.filter((attempt: { passed: boolean | null }) => attempt.passed === true)
       .map((attempt: { quizId: string }) => attempt.quizId),
   );
-  const exhaustedAttemptsByQuiz = new Map<string, { count: number; maxAttempts: number | null }>();
-  for (const attempt of attempts) {
-    const current = exhaustedAttemptsByQuiz.get(attempt.quizId);
-    exhaustedAttemptsByQuiz.set(attempt.quizId, {
-      count: (current?.count ?? 0) + 1,
-      maxAttempts: attempt.quiz?.maxAttempts ?? current?.maxAttempts ?? null,
-    });
-  }
-  const exhaustedFailedQuizIds = new Set(
-    Array.from(exhaustedAttemptsByQuiz.entries())
-      .filter(([, state]) => state.maxAttempts !== null && state.count >= state.maxAttempts)
-      .map(([quizId]) => quizId),
-  );
-  const completedQuizIds = new Set([...passedQuizIds, ...exhaustedFailedQuizIds]);
+  // Exhausting failed attempts allows the learner to continue through later
+  // content, but it never satisfies the quiz's required completion item.
+  const completedQuizIds = passedQuizIds;
 
   // OPTIMIZATION: Batch query all lessons instead of N+1 loop
   const moduleIds = modules.map((m: { id: string }) => m.id);
@@ -121,7 +110,7 @@ async function computeCourseProgress(
   });
   const allQuizzes = await prisma.quiz.findMany({
     where: { moduleId: { in: moduleIds } },
-    select: { id: true, moduleId: true },
+    select: { id: true, moduleId: true, maxAttempts: true },
   });
 
   const lessonsByModule = new Map<string, { id: string }[]>();
@@ -188,6 +177,8 @@ async function computeCourseProgress(
       moduleIndex: index,
       contentItemCount: contentItems.length,
       completedContentItems: completedItems,
+      requiredItemCount: moduleDenominator,
+      completedItemCount: completedItems,
     };
   });
 
@@ -238,24 +229,31 @@ async function computeCourseProgress(
     }
   }
 
-  const quizSummary = attemptsByQuiz.size > 0
-    ? Array.from(attemptsByQuiz.entries()).map(([quizId, stat]) => ({
-        quizId,
-        attempts: stat.attempts,
-        bestPercentage: stat.best,
-        latestPercentage: stat.latest,
-        passed: stat.passed,
-        failed: !stat.passed,
-        attemptsRemaining: stat.maxAttempts == null
-          ? null
-          : Math.max(0, stat.maxAttempts - stat.attempts),
-      }))
-    : [];
   const quizIds = new Set(
     (items.length > 0
       ? items.filter((item: any) => item.type === 'QUIZ' && item.quizId).map((item: any) => item.quizId as string)
       : allQuizzes.map((quiz: { id: string }) => quiz.id)),
   );
+  const quizSummary = Array.from(quizIds).map((quizId) => {
+    const stat = attemptsByQuiz.get(quizId);
+    const quiz = allQuizzes.find((candidate: { id: string }) => candidate.id === quizId);
+    const attemptsUsed = stat?.attempts ?? 0;
+    const maxAttempts = stat?.maxAttempts ?? quiz?.maxAttempts ?? null;
+    return {
+        quizId,
+        attempts: attemptsUsed,
+        bestPercentage: stat?.best ?? null,
+        latestPercentage: stat?.latest ?? null,
+        attempted: attemptsUsed > 0,
+        attemptsUsed,
+        passed: stat?.passed === true,
+        failed: attemptsUsed > 0 && stat?.passed !== true,
+        attemptsExhausted: maxAttempts !== null && attemptsUsed >= maxAttempts,
+        attemptsRemaining: maxAttempts == null
+          ? null
+          : Math.max(0, maxAttempts - attemptsUsed),
+      };
+  });
   const allQuizzesPassed = Array.from(quizIds).every(quizId => passedQuizIds.has(quizId));
   const successfulCompletion = courseComplete && allQuizzesPassed;
 
@@ -271,6 +269,7 @@ async function computeCourseProgress(
     courseComplete,
     contentComplete: courseComplete,
     successfulCompletion,
+    certificateEligible: successfulCompletion,
     enrollmentStatus: 'ACTIVE',
     completedLessonIds: Array.from(completedLessonIds),
     lastVisited: courseProgress

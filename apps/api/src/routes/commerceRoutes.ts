@@ -5,7 +5,8 @@ import {
   requireOrganizationContext,
   AuthenticatedRequest,
 } from '../middleware/auth';
-import { purchaseCourse } from '../controllers/commerceController';
+import { createCheckout, payOrder } from '../controllers/commerceController';
+import { addCartItem, getCart } from '../controllers/cartController';
 
 function requireStudentOnly(req: AuthenticatedRequest, res: Response, next: NextFunction) {
   if (!req.user) {
@@ -19,13 +20,40 @@ function requireStudentOnly(req: AuthenticatedRequest, res: Response, next: Next
 
 const commerceRouter = Router();
 
-commerceRouter.post(
-  '/:organizationId/student/courses/:courseId/purchase',
+commerceRouter.get(
+  '/:organizationId/student/cart',
   requireAuth,
   requireVerifiedEmail,
   requireOrganizationContext,
   requireStudentOnly,
-  purchaseCourse,
+  getCart,
+);
+
+commerceRouter.post(
+  '/:organizationId/student/cart/:courseId',
+  requireAuth,
+  requireVerifiedEmail,
+  requireOrganizationContext,
+  requireStudentOnly,
+  addCartItem,
+);
+
+commerceRouter.post(
+  '/:organizationId/student/courses/:courseId/checkout',
+  requireAuth,
+  requireVerifiedEmail,
+  requireOrganizationContext,
+  requireStudentOnly,
+  createCheckout,
+);
+
+commerceRouter.post(
+  '/:organizationId/student/orders/:orderId/pay',
+  requireAuth,
+  requireVerifiedEmail,
+  requireOrganizationContext,
+  requireStudentOnly,
+  payOrder,
 );
 
 export default commerceRouter;

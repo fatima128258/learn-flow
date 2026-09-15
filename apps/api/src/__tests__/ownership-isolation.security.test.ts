@@ -523,6 +523,7 @@ describe('G. CourseProgress creation always stores the real organizationId (M-03
     // computeCourseProgress helpers
     prismaMock.module.findMany.mockResolvedValue([moduleRecord('module-a', 'course-a')]);
     prismaMock.lessonProgress.findMany.mockResolvedValue([]);
+    prismaMock.quiz.findMany.mockResolvedValue([]);
     // quizAttempt queries happen inside computeCourseProgress; add stub to the mock.
     const mockWithQuiz = prismaMock as unknown as Record<string, Record<string, ReturnType<typeof vi.fn>>>;
     mockWithQuiz.quizAttempt = { findMany: vi.fn().mockResolvedValue([]) };
@@ -766,7 +767,10 @@ describe('J. Organization A data is inaccessible to Organization B users (cross-
   it('org-a audit logs endpoint always scopes to req.organizationId, not query param', async () => {
     await authenticate('admin-a', 'org-a', 'ORG_ADMIN');
     // Simulate successful auth for org-a — requireOrgAdmin uses findUnique
-    prismaMock.userOrganization.findFirst.mockResolvedValue(null); // not platform admin
+    prismaMock.userOrganization.findFirst.mockImplementation(
+      async ({ where }: { where?: { role?: string } }) =>
+        where?.role === 'PLATFORM_ADMIN' ? null : membership('admin-a', 'org-a', 'ORG_ADMIN'),
+    );
     prismaMock.userOrganization.findUnique.mockResolvedValue(membership('admin-a', 'org-a', 'ORG_ADMIN'));
     // requireAuth needs findMany to include organization.slug for filtering
     prismaMock.userOrganization.findMany.mockResolvedValue([

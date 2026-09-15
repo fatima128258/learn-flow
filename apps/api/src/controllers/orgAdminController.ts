@@ -73,6 +73,19 @@ export async function listEnrollments(req: AuthenticatedRequest, res: Response) 
   catch (err) { return handleError(res, err); }
 }
 
+export async function listStudentProgress(req: AuthenticatedRequest, res: Response) {
+  try {
+    const data = await service.listStudentProgress(
+      tenantOrganizationId(req),
+      req.query,
+      req.user?.role === 'INSTRUCTOR' ? req.user.id : undefined,
+    );
+    return res.json({ success: true, data: data.items, meta: data.meta });
+  } catch (err) {
+    return handleError(res, err);
+  }
+}
+
 export async function getOrganization(req: AuthenticatedRequest, res: Response) {
   try {
     const data = await service.getOrganization(tenantOrganizationId(req));

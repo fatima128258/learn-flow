@@ -18,6 +18,22 @@ import app from '../server';
 import getPrisma from '../prisma';
 
 const prisma = getPrisma();
+
+async function checkoutAndPay(organizationId: string, courseId: string, cookie: string) {
+  const checkout = await request(app)
+    .post(`/api/v1/organizations/${organizationId}/student/courses/${courseId}/checkout`)
+    .set('Cookie', cookie)
+    .set('Origin', ORIGIN);
+  expect(checkout.status, checkout.body?.error).toBe(201);
+  expect(checkout.body.data.status).toBe('PENDING');
+  const payment = await request(app)
+    .post(`/api/v1/organizations/${organizationId}/student/orders/${checkout.body.data.id}/pay`)
+    .set('Cookie', cookie)
+    .set('Origin', ORIGIN);
+  expect(payment.status, payment.body?.error).toBe(200);
+  expect(payment.body.data.orderStatus).toBe('PAID');
+  return payment;
+}
 const ORIGIN = 'http://localhost:3000';
 const COOKIE_NAME = process.env.SESSION_COOKIE_NAME || 'learnflow_session';
 
@@ -405,11 +421,7 @@ describe('Course Builder Flow Integration Test', () => {
   }, 30_000);
 
   it('16. Student purchases/enrolls in course', async () => {
-    const res = await request(app)
-      .post(`/api/v1/organizations/${ctx.orgId}/student/courses/${ctx.courseId}/purchase`)
-      .set('Cookie', ctx.studentCookie)
-      .set('Origin', ORIGIN)
-      .send({});
+    const res = await checkoutAndPay(ctx.orgId, ctx.courseId, ctx.studentCookie);
     
     expect(res.status, res.body?.error).toBe(201);
     expect(res.body.data.enrollmentId).toBeTruthy();
@@ -419,7 +431,7 @@ describe('Course Builder Flow Integration Test', () => {
 
   it('17. Student cannot purchase course again', async () => {
     const res = await request(app)
-      .post(`/api/v1/organizations/${ctx.orgId}/student/courses/${ctx.courseId}/purchase`)
+      .post(`/api/v1/organizations/${ctx.orgId}/student/courses/${ctx.courseId}/checkout`)
       .set('Cookie', ctx.studentCookie)
       .set('Origin', ORIGIN)
       .send({});

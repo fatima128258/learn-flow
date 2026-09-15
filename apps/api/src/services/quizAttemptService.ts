@@ -345,16 +345,14 @@ export async function submitQuizAttempt(
       passed,
     });
 
-    // Keep the denormalized completion flag in sync after a successful quiz.
-    // The helper is intentionally best-effort for older test doubles/databases
-    // that do not expose CourseProgress yet.
-    if (passed) {
-      await progressService.refreshCourseProgressAfterQuiz(
-        organizationId,
-        userId,
-        courseId,
-      );
-    }
+    // Recalculate after every submitted attempt. Failed attempts remain
+    // incomplete, but later lesson/module activity must continue contributing
+    // to progress and course completion must remain false until the quiz passes.
+    await progressService.refreshCourseProgressAfterQuiz(
+      organizationId,
+      userId,
+      courseId,
+    );
 
     return {
       attemptId: completedAttempt.id,

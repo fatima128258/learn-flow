@@ -108,9 +108,13 @@ async function verifyStudentEligibility(organizationId: string, userId: string, 
     progressRepo.getCourseProgress(userId, courseId),
     progressService.getCourseProgress(organizationId, userId, courseId),
   ]);
-  const contentComplete =
-    computedProgress.contentComplete ?? computedProgress.courseComplete;
-  if (!contentComplete) {
+  // `successfulCompletion` is the authoritative backend calculation. The
+  // fallback keeps compatibility with older test doubles/serialized responses
+  // while still requiring backend-calculated course completion.
+  const eligible = computedProgress.successfulCompletion === true ||
+    (computedProgress.successfulCompletion === undefined &&
+      computedProgress.courseComplete === true);
+  if (!eligible) {
     throw new Error('COURSE_NOT_COMPLETED');
   }
 

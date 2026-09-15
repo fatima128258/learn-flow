@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 
 const TRANSIENT_STATUSES = new Set([502, 503, 504]);
 const BACKEND_TIMEOUT_MS = 20000;
+const ADMIN_ASSIGN_TIMEOUT_MS = 60000;
 
 function wait(milliseconds: number) {
   return new Promise((resolve) => setTimeout(resolve, milliseconds));
@@ -16,6 +17,8 @@ async function proxyRequest(
   const path = pathSegments.join('/');
   const cookie = req.headers.get('cookie') || '';
   const retryableProgressRequest = method === 'POST' && path.endsWith('/progress');
+  const retryableAdminAssignment = method === 'POST' && path.endsWith('/admins');
+  const backendTimeoutMs = retryableAdminAssignment ? ADMIN_ASSIGN_TIMEOUT_MS : BACKEND_TIMEOUT_MS;
   
   // Preserve query parameters
   const url = new URL(req.url);
@@ -30,7 +33,7 @@ async function proxyRequest(
     let resp: Response | undefined;
     for (let attempt = 0; attempt < 3; attempt += 1) {
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), BACKEND_TIMEOUT_MS);
+      const timeoutId = setTimeout(() => controller.abort(), backendTimeoutMs);
       try {
         resp = await fetch(
           `${backendUrl}/api/v1/organizations/${path}${queryString}`,
@@ -50,7 +53,7 @@ async function proxyRequest(
 
       if (
         !TRANSIENT_STATUSES.has(resp.status) ||
-        (!retryableProgressRequest && method !== 'GET') ||
+        (!retryableProgressRequest && !retryableAdminAssignment && method !== 'GET') ||
         attempt === 2
       ) {
         break;

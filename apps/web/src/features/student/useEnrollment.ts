@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { getJson, postJson, postJsonWithTimeout, deleteJson } from '../../lib/api';
+import { getJson, postJson, deleteJson } from '../../lib/api';
 import type { Enrollment } from '../../lib/types';
 import { courseOverviewKey } from './useCourseStore';
 
@@ -45,28 +45,6 @@ export function useEnroll(organizationId: string, courseId: string) {
       void queryClient.invalidateQueries({ queryKey: courseOverviewKey(organizationId, courseId) });
       void queryClient.invalidateQueries({ queryKey: ['courseSearch', organizationId] });
       // Invalidate My Courses query after enrollment
-      void queryClient.invalidateQueries({ queryKey: ['student', 'courses', organizationId] });
-    },
-  });
-}
-
-export function usePurchase(organizationId: string, courseId: string) {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: async () => {
-      const body = await postJsonWithTimeout<{ data?: { enrollmentId: string; orderId: string; courseId: string } }>(
-        `/api/v1/organizations/${organizationId}/student/courses/${courseId}/purchase`,
-        {},
-        60000,
-      );
-      return body.data ?? null;
-    },
-    onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ['enrollment', organizationId, courseId] });
-      void queryClient.invalidateQueries({ queryKey: ['enrollments', organizationId] });
-      void queryClient.invalidateQueries({ queryKey: courseOverviewKey(organizationId, courseId) });
-      void queryClient.invalidateQueries({ queryKey: ['courseSearch', organizationId] });
-      // Invalidate My Courses query after purchase/enrollment
       void queryClient.invalidateQueries({ queryKey: ['student', 'courses', organizationId] });
     },
   });

@@ -17,6 +17,7 @@ function isValidPassword(password: string) {
 }
 import * as authRepo from '../repositories/authRepository';
 import { record as recordAudit } from './auditLogService';
+import * as progressService from './progressService';
 
 const MANAGED_ROLES: UserRole[] = ['INSTRUCTOR', 'STUDENT'];
 
@@ -196,6 +197,67 @@ export async function listEnrollments(organizationId: string, input: Record<stri
   const status = typeof input.status === 'string' && ['NOT_STARTED', 'IN_PROGRESS', 'COMPLETED'].includes(input.status) ? input.status : undefined;
   const result = await orgAdminRepo.listOrganizationEnrollments({ organizationId, search: typeof input.search === 'string' ? input.search : undefined, courseId: typeof input.courseId === 'string' ? input.courseId : undefined, status, skip: (page - 1) * limit, take: limit });
   return { items: result.items, meta: { page, limit, total: result.total, totalPages: Math.ceil(result.total / limit) } };
+}
+
+export async function listStudentProgress(
+  organizationId: string,
+  input: Record<string, unknown>,
+  instructorUserId?: string,
+) {
+  const page = Math.max(1, Number(input.page) || 1);
+  const limit = Math.min(50, Math.max(1, Number(input.limit) || 20));
+  const requestedProgressStatus = input.progressStatus ?? input['progress-status'];
+  const progressStatus = typeof requestedProgressStatus === 'string' &&
+    ['NOT_STARTED', 'IN_PROGRESS', 'COMPLETED'].includes(requestedProgressStatus)
+    ? requestedProgressStatus
+    : undefined;
+  const shouldFilterProgress = progressStatus !== undefined;
+  const result = await orgAdminRepo.listStudentProgressEnrollments({
+    organizationId,
+    instructorUserId,
+    search: typeof input.search === 'string' ? input.search : undefined,
+    courseId: typeof input.courseId === 'string' ? input.courseId : undefined,
+    ...(shouldFilterProgress ? {} : { skip: (page - 1) * limit, take: limit }),
+  });
+  const withProgress = await Promise.all(result.items.map(async (item) => {
+    const progress = await progressService.getCourseProgress(
+      organizationId,
+      item.user_id,
+      item.course_id,
+    );
+    return {
+      enrollmentId: item.id,
+      studentId: item.user_id,
+      studentName: item.student_name,
+      studentEmail: item.student_email,
+      courseId: item.course_id,
+      courseName: item.course_name,
+      progress: progress.coursePercentage,
+      courseCompleted: progress.courseComplete,
+      certificateEligible: progress.certificateEligible,
+      enrollmentDate: item.enrolled_at,
+      lastVisited: progress.lastVisited,
+      modules: progress.modules,
+      quizzes: progress.quizzes,
+    };
+  }));
+  const filteredItems = progressStatus
+    ? withProgress.filter((item) =>
+      progressStatus === 'COMPLETED'
+        ? item.courseCompleted
+        : progressStatus === 'NOT_STARTED'
+          ? item.progress === 0
+          : item.progress > 0 && !item.courseCompleted,
+    )
+    : withProgress;
+  const total = shouldFilterProgress ? filteredItems.length : result.total;
+  const items = shouldFilterProgress
+    ? filteredItems.slice((page - 1) * limit, page * limit)
+    : filteredItems;
+  return {
+    items,
+    meta: { page, limit, total, totalPages: Math.ceil(total / limit) },
+  };
 }
 
 export async function listUsers(organizationId: string, input: {

@@ -171,6 +171,58 @@ export async function listOrganizationEnrollments(params: { organizationId: stri
   return { items: rows.map(r => ({ id:r.id, student:{name:r.student_name,email:r.student_email}, course:{id:r.course_id,name:r.course_name,category:r.category}, enrolledAt:r.enrolled_at,status:r.status,progress:Number(r.progress) })), total:Number(counts[0]?.count ?? 0n) };
 }
 
+export async function listStudentProgressEnrollments(params: {
+  organizationId: string;
+  instructorUserId?: string;
+  search?: string;
+  courseId?: string;
+  skip?: number;
+  take?: number;
+}) {
+  const search = params.search?.trim() || null;
+  const courseId = params.courseId || null;
+  const instructor = params.instructorUserId || null;
+  const where = Prisma.sql`
+    e."organizationId" = ${params.organizationId}
+    AND c."organizationId" = ${params.organizationId}
+    AND (${instructor}::text IS NULL OR c."instructorUserId" = ${instructor})
+    AND (${courseId}::text IS NULL OR c.id = ${courseId})
+    AND (${search}::text IS NULL OR u.name ILIKE ${`%${search ?? ''}%`} OR u.email ILIKE ${`%${search ?? ''}%`} OR c.title ILIKE ${`%${search ?? ''}%`})
+  `;
+  const pagination = params.skip !== undefined && params.take !== undefined
+    ? Prisma.sql`LIMIT ${params.take} OFFSET ${params.skip}`
+    : Prisma.empty;
+  const rows = await prisma().$queryRaw<Array<{
+    id: string;
+    user_id: string;
+    student_name: string | null;
+    student_email: string;
+    course_id: string;
+    course_name: string;
+    enrolled_at: Date;
+  }>>`
+    SELECT e.id, e."userId" user_id, u.name student_name, u.email student_email,
+      c.id course_id, c.title course_name, e."enrolledAt" enrolled_at
+    FROM "Enrollment" e
+    JOIN "User" u ON u.id = e."userId"
+    JOIN "Course" c ON c.id = e."courseId"
+    WHERE ${where}
+    ORDER BY e."enrolledAt" DESC
+    ${pagination}
+  `;
+  const count = await prisma().$queryRaw<Array<{ count: bigint }>>`
+    SELECT COUNT(*) count
+    FROM "Enrollment" e
+    JOIN "User" u ON u.id = e."userId"
+    JOIN "Course" c ON c.id = e."courseId"
+    WHERE ${where}
+  `;
+  return {
+    items: rows,
+    total: Number(count[0]?.count ?? 0n),
+  };
+}
+
 export async function listOrganizationMembers(params: {
   organizationId: string;
   skip: number;

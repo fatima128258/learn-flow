@@ -248,7 +248,7 @@ describe('POST /api/v1/organizations/:organizationId/courses/:courseId/modules/:
     const res = await request(app)
       .post(BASE)
       .set('Cookie', cookie())
-      .send({ title: 'Quiz 1', order: 0 });
+      .send({ title: 'Quiz 1', order: 0, timeLimitMinutes: 30, maxAttempts: 3 });
 
     expect(res.status).toBe(201);
     expect(res.body.success).toBe(true);
@@ -337,7 +337,7 @@ describe('POST /api/v1/organizations/:organizationId/courses/:courseId/modules/:
     const res = await request(app)
       .post(BASE)
       .set('Cookie', cookie())
-      .send({ title: 'Quiz 1', order: 0, passingPercentage: -1 });
+      .send({ title: 'Quiz 1', order: 0, timeLimitMinutes: 30, maxAttempts: 3, passingPercentage: -1 });
     expect(res.status).toBe(400);
     expect(res.body.error).toBe('INVALID_VALUE');
   });
@@ -348,7 +348,7 @@ describe('POST /api/v1/organizations/:organizationId/courses/:courseId/modules/:
     const res = await request(app)
       .post(BASE)
       .set('Cookie', cookie())
-      .send({ title: 'Quiz 1', order: 0, passingPercentage: 101 });
+      .send({ title: 'Quiz 1', order: 0, timeLimitMinutes: 30, maxAttempts: 3, passingPercentage: 101 });
     expect(res.status).toBe(400);
     expect(res.body.error).toBe('INVALID_VALUE');
   });
@@ -359,7 +359,7 @@ describe('POST /api/v1/organizations/:organizationId/courses/:courseId/modules/:
     const res = await request(app)
       .post(BASE)
       .set('Cookie', cookie())
-      .send({ title: 'Quiz 1', order: 0, maxAttempts: 0 });
+      .send({ title: 'Quiz 1', order: 0, timeLimitMinutes: 30, maxAttempts: 0 });
     expect(res.status).toBe(400);
     expect(res.body.error).toBe('INVALID_VALUE');
   });
@@ -384,7 +384,7 @@ describe('POST /api/v1/organizations/:organizationId/courses/:courseId/modules/:
     const res = await request(app)
       .post(BASE)
       .set('Cookie', cookie())
-      .send({ title: 'Quiz 1', order: 0 });
+      .send({ title: 'Quiz 1', order: 0, timeLimitMinutes: 30, maxAttempts: 3 });
     expect(res.status).toBe(409);
     expect(res.body.error).toBe('QUIZ_ORDER_TAKEN');
   });

@@ -13,6 +13,7 @@ const prismaMock = {
   },
   organization: {
     findUnique: vi.fn(),
+    findMany: vi.fn(),
     count: vi.fn(),
   },
   user: {
@@ -21,6 +22,7 @@ const prismaMock = {
     update: vi.fn(),
     count: vi.fn(),
   },
+  $queryRaw: vi.fn(),
 };
 
 vi.mock('../services/authService', () => ({
@@ -138,11 +140,13 @@ describe('Organization Admin APIs', () => {
     prismaMock.userOrganization.count.mockReset();
     prismaMock.userOrganization.groupBy.mockReset();
     prismaMock.organization.findUnique.mockReset();
+    prismaMock.organization.findMany.mockReset();
     prismaMock.organization.count.mockReset();
     prismaMock.user.findUnique.mockReset();
     prismaMock.user.create.mockReset();
     prismaMock.user.update.mockReset();
     prismaMock.user.count.mockReset();
+    prismaMock.$queryRaw.mockReset();
   });
 
   describe('access control', () => {
@@ -160,11 +164,11 @@ describe('Organization Admin APIs', () => {
         organizationId: 'org-a', 
         role: 'ORG_ADMIN'
       });
-      prismaMock.userOrganization.count
-        .mockResolvedValueOnce(6)
-        .mockResolvedValueOnce(2)
-        .mockResolvedValueOnce(3)
-        .mockResolvedValueOnce(1);
+      prismaMock.userOrganization.groupBy.mockResolvedValue([
+        { role: 'ORG_ADMIN', _count: { _all: 1 } },
+        { role: 'INSTRUCTOR', _count: { _all: 2 } },
+        { role: 'STUDENT', _count: { _all: 3 } },
+      ]);
 
       const res = await request(app)
         .get('/api/v1/org/dashboard')
@@ -192,11 +196,11 @@ describe('Organization Admin APIs', () => {
         organizationId: 'org-a',
         role: 'ORG_ADMIN'
       });
-      prismaMock.userOrganization.count
-        .mockResolvedValueOnce(5)
-        .mockResolvedValueOnce(2)  
-        .mockResolvedValueOnce(2)
-        .mockResolvedValueOnce(1);
+      prismaMock.userOrganization.groupBy.mockResolvedValue([
+        { role: 'ORG_ADMIN', _count: { _all: 1 } },
+        { role: 'INSTRUCTOR', _count: { _all: 2 } },
+        { role: 'STUDENT', _count: { _all: 2 } },
+      ]);
 
       // Test the bug scenario: organization admin accesses dashboard without X-Organization-Id header
       // This should use the session organization context (org-a) not fail with ORGANIZATION_ACCESS_DENIED
@@ -213,14 +217,9 @@ describe('Organization Admin APIs', () => {
       expect(prismaMock.organization.findUnique).toHaveBeenCalledWith(
         expect.objectContaining({ where: { id: 'org-a' } })
       );
-      expect(prismaMock.userOrganization.findUnique).toHaveBeenCalledWith(
+      expect(prismaMock.userOrganization.findFirst).toHaveBeenCalledWith(
         expect.objectContaining({
-          where: {
-            userId_organizationId: {
-              userId: 'org-admin',
-              organizationId: 'org-a'
-            }
-          }
+          where: { userId: 'org-admin', organizationId: 'org-a', role: 'ORG_ADMIN' },
         })
       );
     });
@@ -240,6 +239,8 @@ describe('Organization Admin APIs', () => {
         .mockResolvedValueOnce(0);
       prismaMock.user.count.mockResolvedValue(1);
       prismaMock.userOrganization.count.mockResolvedValue(0);
+      prismaMock.$queryRaw.mockResolvedValue([]);
+      prismaMock.organization.findMany.mockResolvedValue([]);
 
       const platformRes = await request(app)
         .get('/api/v1/admin/dashboard')
@@ -250,11 +251,11 @@ describe('Organization Admin APIs', () => {
     it('lets a platform admin enter a specific organization via X-Organization-Id', async () => {
       await authenticateAs('PLATFORM_ADMIN', { organizationId: 'platform-org' });
       prismaMock.organization.findUnique.mockResolvedValue(orgRecord({ id: 'org-b' }));
-      prismaMock.userOrganization.count
-        .mockResolvedValueOnce(6)
-        .mockResolvedValueOnce(2)
-        .mockResolvedValueOnce(3)
-        .mockResolvedValueOnce(1);
+      prismaMock.userOrganization.groupBy.mockResolvedValue([
+        { role: 'ORG_ADMIN', _count: { _all: 1 } },
+        { role: 'INSTRUCTOR', _count: { _all: 2 } },
+        { role: 'STUDENT', _count: { _all: 3 } },
+      ]);
 
       const res = await request(app)
         .get('/api/v1/org/dashboard')
@@ -328,7 +329,7 @@ describe('Organization Admin APIs', () => {
       expect(res.body.data[0].email).toBe('ira@example.com');
       expect(res.body.meta).toEqual({ page: 1, limit: 20, total: 1 });
       expect(prismaMock.userOrganization.findMany).toHaveBeenCalledWith(expect.objectContaining({
-        where: { organizationId: 'org-a' },
+        where: { organizationId: 'org-a', role: { not: 'ORG_ADMIN' } },
       }));
     });
 
@@ -527,14 +528,23 @@ describe('Organization Admin APIs', () => {
         { role: 'INSTRUCTOR', _count: { _all: 2 } },
         { role: 'STUDENT', _count: { _all: 5 } },
       ]);
-      prismaMock.userOrganization.findMany.mockResolvedValue([
-        { createdAt: new Date('2026-01-15'), role: 'STUDENT' },
-        { createdAt: new Date('2026-02-10'), role: 'INSTRUCTOR' },
-        { createdAt: new Date('2026-03-20'), role: 'STUDENT' },
-        { createdAt: new Date('2026-04-05'), role: 'ORG_ADMIN' },
-        { createdAt: new Date('2026-05-12'), role: 'STUDENT' },
-        { createdAt: new Date('2026-06-18'), role: 'STUDENT' },
-      ]);
+      prismaMock.userOrganization.findMany
+        .mockResolvedValueOnce([
+          { role: 'ORG_ADMIN', organizationId: 'org-a', userId: 'user-1', organization: { slug: 'org-a' } },
+        ])
+        .mockResolvedValueOnce([
+          { createdAt: new Date('2026-01-15'), role: 'STUDENT' },
+          { createdAt: new Date('2026-02-10'), role: 'INSTRUCTOR' },
+          { createdAt: new Date('2026-03-20'), role: 'STUDENT' },
+          { createdAt: new Date('2026-04-05'), role: 'ORG_ADMIN' },
+          { createdAt: new Date('2026-05-12'), role: 'STUDENT' },
+          { createdAt: new Date('2026-06-18'), role: 'STUDENT' },
+        ]);
+      prismaMock.$queryRaw
+        .mockResolvedValueOnce([{ total: 0n, enrolled_students: 0n, not_started: 0n, in_progress: 0n, completed: 0n }])
+        .mockResolvedValueOnce([{ published: 0n, draft: 0n }])
+        .mockResolvedValueOnce([])
+        .mockResolvedValueOnce([]);
 
       const res = await request(app)
         .get('/api/v1/org/analytics')
@@ -554,7 +564,7 @@ describe('Organization Admin APIs', () => {
       }));
       expect(prismaMock.userOrganization.findMany).toHaveBeenCalledWith(expect.objectContaining({
         where: { organizationId: 'org-a' },
-        select: { createdAt: true, role: true },
+        select: { createdAt: true },
         orderBy: { createdAt: 'asc' },
       }));
     });

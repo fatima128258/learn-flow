@@ -2,21 +2,10 @@ import * as courseRepo from '../repositories/courseRepository';
 import * as enrollmentRepo from '../repositories/enrollmentRepository';
 import * as orderRepo from '../repositories/orderRepository';
 import { processMockPayment } from './paymentService';
-import { dispatchNotification } from './notificationDispatcher';
 import { getActiveCoursePrice } from '../utils/coursePricing';
 
 function round2(value: number) {
   return Math.round(value * 100) / 100;
-}
-
-function withTimeout<T>(promise: Promise<T>, timeoutMs: number, errorCode: string) {
-  let timeoutId: ReturnType<typeof setTimeout> | undefined;
-  const timeout = new Promise<never>((_, reject) => {
-    timeoutId = setTimeout(() => reject(new Error(errorCode)), timeoutMs);
-  });
-  return Promise.race([promise, timeout]).finally(() => {
-    if (timeoutId) clearTimeout(timeoutId);
-  });
 }
 
 function toPurchaseDto(
@@ -36,76 +25,89 @@ function toPurchaseDto(
   };
 }
 
-export async function purchaseCourse(organizationId: string, userId: string, courseId: string) {
-  const startedAt = Date.now();
-  // These checks are independent reads. Run them together so a slow remote
-  // database does not make checkout wait for three sequential round trips.
-  const [course, existingEnrollment, existingOrder] = await withTimeout(
-    Promise.all([
-      courseRepo.getById(organizationId, courseId),
-      enrollmentRepo.findByUserAndCourse(userId, courseId),
-      orderRepo.findPaidOrderForCourse(userId, courseId),
-    ]),
-    8000,
-    'PURCHASE_DATABASE_TIMEOUT',
-  );
-  console.info('[PURCHASE] checks completed', { courseId, durationMs: Date.now() - startedAt });
-  if (!course) {
-    throw new Error('COURSE_NOT_FOUND');
-  }
+function toOrderDto(order: {
+  id: string;
+  status: string;
+  totalAmount: { toString(): string };
+  currency?: string;
+  items?: Array<{ id: string; courseId: string; courseTitle: string; unitPrice: { toString(): string }; quantity: number; lineTotal: { toString(): string } }>;
+}) {
+  return {
+    id: order.id,
+    status: order.status,
+    totalAmount: Number(order.totalAmount),
+    currency: order.currency ?? 'USD',
+    items: (order.items ?? []).map((item) => ({
+      id: item.id,
+      courseId: item.courseId,
+      title: item.courseTitle,
+      price: Number(item.unitPrice),
+      quantity: item.quantity,
+      lineTotal: Number(item.lineTotal),
+    })),
+  };
+}
 
-  if (course.status !== 'PUBLISHED') {
-    throw new Error('COURSE_NOT_PUBLISHED');
-  }
+export async function createCheckoutOrder(organizationId: string, userId: string, courseId: string) {
+  const [course, existingEnrollment, existingOrder] = await Promise.all([
+    courseRepo.getById(organizationId, courseId),
+    enrollmentRepo.findByUserAndCourse(userId, courseId),
+    orderRepo.findPaidOrderForCourse(userId, courseId),
+  ]);
+  if (!course) throw new Error('COURSE_NOT_FOUND');
+  if (course.status !== 'PUBLISHED') throw new Error('COURSE_NOT_PUBLISHED');
+  if (existingEnrollment) throw new Error('ALREADY_ENROLLED');
+  if (existingOrder) throw new Error('ALREADY_PURCHASED');
 
-  if (existingEnrollment) {
-    throw new Error('ALREADY_ENROLLED');
-  }
-
-  if (existingOrder) {
-    throw new Error('ALREADY_PURCHASED');
+  const pendingOrder = await orderRepo.findPendingOrderForCourse(userId, organizationId, courseId);
+  if (pendingOrder) {
+    return {
+      ...toOrderDto(pendingOrder),
+      courseId: course.id,
+      courseTitle: course.title,
+    };
   }
 
   const unitPrice = getActiveCoursePrice(
     course.price == null ? null : Number(course.price),
     course.discountPrice == null ? null : Number(course.discountPrice),
   );
-  const totalAmount = round2(unitPrice);
-  const currency = 'USD';
-
-  const payment = await processMockPayment({ amount: totalAmount, currency });
-  if (!payment.success) {
-    throw new Error('PAYMENT_FAILED');
-  }
-
-  const { order, enrollment } = await orderRepo.createOrderWithPurchase({
+  const order = await orderRepo.createPendingOrder({
     userId,
     organizationId,
     courseId: course.id,
     courseTitle: course.title,
     unitPrice,
-    totalAmount,
-    currency,
-    providerRef: payment.providerRef,
+    totalAmount: round2(unitPrice),
+    currency: 'USD',
   });
-  console.info('[PURCHASE] transaction completed', { courseId, durationMs: Date.now() - startedAt });
+  return { ...toOrderDto({ ...order, items: [] }), courseId: course.id, courseTitle: course.title };
+}
 
-  // Do not make checkout wait for Redis or email delivery. The order and
-  // enrollment are already committed, so notification delivery can continue
-  // independently without delaying the purchase response.
-  void dispatchNotification({
-    type: 'COURSE_PURCHASED',
-    title: `Course purchased: ${course.title}`,
-    body: `Your purchase of ${course.title} was successful and you are now enrolled.`,
-    data: {
-      orderId: order.id,
-      courseId: course.id,
-      courseTitle: course.title,
-    },
+export async function payOrder(organizationId: string, userId: string, orderId: string) {
+  const order = await orderRepo.findPendingOrderForUser(orderId, userId, organizationId);
+  if (!order) throw new Error('ORDER_NOT_FOUND');
+  const payment = await processMockPayment({
+    amount: Number(order.totalAmount),
+    currency: order.currency,
+  });
+  if (!payment.success) {
+    await orderRepo.failOrder(orderId, userId, organizationId);
+    throw new Error('PAYMENT_FAILED');
+  }
+  const result = await orderRepo.completeOrderWithPurchase({
+    orderId,
     userId,
     organizationId,
-    email: { courseTitle: course.title },
+    providerRef: payment.providerRef,
   });
+  return toPurchaseDto(result.order, result.enrollment, {
+    id: order.items[0].courseId,
+    title: order.items[0].courseTitle,
+  });
+}
 
-  return toPurchaseDto(order, enrollment, course);
+/** @deprecated The direct purchase operation is intentionally disabled. */
+export async function purchaseCourse(_organizationId: string, _userId: string, _courseId: string) {
+  throw new Error('LEGACY_PURCHASE_DISABLED');
 }

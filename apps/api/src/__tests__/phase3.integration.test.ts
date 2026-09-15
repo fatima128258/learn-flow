@@ -128,6 +128,18 @@ async function req(method: string, path: string, cookie: string, body?: unknown,
   return r;
 }
 
+async function checkoutAndPay(orgId: string, courseId: string, cookie: string) {
+  const checkout = await req('post', `/api/v1/organizations/${orgId}/student/courses/${courseId}/checkout`, cookie);
+  expect(checkout.status, checkout.body?.error).toBe(201);
+  expect(checkout.body.data.status).toBe('PENDING');
+  const orderId = checkout.body.data.id;
+  const payment = await req('post', `/api/v1/organizations/${orgId}/student/orders/${orderId}/pay`, cookie);
+  expect(payment.status, payment.body?.error).toBe(200);
+  expect(payment.body.data.orderStatus).toBe('PAID');
+  expect(payment.body.data.enrollmentId).toBeTruthy();
+  return payment;
+}
+
 type BoundResult = { timedOut: boolean; status: number; body: Record<string, unknown> };
 
 /**
@@ -314,14 +326,12 @@ describe('PHASE 3 — platform E2E + security + data isolation (API)', () => {
     expect(lessonDenied.body.error).toBe('STUDENT_NOT_ENROLLED');
 
     // purchase → enrollment + order
-    const purchase = await req('post', `/api/v1/organizations/${ctx.org1Id}/student/courses/${ctx.course.id}/purchase`, ctx.studentA.cookie);
-    expect(purchase.status, purchase.body?.error).toBe(201);
+    const purchase = await checkoutAndPay(ctx.org1Id, ctx.course.id, ctx.studentA.cookie);
     expect(purchase.body.data.orderId).toBeTruthy();
-    expect(purchase.body.data.enrollmentId).toBeTruthy();
     expect(purchase.body.data.enrollmentStatus).toBeTruthy();
 
     // duplicate purchase → handled
-    const duplicate = await req('post', `/api/v1/organizations/${ctx.org1Id}/student/courses/${ctx.course.id}/purchase`, ctx.studentA.cookie);
+    const duplicate = await req('post', `/api/v1/organizations/${ctx.org1Id}/student/courses/${ctx.course.id}/checkout`, ctx.studentA.cookie);
     expect(duplicate.status).toBe(409);
 
     // quiz taking → correct answer not leaked
@@ -390,8 +400,7 @@ describe('PHASE 3 — platform E2E + security + data isolation (API)', () => {
   }, 90_000);
 
   it('[C-student B] repeats the student journey independently (isolated data from A)', async () => {
-    const purchase = await req('post', `/api/v1/organizations/${ctx.org1Id}/student/courses/${ctx.course.id}/purchase`, ctx.studentB.cookie);
-    expect(purchase.status, purchase.body?.error).toBe(201);
+    await checkoutAndPay(ctx.org1Id, ctx.course.id, ctx.studentB.cookie);
 
     for (const lessonId of ctx.lessons) {
       const prog = await req('post', `/api/v1/organizations/${ctx.org1Id}/student/courses/${ctx.course.id}/modules/${ctx.moduleId}/lessons/${lessonId}/progress`, ctx.studentB.cookie, { completed: true });
@@ -470,7 +479,7 @@ describe('PHASE 3 — platform E2E + security + data isolation (API)', () => {
     expect([401, 403]).toContain(r5.status);
 
     // instructor cannot enroll as student (student-only endpoints)
-    const r6 = await req('post', `/api/v1/organizations/${ctx.org1Id}/student/courses/${ctx.course.id}/purchase`, ctx.instructorCookie);
+    const r6 = await req('post', `/api/v1/organizations/${ctx.org1Id}/student/courses/${ctx.course.id}/checkout`, ctx.instructorCookie);
     expect([401, 403]).toContain(r6.status);
 
     // instructor cannot view another org's course content management

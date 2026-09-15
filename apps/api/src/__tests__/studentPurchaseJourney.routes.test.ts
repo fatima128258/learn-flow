@@ -2,10 +2,11 @@ import request from 'supertest';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const txMock = {
-  order: { create: vi.fn() },
+  order: { create: vi.fn(), findFirst: vi.fn(), updateMany: vi.fn(), findUnique: vi.fn(), findUniqueOrThrow: vi.fn() },
   orderItem: { create: vi.fn() },
-  payment: { create: vi.fn() },
-  enrollment: { create: vi.fn() },
+  payment: { create: vi.fn(), updateMany: vi.fn() },
+  enrollment: { findUnique: vi.fn(), create: vi.fn() },
+  $executeRaw: vi.fn(),
 };
 
 const prismaMock = {
@@ -55,7 +56,6 @@ vi.mock('../prisma', () => ({
 
 import app from '../server';
 import * as authService from '../services/authService';
-import * as dispatcher from '../services/notificationDispatcher';
 
 const now = new Date('2026-08-28T10:00:00.000Z');
 const ORG_ID = 'org-journey';
@@ -151,12 +151,12 @@ function setPublishedCourse() {
   prismaMock.quiz.count.mockResolvedValue(2);
 }
 
-function setPurchaseTx() {
+function setPendingPurchaseTx() {
   txMock.order.create.mockResolvedValue({
     id: 'order-1',
     userId: STUDENT_ID,
     organizationId: ORG_ID,
-    status: 'PAID',
+    status: 'PENDING',
     totalAmount: 39.99,
     currency: 'USD',
     createdAt: now,
@@ -179,8 +179,39 @@ function setPurchaseTx() {
     provider: 'MOCK',
     amount: 39.99,
     currency: 'USD',
-    status: 'SUCCEEDED',
-    paidAt: now,
+    status: 'PENDING',
+  });
+}
+
+function setPaymentTx() {
+  txMock.enrollment.findUnique.mockResolvedValue(null);
+  prismaMock.order.findFirst.mockResolvedValue({
+    id: 'order-1',
+    userId: STUDENT_ID,
+    organizationId: ORG_ID,
+    status: 'PENDING',
+    totalAmount: 39.99,
+    currency: 'USD',
+    items: [{ courseId: COURSE_ID, courseTitle: 'JavaScript Essentials' }],
+    payments: [{ id: 'payment-1', status: 'PENDING' }],
+  });
+  txMock.order.findFirst.mockResolvedValue({
+    id: 'order-1',
+    userId: STUDENT_ID,
+    organizationId: ORG_ID,
+    status: 'PENDING',
+    totalAmount: 39.99,
+    currency: 'USD',
+    items: [{ courseId: COURSE_ID, courseTitle: 'JavaScript Essentials' }],
+    payments: [{ id: 'payment-1', status: 'PENDING' }],
+  });
+  txMock.payment.updateMany.mockResolvedValue({ count: 1 });
+  txMock.order.updateMany.mockResolvedValue({ count: 1 });
+  txMock.order.findUniqueOrThrow.mockResolvedValue({
+    id: 'order-1',
+    status: 'PAID',
+    totalAmount: 39.99,
+    currency: 'USD',
   });
   txMock.enrollment.create.mockResolvedValue(enrollmentRecord());
 }
@@ -293,13 +324,31 @@ describe('Student purchase journey (register → verify → login → browse →
     // ---- 6. Purchase the course -------------------------------------------
     prismaMock.enrollment.findUnique.mockResolvedValue(null);
     prismaMock.order.findFirst.mockResolvedValue(null);
-    setPurchaseTx();
+    setPendingPurchaseTx();
 
-    const purchaseRes = await request(app)
-      .post(`/api/v1/organizations/${ORG_ID}/student/courses/${COURSE_ID}/purchase`)
+    const checkoutRes = await request(app)
+      .post(`/api/v1/organizations/${ORG_ID}/student/courses/${COURSE_ID}/checkout`)
       .set('Cookie', COOKIE);
 
-    expect(purchaseRes.status).toBe(201);
+    expect(checkoutRes.status).toBe(201);
+    expect(checkoutRes.body.success).toBe(true);
+    expect(checkoutRes.body.data).toMatchObject({
+      id: 'order-1',
+      status: 'PENDING',
+      totalAmount: 39.99,
+      currency: 'USD',
+      courseId: COURSE_ID,
+    });
+    expect(txMock.payment.create).toHaveBeenCalledWith(expect.objectContaining({
+      data: expect.objectContaining({ status: 'PENDING', amount: 39.99 }),
+    }));
+
+    setPaymentTx();
+    const purchaseRes = await request(app)
+      .post('/api/v1/organizations/org-journey/student/orders/order-1/pay')
+      .set('Cookie', COOKIE);
+
+    expect(purchaseRes.status, JSON.stringify(purchaseRes.body)).toBe(200);
     expect(purchaseRes.body.success).toBe(true);
     expect(purchaseRes.body.data).toMatchObject({
       orderId: 'order-1',
@@ -310,11 +359,9 @@ describe('Student purchase journey (register → verify → login → browse →
       enrollmentStatus: 'ACTIVE',
       courseId: COURSE_ID,
     });
-    expect(prismaMock.$transaction).toHaveBeenCalledTimes(1);
-    expect(dispatcher.dispatchNotification).toHaveBeenCalledTimes(1);
-    expect(dispatcher.dispatchNotification).toHaveBeenCalledWith(
-      expect.objectContaining({ type: 'COURSE_PURCHASED', userId: STUDENT_ID }),
-    );
+    expect(txMock.payment.updateMany).toHaveBeenCalled();
+    expect(txMock.order.updateMany).toHaveBeenCalled();
+    expect(txMock.enrollment.create).toHaveBeenCalled();
 
     // ---- 7. My enrolled courses now lists it -------------------------------
     prismaMock.enrollment.findMany.mockResolvedValue([

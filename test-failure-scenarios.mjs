@@ -48,7 +48,7 @@ async function main() {
 
   // Test 1: Enrollment already enrolled
   await testScenario('Student already enrolled - purchase fails', async () => {
-    const res = await fetch(`${API_BASE}/api/v1/organizations/${ORG_ID}/student/courses/${COURSE_ID}/purchase`, {
+    const res = await fetch(`${API_BASE}/api/v1/organizations/${ORG_ID}/student/courses/${COURSE_ID}/checkout`, {
       method: 'POST',
       headers: { Cookie: `learnflow_session=${sessionCookie}` },
     });
@@ -65,7 +65,7 @@ async function main() {
 
   // Test 2: Invalid course ID
   await testScenario('Invalid course ID - enrollment fails', async () => {
-    const res = await fetch(`${API_BASE}/api/v1/organizations/${ORG_ID}/student/courses/invalid-course/purchase`, {
+    const res = await fetch(`${API_BASE}/api/v1/organizations/${ORG_ID}/student/courses/invalid-course/checkout`, {
       method: 'POST',
       headers: { Cookie: `learnflow_session=${sessionCookie}` },
     });
@@ -80,7 +80,7 @@ async function main() {
 
   // Test 3: Invalid organization ID
   await testScenario('Invalid organization ID - request fails', async () => {
-    const res = await fetch(`${API_BASE}/api/v1/organizations/invalid-org/student/courses/${COURSE_ID}/purchase`, {
+    const res = await fetch(`${API_BASE}/api/v1/organizations/invalid-org/student/courses/${COURSE_ID}/checkout`, {
       method: 'POST',
       headers: { Cookie: `learnflow_session=${sessionCookie}` },
     });
@@ -95,7 +95,7 @@ async function main() {
 
   // Test 4: Missing authentication
   await testScenario('Missing authentication - request rejected', async () => {
-    const res = await fetch(`${API_BASE}/api/v1/organizations/${ORG_ID}/student/courses/${COURSE_ID}/purchase`, {
+    const res = await fetch(`${API_BASE}/api/v1/organizations/${ORG_ID}/student/courses/${COURSE_ID}/checkout`, {
       method: 'POST',
     });
     

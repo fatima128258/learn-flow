@@ -62,4 +62,29 @@ describe('student sequential access', () => {
     await expect(assertContentUnlocked('student-1', 'course-1', 'module-1', 'LESSON', 'lesson-1'))
       .rejects.toThrow('CONTENT_SEQUENCE_MISSING');
   });
+
+  it('does not lock later content after a quiz is failed and attempts are exhausted', async () => {
+    moduleFindMany.mockResolvedValue([
+      { id: 'module-1', order: 0 },
+      { id: 'module-2', order: 1 },
+    ]);
+    sequenceList.mockImplementation(async (moduleId: string) =>
+      moduleId === 'module-1'
+        ? [
+            { type: 'LESSON', lessonId: 'lesson-1', quizId: null, position: 0 },
+            { type: 'QUIZ', lessonId: null, quizId: 'quiz-1', position: 1 },
+          ]
+        : [{ type: 'LESSON', lessonId: 'lesson-2', quizId: null, position: 0 }],
+    );
+    lessonProgress.mockResolvedValue([{ lessonId: 'lesson-1' }]);
+    attempts.mockResolvedValue([
+      { quizId: 'quiz-1', passed: false, quiz: { maxAttempts: 2 } },
+      { quizId: 'quiz-1', passed: false, quiz: { maxAttempts: 2 } },
+    ]);
+
+    const state = await getSequenceState('student-1', 'course-1');
+    expect(state.map(item => item.state)).toEqual(['completed', 'failed', 'current']);
+    await expect(assertContentUnlocked('student-1', 'course-1', 'module-2', 'LESSON', 'lesson-2'))
+      .resolves.toBeDefined();
+  });
 });

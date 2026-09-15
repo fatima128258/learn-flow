@@ -407,7 +407,7 @@ describe('POST /api/v1/organizations/:organizationId/student/courses/:courseId/c
     });
   });
 
-  it('generates a certificate with marks when a quiz is failed and exhausted', async () => {
+  it('rejects a certificate when a required quiz is failed and exhausted', async () => {
     await authenticateAs('STUDENT');
     setupEligibleFixtures({ completed: false });
     vi.mocked(progressService.getCourseProgress).mockResolvedValue({
@@ -431,12 +431,9 @@ describe('POST /api/v1/organizations/:organizationId/student/courses/:courseId/c
 
     const res = await request(app).post(GENERATE_PATH).set('Cookie', cookie());
 
-    expect(res.status).toBe(201);
-    expect(res.body.data.totalMarks).toBe(10);
-    expect(res.body.data.obtainedMarks).toBe(4);
-    expect(res.body.data.percentage).toBe(40);
-    expect(res.body.data.passed).toBe(false);
-    expect(prismaMock.certificate.create).toHaveBeenCalledTimes(1);
+    expect(res.status).toBe(409);
+    expect(res.body.error).toBe('COURSE_NOT_COMPLETED');
+    expect(prismaMock.certificate.create).not.toHaveBeenCalled();
   });
 });
 

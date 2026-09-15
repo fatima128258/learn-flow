@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import { useCurrentUser } from '@/features/auth/useCurrentUser';
-import { useCourseOverview, usePurchaseCourse } from '@/features/student/useCourseStore';
+import { useCheckoutOrder, useCourseOverview, usePayOrder } from '@/features/student/useCourseStore';
 import { getPurchaseErrorMessage } from '@/features/student/courseErrors';
 import { currency } from '@/lib/types';
 import { Badge, Button, Card, CardSkeleton, EmptyState, LinkButton, Skeleton } from '@/components/ui';
@@ -23,18 +23,36 @@ export default function CheckoutPage() {
   const organizationId = user?.organizationId ?? '';
   const { data: course, isLoading: courseLoading } = useCourseOverview(organizationId, courseId);
 
-  const purchase = usePurchaseCourse(organizationId, courseId);
+  const checkout = useCheckoutOrder(organizationId, courseId);
   const [order, setOrder] = useState<{ id: string; status: string; totalAmount: number } | null>(null);
+  const [paymentFailed, setPaymentFailed] = useState(false);
+  const payment = usePayOrder(organizationId, courseId, order?.id ?? null);
 
-  function handlePurchase() {
-    purchase.mutate(undefined, {
+  function handleCheckout() {
+    checkout.mutate(undefined, {
       onSuccess: (data) => {
         if (data) {
           setOrder({ id: data.id, status: data.status, totalAmount: data.totalAmount });
-          toast.success('Purchase completed successfully.');
         }
       },
       onError: (err) => {
+        const code = err instanceof ApiError ? err.code : null;
+        toast.error(getPurchaseErrorMessage(code));
+      },
+    });
+  }
+
+  function handlePayment() {
+    payment.mutate(undefined, {
+      onSuccess: (data) => {
+        if (data) {
+          setPaymentFailed(false);
+          setOrder({ id: data.id, status: data.status, totalAmount: data.totalAmount });
+          toast.success('Payment successful. Your course is unlocked.');
+        }
+      },
+      onError: (err) => {
+        setPaymentFailed(true);
         const code = err instanceof ApiError ? err.code : null;
         toast.error(getPurchaseErrorMessage(code));
       },
@@ -71,7 +89,7 @@ export default function CheckoutPage() {
   const { originalPrice, currentPrice, hasDiscount } = getCoursePricing(course.price, course.discountPrice);
   const finalAmount = currentPrice ?? 0;
 
-  if (order) {
+  if (order?.status === 'PAID') {
     return (
       <main className="min-h-screen bg-neutral-50 p-8">
         <div className="mx-auto max-w-2xl">
@@ -82,7 +100,7 @@ export default function CheckoutPage() {
                   <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                 </svg>
               </div>
-              <h1 className="text-2xl font-bold text-neutral-900">Payment successful</h1>
+              <h1 className="text-2xl font-bold text-neutral-900">Payment Successful</h1>
               <p className="mt-2 max-w-md text-sm text-neutral-600">
                 You have purchased <span className="font-semibold text-neutral-900">{course.title}</span>.
                 Your course is now ready in your dashboard.
@@ -143,6 +161,12 @@ export default function CheckoutPage() {
             </div>
 
             <div className="p-6">
+              {paymentFailed && (
+                <div className="mb-4 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+                  <p className="font-semibold">Payment Failed</p>
+                  <p className="mt-1">Your course has not been unlocked.</p>
+                </div>
+              )}
               <dl className="space-y-3">
                 <div className="flex items-start justify-between gap-4">
                   <dt className="text-neutral-600">Course</dt>
@@ -185,11 +209,13 @@ export default function CheckoutPage() {
               <div className="mt-6 flex flex-col gap-3 sm:flex-row-reverse">
                 <Button
                   size="lg"
-                  loading={purchase.isPending}
-                  onClick={handlePurchase}
-                  disabled={purchase.isPending}
+                loading={order ? payment.isPending : checkout.isPending}
+                onClick={order ? handlePayment : handleCheckout}
+                disabled={order ? payment.isPending : checkout.isPending}
                 >
-                  {purchase.isPending ? 'Processing payment...' : `Pay ${currency(finalAmount)}`}
+                {order
+                  ? (payment.isPending ? 'Processing mock payment...' : 'Complete Mock Payment')
+                  : (checkout.isPending ? 'Creating order...' : 'Continue to checkout')}
                 </Button>
                 <LinkButton href={`/courses/${courseId}`} variant="outline" size="lg">
                   Cancel

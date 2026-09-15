@@ -8,7 +8,7 @@ import {
   Spinner,
 } from '@/components/ui';
 import { useToast } from '@/components/ui/ToastProvider';
-import { useEnroll, usePurchase } from '@/features/student/useEnrollment';
+import { useEnroll } from '@/features/student/useEnrollment';
 import { getPurchaseErrorMessage } from '@/features/student/courseErrors';
 import { useCurrentUser } from '@/features/auth/useCurrentUser';
 import { getCoursePricing } from '@/lib/coursePricing';
@@ -67,7 +67,6 @@ export default function StudentCourseOverviewPage() {
 
   // Use mutation hooks for enrollment operations
   const enrollMutation = useEnroll(organizationId || '', courseId || '');
-  const purchaseMutation = usePurchase(organizationId || '', courseId || '');
 
   // Check auth and set organizationId
   useEffect(() => {
@@ -127,25 +126,7 @@ export default function StudentCourseOverviewPage() {
 
   async function handlePurchase() {
     if (!organizationId || !courseId) return;
-    
-    try {
-      await purchaseMutation.mutateAsync();
-      toast.success('Successfully enrolled in the course!');
-      
-      // Update local course state immediately
-      setCourse(prev => prev ? { ...prev, isEnrolled: true } : null);
-      
-      router.push(`/dashboard/student/courses/${courseId}`);
-    } catch (error: unknown) {
-      const errorCode = error instanceof Error ? error.message : null;
-      if (errorCode === 'ALREADY_PURCHASED' || errorCode === 'ALREADY_ENROLLED') {
-        setCourse(prev => prev ? { ...prev, isEnrolled: true } : null);
-        toast.success('You already have access to this course.');
-        router.push(`/dashboard/student/courses/${courseId}`);
-        return;
-      }
-      toast.error(getPurchaseErrorMessage(errorCode));
-    }
+    router.push(`/checkout/${courseId}`);
   }
 
   async function handleEnroll() {
@@ -234,8 +215,6 @@ export default function StudentCourseOverviewPage() {
                   <Button
                     size="lg"
                     onClick={handlePurchase}
-                    loading={purchaseMutation.isPending}
-                    loadingText="Processing..."
                   >
                     Buy Now - {formatPrice(getCoursePricing(course.price, course.discountPrice).currentPrice)}
                   </Button>

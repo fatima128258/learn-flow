@@ -6,7 +6,10 @@ export async function POST(req: Request) {
   const body = await req.json();
   const resp = await fetch(`${backendUrl}/api/v1/auth/reset-password`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: {
+      'Content-Type': 'application/json',
+      ...(req.headers.get('cookie') ? { Cookie: req.headers.get('cookie') as string } : {}),
+    },
     body: JSON.stringify(body),
     credentials: 'include',
   });

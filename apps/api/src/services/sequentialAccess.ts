@@ -37,12 +37,17 @@ export async function getSequenceState(userId: string, courseId: string) {
       maxAttempts: row.quiz?.maxAttempts ?? current?.maxAttempts ?? null,
     });
   }
-  const completedQuizzes = new Set(
+  const passedQuizzes = new Set(
+    attempts
+      .filter((row: { passed: boolean | null }) => row.passed === true)
+      .map((row: { quizId: string }) => row.quizId),
+  );
+  const exhaustedFailedQuizzes = new Set(
     Array.from(quizAttempts.entries())
       .filter(([quizId, state]) =>
-        attempts.some((row: { quizId: string; passed: boolean | null }) =>
-          row.quizId === quizId && row.passed === true,
-        ) || (state.maxAttempts !== null && state.count >= state.maxAttempts),
+        !passedQuizzes.has(quizId) &&
+        state.maxAttempts !== null &&
+        state.count >= state.maxAttempts,
       )
       .map(([quizId]) => quizId),
   );
@@ -50,9 +55,18 @@ export async function getSequenceState(userId: string, courseId: string) {
   return sequence.map((item: SequenceRow & { moduleId: string }) => {
     const completed = item.type === 'LESSON'
       ? completedLessons.has(item.id)
-      : completedQuizzes.has(item.id);
-    const state = completed ? 'completed' : previousComplete ? 'current' : 'locked';
-    if (!completed) previousComplete = false;
+      : passedQuizzes.has(item.id);
+    const failedExhausted = item.type === 'QUIZ' && exhaustedFailedQuizzes.has(item.id);
+    // A failed/exhausted quiz is incomplete, but it must not lock subsequent
+    // modules. Only genuinely incomplete, still-actionable content blocks.
+    const state = completed
+      ? 'completed'
+      : failedExhausted
+        ? 'failed'
+        : previousComplete
+          ? 'current'
+          : 'locked';
+    if (!completed && !failedExhausted) previousComplete = false;
     return { ...item, completed, state, unlocked: state !== 'locked' };
   });
 }

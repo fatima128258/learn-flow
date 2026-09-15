@@ -6,6 +6,7 @@ export const orgAdminNav: NavItem[] = [
   { href: '/dashboard/organization/categories', label: 'Categories', icon: NavIcons.categories },
   { href: '/dashboard/organization/users', label: 'Users', icon: NavIcons.users },
   { href: '/dashboard/organization/analytics', label: 'Enrollment', icon: NavIcons.metrics },
+  { href: '/dashboard/organization/student-progress', label: 'Student Progress', icon: NavIcons.metrics },
   { href: '/dashboard/settings', label: 'Settings', icon: NavIcons.settings },
   { href: '/dashboard/organization/audit-logs', label: 'Audit Logs', icon: NavIcons.audit },
 ];

@@ -21,6 +21,7 @@ model Organization {
   media         Media[]
   notifications Notification[]
   orders        Order[]
+  carts         Cart[]
   users         UserOrganization[]
 
   @@index([status])
@@ -43,6 +44,7 @@ model User {
   media          Media[]
   notifications  Notification[]
   orders         Order[]
+  carts          Cart[]
   passwordResets PasswordResetToken[]
   payments       Payment[]
   quizAttempts   QuizAttempt[]
@@ -158,6 +160,7 @@ model Course {
   instructorUser     User             @relation(fields: [instructorUserId], references: [id], onDelete: Cascade)
   organization       Organization     @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   courseProgress     CourseProgress[]
+  cartItems          CartItem[]
   enrollments        Enrollment[]
   lessonProgress     LessonProgress[]
   modules            Module[]
@@ -361,6 +364,32 @@ model Order {
   @@index([userId])
   @@index([organizationId])
   @@index([userId, organizationId, status])
+}
+
+model Cart {
+  id             String         @id @default(cuid())
+  userId         String
+  organizationId String
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+  user           User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  organization   Organization   @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  items          CartItem[]
+
+  @@unique([userId, organizationId])
+  @@index([organizationId])
+}
+
+model CartItem {
+  id        String   @id @default(cuid())
+  cartId    String
+  courseId  String
+  createdAt DateTime @default(now())
+  cart      Cart     @relation(fields: [cartId], references: [id], onDelete: Cascade)
+  course    Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+
+  @@unique([cartId, courseId])
+  @@index([courseId])
 }
 
 model OrderItem {
