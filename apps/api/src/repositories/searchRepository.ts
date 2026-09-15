@@ -87,7 +87,6 @@ export async function searchPublishedCourses(
         select: {
           id: true,
           name: true,
-          email: true,
         },
       },
       category: {
@@ -134,7 +133,6 @@ export async function getPublishedCourseById(organizationId: string, courseId: s
         select: {
           id: true,
           name: true,
-          email: true,
         },
       },
       category: {

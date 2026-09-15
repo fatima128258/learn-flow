@@ -213,6 +213,9 @@ export default function InstructorCoursesPage() {
       ['instructor', 'courses', user?.organizationId, user?.id],
       (prev) => prev?.map((c) => (c.id === courseId ? { ...c, status: newStatus } : c)) ?? [],
     );
+    void queryClient.invalidateQueries({
+      queryKey: ['instructor', 'courses', user?.organizationId, user?.id],
+    });
   }
 
   const orgId = user?.organizationId ?? '';

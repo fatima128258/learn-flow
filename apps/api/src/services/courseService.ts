@@ -521,7 +521,7 @@ export async function updateCourseStatus(
 
   if (status === 'PUBLISHED' && course.status !== 'PUBLISHED') {
     if (actor?.userId) {
-      await recordAudit({
+      void recordAudit({
         action: 'COURSE_PUBLISHED',
         organizationId,
         actorUserId: actor.userId,
@@ -536,9 +536,11 @@ export async function updateCourseStatus(
           toStatus: status,
           publishedAt: updated.publishedAt,
         },
+      }).catch((err: unknown) => {
+        console.error('[course publish] audit logging failed', err);
       });
     }
-    await dispatchNotification({
+    void dispatchNotification({
       type: 'COURSE_PUBLISHED',
       title: `Course published: ${course.title}`,
       body: `Your course "${course.title}" is now published and available to students.`,
@@ -550,6 +552,8 @@ export async function updateCourseStatus(
       userId: course.instructorUserId,
       organizationId,
       email: { courseTitle: course.title },
+    }).catch((err: unknown) => {
+      console.error('[course publish] notification dispatch failed', err);
     });
   }
 
