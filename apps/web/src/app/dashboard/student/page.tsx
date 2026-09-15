@@ -168,7 +168,7 @@ export default function StudentDashboardPage() {
                       <p className="mt-2 line-clamp-2 text-sm text-neutral-600">{course.description}</p>
                     )}
                     <p className="mt-3 text-sm text-neutral-500">
-                      Instructor: <span className="font-medium text-neutral-700">{course.instructorName || 'Instructor unavailable'}</span>
+                      Instructor: <span className="font-medium text-neutral-700">{course.instructorName || 'Instructor'}</span>
                     </p>
                   </div>
                 </div>

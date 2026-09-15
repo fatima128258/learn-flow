@@ -44,7 +44,7 @@ function CourseCard({ course }: { course: CourseProgress }) {
           ) : (
             <Link
               href={`/dashboard/student/courses/${course.courseId}`}
-              className="rounded-lg bg-primary-600 px-4 py-2 text-sm font-medium text-white hover:bg-primary-700"
+              className="rounded-lg bg-primary-500 px-4 py-2 text-sm font-medium text-white hover:bg-primary-600"
             >
               {course.courseComplete ? 'View Course' : 'Start Learning'}
             </Link>
@@ -76,11 +76,13 @@ function CourseCard({ course }: { course: CourseProgress }) {
                   <ul className="mt-3 space-y-2">
                     {module.items.map((item) => (
                       <li key={item.id} className="flex items-center gap-2 text-sm text-neutral-700">
-                        <span className={item.completed ? 'text-success-600' : 'text-neutral-400'} aria-hidden="true">
-                          {item.completed ? '✓' : '○'}
+                        <span className={item.completed ? 'text-success-600' : item.failed ? 'text-error-600' : 'text-neutral-400'} aria-hidden="true">
+                          {item.completed ? '✓' : item.failed ? '!' : '○'}
                         </span>
                         <span>{item.title}</span>
-                        <span className="text-xs text-neutral-400">{item.type === 'QUIZ' ? 'Quiz' : 'Lesson'}</span>
+                        <span className={`text-xs ${item.failed ? 'font-medium text-error-600' : 'text-neutral-400'}`}>
+                          {item.failed ? 'Quiz failed' : item.type === 'QUIZ' ? 'Quiz' : 'Lesson'}
+                        </span>
                       </li>
                     ))}
                   </ul>

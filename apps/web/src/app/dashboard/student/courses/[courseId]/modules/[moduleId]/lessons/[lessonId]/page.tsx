@@ -237,19 +237,20 @@ export default function StudentLessonPage() {
         // Enable navigation immediately after completion; refine the route in
         // the background when the next-content lookup finishes.
         setNextContentUrl(null);
-        setNextResolving(false);
-        try {
-          const nextUrl = await getNextContentUrl({
-            organizationId: user.organizationId,
-            courseId,
-            moduleId,
-            contentType: 'LESSON',
-            contentId: lessonId,
-          });
+        setNextResolving(true);
+        void getNextContentUrl({
+          organizationId: user.organizationId,
+          courseId,
+          moduleId,
+          contentType: 'LESSON',
+          contentId: lessonId,
+        }).then((nextUrl) => {
           if (nextUrl) setNextContentUrl(nextUrl);
-        } catch {
-          // The module fallback is already available for navigation.
-        }
+        }).catch(() => {
+          // Next navigation can resolve again when the student clicks it.
+        }).finally(() => {
+          setNextResolving(false);
+        });
       }
     } catch {
       setMarkError('Could not reach the server. Please try again.');

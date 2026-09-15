@@ -97,6 +97,10 @@ async function computeCourseProgress(
     attempts.filter((attempt: { passed: boolean | null }) => attempt.passed === true)
       .map((attempt: { quizId: string }) => attempt.quizId),
   );
+  const failedQuizIds = new Set(
+    attempts.filter((attempt: { passed: boolean | null }) => attempt.passed !== true)
+      .map((attempt: { quizId: string }) => attempt.quizId),
+  );
   // Exhausting failed attempts allows the learner to continue through later
   // content, but it never satisfies the quiz's required completion item.
   const completedQuizIds = passedQuizIds;
@@ -209,6 +213,7 @@ async function computeCourseProgress(
         completed: item.type === 'LESSON'
           ? completedLessonIds.has(item.lessonId ?? '')
           : completedQuizIds.has(item.quizId ?? ''),
+        failed: item.type === 'QUIZ' && failedQuizIds.has(item.quizId ?? ''),
       })),
     };
   });

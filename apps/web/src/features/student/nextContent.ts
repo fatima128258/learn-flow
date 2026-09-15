@@ -45,13 +45,20 @@ export async function getNextContentUrl({
   const orderedModules = [...modules].sort((a, b) => a.order - b.order);
   const sequence: Array<SequenceItem & { moduleId: string }> = [];
 
-  for (const courseModule of orderedModules) {
-    const response = await fetch(
-      `/api/v1/organizations/${organizationId}/student/courses/${courseId}/modules/${courseModule.id}/lessons`,
-      { credentials: 'include', cache: 'no-store' },
-    );
-    if (!response.ok) continue;
-    const body = await response.json();
+  const moduleResponses = await Promise.all(
+    orderedModules.map(async (courseModule) => {
+      const response = await fetch(
+        `/api/v1/organizations/${organizationId}/student/courses/${courseId}/modules/${courseModule.id}/lessons`,
+        { credentials: 'include', cache: 'no-store' },
+      );
+      if (!response.ok) return null;
+      return { courseModule, body: await response.json() };
+    }),
+  );
+
+  for (const moduleResponse of moduleResponses) {
+    if (!moduleResponse) continue;
+    const { courseModule, body } = moduleResponse;
     const items = Array.isArray(body.data?.items) ? body.data.items : [];
     for (const item of items) {
       if (item?.type && item?.id) {

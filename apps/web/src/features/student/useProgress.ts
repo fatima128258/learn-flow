@@ -26,6 +26,7 @@ export type ProgressItem = {
   title: string;
   order: number;
   completed: boolean;
+  failed?: boolean;
 };
 
 export type ProgressQuiz = {
