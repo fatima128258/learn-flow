@@ -1,6 +1,6 @@
 import { Worker } from 'bullmq';
 import { getRedis } from '../utils/redis';
-import { sendVerificationEmail, sendPasswordResetEmail } from '../utils/email';
+import { sendVerificationEmail, sendPasswordResetEmail, sendPasswordResetCodeEmail } from '../utils/email';
 import { EMAIL_QUEUE_NAME, EmailJobData, isEmailQueueEnabled } from './emailQueue';
 
 /**
@@ -18,9 +18,14 @@ export function createEmailWorker() {
 
       try {
         if (data.type === 'verification') {
+          if (!data.token) throw new Error('MISSING_EMAIL_TOKEN');
           await sendVerificationEmail(data.email, data.token);
         } else if (data.type === 'password-reset') {
+          if (!data.token) throw new Error('MISSING_EMAIL_TOKEN');
           await sendPasswordResetEmail(data.email, data.token);
+        } else if (data.type === 'password-reset-code') {
+          if (!data.code) throw new Error('MISSING_VERIFICATION_CODE');
+          await sendPasswordResetCodeEmail(data.email, data.code);
         }
         return { success: true };
       } catch (err) {

@@ -67,6 +67,9 @@ async function verifyCourseAccess(organizationId: string, userId: string, course
   if (!enrollment || enrollment.organizationId !== organizationId) {
     throw new Error('STUDENT_NOT_ENROLLED');
   }
+  if (enrollment.status && enrollment.status !== 'ACTIVE') {
+    throw new Error('STUDENT_NOT_ENROLLED');
+  }
 
   return { course, enrollment };
 }
@@ -84,7 +87,7 @@ async function computeCourseProgress(
 ) {
   const [modules, completedRows, attempts] = await Promise.all([
     moduleRepo.listByCourse(courseId),
-    progressRepo.listLessonProgressForCourse(userId, courseId),
+    progressRepo.listLessonProgressForCourse(userId, courseId, organizationId),
     progressRepo.listAttemptsForCourse(userId, courseId),
   ]);
 
@@ -288,7 +291,7 @@ export async function getCourseProgress(
   courseId: string,
 ) {
   const { course } = await verifyCourseAccess(organizationId, userId, courseId);
-  const courseProgress = await progressRepo.getCourseProgress(userId, courseId);
+  const courseProgress = await progressRepo.getCourseProgress(userId, courseId, organizationId);
   return computeCourseProgress(userId, courseId, organizationId, course, courseProgress);
 }
 
@@ -300,7 +303,7 @@ export async function refreshCourseProgressAfterQuiz(
   const db: any = getPrisma();
   if (!db.courseProgress?.upsert) return;
   const { course } = await verifyCourseAccess(organizationId, userId, courseId);
-  const current = await progressRepo.getCourseProgress(userId, courseId);
+  const current = await progressRepo.getCourseProgress(userId, courseId, organizationId);
   const progress = await computeCourseProgress(userId, courseId, organizationId, course, current);
   if (progress.courseComplete !== (current?.completed ?? false)) {
     await progressRepo.markCourseCompleted(userId, courseId, progress.courseComplete, organizationId);
@@ -349,7 +352,7 @@ export async function recordLessonProgress(
   });
 
   const course = await courseRepo.getById(organizationId, courseId);
-  const courseProgress = await progressRepo.getCourseProgress(userId, courseId);
+  const courseProgress = await progressRepo.getCourseProgress(userId, courseId, organizationId);
 
   const progress = await computeCourseProgress(
     userId,

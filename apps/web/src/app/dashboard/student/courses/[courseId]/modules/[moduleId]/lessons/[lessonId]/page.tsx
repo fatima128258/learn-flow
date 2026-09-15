@@ -223,7 +223,9 @@ export default function StudentLessonPage() {
           };
         };
       } | null;
-      setCompletedLocally(true);
+      // Reflect the server's accepted state, rather than assuming every
+      // progress mutation marks the lesson complete.
+      setCompletedLocally(completed);
       setCourseCompleted(
         responseBody?.data?.courseProgress?.contentComplete === true ||
         responseBody?.data?.courseProgress?.courseComplete === true,

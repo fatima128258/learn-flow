@@ -95,15 +95,21 @@ model EmailVerificationToken {
 }
 
 model PasswordResetToken {
-  id        String   @id @default(cuid())
-  userId    String
-  tokenHash String   @unique
-  expiresAt DateTime
-  used      Boolean  @default(false)
-  createdAt DateTime @default(now())
-  user      User     @relation(fields: [userId], references: [id])
+  id          String    @id @default(cuid())
+  userId      String
+  tokenHash   String    @unique
+  codeHash    String?
+  expiresAt   DateTime
+  used        Boolean   @default(false)
+  attempts    Int       @default(0)
+  verifiedAt  DateTime?
+  usedAt      DateTime?
+  createdAt   DateTime  @default(now())
+  user        User      @relation(fields: [userId], references: [id])
 
   @@index([userId])
+  @@index([userId, used])
+  @@index([userId, expiresAt])
 }
 
 model Category {

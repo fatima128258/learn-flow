@@ -6,9 +6,10 @@ export const EMAIL_QUEUE_NAME = 'emails';
 let queue: Queue | null = null;
 
 export interface EmailJobData {
-  type: 'verification' | 'password-reset';
+  type: 'verification' | 'password-reset' | 'password-reset-code';
   email: string;
-  token: string;
+  token?: string;
+  code?: string;
 }
 
 export function isEmailQueueEnabled() {

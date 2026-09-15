@@ -114,7 +114,16 @@ export async function deleteEmailVerificationTokensByUserId(userId: string) {
 }
 
 // Password Reset Token functions
-export async function createPasswordResetToken(data: { userId: string; tokenHash: string; expiresAt: Date }) {
+export async function createPasswordResetToken(data: {
+  userId: string;
+  tokenHash: string;
+  expiresAt: Date;
+  codeHash?: string | null;
+  attempts?: number;
+  verifiedAt?: Date | null;
+  usedAt?: Date | null;
+  used?: boolean;
+}) {
   return prisma().passwordResetToken.create({ data });
 }
 
@@ -122,14 +131,33 @@ export async function findPasswordResetTokenByTokenHash(tokenHash: string) {
   return prisma().passwordResetToken.findUnique({ where: { tokenHash } });
 }
 
+export async function findPasswordResetTokensByUserId(userId: string) {
+  return prisma().passwordResetToken.findMany({
+    where: { userId },
+    orderBy: { createdAt: 'desc' },
+  });
+}
+
+export async function updatePasswordResetToken(id: string, data: {
+  tokenHash?: string;
+  codeHash?: string | null;
+  expiresAt?: Date;
+  used?: boolean;
+  attempts?: number;
+  verifiedAt?: Date | null;
+  usedAt?: Date | null;
+}) {
+  return prisma().passwordResetToken.update({ where: { id }, data });
+}
+
 export async function markPasswordResetTokenAsUsed(id: string) {
-  return prisma().passwordResetToken.update({ where: { id }, data: { used: true } });
+  return prisma().passwordResetToken.update({ where: { id }, data: { used: true, usedAt: new Date() } });
 }
 
 export async function claimPasswordResetToken(id: string) {
   return prisma().passwordResetToken.updateMany({
     where: { id, used: false, expiresAt: { gt: new Date() } },
-    data: { used: true },
+    data: { used: true, usedAt: new Date() },
   });
 }
 

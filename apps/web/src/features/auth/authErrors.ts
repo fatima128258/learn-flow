@@ -22,15 +22,17 @@ const REGISTER_ERROR_MESSAGES: Record<string, string> = {
 const FORGOT_PASSWORD_ERROR_MESSAGES: Record<string, string> = {
   MISSING_EMAIL: 'Please enter your email address.',
   INVALID_EMAIL: 'Please enter a valid email address.',
+  INVALID_CODE: 'Invalid verification code.',
+  CODE_EXPIRED: 'This verification code has expired. Please request a new code.',
   TOO_MANY_ATTEMPTS: 'Too many attempts. Please try again later.',
-  SERVER_ERROR: 'Something went wrong while sending the reset link. Please try again.',
+  SERVER_ERROR: 'Something went wrong while sending the reset email. Please try again.',
 };
 
 const RESET_PASSWORD_ERROR_MESSAGES: Record<string, string> = {
   MISSING_FIELDS: 'Please fill in all password fields.',
   PASSWORD_TOO_SHORT: 'Password must be at least 8 characters.',
   PASSWORD_MISMATCH: 'Passwords do not match.',
-  INVALID_TOKEN: 'Invalid reset link.',
+  INVALID_TOKEN: 'Invalid reset link or session.',
   TOKEN_ALREADY_USED: 'This reset link has already been used.',
   TOKEN_EXPIRED: 'This reset link has expired. Please request a new one.',
   TOO_MANY_ATTEMPTS: 'Too many attempts. Please try again later.',

@@ -15,6 +15,7 @@ function isValidPassword(password: string) {
 }
 
 const COOKIE_NAME = process.env.SESSION_COOKIE_NAME || 'learnflow_session';
+const RESET_COOKIE_NAME = process.env.RESET_COOKIE_NAME || 'learnflow_reset_session';
 // For cross-origin production deployments (e.g., frontend on Vercel, backend on Render),
 // we need SameSite=None; Secure to allow cookies to be sent cross-origin.
 // Auto-enable secure cookies in production OR when explicitly configured.
@@ -63,6 +64,22 @@ function setSessionCookie(res: Response, token: string, expiresAt: Date) {
     secure: COOKIE_SECURE,
     expires: new Date(expiresAt),
   });
+}
+
+function setResetCookie(res: Response, token: string, expiresAt: Date) {
+  const maxAge = Math.max(0, new Date(expiresAt).getTime() - Date.now());
+  res.cookie(RESET_COOKIE_NAME, token, {
+    httpOnly: true,
+    path: '/',
+    maxAge,
+    sameSite: COOKIE_SECURE ? 'none' : 'lax',
+    secure: COOKIE_SECURE,
+    expires: new Date(expiresAt),
+  });
+}
+
+function clearResetCookie(res: Response) {
+  res.clearCookie(RESET_COOKIE_NAME, { path: '/', sameSite: COOKIE_SECURE ? 'none' : 'lax', secure: COOKIE_SECURE });
 }
 
 export async function register(req: Request, res: Response) {
@@ -133,16 +150,45 @@ export async function forgotPassword(req: Request, res: Response) {
     if (message === 'TOO_MANY_ATTEMPTS') return res.status(429).json({ error: 'TOO_MANY_ATTEMPTS' });
     return res.status(500).json({ success: false, error: 'SERVER_ERROR' });
   }
+
+}
+
+export async function resendForgotPassword(req: Request, res: Response) {
+  return forgotPassword(req, res);
+}
+
+export async function verifyForgotPassword(req: Request, res: Response) {
+  try {
+    const { email, code } = req.body ?? {};
+    if (typeof email !== 'string' || !email.trim()) return res.status(400).json({ error: 'MISSING_EMAIL' });
+    if (!isValidEmail(email)) return res.status(400).json({ error: 'INVALID_EMAIL' });
+    if (typeof code !== 'string' || !/^\d{6}$/.test(code.trim())) {
+      return res.status(400).json({ error: 'INVALID_CODE' });
+    }
+
+    const { resetToken } = await service.verifyPasswordResetCode({ email, code: code.trim(), ip: getClientIp(req) });
+    setResetCookie(res, resetToken, new Date(Date.now() + 10 * 60 * 1000));
+    return res.json({ message: 'Verification code verified successfully' });
+  } catch (err) {
+    const message = err instanceof Error ? err.message : undefined;
+    if (message === 'INVALID_CODE') return res.status(400).json({ error: 'INVALID_CODE' });
+    if (message === 'CODE_EXPIRED') return res.status(400).json({ error: 'CODE_EXPIRED' });
+    if (message === 'TOO_MANY_ATTEMPTS') return res.status(429).json({ error: 'TOO_MANY_ATTEMPTS' });
+    return res.status(500).json({ success: false, error: 'SERVER_ERROR' });
+  }
 }
 
 export async function resetPassword(req: Request, res: Response) {
   try {
-    const { token, password, confirmPassword } = req.body;
-    if (
-      typeof token !== 'string' || !token
-      || typeof password !== 'string' || !password
-      || typeof confirmPassword !== 'string' || !confirmPassword
-    ) {
+    const tokenFromCookie = req.cookies?.[RESET_COOKIE_NAME];
+    const requestedToken = typeof req.body?.token === 'string' ? req.body.token : tokenFromCookie;
+    const password = typeof req.body?.password === 'string' ? req.body.password : req.body?.newPassword;
+    const confirmPassword = typeof req.body?.confirmPassword === 'string' ? req.body.confirmPassword : req.body?.confirmNewPassword;
+
+    if (!requestedToken) {
+      return res.status(400).json({ error: 'INVALID_TOKEN' });
+    }
+    if (typeof password !== 'string' || !password || typeof confirmPassword !== 'string' || !confirmPassword) {
       return res.status(400).json({ error: 'MISSING_FIELDS' });
     }
     if (password !== confirmPassword) {
@@ -152,13 +198,20 @@ export async function resetPassword(req: Request, res: Response) {
       return res.status(400).json({ error: 'PASSWORD_TOO_SHORT' });
     }
 
-    await service.resetPassword(token, password, getClientIp(req));
+    if (typeof req.body?.token === 'string') {
+      await service.resetPassword(requestedToken, password, getClientIp(req));
+    } else {
+      await service.resetPassword({ token: requestedToken, password, confirmPassword, ip: getClientIp(req) });
+    }
+    clearResetCookie(res);
     return res.json({ message: 'Password reset successfully' });
   } catch (err) {
     const message = err instanceof Error ? err.message : undefined;
     if (message === 'INVALID_TOKEN') return res.status(400).json({ error: 'INVALID_TOKEN' });
     if (message === 'TOKEN_ALREADY_USED') return res.status(400).json({ error: 'TOKEN_ALREADY_USED' });
     if (message === 'TOKEN_EXPIRED') return res.status(400).json({ error: 'TOKEN_EXPIRED' });
+    if (message === 'PASSWORD_MISMATCH') return res.status(400).json({ error: 'PASSWORD_MISMATCH' });
+    if (message === 'PASSWORD_TOO_SHORT') return res.status(400).json({ error: 'PASSWORD_TOO_SHORT' });
     if (message === 'TOO_MANY_ATTEMPTS') return res.status(429).json({ error: 'TOO_MANY_ATTEMPTS' });
     return res.status(500).json({ success: false, error: 'SERVER_ERROR' });
   }

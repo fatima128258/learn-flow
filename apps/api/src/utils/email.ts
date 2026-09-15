@@ -206,3 +206,21 @@ export async function sendPasswordResetEmail(email: string, token: string) {
     `,
   });
 }
+
+export async function sendPasswordResetCodeEmail(email: string, code: string) {
+  return sendMail({
+    to: email,
+    subject: 'LearnFlow Password Reset Verification',
+    html: `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <h2>LearnFlow</h2>
+        <h3>Password Reset Verification</h3>
+        <p>Your verification code is:</p>
+        <p style="font-size: 32px; letter-spacing: 0.35rem; font-weight: 700; color: #111827;">${code}</p>
+        <p>This code expires in 10 minutes.</p>
+        <hr style="border: none; border-top: 1px solid #E5E7EB; margin: 24px 0;" />
+        <p style="color: #9CA3AF; font-size: 12px;">If you did not request a password reset, you can safely ignore this email.</p>
+      </div>
+    `,
+  });
+}

@@ -23,6 +23,12 @@ export async function upsertLessonProgress(data: UpsertLessonProgressData) {
       },
     },
     update: {
+      // Keep the tenant bound to the authenticated enrollment.  The unique
+      // key is user+lesson for legacy data, so do not leave a stale tenant
+      // on an existing row.
+      organizationId: data.organizationId,
+      moduleId: data.moduleId,
+      courseId: data.courseId,
       completed: data.completed,
       completedAt,
     },
@@ -38,9 +44,18 @@ export async function upsertLessonProgress(data: UpsertLessonProgressData) {
   });
 }
 
-export async function listLessonProgressForCourse(userId: string, courseId: string) {
+export async function listLessonProgressForCourse(
+  userId: string,
+  courseId: string,
+  organizationId?: string,
+) {
   return prisma().lessonProgress.findMany({
-    where: { userId, courseId, completed: true },
+    where: {
+      userId,
+      courseId,
+      completed: true,
+      ...(organizationId ? { organizationId } : {}),
+    },
     select: {
       lessonId: true,
       moduleId: true,
@@ -113,12 +128,11 @@ export async function markCourseCompleted(
   });
 }
 
-export async function getCourseProgress(userId: string, courseId: string) {
-  return prisma().courseProgress.findUnique({
-    where: {
-      userId_courseId: { userId, courseId },
-    },
+export async function getCourseProgress(userId: string, courseId: string, organizationId?: string) {
+  const row = await prisma().courseProgress.findUnique({
+    where: { userId_courseId: { userId, courseId } },
   });
+  return row && (!organizationId || row.organizationId === organizationId) ? row : null;
 }
 
 export async function getCourseProgressWithLesson(userId: string, courseId: string, lessonId: string) {

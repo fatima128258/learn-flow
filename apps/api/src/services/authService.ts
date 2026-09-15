@@ -1,9 +1,10 @@
+import crypto from 'crypto';
 import * as repo from '../repositories/authRepository';
 import * as orgRepo from '../repositories/organizationRepository';
 import getPrisma from '../prisma';
 import { generateToken, hashToken } from '../utils/tokens';
 import { getRedis } from '../utils/redis';
-import { sendVerificationEmail, sendPasswordResetEmail } from '../utils/email';
+import { sendVerificationEmail, sendPasswordResetEmail, sendPasswordResetCodeEmail } from '../utils/email';
 import { dispatchNotification } from './notificationDispatcher';
 import { record as recordAudit } from './auditLogService';
 import { getEmailQueue, isEmailQueueEnabled } from '../queues/emailQueue';
@@ -19,6 +20,12 @@ export const REGISTER_RATE_LIMIT = Number(process.env.AUTH_REGISTER_RATE_LIMIT ?
 const REGISTER_RATE_WINDOW = 60 * 15; // 15 minutes
 const EMAIL_VERIFICATION_TTL = 60 * 60 * 24; // 24 hours
 const PASSWORD_RESET_TTL = 60 * 60; // 1 hour
+const PASSWORD_RESET_CODE_TTL = 10 * 60; // 10 minutes
+const PASSWORD_RESET_MAX_ATTEMPTS = 5;
+
+function generateSixDigitCode() {
+  return crypto.randomInt(100000, 1000000).toString().padStart(6, '0');
+}
 
 async function enforceRateLimit({ ip, keyPrefix, maxAttempts, windowSeconds }: { ip: string; keyPrefix: string; maxAttempts: number; windowSeconds: number }) {
   const redis = getRedis();
@@ -222,34 +229,49 @@ export async function requestPasswordReset(input: string | { email: string; ip?:
     return { success: true };
   }
 
-  await repo.deletePasswordResetTokensByUserId(user.id);
+  const priorRecords = await repo.findPasswordResetTokensByUserId(user.id);
+  for (const record of priorRecords) {
+    if (!record.used && record.expiresAt.getTime() > Date.now()) {
+      await repo.updatePasswordResetToken(record.id, {
+        used: true,
+        usedAt: new Date(),
+        expiresAt: new Date(Date.now() - 1000),
+      });
+    }
+  }
 
+  const code = generateSixDigitCode();
+  const codeHash = hashToken(code);
   const resetToken = generateToken();
   const resetTokenHash = hashToken(resetToken);
-  const resetExpiresAt = new Date(Date.now() + PASSWORD_RESET_TTL * 1000);
+  const resetExpiresAt = new Date(Date.now() + PASSWORD_RESET_CODE_TTL * 1000);
   const resetRecord = await repo.createPasswordResetToken({
     userId: user.id,
     tokenHash: resetTokenHash,
+    codeHash,
     expiresAt: resetExpiresAt,
+    attempts: 0,
+    verifiedAt: null,
+    usedAt: null,
+    used: false,
   });
 
-  // OPTIMIZATION: Queue email to background job instead of awaiting SMTP delivery
   if (isEmailQueueEnabled()) {
     getEmailQueue()
-      .add('send-password-reset-email', {
-        type: 'password-reset',
+      .add('send-password-reset-code', {
+        type: 'password-reset-code',
         email: normalizedEmail,
-        token: resetToken,
+        code,
       })
       .catch((err) => {
-        console.error('Failed to queue password reset email:', err);
+        console.error('Failed to queue password reset verification code:', err);
         repo.deletePasswordResetTokenById(resetRecord.id).catch((cleanupError) => {
-          console.error('Failed to clean up password reset token after queue failure:', cleanupError instanceof Error ? cleanupError.message : cleanupError);
+          console.error('Failed to clean up password reset code after queue failure:', cleanupError instanceof Error ? cleanupError.message : cleanupError);
         });
       });
   } else {
     try {
-      await sendPasswordResetEmail(normalizedEmail, resetToken);
+      await sendPasswordResetCodeEmail(normalizedEmail, code);
     } catch (err) {
       await repo.deletePasswordResetTokenById(resetRecord.id);
       throw err;
@@ -259,40 +281,91 @@ export async function requestPasswordReset(input: string | { email: string; ip?:
   return { success: true };
 }
 
-export async function resetPassword(token: string, newPassword: string, ip = '127.0.0.1') {
+export async function verifyPasswordResetCode({ email, code, ip = '127.0.0.1' }: { email: string; code: string; ip?: string }) {
+  await enforceRateLimit({ ip, keyPrefix: 'forgot-password-verify', maxAttempts: 10, windowSeconds: 60 * 15 });
+
+  const normalizedEmail = email.trim().toLowerCase();
+  const user = await repo.findUserByEmail(normalizedEmail);
+  if (!user) throw new Error('INVALID_CODE');
+
+  const records = await repo.findPasswordResetTokensByUserId(user.id);
+  const resetRecord = records.find((record) => !record.used && record.expiresAt.getTime() > Date.now()) ?? null;
+  if (!resetRecord || !resetRecord.codeHash) throw new Error('INVALID_CODE');
+
+  if (resetRecord.expiresAt.getTime() < Date.now()) {
+    await repo.updatePasswordResetToken(resetRecord.id, { used: true, usedAt: new Date(), expiresAt: new Date(Date.now() - 1000) });
+    throw new Error('CODE_EXPIRED');
+  }
+
+  const hashedInputCode = hashToken(code);
+  const attempts = (resetRecord.attempts ?? 0) + 1;
+  if (resetRecord.codeHash !== hashedInputCode) {
+    await repo.updatePasswordResetToken(resetRecord.id, { attempts });
+    if (attempts >= PASSWORD_RESET_MAX_ATTEMPTS) {
+      await repo.updatePasswordResetToken(resetRecord.id, {
+        used: true,
+        usedAt: new Date(),
+        expiresAt: new Date(Date.now() - 1000),
+      });
+      throw new Error('TOO_MANY_ATTEMPTS');
+    }
+    throw new Error('INVALID_CODE');
+  }
+
+  const resetAuthorization = generateToken();
+  const resetAuthorizationHash = hashToken(resetAuthorization);
+  const verificationExpiresAt = new Date(Date.now() + PASSWORD_RESET_CODE_TTL * 1000);
+  await repo.updatePasswordResetToken(resetRecord.id, {
+    tokenHash: resetAuthorizationHash,
+    attempts: 0,
+    verifiedAt: new Date(),
+    expiresAt: verificationExpiresAt,
+  });
+
+  return { success: true, resetToken: resetAuthorization };
+}
+
+export async function resetPassword(input: string | { token?: string; password?: string; confirmPassword?: string; newPassword?: string; email?: string; ip?: string }, newPassword?: string, ipOverride?: string) {
+  const normalizedInput = typeof input === 'string'
+    ? { token: input, password: newPassword ?? '', confirmPassword: newPassword ?? '', ip: ipOverride ?? '127.0.0.1' }
+    : input;
+
+  const token = normalizedInput.token ?? '';
+  const password = normalizedInput.password ?? normalizedInput.newPassword ?? '';
+  const confirmPassword = normalizedInput.confirmPassword ?? (normalizedInput.password === normalizedInput.newPassword ? normalizedInput.newPassword ?? '' : '');
+  const ip = normalizedInput.ip ?? '127.0.0.1';
+
   await enforceRateLimit({ ip, keyPrefix: 'reset-password', maxAttempts: 10, windowSeconds: 60 * 15 });
 
-  const tokenHash = hashToken(token);
-  const resetToken = await repo.findPasswordResetTokenByTokenHash(tokenHash);
+  if (!token && !normalizedInput.password && !normalizedInput.newPassword) throw new Error('INVALID_TOKEN');
+
+  const resetToken = await repo.findPasswordResetTokenByTokenHash(hashToken(token));
   if (!resetToken) throw new Error('INVALID_TOKEN');
   if (resetToken.used) throw new Error('TOKEN_ALREADY_USED');
   if (resetToken.expiresAt.getTime() < Date.now()) throw new Error('TOKEN_EXPIRED');
+  if (!resetToken.verifiedAt) throw new Error('INVALID_TOKEN');
 
   const user = await repo.findUserById(resetToken.userId);
   if (!user) throw new Error('USER_NOT_FOUND');
 
-  // OPTIMIZATION: Hash password while doing other work (not blocking)
-  const passwordHash = await argon2.hash(newPassword, { type: argon2.argon2id });
+  if (password !== confirmPassword) throw new Error('PASSWORD_MISMATCH');
+  if (password.length < 8) throw new Error('PASSWORD_TOO_SHORT');
 
-  // Claim the token atomically so concurrent reset requests cannot both succeed.
+  const passwordHash = await argon2.hash(password, { type: argon2.argon2id });
+
   const claimed = await repo.claimPasswordResetToken(resetToken.id);
   if (claimed.count === 0) {
     throw new Error(resetToken.used ? 'TOKEN_ALREADY_USED' : 'TOKEN_EXPIRED');
   }
 
-  // Password update and session revocation are independent after the token is claimed.
   const [, primaryOrganizationId] = await Promise.all([
-    // DB operations that can run in parallel
     Promise.all([
       repo.updateUserPassword(user.id, passwordHash),
       repo.revokeAllSessionsByUserId(user.id),
     ]),
-    // Get primary org concurrently (for notification)
     getPrimaryOrganizationId(user.id),
   ]);
 
-  // OPTIMIZATION: Dispatch notification asynchronously without blocking response
-  // Fire-and-forget: notification will be sent/queued but doesn't block API response
   if (primaryOrganizationId) {
     dispatchNotification({
       type: 'PASSWORD_RESET',
@@ -303,7 +376,6 @@ export async function resetPassword(token: string, newPassword: string, ip = '12
       organizationId: primaryOrganizationId,
       email: { name: user.name },
     }).catch((err) => {
-      // Log notification errors but don't throw (non-critical path)
       console.error('Failed to dispatch password reset notification:', err);
     });
   }

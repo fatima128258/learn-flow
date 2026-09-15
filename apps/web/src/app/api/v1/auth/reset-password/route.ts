@@ -8,7 +8,15 @@ export async function POST(req: Request) {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(body),
+    credentials: 'include',
   });
   const data = await resp.text();
-  return new NextResponse(data, { status: resp.status, headers: { 'Content-Type': 'application/json' } });
+  const setCookie = resp.headers.get('set-cookie');
+  return new NextResponse(data, {
+    status: resp.status,
+    headers: {
+      'Content-Type': 'application/json',
+      ...(setCookie ? { 'Set-Cookie': setCookie } : {}),
+    },
+  });
 }

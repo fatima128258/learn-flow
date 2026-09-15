@@ -1,6 +1,5 @@
 'use client';
 import React, { useState, useEffect, Suspense } from 'react';
-import { useSearchParams } from 'next/navigation';
 import { AuthLayout } from '../../components/layout/AuthLayout';
 import { AuthCard } from '../../components/auth/AuthCard';
 import { PasswordInput } from '../../components/forms/PasswordInput';
@@ -12,13 +11,10 @@ import { useToast } from '../../components/ui/ToastProvider';
 import { getResetPasswordErrorMessage } from '../../features/auth/authErrors';
 
 function ResetPasswordForm() {
-  const searchParams = useSearchParams();
-  const token = searchParams.get('token');
-
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [success, setSuccess] = useState(false);
-  const { isSubmitting, error, setError, submit } = useSubmitState();
+  const { isSubmitting, error, submit } = useSubmitState();
   const toast = useToast();
 
   const [passwordError, setPasswordError] = useState<string>('');
@@ -57,11 +53,6 @@ function ResetPasswordForm() {
     e.preventDefault();
     if (isSubmitting || success) return;
 
-    if (!token) {
-      setError('Invalid or missing reset token');
-      return;
-    }
-
     const validationError = validateForm();
     if (validationError) {
       toast.error(validationError);
@@ -73,7 +64,8 @@ function ResetPasswordForm() {
       const res = await fetch(`${apiBase}/api/v1/auth/reset-password`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ token, password, confirmPassword }),
+        credentials: 'include',
+        body: JSON.stringify({ password, confirmPassword }),
       });
 
       const data = await res.json();
@@ -84,7 +76,6 @@ function ResetPasswordForm() {
 
       setSuccess(true);
       toast.success('Password reset successfully! Redirecting to login...');
-      // Redirect to login after 2 seconds
       setTimeout(() => {
         window.location.href = '/login';
       }, 2000);
@@ -112,8 +103,7 @@ function ResetPasswordForm() {
               error={passwordError}
               placeholder="At least 8 characters"
               autoComplete="new-password"
-              disabled={isSubmitting || success || !token}
-              // helperText="Use at least 8 characters"
+              disabled={isSubmitting || success}
               required
             />
 
@@ -125,14 +115,14 @@ function ResetPasswordForm() {
               error={confirmPasswordError}
               placeholder="Re-enter your password"
               autoComplete="new-password"
-              disabled={isSubmitting || success || !token}
+              disabled={isSubmitting || success}
               required
             />
 
             <SubmitButton
               loading={isSubmitting}
               loadingText="Resetting password..."
-              disabled={success || !token}
+              disabled={success}
             >
               Reset password
             </SubmitButton>
