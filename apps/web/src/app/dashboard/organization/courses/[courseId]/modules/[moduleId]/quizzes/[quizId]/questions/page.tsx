@@ -744,40 +744,48 @@ export default function QuizQuestionsPage() {
     );
   }
 
-  return (
-    <div>
-      <div className="mx-auto max-w-5xl">
-        <div className="mb-4 flex items-center justify-between">
-          <p className="text-sm font-medium uppercase tracking-wide text-primary-600">          Create Quiz</p>
-          <LinkButton
-            href={`${dashboardPrefix}/courses/${courseId}/modules${organizationId ? `?organization=${organizationId}` : ''}`}
-            variant="ghost"
-            size="sm"
-          >
-            Back to Course Builder
-          </LinkButton>
-        </div>
+  const totalMarks = questions?.reduce((total, question) => total + question.marks, 0) ?? 0;
 
-        <div className="rounded-2xl border border-neutral-200 bg-white p-6 shadow-sm">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <div>
-              <h1 className="text-2xl font-bold text-neutral-900">Quiz Questions</h1>
-              <p className="mt-1 text-sm text-neutral-500">
-                Manage questions and answer options for this quiz.
-              </p>
-            </div>
-            <div className="flex items-center gap-3">
-              <div className="rounded-lg bg-primary-50 px-3 py-2 text-sm font-semibold text-primary-700">
-                Total marks: {questions?.reduce((total, question) => total + question.marks, 0) ?? 0}
-              </div>
-              <Button
-                size="sm"
-                variant="ghost"
-                onClick={() => router.push(`${dashboardPrefix}/courses/${courseId}/modules/${moduleId}/quizzes${organizationId ? `?organization=${organizationId}` : ''}`)}
+  return (
+    <div className="mx-auto max-w-7xl px-3 pb-8 pt-3 sm:px-4 lg:px-6">
+      <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-[0.22em] text-[#2e7a74]">
+          <span className="inline-flex h-2 w-2 rounded-full bg-[#2e7a74]" />
+          Quizzes <span className="text-neutral-500">/</span> Create Quiz
+        </div>
+        <LinkButton
+          href={`${dashboardPrefix}/courses/${courseId}/modules${organizationId ? `?organization=${organizationId}` : ''}`}
+          variant="ghost"
+          size="sm"
+        >
+          Back to Course Builder
+        </LinkButton>
+      </div>
+
+      <div className="grid gap-6 xl:grid-cols-[minmax(0,1.7fr)_360px]">
+        <div className="rounded-[26px] border border-[#e3e6e3] bg-white p-4 shadow-[0_6px_24px_rgba(19,33,28,0.04)] sm:p-5 lg:p-6">
+          <div className="mb-6 flex flex-wrap items-center gap-2 rounded-2xl border border-[#e9ece9] bg-[#f8faf9] p-2">
+            {['Quiz Details', 'Add Questions', 'Quiz Settings', 'Preview & Publish'].map((step, index) => (
+              <div
+                key={step}
+                className={`flex items-center gap-2 rounded-xl px-3 py-2 text-xs font-semibold sm:text-sm ${index === 1 ? 'bg-[#edf7f5] text-[#1f766d]' : 'text-neutral-500'}`}
               >
-                Save Quiz
-              </Button>
-              <Button size="sm" onClick={() => document.getElementById('inline-question-builder')?.scrollIntoView({ behavior: 'smooth' })}>+ Add Question</Button>
+                <span className={`flex h-6 w-6 items-center justify-center rounded-full text-[11px] ${index === 1 ? 'bg-[#2e7a74] text-white' : 'bg-white text-neutral-500 border border-[#e4e7e5]'}`}>
+                  {index + 1}
+                </span>
+                {step}
+              </div>
+            ))}
+          </div>
+
+          <div className="mb-6 flex items-start justify-between gap-3">
+            <div>
+              <h1 className="text-2xl font-bold tracking-[-0.04em] text-neutral-900 sm:text-3xl">Create Quiz</h1>
+              <p className="mt-1 text-sm text-neutral-500">Add questions, mark answers, and publish your quiz with confidence.</p>
+            </div>
+            <div className="rounded-xl border border-[#dfe8e6] bg-[#f7fbfa] px-3 py-2 text-right">
+              <div className="text-[11px] uppercase tracking-[0.18em] text-neutral-500">Total Marks</div>
+              <div className="text-xl font-bold text-[#1d6b65]">{totalMarks}</div>
             </div>
           </div>
 
@@ -787,209 +795,286 @@ export default function QuizQuestionsPage() {
               <span>Loading questions...</span>
             </div>
           ) : questions !== null ? (
-            <div className="mt-6 flex flex-col space-y-5">
-              <div id="inline-question-builder" className="order-last rounded-xl border border-primary-200 bg-primary-50/30 p-5">
-                <h2 className="text-lg font-semibold text-neutral-900">
-                  {questions.length === 0 ? 'Add your first question' : 'Add another question'}
-                </h2>
-                <div className="mt-4 space-y-4">
+            <div className="space-y-5">
+              <div
+                id="inline-question-builder"
+                className="rounded-[24px] border border-[#dfece9] bg-[#f7faf9] p-4 sm:p-5"
+              >
+                <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                  <div>
+                    <p className="text-sm font-medium uppercase tracking-[0.18em] text-neutral-500">Question Builder</p>
+                    <h2 className="mt-1 text-xl font-bold text-neutral-900">
+                      {questions.length === 0 ? 'Add your first question' : 'Add another question'}
+                    </h2>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    {['Multiple Choice', 'True / False', 'Short Answer', 'Essay'].map((type) => (
+                      <span
+                        key={type}
+                        className={`rounded-full border px-2.5 py-1.5 text-[11px] font-medium ${type === 'Multiple Choice' ? 'border-[#cfe7e3] bg-[#edf9f7] text-[#1e736b]' : 'border-[#e7e7e7] bg-white text-neutral-600'}`}
+                      >
+                        {type}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="space-y-4">
                   <Textarea
-                    label="Write Question"
+                    label="Question"
                     value={inlineQuestionText}
                     onChange={(event) => setInlineQuestionText(event.target.value)}
-                    placeholder="Write your question here..."
+                    placeholder="What is the correct way to declare a variable in JavaScript?"
                     rows={3}
                     disabled={savingInlineQuestion}
                     required
                   />
-                  <Input
-                    label="Marks for this question"
-                    type="number"
-                    min={1}
-                    step={1}
-                    value={inlineMarks}
-                    onChange={(event) => setInlineMarks(event.target.value)}
-                    placeholder="e.g. 5"
-                    disabled={savingInlineQuestion}
-                    required
-                  />
-                  <div>
-                    <p className="mb-2 text-sm font-semibold text-neutral-800">Options</p>
-                    <div className="space-y-3">
-                      {inlineOptions.map((option, index) => (
-                        <div key={index} className="flex items-center gap-3">
-                          <input
-                            type="radio"
-                            name="inline-correct-answer"
-                            checked={option.isCorrect}
-                            onChange={() => setInlineOptions((previous) => previous.map((item, itemIndex) => ({ ...item, isCorrect: itemIndex === index })))}
-                            className="h-4 w-4 accent-[#5A321F]"
-                            aria-label={`Mark option ${index + 1} as correct`}
-                            disabled={savingInlineQuestion}
-                          />
-                          <Input
-                            aria-label={`Option ${index + 1}`}
-                            value={option.text}
-                            onChange={(event) => setInlineOptions((previous) => previous.map((item, itemIndex) => itemIndex === index ? { ...item, text: event.target.value } : item))}
-                            placeholder={`Option ${index + 1}`}
-                            disabled={savingInlineQuestion}
-                          />
-                          <span className="hidden text-xs text-neutral-500 sm:inline">Correct</span>
-                        </div>
-                      ))}
+
+                  <div className="grid gap-4 md:grid-cols-[minmax(0,1fr)_180px]">
+                    <div>
+                      <p className="mb-2 text-sm font-semibold text-neutral-800">Answer Options</p>
+                      <div className="space-y-3">
+                        {inlineOptions.map((option, index) => (
+                          <div key={index} className="flex items-center gap-3">
+                            <input
+                              type="radio"
+                              name="inline-correct-answer"
+                              checked={option.isCorrect}
+                              onChange={() => setInlineOptions((previous) => previous.map((item, itemIndex) => ({ ...item, isCorrect: itemIndex === index })))}
+                              className="h-4 w-4 accent-[#2e7a74]"
+                              aria-label={`Mark option ${index + 1} as correct`}
+                              disabled={savingInlineQuestion}
+                            />
+                            <div className="flex-1">
+                              <Input
+                                aria-label={`Option ${index + 1}`}
+                                value={option.text}
+                                onChange={(event) => setInlineOptions((previous) => previous.map((item, itemIndex) => itemIndex === index ? { ...item, text: event.target.value } : item))}
+                                placeholder={`Option ${index + 1}`}
+                                disabled={savingInlineQuestion}
+                              />
+                            </div>
+                          </div>
+                        ))}
+                      </div>
                     </div>
+
+                    <Input
+                      label="Marks"
+                      type="number"
+                      min={1}
+                      step={1}
+                      value={inlineMarks}
+                      onChange={(event) => setInlineMarks(event.target.value)}
+                      placeholder="e.g. 5"
+                      disabled={savingInlineQuestion}
+                      required
+                    />
+                  </div>
+
+                  <div className="flex flex-col gap-3 border-t border-[#e6ece9] pt-4 sm:flex-row sm:items-center sm:justify-between">
                     <button
                       type="button"
                       onClick={addInlineOption}
                       disabled={savingInlineQuestion}
-                      className="mt-3 text-sm font-semibold text-primary-700 hover:text-primary-900"
+                      className="inline-flex items-center justify-center rounded-xl border border-dashed border-[#bcc9c7] bg-white px-3 py-2 text-sm font-semibold text-[#1d6b65] transition-colors hover:border-[#2e7a74] hover:bg-[#f2fbfa] disabled:opacity-50"
                     >
-                       Add Option
+                      + Add Option
                     </button>
-                    <p className="mt-2 text-xs text-neutral-500">Select the radio button beside the correct answer.</p>
-                  </div>
-                  <div className="flex justify-end">
                     <Button type="button" onClick={saveInlineQuestion} loading={savingInlineQuestion} disabled={savingInlineQuestion}>
                       {savingInlineQuestion ? 'Saving...' : 'Add Question'}
                     </Button>
                   </div>
                 </div>
               </div>
+
               {questions.length > 0 && (
-            <div className="order-first space-y-3">
-              {questions.map((question) => (
-                <div
-                  key={question.id}
-                  className="rounded-xl border border-neutral-200 bg-white"
-                >
-                  <div className="flex items-center justify-between px-5 py-4">
-                    <div className="flex items-start gap-3">
-                      <div>
-                        <p className="text-sm font-semibold text-neutral-900">Question {question.order + 1}</p>
-                        <p className="mt-1 text-sm text-neutral-900">{question.questionText}</p>
-                        <p className="mt-0.5 text-xs text-neutral-500">
-                          {question.marks} {question.marks === 1 ? 'mark' : 'marks'}
-                        </p>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => toggleOptions(question.id)}
-                      >
-                        {expandedQuestion === question.id ? 'Hide Options' : 'Show Options'}
-                      </Button>
-                      <button
-                        type="button"
-                        aria-label="Edit question"
-                        title="Edit question"
-                        onClick={() => openEditModal(question)}
-                        className="inline-flex h-9 w-9 items-center justify-center rounded-lg text-neutral-600 transition-colors hover:bg-neutral-100 hover:text-primary-700"
-                      >
-                        <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M12 20h9" />
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4L16.5 3.5z" />
-                        </svg>
-                      </button>
-                      <button
-                        type="button"
-                        aria-label="Delete question"
-                        title="Delete question"
-                        onClick={() => handleDeleteQuestion(question.id)}
-                        className="inline-flex h-9 w-9 items-center justify-center rounded-lg text-red-600 transition-colors hover:bg-red-50"
-                      >
-                        <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M3 6h18" />
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M8 6V4h8v2" />
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M19 6l-1 14H6L5 6" />
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M10 11v5M14 11v5" />
-                        </svg>
-                      </button>
-                    </div>
-                  </div>
-
-                  {expandedQuestion === question.id && (
-                    <div className="border-t border-neutral-200 bg-neutral-50 px-5 py-4">
-                      <div className="mb-3 flex items-center justify-between">
-                        <p className="text-xs font-semibold uppercase tracking-wide text-neutral-500">
-                          Options
-                        </p>
-                        <Button
-                          variant="primary"
-                          size="sm"
-                          onClick={() => openCreateOptionModal(question.id)}
-                        >
-                           Add Option
-                        </Button>
-                      </div>
-
-                      {loadingOptions === question.id ? (
-                        <div className="flex items-center gap-2 text-neutral-500">
-                          <Spinner size="sm" label="Loading options..." />
-                          <span className="text-sm">Loading options...</span>
+                <div className="space-y-4">
+                  {questions.map((question) => (
+                    <div key={question.id} className="rounded-[24px] border border-[#e5e7e6] bg-[#fafcfb] p-4 shadow-[0_4px_20px_rgba(15,23,42,0.02)] sm:p-5">
+                      <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+                        <div className="min-w-0 flex-1">
+                          <div className="mb-2 flex flex-wrap items-center gap-2">
+                            <span className="rounded-full bg-[#edf7f5] px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-[#1f766d]">Q{question.order + 1}</span>
+                            <span className="rounded-full border border-[#dfe8e5] bg-white px-2.5 py-1 text-[11px] font-medium text-neutral-600">{question.marks} marks</span>
+                          </div>
+                          <p className="text-base font-semibold text-neutral-900 sm:text-lg">{question.questionText}</p>
                         </div>
-                      ) : questionOptions[question.id] && questionOptions[question.id].length > 0 ? (
-                        <div className="space-y-2">
-                          {questionOptions[question.id].map((option, optionIndex) => (
-                            <div
-                              key={option.id}
-                              className="flex items-center justify-between rounded-lg border border-neutral-200 bg-white px-4 py-3"
-                            >
-                              <div className="flex items-center gap-3">
-                                <span className={`flex h-5 w-5 items-center justify-center rounded-full border text-xs font-semibold ${option.isCorrect ? 'border-primary-700 bg-primary-700 text-white' : 'border-neutral-300 text-neutral-500'}`}>
-                                  {String.fromCharCode(65 + optionIndex)}
-                                </span>
-                                <span className="text-sm text-neutral-900">{option.text}</span>
-                                {option.isCorrect ? (
-                                  <Badge variant="success" size="sm">Correct</Badge>
-                                ) : null}
-                              </div>
-                              <div className="flex items-center gap-1">
-                                <button
-                                  type="button"
-                                  aria-label="Edit option"
-                                  title="Edit option"
-                                  onClick={() => openEditOptionModal(question.id, option)}
-                                  className="inline-flex h-9 w-9 items-center justify-center rounded-lg text-neutral-600 transition-colors hover:bg-neutral-100 hover:text-primary-700"
-                                >
-                                  <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
-                                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 20h9" />
-                                    <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4L16.5 3.5z" />
-                                  </svg>
-                                </button>
-                                <button
-                                  type="button"
-                                  aria-label="Delete option"
-                                  title="Delete option"
-                                  onClick={() => handleDeleteOption(question.id, option.id)}
-                                  className="inline-flex h-9 w-9 items-center justify-center rounded-lg text-red-600 transition-colors hover:bg-red-50"
-                                >
-                                  <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
-                                    <path strokeLinecap="round" strokeLinejoin="round" d="M3 6h18" />
-                                    <path strokeLinecap="round" strokeLinejoin="round" d="M8 6V4h8v2" />
-                                    <path strokeLinecap="round" strokeLinejoin="round" d="M19 6l-1 14H6L5 6" />
-                                    <path strokeLinecap="round" strokeLinejoin="round" d="M10 11v5M14 11v5" />
-                                  </svg>
-                                </button>
-                              </div>
+
+                        <div className="flex items-center gap-2">
+                          <Button variant="ghost" size="sm" onClick={() => toggleOptions(question.id)}>
+                            {expandedQuestion === question.id ? 'Hide' : 'View'}
+                          </Button>
+                          <button
+                            type="button"
+                            aria-label="Edit question"
+                            title="Edit question"
+                            onClick={() => openEditModal(question)}
+                            className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-[#e4e7e5] bg-white text-neutral-600 transition-colors hover:border-[#cfe7e3] hover:text-[#1f766d]"
+                          >
+                            <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M12 20h9" />
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4L16.5 3.5z" />
+                            </svg>
+                          </button>
+                          <button
+                            type="button"
+                            aria-label="Delete question"
+                            title="Delete question"
+                            onClick={() => handleDeleteQuestion(question.id)}
+                            className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-[#f1d9d9] bg-[#fff7f7] text-red-600 transition-colors hover:bg-red-50"
+                          >
+                            <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M3 6h18" />
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M8 6V4h8v2" />
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M19 6l-1 14H6L5 6" />
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M10 11v5M14 11v5" />
+                            </svg>
+                          </button>
+                        </div>
+                      </div>
+
+                      {expandedQuestion === question.id && (
+                        <div className="mt-4 rounded-2xl border border-[#e7ecea] bg-white p-4">
+                          <div className="mb-3 flex items-center justify-between gap-3">
+                            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-neutral-500">Options</p>
+                            <Button variant="primary" size="sm" onClick={() => openCreateOptionModal(question.id)}>
+                              + Add Option
+                            </Button>
+                          </div>
+
+                          {loadingOptions === question.id ? (
+                            <div className="flex items-center gap-2 text-neutral-500">
+                              <Spinner size="sm" label="Loading options..." />
+                              <span className="text-sm">Loading options...</span>
                             </div>
-                          ))}
+                          ) : questionOptions[question.id] && questionOptions[question.id].length > 0 ? (
+                            <div className="space-y-2">
+                              {questionOptions[question.id].map((option, optionIndex) => (
+                                <div key={option.id} className="flex items-center justify-between gap-3 rounded-xl border border-[#ebefee] bg-[#fafcfc] px-3 py-2.5">
+                                  <div className="flex min-w-0 flex-1 items-center gap-3">
+                                    <span className={`flex h-6 w-6 items-center justify-center rounded-full border text-[11px] font-semibold ${option.isCorrect ? 'border-[#2e7a74] bg-[#2e7a74] text-white' : 'border-[#d8dedb] bg-white text-neutral-600'}`}>
+                                      {String.fromCharCode(65 + optionIndex)}
+                                    </span>
+                                    <span className="min-w-0 flex-1 text-sm text-neutral-800">{option.text}</span>
+                                    {option.isCorrect ? (
+                                      <Badge variant="success" size="sm">Correct</Badge>
+                                    ) : null}
+                                  </div>
+                                  <div className="flex items-center gap-1">
+                                    <button
+                                      type="button"
+                                      aria-label="Edit option"
+                                      title="Edit option"
+                                      onClick={() => openEditOptionModal(question.id, option)}
+                                      className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-neutral-600 transition-colors hover:bg-neutral-100 hover:text-[#1f766d]"
+                                    >
+                                      <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+                                        <path strokeLinecap="round" strokeLinejoin="round" d="M12 20h9" />
+                                        <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4L16.5 3.5z" />
+                                      </svg>
+                                    </button>
+                                    <button
+                                      type="button"
+                                      aria-label="Delete option"
+                                      title="Delete option"
+                                      onClick={() => handleDeleteOption(question.id, option.id)}
+                                      className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-red-600 transition-colors hover:bg-red-50"
+                                    >
+                                      <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+                                        <path strokeLinecap="round" strokeLinejoin="round" d="M3 6h18" />
+                                        <path strokeLinecap="round" strokeLinejoin="round" d="M8 6V4h8v2" />
+                                        <path strokeLinecap="round" strokeLinejoin="round" d="M19 6l-1 14H6L5 6" />
+                                        <path strokeLinecap="round" strokeLinejoin="round" d="M10 11v5M14 11v5" />
+                                      </svg>
+                                    </button>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          ) : questionOptions[question.id] && questionOptions[question.id].length === 0 ? (
+                            <p className="text-sm text-neutral-500">No options yet. Add a few answer choices to complete this question.</p>
+                          ) : null}
                         </div>
-                      ) : questionOptions[question.id] && questionOptions[question.id].length === 0 ? (
-                        <p className="text-sm text-neutral-500">
-                          No options yet. Add at least two options for this question.
-                        </p>
-                      ) : null}
+                      )}
                     </div>
-                  )}
+                  ))}
                 </div>
-              ))}
-            </div>
               )}
             </div>
           ) : null}
         </div>
+
+        <aside className="h-fit rounded-[26px] border border-[#e3e6e3] bg-[#fcfdfd] p-4 shadow-[0_6px_24px_rgba(19,33,28,0.04)] sm:p-5">
+          <div className="flex items-center justify-between gap-2 border-b border-[#edf1ef] pb-3">
+            <div>
+              <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-neutral-500">Quiz Summary</p>
+              <h3 className="mt-1 text-xl font-bold text-neutral-900">Overview</h3>
+            </div>
+            <span className="rounded-full bg-[#edf7f5] px-2.5 py-1 text-[11px] font-semibold text-[#1f766d]">{questions?.length ?? 0} Questions</span>
+          </div>
+
+          <div className="mt-4 space-y-4">
+            <div className="rounded-2xl border border-[#e9efed] bg-[#f7fbfa] p-3">
+              <div className="flex items-center justify-between text-sm text-neutral-600">
+                <span>Total Marks</span>
+                <span className="font-bold text-[#1d6b65]">{totalMarks}</span>
+              </div>
+              <div className="mt-3 h-2.5 overflow-hidden rounded-full bg-[#e7ecea]">
+                <div className="h-full rounded-full bg-[#2e7a74]" style={{ width: `${Math.min((totalMarks / Math.max(totalMarks || 1, 1)) * 100, 100)}%` }} />
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <div className="rounded-2xl border border-[#e9efed] bg-white p-3">
+                <div className="text-xs font-semibold uppercase tracking-[0.18em] text-neutral-500">Question Types</div>
+                <div className="mt-2 flex flex-wrap gap-2">
+                  {['Multiple Choice', 'True / False', 'Short Answer', 'Essay'].map((item) => (
+                    <span key={item} className="rounded-full border border-[#e4e7e5] bg-[#f8fbfa] px-2.5 py-1 text-[11px] font-medium text-neutral-600">{item}</span>
+                  ))}
+                </div>
+              </div>
+
+              <div className="rounded-2xl border border-[#e9efed] bg-white p-3">
+                <div className="text-xs font-semibold uppercase tracking-[0.18em] text-neutral-500">Marks by Question</div>
+                <div className="mt-3 space-y-2 text-sm text-neutral-700">
+                  {questions && questions.length > 0 ? questions.map((question, index) => (
+                    <div key={question.id} className="flex items-center justify-between gap-3 rounded-xl bg-[#f6faf9] px-2.5 py-2">
+                      <span className="font-medium text-neutral-700">Q{index + 1}</span>
+                      <span className="font-semibold text-[#1d6b65]">{question.marks}</span>
+                    </div>
+                  )) : (
+                    <span className="text-sm text-neutral-500">Add questions to see marks breakdown.</span>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            <div className="space-y-2 border-t border-[#edf1ef] pt-4">
+              <button
+                type="button"
+                onClick={() => router.push(`${dashboardPrefix}/courses/${courseId}/modules/${moduleId}/quizzes${organizationId ? `?organization=${organizationId}` : ''}`)}
+                className="flex w-full items-center justify-center rounded-xl border border-[#dfe8e6] bg-white px-4 py-3 text-sm font-semibold text-neutral-700 transition-colors hover:bg-neutral-50"
+              >
+                Save Draft
+              </button>
+              <button
+                type="button"
+                onClick={() => document.getElementById('inline-question-builder')?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
+                className="flex w-full items-center justify-center rounded-xl border border-[#dfe8e6] bg-white px-4 py-3 text-sm font-semibold text-neutral-700 transition-colors hover:bg-neutral-50"
+              >
+                Preview
+              </button>
+              <button
+                type="button"
+                onClick={() => router.push(`${dashboardPrefix}/courses/${courseId}/modules/${moduleId}/quizzes${organizationId ? `?organization=${organizationId}` : ''}`)}
+                className="flex w-full items-center justify-center rounded-xl bg-[#2e7a74] px-4 py-3 text-sm font-semibold text-white shadow-[0_8px_20px_rgba(46,122,116,0.25)] transition-colors hover:bg-[#255f5a]"
+              >
+                Publish
+              </button>
+            </div>
+          </div>
+        </aside>
       </div>
 
       <Modal

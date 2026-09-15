@@ -27,9 +27,14 @@ const columns: Array<{ status: TaskStatus; title: string; empty: string; color: 
   { status: 'COMPLETED', title: 'Completed', empty: 'No completed tasks', color: 'border-emerald-200' },
 ];
 
-const taskError = (error: unknown) => error instanceof ApiError && error.code === 'INVALID_TASK'
-  ? 'Please provide a title and valid task details.'
-  : 'The task could not be saved. Please try again.';
+const taskError = (error: unknown) => {
+  if (!(error instanceof ApiError)) return 'The task could not be saved. Please try again.';
+  if (error.code === 'INVALID_TASK') return 'Please provide a title and valid task details.';
+  if (error.code === 'TASK_STORAGE_UNAVAILABLE' || error.status === 404) {
+    return 'Tasks are temporarily unavailable. Please try again after the server is updated.';
+  }
+  return 'The task could not be saved. Please try again.';
+};
 
 export default function TaskBoard() {
   const toast = useToast();

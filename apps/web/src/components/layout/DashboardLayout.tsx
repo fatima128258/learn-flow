@@ -60,6 +60,18 @@ const MetricsIcon: React.FC = () => (
   </svg>
 );
 
+const EnrollmentIcon: React.FC = () => (
+  <svg className="h-5 w-5 flex-shrink-0" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M15 20a6 6 0 00-12 0m6-8a4 4 0 100-8 4 4 0 000 8zm7-7v6m3-3h-6" />
+  </svg>
+);
+
+const ProgressIcon: React.FC = () => (
+  <svg className="h-5 w-5 flex-shrink-0" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M4 19V5m0 14h16M7 15l3-4 3 2 5-6m-3-1h3v3" />
+  </svg>
+);
+
 const SearchIcon: React.FC = () => (
   <svg className="h-5 w-5 flex-shrink-0" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
@@ -158,6 +170,8 @@ export const NavIcons = {
   categories: <CategoriesIcon />,
   audit: <AuditIcon />,
   metrics: <MetricsIcon />,
+  enrollment: <EnrollmentIcon />,
+  progress: <ProgressIcon />,
   search: <SearchIcon />,
   notifications: <NotificationsIcon />,
   chat: <ChatIcon />,

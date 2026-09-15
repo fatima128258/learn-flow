@@ -1,6 +1,7 @@
 'use client';
 
 import React, { createContext, useCallback, useContext, useMemo, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { Toast, ToastVariant } from './Toast';
 
 export interface ToastInput {
@@ -83,26 +84,30 @@ export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     [toast, success, error, warning, info],
   );
 
+  const toastContent = (
+    <div
+      aria-live="polite"
+      aria-atomic="false"
+      className="pointer-events-none fixed inset-x-4 top-4 z-[1000] flex flex-col gap-3 sm:left-auto sm:right-4 sm:w-full sm:max-w-sm"
+    >
+      {toasts.map((t) => (
+        <Toast
+          key={t.id}
+          variant={t.variant}
+          title={t.title}
+          message={t.message}
+          action={t.action}
+          duration={0}
+          onClose={() => dismiss(t.id)}
+        />
+      ))}
+    </div>
+  );
+
   return (
     <ToastContext.Provider value={value}>
       {children}
-      <div
-        aria-live="polite"
-        aria-atomic="false"
-        className="pointer-events-none fixed inset-x-4 top-4 z-[60] flex flex-col gap-3 sm:left-auto sm:right-4 sm:w-full sm:max-w-sm"
-      >
-        {toasts.map((t) => (
-          <Toast
-            key={t.id}
-            variant={t.variant}
-            title={t.title}
-            message={t.message}
-            action={t.action}
-            duration={0}
-            onClose={() => dismiss(t.id)}
-          />
-        ))}
-      </div>
+      {typeof document === 'undefined' ? null : createPortal(toastContent, document.body)}
     </ToastContext.Provider>
   );
 };

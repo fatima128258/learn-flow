@@ -16,6 +16,13 @@ function fail(res: Response, status: number, error: string) {
   return res.status(status).json({ success: false, error });
 }
 
+function isMissingTaskTable(error: unknown) {
+  return typeof error === 'object'
+    && error !== null
+    && 'code' in error
+    && error.code === 'P2021';
+}
+
 function parseNullableDate(value: unknown): Date | null {
   if (value === null || value === undefined || value === '') {
     return null;
@@ -114,6 +121,9 @@ export async function listStudentTasks(req: AuthenticatedRequest, res: Response)
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : 'SERVER_ERROR';
+    if (isMissingTaskTable(error)) {
+      return fail(res, 503, 'TASK_STORAGE_UNAVAILABLE');
+    }
     return fail(res, 500, message === 'NOT_AUTHENTICATED' ? 'NOT_AUTHENTICATED' : 'SERVER_ERROR');
   }
 }
@@ -150,8 +160,12 @@ export async function createStudentTask(req: AuthenticatedRequest, res: Response
     return res.status(201).json({ success: true, data: serializeTask(task) });
   } catch (error) {
     const message = error instanceof Error ? error.message : 'SERVER_ERROR';
+    console.error('[student tasks] create failed', error);
     if (message === 'INVALID_TASK') {
       return fail(res, 400, 'INVALID_TASK');
+    }
+    if (isMissingTaskTable(error)) {
+      return fail(res, 503, 'TASK_STORAGE_UNAVAILABLE');
     }
     return fail(res, 500, 'SERVER_ERROR');
   }
@@ -226,6 +240,9 @@ export async function updateStudentTask(req: AuthenticatedRequest, res: Response
     if (message === 'INVALID_TASK') {
       return fail(res, 400, 'INVALID_TASK');
     }
+    if (isMissingTaskTable(error)) {
+      return fail(res, 503, 'TASK_STORAGE_UNAVAILABLE');
+    }
     return fail(res, 500, 'SERVER_ERROR');
   }
 }
@@ -250,6 +267,9 @@ export async function deleteStudentTask(req: AuthenticatedRequest, res: Response
     const message = error instanceof Error ? error.message : 'SERVER_ERROR';
     if (message === 'TASK_NOT_FOUND') {
       return fail(res, 404, 'TASK_NOT_FOUND');
+    }
+    if (isMissingTaskTable(error)) {
+      return fail(res, 503, 'TASK_STORAGE_UNAVAILABLE');
     }
     return fail(res, 500, 'SERVER_ERROR');
   }

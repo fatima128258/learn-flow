@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 
+const STUDENT_TASK_TIMEOUT_MS = 60000;
+
 function getBackendUrl() {
   return process.env.BACKEND_URL
     || process.env.NEXT_PUBLIC_BACKEND_URL
@@ -17,22 +19,37 @@ async function proxyRequest(
   const queryString = url.searchParams.toString();
   const forwardUrl = `${backendUrl}/api/v1/student/${path}${queryString ? `?${queryString}` : ''}`;
 
-  const response = await fetch(forwardUrl, {
-    method,
-    headers: {
-      Cookie: request.headers.get('cookie') || '',
-      'Content-Type': 'application/json',
-    },
-    body: body !== undefined ? JSON.stringify(body) : undefined,
-    credentials: 'include',
-  });
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), STUDENT_TASK_TIMEOUT_MS);
+  let response: Response;
+  try {
+    response = await fetch(forwardUrl, {
+      method,
+      headers: {
+        Cookie: request.headers.get('cookie') || '',
+        'Content-Type': 'application/json',
+      },
+      body: body !== undefined ? JSON.stringify(body) : undefined,
+      signal: controller.signal,
+    });
+  } catch (error) {
+    if (error instanceof DOMException && error.name === 'AbortError') {
+      return NextResponse.json({ success: false, error: 'BACKEND_TIMEOUT' }, { status: 504 });
+    }
+    throw error;
+  } finally {
+    clearTimeout(timeoutId);
+  }
 
   const text = await response.text();
   try {
     const data = JSON.parse(text);
     return NextResponse.json(data, { status: response.status });
   } catch {
-    return NextResponse.json({ success: false, error: 'BACKEND_INVALID_RESPONSE' }, { status: 502 });
+    return NextResponse.json(
+      { success: false, error: 'BACKEND_INVALID_RESPONSE' },
+      { status: response.ok ? 502 : response.status },
+    );
   }
 }
 

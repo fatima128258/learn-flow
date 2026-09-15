@@ -68,15 +68,19 @@ export function initializeChatSocket(httpServer: HttpServer) {
         const organizationId = await chatService.authorizeSocketConversation(payload.conversationId, userId);
         const message = await chatService.send(organizationId, payload.conversationId, userId, payload.content);
         io.to(`conversation:${payload.conversationId}`).emit('message:new', message);
-        const participants = await chatService.conversationParticipants(payload.conversationId);
-        const recipientId = participants.studentId === userId ? participants.instructorId : participants.studentId;
+        // A successful persistence result is the send acknowledgement. Do not
+        // make the sender wait for optional unread-notification work.
         ack?.({ success: true, data: message });
-        void chatService.unreadCount(organizationId, payload.conversationId, recipientId)
-          .then((unreadCount) => {
-            io.to(`user:${recipientId}`).emit('chat:unread', {
-              conversationId: payload.conversationId,
-              unreadCount,
-            });
+        void chatService.conversationParticipants(payload.conversationId)
+          .then((participants) => {
+            const recipientId = participants.studentId === userId ? participants.instructorId : participants.studentId;
+            return chatService.unreadCount(organizationId, payload.conversationId, recipientId)
+              .then((unreadCount) => {
+                io.to(`user:${recipientId}`).emit('chat:unread', {
+                  conversationId: payload.conversationId,
+                  unreadCount,
+                });
+              });
           })
           .catch(() => {
             // The persisted message and delivery acknowledgement are independent

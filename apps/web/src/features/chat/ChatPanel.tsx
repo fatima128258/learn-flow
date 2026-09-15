@@ -59,6 +59,7 @@ export function ChatPanel({ organizationId, userId, initialConversationId, cours
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [text, setText] = useState('');
   const [search, setSearch] = useState('');
+  const [tab, setTab] = useState<'active' | 'blocked'>('active');
   const [loading, setLoading] = useState(true);
   const [messagesLoading, setMessagesLoading] = useState(false);
   const [sending, setSending] = useState(false);
@@ -81,10 +82,16 @@ export function ChatPanel({ organizationId, userId, initialConversationId, cours
     socketRef.current.emit('conversation:join', activeId);
   }, [activeId]);
 
-  const filtered = useMemo(() => conversations.filter((conversation) => {
-    const value = `${conversation.course?.title ?? ''} ${participant(conversation, userId)}`.toLowerCase();
-    return value.includes(search.toLowerCase());
-  }), [conversations, search, userId]);
+  const filtered = useMemo(() => {
+    const base = conversations.filter((conversation) => {
+      const matchesTab = tab === 'blocked' ? Boolean(conversation.blockedAt) : !conversation.blockedAt;
+      if (!matchesTab) return false;
+      const value = `${conversation.course?.title ?? ''} ${participant(conversation, userId)}`.toLowerCase();
+      return value.includes(search.toLowerCase());
+    });
+
+    return base.sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
+  }, [conversations, search, tab, userId]);
 
   async function loadMessages(conversationId: string) {
     const requestId = messagesRequestRef.current + 1;
@@ -284,100 +291,145 @@ export function ChatPanel({ organizationId, userId, initialConversationId, cours
   }
 
   return (
-    <div className="flex h-[calc(100dvh-8rem)] min-h-0 overflow-hidden rounded-2xl border border-neutral-200 bg-white shadow-sm">
-      <aside className={`${active ? 'hidden md:flex' : 'flex'} min-h-0 w-full flex-col border-r border-neutral-200 md:w-80`}>
-        <div className="border-b border-neutral-200 p-4">
-          <h1 className="text-xl font-bold text-neutral-900">Chat</h1>
-          <input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search conversations" className="mt-3 w-full rounded-lg border border-neutral-200 px-3 py-2 text-sm outline-none focus:border-primary-500" />
+    <div className="flex h-[calc(100dvh-8rem)] min-h-0 overflow-hidden rounded-[18px] border border-[#dfe2df] bg-[#f5f2ee] shadow-sm">
+      <aside className={`${active ? 'hidden md:flex' : 'flex'} min-h-0 w-full flex-col border-r border-[#dfe2df] bg-[#f5f3f2] md:w-[420px]`}>
+        <div className="flex border-b border-[#dfe2df] bg-[#f7f4f2]">
+          <button
+            type="button"
+            onClick={() => setTab('active')}
+            className={`flex-1 py-5 text-center text-[1.9rem] font-light tracking-[-0.04em] transition-colors ${tab === 'active' ? 'border-b-[3px] border-[#2e7a74] text-[#2e7a74]' : 'text-[#6c726f]'}`}
+          >
+            Active Contacts
+          </button>
+          <button
+            type="button"
+            onClick={() => setTab('blocked')}
+            className={`flex-1 py-5 text-center text-[1.9rem] font-light tracking-[-0.04em] transition-colors ${tab === 'blocked' ? 'border-b-[3px] border-[#2e7a74] text-[#2e7a74]' : 'text-[#6c726f]'}`}
+          >
+            Blocked Contacts
+          </button>
         </div>
-        <div className="flex-1 overflow-y-auto">
+
+        <div className="p-4">
+          <div className="flex items-center gap-3 border-b border-[#dfe2df] pb-3">
+            <svg aria-hidden="true" viewBox="0 0 24 24" className="h-5 w-5 stroke-[1.8] text-[#5b5e5d]">
+              <circle cx="11" cy="11" r="6.5" fill="none" stroke="currentColor" />
+              <path d="M16 16L21 21" fill="none" stroke="currentColor" strokeLinecap="round" />
+            </svg>
+            <input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search by name..." className="w-full border-0 bg-transparent text-[1.05rem] text-neutral-700 placeholder:text-[#8c8f8c] focus:outline-none" />
+          </div>
+        </div>
+
+        <div className="flex-1 space-y-3 overflow-y-auto px-3 pb-3">
           {loading ? <p className="p-6 text-sm text-neutral-500">Loading conversations...</p>
             : filtered.length === 0 ? <p className="p-6 text-sm text-neutral-500">No conversations yet.</p> : filtered.map((conversation) => (
-            <button key={conversation.id} type="button" onClick={() => void selectConversation(conversation.id)} className={`w-full border-b border-neutral-100 p-4 text-left hover:bg-primary-50 ${conversation.id === activeId ? 'bg-primary-50' : ''}`}>
-              <div className="flex items-center justify-between gap-3">
-                <p className="min-w-0 truncate font-semibold text-neutral-900">{participant(conversation, userId)}</p>
-                {conversation.messages?.[0] && (
-                  <time className="shrink-0 text-xs text-neutral-500" dateTime={conversation.messages[0].createdAt}>
-                    {formatConversationTime(conversation.messages[0].createdAt)}
-                  </time>
-                )}
+            <button key={conversation.id} type="button" onClick={() => void selectConversation(conversation.id)} className={`flex w-full items-center gap-3 rounded-[18px] border px-4 py-4 text-left transition-colors ${conversation.id === activeId ? 'border-[#d5d0ca] bg-[#f0e9e3] shadow-sm' : 'border-[#dfe2df] bg-[#f6f8f7] hover:bg-[#f2efe9]'}`}>
+              <div className="flex h-14 w-14 items-center justify-center rounded-full bg-[#cfcfcf] text-lg font-semibold text-[#fafafa] shadow-sm">
+                {participant(conversation, userId).charAt(0).toUpperCase()}
               </div>
-              <div className="mt-1 flex items-center gap-2">
-                <p className="min-w-0 flex-1 truncate text-sm text-neutral-500">{conversation.messages?.[0]?.content || 'No messages yet'}</p>
-                {(conversation.unreadCount ?? 0) > 0 && (
-                  <span className="shrink-0 rounded-full bg-red-600 px-1.5 py-0.5 text-[10px] font-bold leading-none text-white">
-                    {(conversation.unreadCount ?? 0) > 99 ? '99+' : conversation.unreadCount}
-                  </span>
-                )}
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center justify-between gap-3">
+                  <p className="min-w-0 truncate text-[1.05rem] font-semibold text-neutral-900">{participant(conversation, userId)}</p>
+                  {conversation.messages?.[0] && (
+                    <time className="shrink-0 text-[0.95rem] text-neutral-500" dateTime={conversation.messages[0].createdAt}>
+                      {formatConversationTime(conversation.messages[0].createdAt)}
+                    </time>
+                  )}
+                </div>
+                <div className="mt-2 flex items-center gap-2">
+                  <span className={`h-2.5 w-2.5 rounded-full ${tab === 'active' ? 'bg-[#2e7a74]' : 'bg-neutral-400'}`} />
+                  <p className="min-w-0 flex-1 truncate text-[1rem] text-neutral-700">{conversation.messages?.[0]?.content || 'No messages yet'}</p>
+                </div>
               </div>
             </button>
           ))}
         </div>
       </aside>
-      <section className={`${active ? 'flex' : 'hidden md:flex'} min-h-0 min-w-0 flex-1 flex-col`}>
+      <section className={`${active ? 'flex' : 'hidden md:flex'} min-h-0 min-w-0 flex-1 flex-col bg-[#f7f5f3]`}>
         {loading ? <div className="m-auto text-sm text-neutral-500">Loading chat...</div> : active ? <>
-          <header className="flex items-center justify-between border-b border-neutral-200 p-4">
-            <div>
-              <button type="button" onClick={() => setActiveId('')} className="mr-3 text-sm text-primary-700 md:hidden">← Conversations</button>
-              <span className="font-semibold text-neutral-900">{participant(active, userId)}</span>
-              <span className={`ml-2 text-xs font-medium ${participantOnline ? 'text-success-600' : 'text-neutral-500'}`}>
-                ({participantOnline ? 'Online' : 'Offline'})
-              </span>
-              <p className="text-xs text-neutral-500">{active.course?.title}</p>
+          <header className="flex items-center justify-between border-b border-[#e8dfd4] bg-[#f6f3f1] p-4">
+            <div className="flex min-w-0 items-center gap-3">
+              <button type="button" onClick={() => setActiveId('')} className="mr-1 text-sm text-primary-700 md:hidden">←</button>
+              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#d4b596] text-sm font-semibold text-[#fdfbf8]">{participant(active, userId).charAt(0).toUpperCase()}</div>
+              <div className="min-w-0">
+                <div className="flex items-center gap-2">
+                  <span className="truncate text-[1.05rem] font-bold text-neutral-900">{participant(active, userId)}</span>
+                  <span className={`inline-block h-2.5 w-2.5 rounded-full ${participantOnline ? 'bg-green-500' : 'bg-neutral-400'}`} />
+                  <span className="text-xs font-medium text-neutral-500">{participantOnline ? 'Online' : 'Offline'}</span>
+                </div>
+                <p className="truncate text-xs text-neutral-500">{active.course?.title}</p>
+              </div>
             </div>
             <div className="flex items-center gap-2">
               <button
                 type="button"
                 disabled={actionLoading}
                 onClick={() => void updateConversation(active.blockedAt ? 'unblock' : 'block')}
-                className="rounded-lg bg-[#5a301e] px-3 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-[#432216] disabled:opacity-50"
+                className="inline-flex items-center gap-2 rounded-xl border border-[#d6b6a1] bg-[#f4e9e1] px-3 py-2 text-xs font-semibold text-[#6b3e2d] transition-colors hover:bg-[#ead8c8] disabled:opacity-50"
               >
+                <svg aria-hidden="true" viewBox="0 0 24 24" className="h-4 w-4 fill-none stroke-current stroke-[1.8]">
+                  <circle cx="12" cy="12" r="8" />
+                  <path d="M8 8l8 8M16 8l-8 8" strokeLinecap="round" />
+                </svg>
                 {active.blockedAt ? 'Unblock' : 'Block'}
               </button>
               <button
                 type="button"
                 disabled={actionLoading}
                 onClick={() => void updateConversation('delete')}
-                className="rounded-lg bg-[#ead8c2] px-3 py-1.5 text-xs font-semibold text-[#5a301e] transition-colors hover:bg-[#dfc5a8] disabled:opacity-50"
+                className="inline-flex items-center gap-2 rounded-xl border border-[#d6b6a1] bg-[#f4e9e1] px-3 py-2 text-xs font-semibold text-[#6b3e2d] transition-colors hover:bg-[#ead8c8] disabled:opacity-50"
               >
+                <svg aria-hidden="true" viewBox="0 0 24 24" className="h-4 w-4 fill-none stroke-current stroke-[1.8]">
+                  <path d="M4 7h16M10 11v6m4-6v6M6 7l1 13h10l1-13M9 7l1-3h4l1 3" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
                 Delete
               </button>
             </div>
           </header>
-          <div className="flex-1 space-y-3 overflow-y-auto bg-neutral-50 p-4">
+          <div className="flex-1 space-y-4 overflow-y-auto bg-[#f7f5f3] p-4">
             {messagesLoading ? <p className="m-auto text-sm text-neutral-500">Loading messages...</p>
               : messages.map((message, index) => {
                 const previousMessage = messages[index - 1];
                 const showDateSeparator = !previousMessage
                   || !isSameCalendarDay(new Date(previousMessage.createdAt), new Date(message.createdAt));
+                const isOutgoing = message.senderId === userId;
                 return (
-                  <div key={message.id}>
+                  <div key={message.id} className="flex flex-col">
                     {showDateSeparator && (
-                      <div className="my-3 flex justify-center">
-                        <span className="rounded-full bg-neutral-200 px-3 py-1 text-xs font-medium text-neutral-600">
+                      <div className="my-2 flex justify-center">
+                        <span className="rounded-full bg-[#ebe7e4] px-3 py-1 text-[11px] font-medium text-neutral-600 shadow-sm">
                           {formatDateSeparator(message.createdAt)}
                         </span>
                       </div>
                     )}
-                    <div className={`group flex ${message.senderId === userId ? 'justify-end' : 'justify-start'}`}>
-                      <div className={`max-w-[80%] rounded-2xl border px-4 py-2 text-sm shadow-sm transition-colors ${message.senderId === userId ? 'border-[#d8bfa8] bg-[#f7efe7] text-neutral-800' : 'border-[#d8d2c8] bg-[#f8f5f1] text-neutral-800'}`}>
-                        <p className={message.deletedAt ? 'italic opacity-70' : undefined}>{message.deletedAt ? 'This message was deleted' : message.content}</p>
-                        <div className="mt-1 flex items-center justify-end gap-2 text-[10px] text-neutral-500">
+                    <div className={`flex ${isOutgoing ? 'justify-end' : 'justify-start'}`}>
+                      {!isOutgoing && (
+                        <div className="mr-2 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#d4b596] text-[11px] font-semibold text-white">
+                          {participant(active, userId).charAt(0).toUpperCase()}
+                        </div>
+                      )}
+                      <div className={`max-w-[68%] ${isOutgoing ? 'items-end' : 'items-start'} flex flex-col`}>
+                        <div className={`rounded-[20px] px-4 py-2 text-[15px] leading-6 shadow-sm ${isOutgoing ? 'rounded-br-md bg-[#f0dfc8] text-neutral-900' : 'rounded-bl-md bg-[#f2f2f2] text-neutral-900'}`}>
+                          <p className={message.deletedAt ? 'italic opacity-70' : undefined}>{message.deletedAt ? 'This message was deleted' : message.content}</p>
+                        </div>
+                        <div className={`mt-1 flex items-center gap-2 text-[10px] ${isOutgoing ? 'justify-end text-neutral-500' : 'justify-start text-neutral-500'}`}>
                           <span>{formatMessageTime(message.createdAt)}</span>
-                          {message.senderId === userId && !message.deletedAt && <>
-                            <span className={message.readAt ? 'text-sky-600' : 'text-neutral-500'}>{deliveredMessageIds.has(message.id) ? '✓✓' : '✓'}</span>
-                            <button
-                              type="button"
-                              onClick={() => void deleteMessage(message.id)}
-                              className="rounded p-1 transition-colors hover:bg-black/5"
-                              aria-label="Delete message"
-                              title="Delete message"
-                            >
-                              <svg aria-hidden="true" viewBox="0 0 24 24" className="h-3.5 w-3.5 fill-none stroke-current stroke-2">
-                                <path strokeLinecap="round" strokeLinejoin="round" d="M4 7h16M10 11v6m4-6v6M6 7l1 13h10l1-13M9 7l1-3h4l1 3" />
-                              </svg>
-                            </button>
-                          </>}
+                          {isOutgoing && !message.deletedAt && (
+                            <>
+                              <span className={message.readAt ? 'text-sky-600' : 'text-neutral-500'}>{deliveredMessageIds.has(message.id) ? '✓✓' : '✓'}</span>
+                              <button
+                                type="button"
+                                onClick={() => void deleteMessage(message.id)}
+                                className="rounded p-1 transition-colors hover:bg-black/5"
+                                aria-label="Delete message"
+                                title="Delete message"
+                              >
+                                <svg aria-hidden="true" viewBox="0 0 24 24" className="h-3.5 w-3.5 fill-none stroke-current stroke-2">
+                                  <path strokeLinecap="round" strokeLinejoin="round" d="M4 7h16M10 11v6m4-6v6M6 7l1 13h10l1-13M9 7l1-3h4l1 3" />
+                                </svg>
+                              </button>
+                            </>
+                          )}
                         </div>
                       </div>
                     </div>
@@ -386,8 +438,19 @@ export function ChatPanel({ organizationId, userId, initialConversationId, cours
               })}
             {!messagesLoading && messages.length === 0 && <p className="m-auto text-sm text-neutral-500">Start the conversation.</p>}
           </div>
-          {error && <p className="border-t border-neutral-200 px-4 py-2 text-sm text-red-600">{error}</p>}
-          {active.blockedAt ? <p className="border-t border-neutral-200 p-4 text-center text-sm font-medium text-red-600">Chat blocked</p> : <form onSubmit={(event) => { event.preventDefault(); void sendMessage(); }} className="flex gap-2 border-t border-neutral-200 p-3"><input value={text} onChange={(event) => setText(event.target.value)} placeholder="Type a message..." className="min-w-0 flex-1 rounded-lg border border-neutral-200 px-3 py-2 text-sm outline-none focus:border-primary-500" maxLength={5000} /><button type="submit" disabled={sending || !text.trim()} className="rounded-lg bg-primary-700 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50">{sending ? 'Sending...' : 'Send'}</button></form>}
+          {error && <p className="border-t border-[#e8dfd4] bg-[#f7f5f3] px-4 py-2 text-sm text-red-600">{error}</p>}
+          {active.blockedAt ? <p className="border-t border-[#e8dfd4] bg-[#f7f5f3] p-4 text-center text-sm font-medium text-red-600">Chat blocked</p> : (
+            <form onSubmit={(event) => { event.preventDefault(); void sendMessage(); }} className="flex items-center gap-3 border-t border-[#e8dfd4] bg-[#f7f5f3] p-3">
+              <button type="button" className="flex h-10 w-10 items-center justify-center rounded-full border border-[#d9c8b7] bg-[#f3e7dd] text-xl font-light text-[#5d3526]">+</button>
+              <input value={text} onChange={(event) => setText(event.target.value)} placeholder="Type a message..." className="min-w-0 flex-1 rounded-full border border-[#d9c8b7] bg-white px-4 py-3 text-sm text-neutral-700 placeholder:text-neutral-400 focus:border-[#c7a58a] focus:outline-none" maxLength={5000} />
+              <button type="submit" disabled={sending || !text.trim()} className="flex items-center justify-center rounded-full bg-[#593421] px-5 py-3 text-sm font-semibold text-white shadow-sm transition-opacity disabled:opacity-50">
+                <svg aria-hidden="true" viewBox="0 0 24 24" className="h-4 w-4 fill-current">
+                  <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z" />
+                </svg>
+                <span className="ml-2">Send</span>
+              </button>
+            </form>
+          )}
         </> : <div className="m-auto text-center text-neutral-500">Select a conversation</div>}
       </section>
     </div>
