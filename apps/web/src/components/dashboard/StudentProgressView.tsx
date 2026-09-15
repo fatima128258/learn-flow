@@ -95,7 +95,6 @@ export function StudentProgressView({ apiPath }: Props) {
       <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
         <div>
           <h1 className="text-2xl font-semibold text-neutral-900">Student Progress</h1>
-          <p className="mt-1 text-sm text-neutral-500">Backend-calculated progress for enrolled students.</p>
         </div>
         <ViewToggle value={view} onChange={(value) => setView(value as 'table' | 'cards')} storageKey={`student-progress-${apiPath}`} />
       </div>

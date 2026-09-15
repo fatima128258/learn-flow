@@ -51,6 +51,11 @@ export async function listByUser(userId: string) {
           difficulty: true,
           status: true,
           organizationId: true,
+          instructorUser: {
+            select: {
+              name: true,
+            },
+          },
         },
       },
     },

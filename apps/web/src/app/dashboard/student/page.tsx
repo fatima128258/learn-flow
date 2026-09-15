@@ -2,13 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import {
-  Badge,
-  EmptyState,
-  EmptyStateIcons,
-  ErrorState,
-  Spinner,
-} from '@/components/ui';
+import { EmptyState, EmptyStateIcons, ErrorState, Spinner } from '@/components/ui';
 import { useCurrentUser } from '@/features/auth/useCurrentUser';
 import { useMyCourses, useMyStats } from '@/features/student/useMyCourses';
 
@@ -164,14 +158,6 @@ export default function StudentDashboardPage() {
                     <div className={`h-32 w-full bg-gradient-to-br ${categoryFallback(course.title)}`} aria-hidden="true" />
                   )}
                   <div className="p-5">
-                    <div className="mb-3 flex flex-wrap items-center gap-2">
-                      {course.category && (
-                        <Badge variant="primary" size="sm">{course.category}</Badge>
-                      )}
-                      {course.difficulty && (
-                        <Badge variant="default" size="sm">{course.difficulty}</Badge>
-                      )}
-                    </div>
                     <h3
                       className="truncate text-lg font-semibold text-neutral-900 transition-colors group-hover:text-primary-600"
                       title={course.title}
@@ -181,6 +167,9 @@ export default function StudentDashboardPage() {
                     {course.description && (
                       <p className="mt-2 line-clamp-2 text-sm text-neutral-600">{course.description}</p>
                     )}
+                    <p className="mt-3 text-sm text-neutral-500">
+                      Instructor: <span className="font-medium text-neutral-700">{course.instructorName || 'Instructor unavailable'}</span>
+                    </p>
                   </div>
                 </div>
               </Link>

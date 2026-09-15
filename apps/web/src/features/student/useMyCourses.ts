@@ -23,6 +23,7 @@ export type EnrolledCourse = {
   thumbnailUrl: string | null;
   category: string | null;
   difficulty: string | null;
+  instructorName: string | null;
   estimatedMinutes: number | null;
   learningObjectives: string[];
 };

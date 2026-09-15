@@ -26,6 +26,7 @@ interface EnrolledCourseRecord {
   thumbnailUrl: string | null;
   category: unknown;
   difficulty: string | null;
+  instructorUser: { name: string | null } | null;
   estimatedMinutes: number | null;
   learningObjectives: string[];
 }
@@ -64,6 +65,7 @@ function toEnrolledCourseListItem(enrollment: EnrolledEnrollment, course: Enroll
     thumbnailUrl: course.thumbnailUrl,
     category: categoryLabel(course.category),
     difficulty: course.difficulty,
+    instructorName: course.instructorUser?.name ?? null,
     estimatedMinutes: course.estimatedMinutes,
     learningObjectives: Array.isArray(course.learningObjectives) ? course.learningObjectives : [],
   };

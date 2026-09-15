@@ -10,7 +10,6 @@ import {
   ErrorState,
   Spinner,
 } from '@/components/ui';
-import { PageHeader } from '@/components/dashboard';
 import { useCurrentUser } from '@/features/auth/useCurrentUser';
 
 type Certificate = {
@@ -152,7 +151,6 @@ export default function StudentCertificateViewPage() {
   if (loading) {
     return (
       <div className="mx-auto max-w-6xl">
-        <PageHeader subtitle="Student" title="View Certificate" />
         <div className="flex items-center gap-3 rounded-2xl border border-neutral-200 bg-white p-8 shadow-sm">
           <Spinner size="lg" label={retrying ? "Generating certificate..." : "Loading certificate..."} />
           <span className="text-neutral-700">{retrying ? "Generating certificate..." : "Loading certificate..."}</span>
@@ -163,20 +161,6 @@ export default function StudentCertificateViewPage() {
 
   return (
     <div className="mx-auto max-w-6xl">
-      <PageHeader
-        subtitle="Student"
-        title="View Certificate"
-          breadcrumbs={
-            <div className="flex items-center gap-2 text-sm">
-              <Link href="/dashboard/student" className="text-primary-600 hover:text-primary-700">My Courses</Link>
-              <span className="text-neutral-400">/</span>
-              <Link href="/dashboard/student/certificates" className="text-primary-600 hover:text-primary-700">Certificates</Link>
-              <span className="text-neutral-400">/</span>
-              <span className="text-neutral-600">View</span>
-            </div>
-          }
-        />
-
         {error ? (
           <div className="rounded-2xl border border-neutral-200 bg-white shadow-sm">
             <ErrorState title="Unable to load certificate" message={error} />
