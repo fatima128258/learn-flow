@@ -1,4 +1,6 @@
 import express, { Request, Response, NextFunction } from 'express';
+import { createServer } from 'http';
+import { initializeChatSocket } from './socket';
 import cors from 'cors';
 import cookieParser from 'cookie-parser';
 import compression from 'compression';
@@ -29,6 +31,7 @@ import { csrfOriginCheck } from './middleware/csrf';
 import { isAllowedOrigin, getAllowedOrigins } from './config/origins';
 import { collectHealthReport } from './services/healthService';
 import { initializeServices } from './services/serviceInitializer';
+import chatRouter from './routes/chatRoutes';
 
 export const app = express();
 
@@ -134,6 +137,7 @@ app.use('/api/v1/organizations', certificateRouter);
 app.use('/api/v1/organizations', searchRouter);
 app.use('/api/v1/organizations', notificationRouter);
 app.use('/api/v1/organizations', mediaRouter);
+app.use('/api/v1/organizations', chatRouter);
 app.use('/api/v1/certificates', publicCertificateRouter);
 app.use('/api/v1/courses', publicCourseRouter);
 app.use('/api/v1/organizations', organizationRouter);
@@ -192,7 +196,9 @@ export const start = (port: number | string = process.env.PORT ?? 4000) => {
     });
   }
   
-  return app.listen(p, () => {
+  const httpServer = createServer(app);
+  initializeChatSocket(httpServer);
+  return httpServer.listen(p, () => {
     console.log(`API server listening on http://localhost:${p}`);
     console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
     const cookieSecure = process.env.NODE_ENV === 'production' || String(process.env.SESSION_COOKIE_SECURE || '').toLowerCase() === 'true';

@@ -4,6 +4,7 @@ export const studentNav: NavItem[] = [
   { href: '/dashboard/student/search', label: 'Available Courses', icon: NavIcons.courses },
   { href: '/dashboard/student', label: 'My Courses', icon: NavIcons.courses },
   { href: '/dashboard/student/progress', label: 'Progress', icon: NavIcons.metrics },
+  { href: '/dashboard/student/chat', label: 'Chat', icon: NavIcons.chat },
   { href: '/dashboard/student/notifications', label: 'Notifications', icon: NavIcons.notifications },
   { href: '/dashboard/student/certificates', label: 'Certificates', icon: NavIcons.certificates },
   { href: '/dashboard/settings', label: 'Settings', icon: NavIcons.settings },

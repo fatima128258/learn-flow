@@ -290,14 +290,19 @@ export async function generateCertificate(organizationId: string, userId: string
       // This prevents Redis/queue issues from blocking certificate generation
     }
 
-    console.log('[CERTIFICATE] Step 7: Generating PDF...');
-    const pdfUrl = await createCertificatePdf(certificateRecord, organizationId);
-    if (pdfUrl) {
-      certificateRecord.pdfUrl = pdfUrl;
-      console.log('[CERTIFICATE] ✓ PDF generated and uploaded:', pdfUrl);
-    } else {
-      console.log('[CERTIFICATE] ⚠ PDF generation skipped or failed');
-    }
+    // PDF generation and storage can be slow or retry several times when the
+    // storage provider is waking up. The certificate record is already valid,
+    // so do not keep the student waiting for this optional artifact.
+    console.log('[CERTIFICATE] Step 7: Scheduling PDF generation in the background...');
+    void createCertificatePdf(certificateRecord, organizationId).then((pdfUrl) => {
+      if (pdfUrl) {
+        console.log('[CERTIFICATE] ✓ Background PDF generated and uploaded:', pdfUrl);
+      } else {
+        console.log('[CERTIFICATE] ⚠ Background PDF generation skipped or failed');
+      }
+    }).catch((pdfError) => {
+      console.error('[CERTIFICATE] ✗ Background PDF generation failed:', pdfError);
+    });
 
     console.log('[CERTIFICATE] === CERTIFICATE GENERATION COMPLETED ===');
     return toCertificateDto(certificateRecord);

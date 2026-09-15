@@ -246,6 +246,7 @@ export default function StudentQuizTakingPage() {
       setResult(body.data ?? null);
       setSubmitting(false);
       if (body.data?.passed && organizationId && courseId && moduleId && quizId) {
+        toast.success('Quiz passed!');
         void (async () => {
           const [progressResponse, nextUrl] = await Promise.all([
             fetch(
@@ -269,11 +270,10 @@ export default function StudentQuizTakingPage() {
             }
           }
           if (nextUrl) {
-            toast.success('Quiz passed! Moving to the next learning item.');
-            window.setTimeout(() => router.push(nextUrl), 1800);
+            router.push(nextUrl);
           }
         })().catch(() => {
-          toast.error('Quiz submitted, but the next learning item could not be loaded.');
+          // The quiz result is already displayed; next-item discovery is optional.
         });
       }
     } catch {

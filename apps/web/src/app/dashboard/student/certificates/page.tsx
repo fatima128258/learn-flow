@@ -251,7 +251,7 @@ export default function StudentCertificatesPage() {
   const [generatingCourseId, setGeneratingCourseId] = useState<string | null>(null);
 
   // Fetch enrolled courses to check for completed ones
-  const { data: courses = [] } = useMyCourses(organizationId || '');
+  const { data: courses = [], isLoading: coursesLoading } = useMyCourses(organizationId || '');
 
   async function loadCertificates(orgId: string) {
     try {
@@ -308,7 +308,7 @@ export default function StudentCertificatesPage() {
     };
   }, [user, userLoading]);
 
-  if (loading) {
+  if (loading || coursesLoading) {
     return (
       <div className="mx-auto max-w-6xl">
         <div className="flex items-center gap-3 rounded-2xl border border-neutral-200 bg-white p-8 shadow-sm">
@@ -353,7 +353,7 @@ export default function StudentCertificatesPage() {
             />
 
             {/* Existing Certificates Section */}
-            {certificates && certificates.length === 0 ? (
+            {certificates && certificates.length === 0 && !coursesLoading ? (
               <div className="rounded-2xl border border-neutral-200 bg-white shadow-sm">
                 <EmptyState
                   icon={EmptyStateIcons.NoData}

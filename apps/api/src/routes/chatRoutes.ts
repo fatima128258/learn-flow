@@ -1,0 +1,13 @@
+import { Router } from 'express';
+import { requireAuth, requireVerifiedEmail, requireOrganizationContext } from '../middleware/auth';
+import * as controller from '../controllers/chatController';
+const router = Router();
+const auth = [requireAuth, requireVerifiedEmail, requireOrganizationContext];
+router.get('/:organizationId/conversations', ...auth, controller.list);
+router.post('/:organizationId/courses/:courseId/conversations', ...auth, controller.open);
+router.get('/:organizationId/conversations/:conversationId/messages', ...auth, controller.messages);
+router.post('/:organizationId/conversations/:conversationId/messages', ...auth, controller.send);
+router.post('/:organizationId/conversations/:conversationId/read', ...auth, controller.read);
+router.post('/:organizationId/conversations/:conversationId/block', ...auth, controller.block);
+router.delete('/:organizationId/conversations/:conversationId/messages/:messageId', ...auth, controller.remove);
+export default router;
