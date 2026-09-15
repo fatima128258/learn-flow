@@ -275,6 +275,15 @@ export function ChatPanel({ organizationId, userId, initialConversationId, cours
     } catch { setError('Message could not be deleted.'); }
   }
 
+  async function copyMessage(message: ChatMessage) {
+    try {
+      await navigator.clipboard.writeText(message.content);
+      setOpenMessageMenuId(null);
+    } catch {
+      setError('Message could not be copied.');
+    }
+  }
+
   async function updateConversation(action: 'block' | 'unblock' | 'delete') {
     if (!active || actionLoading) return;
     if (action !== 'unblock' && !window.confirm(action === 'delete' ? 'Delete this chat for both participants?' : 'Block this chat for both participants?')) return;
@@ -344,7 +353,6 @@ export function ChatPanel({ organizationId, userId, initialConversationId, cours
                   )}
                 </div>
                 <div className="mt-2 flex items-center gap-2">
-                  <span className={`h-2.5 w-2.5 rounded-full ${tab === 'active' ? 'bg-[#2e7a74]' : 'bg-neutral-400'}`} />
                   <p className="min-w-0 flex-1 truncate text-[1rem] text-neutral-700">{conversation.messages?.[0]?.content || 'No messages yet'}</p>
                 </div>
               </div>
@@ -359,10 +367,9 @@ export function ChatPanel({ organizationId, userId, initialConversationId, cours
               <button type="button" onClick={() => setActiveId('')} className="mr-1 text-sm text-primary-700 md:hidden">←</button>
               <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#d4b596] text-sm font-semibold text-[#fdfbf8]">{participant(active, userId).charAt(0).toUpperCase()}</div>
               <div className="min-w-0">
-                <div className="flex items-center gap-2">
-                  <span className="truncate text-[1.05rem] font-bold text-neutral-900">{participant(active, userId)}</span>
-                  <span className={`inline-block h-2.5 w-2.5 rounded-full ${participantOnline ? 'bg-green-500' : 'bg-neutral-400'}`} />
-                  <span className="text-xs font-medium text-neutral-500">{participantOnline ? 'Online' : 'Offline'}</span>
+                <span className="block truncate text-[1.05rem] font-bold leading-tight text-neutral-900">{participant(active, userId)}</span>
+                <div className="mt-1 flex items-center gap-1.5">
+                  <span className="text-xs font-medium leading-tight text-neutral-500">{participantOnline ? 'Online' : 'Offline'}</span>
                 </div>
               </div>
             </div>
@@ -372,8 +379,8 @@ export function ChatPanel({ organizationId, userId, initialConversationId, cours
                 disabled={actionLoading}
                 onClick={() => void updateConversation(active.blockedAt ? 'unblock' : 'block')}
                 className={`inline-flex items-center rounded-xl border px-3 py-2 text-xs font-semibold transition-colors disabled:opacity-50 ${active.blockedAt
-                  ? 'border-[#b9d8d2] bg-[#e6f3f0] text-[#246b63] hover:bg-[#d5ebe6]'
-                  : 'border-[#e4c9a8] bg-[#fff3e4] text-[#94602a] hover:bg-[#fbe7cf]'}`}
+                  ? 'border-[#8fc8bd] bg-[#d8eee9] text-[#246b63] hover:bg-[#c8e5df]'
+                  : 'border-[#d8a875] bg-[#f6dfc2] text-[#7d4b21] hover:bg-[#efd0aa]'}`}
               >
                 {active.blockedAt ? 'Unblock' : 'Block'}
               </button>
@@ -381,7 +388,7 @@ export function ChatPanel({ organizationId, userId, initialConversationId, cours
                 type="button"
                 disabled={actionLoading}
                 onClick={() => void updateConversation('delete')}
-                className="inline-flex items-center rounded-xl border border-[#e5b8b0] bg-[#fff0ed] px-3 py-2 text-xs font-semibold text-[#a34f3d] transition-colors hover:bg-[#fbe0dc] disabled:opacity-50"
+                className="inline-flex items-center rounded-xl border border-[#d99a8f] bg-[#f6dcd7] px-3 py-2 text-xs font-semibold text-[#963f32] transition-colors hover:bg-[#edc5bf] disabled:opacity-50"
               >
                 Delete
               </button>
@@ -412,26 +419,33 @@ export function ChatPanel({ organizationId, userId, initialConversationId, cours
                       <div className={`max-w-[68%] ${isOutgoing ? 'items-end' : 'items-start'} flex flex-col`}>
                         <div className="group relative">
                           <div className={`rounded-[20px] px-4 py-2 text-[15px] leading-6 shadow-sm ${isOutgoing ? 'rounded-br-md bg-[#f0dfc8] text-neutral-900' : 'rounded-bl-md bg-[#f2f2f2] text-neutral-900'}`}>
-                          <p className={message.deletedAt ? 'italic opacity-70' : undefined}>{message.deletedAt ? 'This message was deleted' : message.content}</p>
+                          <p className={`${message.deletedAt ? 'italic opacity-70' : ''} ${!message.deletedAt ? 'pr-5' : ''}`}>{message.deletedAt ? 'This message was deleted' : message.content}</p>
                           {!message.deletedAt && (
-                            <div className={`absolute top-1/2 -translate-y-1/2 opacity-0 transition-opacity group-hover:opacity-100 ${isOutgoing ? '-left-8' : '-right-8'}`}>
+                            <div className="absolute right-2 top-2 opacity-0 transition-opacity group-hover:opacity-100">
                               <button
                                 type="button"
                                 aria-label="Message actions"
                                 aria-expanded={openMessageMenuId === message.id}
                                 onClick={() => setOpenMessageMenuId((current) => current === message.id ? null : message.id)}
-                                className="flex h-7 w-7 items-center justify-center rounded-full bg-white text-sm text-neutral-500 shadow-sm ring-1 ring-[#e4ddd6] hover:text-neutral-800"
+                                className="flex h-6 w-6 items-center justify-center rounded-md text-base font-semibold leading-none text-neutral-500 hover:bg-black/10 hover:text-neutral-800"
                               >
                                 ▾
                               </button>
                               {openMessageMenuId === message.id && (
-                                <div className={`absolute top-8 z-20 w-28 rounded-lg border border-[#e4ddd6] bg-white p-1 text-left text-xs shadow-lg ${isOutgoing ? 'right-0' : 'left-0'}`}>
+                                <div className="absolute right-0 top-7 z-20 w-28 rounded-lg border border-[#e4ddd6] bg-white p-1 text-left text-xs shadow-lg">
                                   <button
                                     type="button"
                                     onClick={() => { setReplyTo(message); setOpenMessageMenuId(null); }}
                                     className="block w-full rounded px-2 py-2 text-left text-neutral-700 hover:bg-[#f5eee8]"
                                   >
                                     Reply
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => void copyMessage(message)}
+                                    className="block w-full rounded px-2 py-2 text-left text-neutral-700 hover:bg-[#f5eee8]"
+                                  >
+                                    Copy
                                   </button>
                                   {isOutgoing && (
                                     <button
