@@ -38,10 +38,11 @@ export async function open(orgId: string, courseId: string, userId: string, role
 
 export async function list(orgId: string, userId: string, role?: string) {
   const conversations = await repo.listConversations(orgId, userId, role === 'ORG_ADMIN');
-  return Promise.all(conversations.map(async (conversation) => ({
+  const unreadCounts = await repo.countUnreadByConversation(conversations.map((conversation) => conversation.id), userId);
+  return conversations.map((conversation) => ({
     ...conversation,
-    unreadCount: await repo.countUnread(conversation.id, userId),
-  })));
+    unreadCount: unreadCounts.get(conversation.id) ?? 0,
+  }));
 }
 
 async function participant(orgId: string | undefined, id: string, userId: string, role?: string) {
@@ -74,12 +75,16 @@ async function participant(orgId: string | undefined, id: string, userId: string
 }
 
 export async function authorizeSocketConversation(id: string, userId: string) {
-  const membership = await getPrisma().userOrganization.findFirst({
-    where: { userId, status: 'ACTIVE' },
-    select: { role: true },
-  });
-  const conversation = await participant(undefined, id, userId, membership?.role);
-  return conversation.organizationId;
+  const conversation = await repo.findConversation(id);
+  if (!conversation) throw new Error('CONVERSATION_NOT_FOUND');
+  // Socket authentication has no organization context. Resolve participant
+  // access from the conversation first instead of trusting a role from an
+  // unrelated organization membership.
+  const conversationRole = conversation.studentId === userId || conversation.instructorId === userId
+    ? undefined
+    : 'ORG_ADMIN';
+  const authorizedConversation = await participant(undefined, id, userId, conversationRole);
+  return authorizedConversation.organizationId;
 }
 export async function conversationParticipants(id: string) {
   const conversation = await repo.findConversation(id);

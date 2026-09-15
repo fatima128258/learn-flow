@@ -9,6 +9,7 @@ export type ConversationChange = {
 };
 
 export type MessageChange =
+  | { type: 'created'; conversationId: string; organizationId: string; message: { id: string; conversationId: string; senderId: string; content: string; readAt: Date | null; deletedAt: Date | null; createdAt: Date; updatedAt: Date } }
   | { type: 'deleted'; conversationId: string; organizationId: string; messageId: string }
   | { type: 'read'; conversationId: string; organizationId: string; messageIds: string[]; readerId: string };
 

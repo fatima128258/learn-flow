@@ -90,7 +90,11 @@ export function initializeChatSocket(httpServer: HttpServer) {
         const messageIds = await chatService.read(organizationId, conversationId, userId);
         const unreadCount = await chatService.unreadCount(organizationId, conversationId, userId);
         io.to(`user:${userId}`).emit('chat:unread', { conversationId, unreadCount });
-        io.to(`conversation:${conversationId}`).emit('conversation:read', { userId, messageIds });
+        io.to(`conversation:${conversationId}`).emit('conversation:read', {
+          conversationId,
+          userId,
+          messageIds,
+        });
       } catch { /* REST remains authoritative */ }
     });
   });
@@ -98,37 +102,44 @@ export function initializeChatSocket(httpServer: HttpServer) {
     io.to(`conversation:${change.conversationId}`).emit(`conversation:${change.type}`, {
       conversationId: change.conversationId,
     });
-    chatEvents.on('messages:change', (change: MessageChange) => {
-      if (change.type === 'deleted') {
-        io.to(`conversation:${change.conversationId}`).emit('message:deleted', {
-          conversationId: change.conversationId,
-          messageId: change.messageId,
-        });
-        return;
-      }
-      io.to(`conversation:${change.conversationId}`).emit('conversation:read', {
-        conversationId: change.conversationId,
-        messageIds: change.messageIds,
-      });
-      void chatService.totalUnread(change.organizationId, change.readerId)
-        .then((unreadCount) => {
-          io.to(`user:${change.readerId}`).emit('chat:unread', {
-            conversationId: change.conversationId,
-            unreadCount,
-          });
-        })
-        .catch(() => {
-          // The read transaction remains authoritative if badge delivery is delayed.
-        });
-    });
     const recipientIds = [change.studentId, change.instructorId];
     for (const userId of recipientIds) {
       io.to(`user:${userId}`).emit(`conversation:${change.type}`, {
         conversationId: change.conversationId,
       });
-      const unreadCount = await chatService.totalUnread(change.organizationId, userId);
+      const unreadCount = change.type === 'deleted'
+        ? 0
+        : await chatService.unreadCount(change.organizationId, change.conversationId, userId);
       io.to(`user:${userId}`).emit('chat:unread', { conversationId: change.conversationId, unreadCount });
     }
+  });
+  chatEvents.on('messages:change', (change: MessageChange) => {
+    if (change.type === 'created') {
+      io.to(`conversation:${change.conversationId}`).emit('message:new', change.message);
+      return;
+    }
+    if (change.type === 'deleted') {
+      io.to(`conversation:${change.conversationId}`).emit('message:deleted', {
+        conversationId: change.conversationId,
+        messageId: change.messageId,
+      });
+      return;
+    }
+    io.to(`conversation:${change.conversationId}`).emit('conversation:read', {
+      conversationId: change.conversationId,
+      userId: change.readerId,
+      messageIds: change.messageIds,
+    });
+    void chatService.unreadCount(change.organizationId, change.conversationId, change.readerId)
+      .then((unreadCount) => {
+        io.to(`user:${change.readerId}`).emit('chat:unread', {
+          conversationId: change.conversationId,
+          unreadCount,
+        });
+      })
+      .catch(() => {
+        // The read transaction remains authoritative if badge delivery is delayed.
+      });
   });
   return io;
 }

@@ -245,8 +245,6 @@ export function ChatPanel({ organizationId, userId, initialConversationId, cours
     finally { setActionLoading(false); }
   }
 
-  if (loading) return <div className="rounded-2xl border border-neutral-200 bg-white p-8 text-neutral-600">Loading chat...</div>;
-
   return (
     <div className="flex h-[calc(100dvh-8rem)] min-h-0 overflow-hidden rounded-2xl border border-neutral-200 bg-white shadow-sm">
       <aside className={`${active ? 'hidden md:flex' : 'flex'} min-h-0 w-full flex-col border-r border-neutral-200 md:w-80`}>
@@ -255,7 +253,8 @@ export function ChatPanel({ organizationId, userId, initialConversationId, cours
           <input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search conversations" className="mt-3 w-full rounded-lg border border-neutral-200 px-3 py-2 text-sm outline-none focus:border-primary-500" />
         </div>
         <div className="flex-1 overflow-y-auto">
-          {filtered.length === 0 ? <p className="p-6 text-sm text-neutral-500">No conversations yet.</p> : filtered.map((conversation) => (
+          {loading ? <p className="p-6 text-sm text-neutral-500">Loading conversations...</p>
+            : filtered.length === 0 ? <p className="p-6 text-sm text-neutral-500">No conversations yet.</p> : filtered.map((conversation) => (
             <button key={conversation.id} type="button" onClick={() => void selectConversation(conversation.id)} className={`w-full border-b border-neutral-100 p-4 text-left hover:bg-primary-50 ${conversation.id === activeId ? 'bg-primary-50' : ''}`}>
               <div className="flex items-center justify-between gap-3">
                 <p className="min-w-0 truncate font-semibold text-neutral-900">{participant(conversation, userId)}</p>
@@ -278,7 +277,7 @@ export function ChatPanel({ organizationId, userId, initialConversationId, cours
         </div>
       </aside>
       <section className={`${active ? 'flex' : 'hidden md:flex'} min-h-0 min-w-0 flex-1 flex-col`}>
-        {active ? <>
+        {loading ? <div className="m-auto text-sm text-neutral-500">Loading chat...</div> : active ? <>
           <header className="flex items-center justify-between border-b border-neutral-200 p-4">
             <div>
               <button type="button" onClick={() => setActiveId('')} className="mr-3 text-sm text-primary-700 md:hidden">← Conversations</button>

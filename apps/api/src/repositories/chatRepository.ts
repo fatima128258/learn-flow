@@ -18,6 +18,20 @@ export const listConversations = (organizationId: string, userId: string, organi
 });
 export const countUnread = (conversationId: string, userId: string) =>
   db().message.count({ where: { conversationId, senderId: { not: userId }, readAt: null, deletedAt: null } });
+export async function countUnreadByConversation(conversationIds: string[], userId: string) {
+  if (conversationIds.length === 0) return new Map<string, number>();
+  const rows = await db().message.groupBy({
+    by: ['conversationId'],
+    where: {
+      conversationId: { in: conversationIds },
+      senderId: { not: userId },
+      readAt: null,
+      deletedAt: null,
+    },
+    _count: { _all: true },
+  });
+  return new Map(rows.map((row) => [row.conversationId, row._count._all]));
+}
 export const countUnreadForUser = (organizationId: string, userId: string) =>
   db().message.count({
     where: {

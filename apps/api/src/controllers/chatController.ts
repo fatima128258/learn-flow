@@ -11,7 +11,18 @@ const error = (res: Response, e: unknown) => {
 export async function open(req: AuthenticatedRequest, res: Response) { try { return res.status(200).json({ success: true, data: await service.open(req.params.organizationId, req.params.courseId, req.user!.id, req.user!.role, req.body?.studentId) }); } catch (e) { return error(res, e); } }
 export async function list(req: AuthenticatedRequest, res: Response) { try { return res.json({ success: true, data: await service.list(req.params.organizationId, req.user!.id, req.user!.role) }); } catch (e) { return error(res, e); } }
 export async function messages(req: AuthenticatedRequest, res: Response) { try { return res.json({ success: true, data: await service.messages(req.params.organizationId, req.params.conversationId, req.user!.id, Number(req.query.limit) || 50, typeof req.query.cursor === 'string' ? req.query.cursor : undefined, req.user!.role) }); } catch (e) { return error(res, e); } }
-export async function send(req: AuthenticatedRequest, res: Response) { try { return res.status(201).json({ success: true, data: await service.send(req.params.organizationId, req.params.conversationId, req.user!.id, req.body?.content, req.user!.role) }); } catch (e) { return error(res, e); } }
+export async function send(req: AuthenticatedRequest, res: Response) {
+  try {
+    const message = await service.send(req.params.organizationId, req.params.conversationId, req.user!.id, req.body?.content, req.user!.role);
+    chatEvents.emit('messages:change', {
+      type: 'created',
+      conversationId: req.params.conversationId,
+      organizationId: req.params.organizationId,
+      message,
+    });
+    return res.status(201).json({ success: true, data: message });
+  } catch (e) { return error(res, e); }
+}
 export async function read(req: AuthenticatedRequest, res: Response) {
   try {
     const messageIds = await service.read(req.params.organizationId, req.params.conversationId, req.user!.id, req.user!.role);
