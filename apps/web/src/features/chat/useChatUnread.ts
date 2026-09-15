@@ -14,22 +14,30 @@ export function useChatUnread(organizationId?: string, userId?: string) {
   useEffect(() => {
     if (!organizationId || !userId) return;
     let cancelled = false;
-    getJson<ChatListResponse>(`/api/v1/organizations/${organizationId}/conversations`)
-      .then((response) => {
-        if (cancelled) return;
-        setCounts(Object.fromEntries(response.data.map((conversation) => [
-          conversation.id,
-          conversation.unreadCount ?? 0,
-        ])));
-      })
-      .catch(() => {
-        if (!cancelled) setCounts({});
-      });
+    let socketEventVersion = 0;
+    const requestVersion = socketEventVersion;
+    const applyServerCounts = (response: ChatListResponse) => {
+      if (cancelled || requestVersion !== socketEventVersion) return;
+      setCounts(Object.fromEntries(response.data.map((conversation) => [
+        conversation.id,
+        conversation.unreadCount ?? 0,
+      ])));
+    };
 
     const socket = io(socketUrl, { withCredentials: true, transports: ['websocket', 'polling'] });
     socket.on('chat:unread', (event: { conversationId: string; unreadCount: number }) => {
+      socketEventVersion += 1;
       setCounts((current) => ({ ...current, [event.conversationId]: event.unreadCount }));
     });
+
+    getJson<ChatListResponse>(`/api/v1/organizations/${organizationId}/conversations`)
+      .then((response) => {
+        applyServerCounts(response);
+      })
+      .catch(() => {
+        // Preserve any server-backed socket state already received.
+      });
+
     return () => {
       cancelled = true;
       socket.disconnect();

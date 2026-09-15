@@ -3,6 +3,7 @@ import { Server } from 'socket.io';
 import * as authService from './services/authService';
 import * as chatService from './services/chatService';
 import { isAllowedOrigin } from './config/origins';
+import { chatEvents, type ConversationChange, type MessageChange } from './chatEvents';
 
 const cookieValue = (header: string | undefined, name: string) => {
   const match = header?.split(';').map((part) => part.trim()).find((part) => part.startsWith(`${name}=`));
@@ -69,23 +70,65 @@ export function initializeChatSocket(httpServer: HttpServer) {
         io.to(`conversation:${payload.conversationId}`).emit('message:new', message);
         const participants = await chatService.conversationParticipants(payload.conversationId);
         const recipientId = participants.studentId === userId ? participants.instructorId : participants.studentId;
-        const unreadCount = await chatService.unreadCount(organizationId, payload.conversationId, recipientId);
-        io.to(`user:${recipientId}`).emit('chat:unread', {
-          conversationId: payload.conversationId,
-          unreadCount,
-        });
         ack?.({ success: true, data: message });
+        void chatService.unreadCount(organizationId, payload.conversationId, recipientId)
+          .then((unreadCount) => {
+            io.to(`user:${recipientId}`).emit('chat:unread', {
+              conversationId: payload.conversationId,
+              unreadCount,
+            });
+          })
+          .catch(() => {
+            // The persisted message and delivery acknowledgement are independent
+            // from the optional unread-badge update.
+          });
       } catch (e) { ack?.({ success: false, error: e instanceof Error ? e.message : 'SERVER_ERROR' }); }
     });
     socket.on('conversation:read', async (conversationId: string) => {
       try {
         const organizationId = await chatService.authorizeSocketConversation(conversationId, userId);
-        await chatService.read(organizationId, conversationId, userId);
+        const messageIds = await chatService.read(organizationId, conversationId, userId);
         const unreadCount = await chatService.unreadCount(organizationId, conversationId, userId);
         io.to(`user:${userId}`).emit('chat:unread', { conversationId, unreadCount });
-        io.to(`conversation:${conversationId}`).emit('conversation:read', { userId });
+        io.to(`conversation:${conversationId}`).emit('conversation:read', { userId, messageIds });
       } catch { /* REST remains authoritative */ }
     });
+  });
+  chatEvents.on('conversation:change', async (change: ConversationChange) => {
+    io.to(`conversation:${change.conversationId}`).emit(`conversation:${change.type}`, {
+      conversationId: change.conversationId,
+    });
+    chatEvents.on('messages:change', (change: MessageChange) => {
+      if (change.type === 'deleted') {
+        io.to(`conversation:${change.conversationId}`).emit('message:deleted', {
+          conversationId: change.conversationId,
+          messageId: change.messageId,
+        });
+        return;
+      }
+      io.to(`conversation:${change.conversationId}`).emit('conversation:read', {
+        conversationId: change.conversationId,
+        messageIds: change.messageIds,
+      });
+      void chatService.totalUnread(change.organizationId, change.readerId)
+        .then((unreadCount) => {
+          io.to(`user:${change.readerId}`).emit('chat:unread', {
+            conversationId: change.conversationId,
+            unreadCount,
+          });
+        })
+        .catch(() => {
+          // The read transaction remains authoritative if badge delivery is delayed.
+        });
+    });
+    const recipientIds = [change.studentId, change.instructorId];
+    for (const userId of recipientIds) {
+      io.to(`user:${userId}`).emit(`conversation:${change.type}`, {
+        conversationId: change.conversationId,
+      });
+      const unreadCount = await chatService.totalUnread(change.organizationId, userId);
+      io.to(`user:${userId}`).emit('chat:unread', { conversationId: change.conversationId, unreadCount });
+    }
   });
   return io;
 }

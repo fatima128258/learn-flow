@@ -45,6 +45,7 @@ export function ChatPanel({ organizationId, userId, initialConversationId, cours
   const [sending, setSending] = useState(false);
   const [connected, setConnected] = useState(false);
   const [participantOnline, setParticipantOnline] = useState(false);
+  const [deliveredMessageIds, setDeliveredMessageIds] = useState<Set<string>>(new Set());
   const [error, setError] = useState<string | null>(null);
   const [actionLoading, setActionLoading] = useState(false);
   const socketRef = useRef<Socket | null>(null);
@@ -70,6 +71,7 @@ export function ChatPanel({ organizationId, userId, initialConversationId, cours
       apiPath(organizationId, `/conversations/${conversationId}/messages?limit=50`),
     );
     setMessages([...response.data.messages].reverse());
+    setDeliveredMessageIds(new Set(response.data.messages.map((message) => message.id)));
     await postJson(apiPath(organizationId, `/conversations/${conversationId}/read`), undefined);
     socketRef.current?.emit('conversation:read', conversationId);
     setConversations((current) => current.map((conversation) =>
@@ -136,6 +138,39 @@ export function ChatPanel({ organizationId, userId, initialConversationId, cours
           : conversation,
       ));
     });
+    socket.on('conversation:blocked', (event: { conversationId: string }) => {
+      setConversations((current) => current.map((conversation) =>
+        conversation.id === event.conversationId
+          ? { ...conversation, blockedAt: new Date().toISOString() }
+          : conversation,
+      ));
+    });
+    socket.on('conversation:unblocked', (event: { conversationId: string }) => {
+      setConversations((current) => current.map((conversation) =>
+        conversation.id === event.conversationId
+          ? { ...conversation, blockedAt: null, blockedById: null }
+          : conversation,
+      ));
+    });
+    socket.on('conversation:deleted', (event: { conversationId: string }) => {
+      setConversations((current) => current.filter((conversation) => conversation.id !== event.conversationId));
+      if (activeIdRef.current === event.conversationId) {
+        setActiveId('');
+        setMessages([]);
+      }
+    });
+    socket.on('message:deleted', (event: { conversationId: string; messageId: string }) => {
+      if (event.conversationId !== activeIdRef.current) return;
+      setMessages((current) => current.map((message) => message.id === event.messageId
+        ? { ...message, content: '[deleted]', deletedAt: new Date().toISOString() }
+        : message));
+    });
+    socket.on('conversation:read', (event: { conversationId: string; messageIds: string[] }) => {
+      if (event.conversationId !== activeIdRef.current) return;
+      setMessages((current) => current.map((message) => event.messageIds.includes(message.id)
+        ? { ...message, readAt: new Date().toISOString() }
+        : message));
+    });
     socket.on('message:new', (message: ChatMessage) => {
       if (message.conversationId === activeIdRef.current) {
         setMessages((current) => current.some((item) => item.id === message.id) ? current : [...current, message]);
@@ -144,6 +179,7 @@ export function ChatPanel({ organizationId, userId, initialConversationId, cours
         ? { ...conversation, updatedAt: message.createdAt, messages: [message] }
         : conversation));
       if (message.conversationId === activeIdRef.current) {
+        setDeliveredMessageIds((current) => new Set(current).add(message.id));
         socket.emit('conversation:read', message.conversationId);
       }
     });
@@ -168,7 +204,7 @@ export function ChatPanel({ organizationId, userId, initialConversationId, cours
         await new Promise<void>((resolve, reject) => {
           socketRef.current?.emit('message:send', { conversationId: active.id, content }, (result: { success: boolean; data?: ChatMessage; error?: string }) => {
             if (!result.success || !result.data) reject(new Error(result.error || 'MESSAGE_FAILED'));
-            else { setMessages((current) => current.some((item) => item.id === result.data!.id) ? current : [...current, result.data!]); resolve(); }
+            else { setMessages((current) => current.some((item) => item.id === result.data!.id) ? current : [...current, result.data!]); setDeliveredMessageIds((current) => new Set(current).add(result.data!.id)); resolve(); }
           });
         });
       } else {
@@ -272,7 +308,7 @@ export function ChatPanel({ organizationId, userId, initialConversationId, cours
             </div>
           </header>
           <div className="flex-1 space-y-3 overflow-y-auto bg-neutral-50 p-4">
-            {messages.map((message) => <div key={message.id} className={`group flex ${message.senderId === userId ? 'justify-end' : 'justify-start'}`}><div className={`max-w-[80%] rounded-2xl px-4 py-2 text-sm ${message.senderId === userId ? 'bg-primary-700 text-white' : 'bg-white text-neutral-800 shadow-sm'}`}><p>{message.content}</p><div className="mt-1 flex items-center justify-between gap-3 text-[10px] opacity-70"><span>{formatTime(message.createdAt)}</span>{message.senderId === userId && !message.deletedAt && <button type="button" onClick={() => void deleteMessage(message.id)}>Delete</button>}</div></div></div>)}
+            {messages.map((message) => <div key={message.id} className={`group flex ${message.senderId === userId ? 'justify-end' : 'justify-start'}`}><div className={`max-w-[80%] rounded-2xl px-4 py-2 text-sm ${message.senderId === userId ? 'bg-primary-700 text-white' : 'bg-white text-neutral-800 shadow-sm'}`}><p className={message.deletedAt ? 'italic opacity-70' : undefined}>{message.deletedAt ? 'This message was deleted' : message.content}</p><div className="mt-1 flex items-center justify-between gap-3 text-[10px] opacity-70"><span>{formatTime(message.createdAt)}</span>{message.senderId === userId && !message.deletedAt && <><span className={message.readAt ? 'text-sky-300' : 'text-white'}>{deliveredMessageIds.has(message.id) ? '✓✓' : '✓'}</span><button type="button" onClick={() => void deleteMessage(message.id)}>Delete</button></>}</div></div></div>)}
             {messages.length === 0 && <p className="m-auto text-sm text-neutral-500">Start the conversation.</p>}
           </div>
           {error && <p className="border-t border-neutral-200 px-4 py-2 text-sm text-red-600">{error}</p>}

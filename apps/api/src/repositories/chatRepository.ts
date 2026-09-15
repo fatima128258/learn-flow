@@ -18,6 +18,19 @@ export const listConversations = (organizationId: string, userId: string, organi
 });
 export const countUnread = (conversationId: string, userId: string) =>
   db().message.count({ where: { conversationId, senderId: { not: userId }, readAt: null, deletedAt: null } });
+export const countUnreadForUser = (organizationId: string, userId: string) =>
+  db().message.count({
+    where: {
+      senderId: { not: userId },
+      readAt: null,
+      deletedAt: null,
+      conversation: {
+        organizationId,
+        deletedAt: null,
+        OR: [{ studentId: userId }, { instructorId: userId }],
+      },
+    },
+  });
 export const listMessages = (conversationId: string, take: number, cursor?: string) => db().message.findMany({
   where: { conversationId },
   orderBy: { createdAt: 'desc' },
@@ -30,13 +43,27 @@ export const createMessage = (conversationId: string, senderId: string, content:
     await tx.conversation.update({ where: { id: conversationId }, data: { updatedAt: new Date() } });
     return message;
   });
-export const markRead = (conversationId: string, userId: string) =>
-  db().message.updateMany({ where: { conversationId, senderId: { not: userId }, readAt: null, deletedAt: null }, data: { readAt: new Date() } });
+export async function markRead(conversationId: string, userId: string) {
+  const unread = await db().message.findMany({
+    where: { conversationId, senderId: { not: userId }, readAt: null, deletedAt: null },
+    select: { id: true },
+  });
+  if (unread.length > 0) {
+    await db().message.updateMany({
+      where: { id: { in: unread.map((message) => message.id) } },
+      data: { readAt: new Date() },
+    });
+  }
+  return unread.map((message) => message.id);
+}
 export const blockConversation = (id: string, organizationId: string, userId: string) =>
   db().conversation.updateMany({ where: { id, organizationId, deletedAt: null, OR: [{ studentId: userId }, { instructorId: userId }] }, data: { blockedAt: new Date(), blockedById: userId } });
 export const unblockConversation = (id: string, organizationId: string, userId: string) =>
   db().conversation.updateMany({ where: { id, organizationId, deletedAt: null, OR: [{ studentId: userId }, { instructorId: userId }] }, data: { blockedAt: null, blockedById: null } });
 export const deleteConversation = (id: string, organizationId: string, userId: string) =>
   db().conversation.updateMany({ where: { id, organizationId, deletedAt: null, OR: [{ studentId: userId }, { instructorId: userId }] }, data: { deletedAt: new Date() } });
-export const deleteMessage = (id: string, organizationId: string, senderId: string) =>
-  db().message.updateMany({ where: { id, senderId, deletedAt: null, conversation: { organizationId, deletedAt: null } }, data: { deletedAt: new Date(), content: '[deleted]' } });
+export const deleteMessage = (id: string, organizationId: string, conversationId: string, senderId: string) =>
+  db().message.updateMany({
+    where: { id, conversationId, senderId, deletedAt: null, conversation: { organizationId, deletedAt: null } },
+    data: { deletedAt: new Date(), content: '[deleted]' },
+  });

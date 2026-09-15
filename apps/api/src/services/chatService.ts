@@ -90,6 +90,9 @@ export async function unreadCount(orgId: string, id: string, userId: string, rol
   await participant(orgId, id, userId, role);
   return repo.countUnread(id, userId);
 }
+export async function totalUnread(orgId: string, userId: string) {
+  return repo.countUnreadForUser(orgId, userId);
+}
 export async function messages(orgId: string | undefined, id: string, userId: string, limit = 50, cursor?: string, role?: string) {
   await participant(orgId, id, userId, role);
   const rows = await repo.listMessages(id, Math.min(Math.max(limit, 1), 100), cursor);
@@ -106,4 +109,7 @@ export async function read(orgId: string | undefined, id: string, userId: string
 export async function block(orgId: string, id: string, userId: string, role?: string) { await participant(orgId, id, userId, role); return repo.blockConversation(id, orgId, userId); }
 export async function unblock(orgId: string, id: string, userId: string, role?: string) { await participant(orgId, id, userId, role); return repo.unblockConversation(id, orgId, userId); }
 export async function removeConversation(orgId: string, id: string, userId: string, role?: string) { await participant(orgId, id, userId, role); return repo.deleteConversation(id, orgId, userId); }
-export async function removeMessage(orgId: string, id: string, userId: string) { return repo.deleteMessage(id, orgId, userId); }
+export async function removeMessage(orgId: string, conversationId: string, messageId: string, userId: string, role?: string) {
+  await participant(orgId, conversationId, userId, role);
+  return repo.deleteMessage(messageId, orgId, conversationId, userId);
+}
