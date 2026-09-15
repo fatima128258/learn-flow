@@ -210,7 +210,7 @@ export default function StudentCourseOverviewPage() {
         <>
           <div className="mb-8 overflow-hidden rounded-2xl border border-neutral-200 bg-white shadow-sm">
             <div className="p-6">
-              <h1 className="text-3xl font-bold text-neutral-900">Playlist: {course.title}</h1>
+              <h1 className="text-3xl font-semibold text-neutral-900">Playlist: {course.title}</h1>
 
               <div className="mt-6">
                 <h2 className="text-sm font-bold uppercase tracking-wide text-neutral-900">Description</h2>
@@ -273,7 +273,7 @@ export default function StudentCourseOverviewPage() {
       ) : null}
       {showCheckout && course && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
+          className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 p-4"
           role="dialog"
           aria-modal="true"
           aria-labelledby="checkout-title"
@@ -288,7 +288,7 @@ export default function StudentCourseOverviewPage() {
             <div className="flex items-start justify-between border-b border-neutral-200 p-6">
               <div>
                 <p className="text-sm font-medium uppercase tracking-wide text-primary-600">Checkout</p>
-                <h2 id="checkout-title" className="mt-1 text-2xl font-bold text-neutral-900">Complete your enrollment</h2>
+                <h2 id="checkout-title" className="mt-1 text-2xl font-semibold text-neutral-900">Complete your enrollment</h2>
               </div>
               <button
                 type="button"

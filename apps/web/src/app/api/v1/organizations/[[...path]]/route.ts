@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 const TRANSIENT_STATUSES = new Set([502, 503, 504]);
 const BACKEND_TIMEOUT_MS = 20000;
 const ADMIN_ASSIGN_TIMEOUT_MS = 60000;
+const COURSE_STATUS_TIMEOUT_MS = 60000;
 
 function wait(milliseconds: number) {
   return new Promise((resolve) => setTimeout(resolve, milliseconds));
@@ -18,7 +19,10 @@ async function proxyRequest(
   const cookie = req.headers.get('cookie') || '';
   const retryableProgressRequest = method === 'POST' && path.endsWith('/progress');
   const retryableAdminAssignment = method === 'POST' && path.endsWith('/admins');
-  const backendTimeoutMs = retryableAdminAssignment ? ADMIN_ASSIGN_TIMEOUT_MS : BACKEND_TIMEOUT_MS;
+  const courseStatusRequest = method === 'PATCH' && /\/courses\/[^/]+\/status$/.test(path);
+  const backendTimeoutMs = courseStatusRequest || retryableAdminAssignment
+    ? COURSE_STATUS_TIMEOUT_MS
+    : BACKEND_TIMEOUT_MS;
   
   // Preserve query parameters
   const url = new URL(req.url);

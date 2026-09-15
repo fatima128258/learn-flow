@@ -7,6 +7,9 @@ const ERROR_MESSAGES: Record<string, string> = {
   COURSE_NOT_FOUND: 'This course was not found in your organization.',
   INVALID_STATUS: 'The selected status is not valid.',
   MISSING_FIELDS: 'Status is required.',
+  BACKEND_TIMEOUT: 'The server is waking up and did not respond in time. Please refresh the page before trying again; the status may already have been updated.',
+  BACKEND_UNAVAILABLE: 'The course service is temporarily unavailable. Please try again shortly.',
+  PROXY_ERROR: 'The course service is temporarily unavailable. Please try again shortly.',
 };
 
 export function getCourseStatusErrorMessage(code?: unknown): string {
