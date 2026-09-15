@@ -1,13 +1,7 @@
 import { Request, Response } from 'express';
 import * as service from '../services/authService';
 import { AuthenticatedRequest } from '../middleware/auth';
-
-// Temporary inline validation functions until package is properly built
-function isValidEmail(email: string) {
-  if (typeof email !== 'string') return false;
-  const re = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
-  return re.test(email);
-}
+import { isValidEmail } from '../utils/validation';
 
 function isValidPassword(password: string) {
   if (typeof password !== 'string') return false;
@@ -108,12 +102,14 @@ export async function login(req: Request, res: Response) {
   try {
     const { email, password } = req.body;
     if (!email || !password) return res.status(400).json({ error: 'MISSING_FIELDS' });
+    if (!isValidEmail(email)) return res.status(400).json({ error: 'INVALID_EMAIL' });
     const { user, token, expiresAt } = await service.loginUser({ email, password, ip: getClientIp(req) });
     
     setSessionCookie(res, token, expiresAt);
     return res.json({ user: userDto(user) });
   } catch (err) {
     const message = err instanceof Error ? err.message : undefined;
+    if (message === 'INVALID_EMAIL') return res.status(400).json({ error: 'INVALID_EMAIL' });
     if (message === 'INVALID_CREDENTIALS') return res.status(401).json({ error: 'INVALID_CREDENTIALS' });
     if (message === 'ACCOUNT_SUSPENDED') return res.status(403).json({ error: 'ACCOUNT_SUSPENDED' });
     if (message === 'TOO_MANY_ATTEMPTS') return res.status(429).json({ error: 'TOO_MANY_ATTEMPTS' });

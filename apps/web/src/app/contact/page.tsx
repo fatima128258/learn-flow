@@ -8,6 +8,7 @@ import { Input } from '../../components/ui/Input';
 import { Textarea } from '../../components/forms/Textarea';
 import { FormField } from '../../components/forms/FormField';
 import { useToast } from '../../components/ui/ToastProvider';
+import { isValidEmail } from '../../lib/validation';
 
 interface ContactFormState {
   name: string;
@@ -76,7 +77,7 @@ export default function ContactPage() {
     const next: Partial<Record<keyof ContactFormState, string>> = {};
     if (!form.name.trim()) next.name = 'Please enter your name';
     if (!form.email.trim()) next.email = 'Please enter your email';
-    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email))
+    else if (!isValidEmail(form.email))
       next.email = 'Please enter a valid email address';
     if (!form.subject.trim()) next.subject = 'Please enter a subject';
     if (!form.message.trim()) next.message = 'Please enter a message';

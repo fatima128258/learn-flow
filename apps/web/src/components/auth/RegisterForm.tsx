@@ -5,6 +5,7 @@ import { PasswordInput } from '../forms/PasswordInput';
 import { SubmitButton } from '../forms/SubmitButton';
 import { Stack } from '../ui/layout/Stack';
 import { useToast } from '../ui/ToastProvider';
+import { isValidEmail, normalizeEmail } from '../../lib/validation';
 
 export interface RegisterFormProps {
   onSubmit: (data: RegisterFormData) => Promise<void>;
@@ -17,8 +18,6 @@ export interface RegisterFormData {
   password: string;
   confirmPassword: string;
 }
-
-const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 export const RegisterForm: React.FC<RegisterFormProps> = ({
   onSubmit,
@@ -51,11 +50,12 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
       return 'Name must be at least 2 characters';
     }
 
-    if (!email) {
+    const normalizedEmail = normalizeEmail(email);
+    if (!normalizedEmail) {
       setEmailError('Email is required');
       return 'Email is required';
     }
-    if (!EMAIL_RE.test(email)) {
+    if (!isValidEmail(email)) {
       setEmailError('Please enter a valid email address');
       return 'Please enter a valid email address';
     }
@@ -95,7 +95,7 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
 
     setLoading(true);
     try {
-      await onSubmit({ name, email, password, confirmPassword });
+      await onSubmit({ name, email: normalizeEmail(email), password, confirmPassword });
     } catch {
       // API errors are surfaced by AuthSwitch via toast
     } finally {

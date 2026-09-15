@@ -9,9 +9,11 @@ import {
 } from '@/components/ui';
 import { useToast } from '@/components/ui/ToastProvider';
 import { useEnroll } from '@/features/student/useEnrollment';
+import { useCheckoutOrder, usePayOrder } from '@/features/student/useCourseStore';
 import { getPurchaseErrorMessage } from '@/features/student/courseErrors';
 import { useCurrentUser } from '@/features/auth/useCurrentUser';
 import { getCoursePricing } from '@/lib/coursePricing';
+import { currency } from '@/lib/types';
 
 type CourseOverview = {
   id: string;
@@ -64,9 +66,14 @@ export default function StudentCourseOverviewPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [organizationId, setOrganizationId] = useState<string | null>(null);
+  const [showCheckout, setShowCheckout] = useState(false);
+  const [order, setOrder] = useState<{ id: string; status: string; totalAmount: number } | null>(null);
+  const [paymentFailed, setPaymentFailed] = useState(false);
 
   // Use mutation hooks for enrollment operations
   const enrollMutation = useEnroll(organizationId || '', courseId || '');
+  const checkoutMutation = useCheckoutOrder(organizationId || '', courseId || '');
+  const paymentMutation = usePayOrder(organizationId || '', courseId || '', order?.id ?? null);
 
   // Check auth and set organizationId
   useEffect(() => {
@@ -126,7 +133,37 @@ export default function StudentCourseOverviewPage() {
 
   async function handlePurchase() {
     if (!organizationId || !courseId) return;
-    router.push(`/checkout/${courseId}`);
+    setPaymentFailed(false);
+    setOrder(null);
+    setShowCheckout(true);
+  }
+
+  function handleCheckout() {
+    checkoutMutation.mutate(undefined, {
+      onSuccess: (data) => {
+        if (data) setOrder({ id: data.id, status: data.status, totalAmount: data.totalAmount });
+      },
+      onError: (error) => {
+        const code = error instanceof Error ? error.message : null;
+        toast.error(getPurchaseErrorMessage(code));
+      },
+    });
+  }
+
+  function handlePayment() {
+    paymentMutation.mutate(undefined, {
+      onSuccess: () => {
+        setPaymentFailed(false);
+        setShowCheckout(false);
+        setCourse((previous) => previous ? { ...previous, isEnrolled: true } : previous);
+        toast.success('Payment successful. Your course is unlocked.');
+      },
+      onError: (error) => {
+        setPaymentFailed(true);
+        const code = error instanceof Error ? error.message : null;
+        toast.error(getPurchaseErrorMessage(code));
+      },
+    });
   }
 
   async function handleEnroll() {
@@ -234,6 +271,69 @@ export default function StudentCourseOverviewPage() {
 
         </>
       ) : null}
+      {showCheckout && course && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="checkout-title"
+          onClick={() => {
+            if (!checkoutMutation.isPending && !paymentMutation.isPending) setShowCheckout(false);
+          }}
+        >
+          <div
+            className="w-full max-w-2xl rounded-2xl border border-neutral-200 bg-white shadow-2xl"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className="flex items-start justify-between border-b border-neutral-200 p-6">
+              <div>
+                <p className="text-sm font-medium uppercase tracking-wide text-primary-600">Checkout</p>
+                <h2 id="checkout-title" className="mt-1 text-2xl font-bold text-neutral-900">Complete your enrollment</h2>
+              </div>
+              <button
+                type="button"
+                aria-label="Close checkout"
+                className="text-2xl text-neutral-400 hover:text-neutral-700"
+                disabled={checkoutMutation.isPending || paymentMutation.isPending}
+                onClick={() => setShowCheckout(false)}
+              >
+                x
+              </button>
+            </div>
+            <div className="space-y-4 p-6">
+              {paymentFailed && (
+                <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+                  <p className="font-semibold">Payment Failed</p>
+                  <p className="mt-1">Your course has not been unlocked. You can try again.</p>
+                </div>
+              )}
+              <div className="space-y-3">
+                <div className="flex justify-between gap-4"><span className="text-neutral-600">Course</span><span className="text-right font-medium text-neutral-900">{course.title}</span></div>
+                <div className="flex justify-between gap-4"><span className="text-neutral-600">Instructor</span><span className="text-right font-medium text-neutral-900">{course.instructor?.name || 'Instructor unavailable'}</span></div>
+                <div className="flex justify-between border-t border-neutral-200 pt-3"><span className="font-semibold text-neutral-900">Total</span><span className="text-xl font-bold text-neutral-900">{currency(order?.totalAmount ?? getCoursePricing(course.price, course.discountPrice).currentPrice ?? 0)}</span></div>
+              </div>
+              <div className="flex justify-end gap-3 pt-2">
+                <Button
+                  variant="outline"
+                  onClick={() => setShowCheckout(false)}
+                  disabled={checkoutMutation.isPending || paymentMutation.isPending}
+                >
+                  Cancel
+                </Button>
+                {!order ? (
+                  <Button onClick={handleCheckout} loading={checkoutMutation.isPending} loadingText="Preparing checkout...">
+                    Continue to checkout
+                  </Button>
+                ) : (
+                  <Button onClick={handlePayment} loading={paymentMutation.isPending} loadingText="Processing payment...">
+                    Pay {currency(order.totalAmount)}
+                  </Button>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

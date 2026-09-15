@@ -3,13 +3,7 @@ import { UserRole } from '@prisma/client';
 import * as orgRepo from '../repositories/organizationRepository';
 import * as orgAdminRepo from '../repositories/orgAdminRepository';
 import { dispatchNotification } from './notificationDispatcher';
-
-// Temporary inline validation functions
-function isValidEmail(email: string) {
-  if (typeof email !== 'string') return false;
-  const re = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
-  return re.test(email);
-}
+import { normalizeEmail } from '../utils/validation';
 
 function isValidPassword(password: string) {
   if (typeof password !== 'string') return false;
@@ -313,11 +307,10 @@ export async function createManagedUser(organizationId: string, input: {
   if (!input.email) {
     throw new Error('MISSING_FIELDS');
   }
-  if (!isValidEmail(input.email)) {
+  const email = normalizeEmail(input.email);
+  if (!email) {
     throw new Error('INVALID_EMAIL');
   }
-
-  const email = input.email.trim().toLowerCase();
   const organization = await orgRepo.findOrganizationById(organizationId);
   if (!organization) {
     throw new Error('ORGANIZATION_NOT_FOUND');

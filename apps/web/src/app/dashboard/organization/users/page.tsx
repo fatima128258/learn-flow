@@ -21,6 +21,7 @@ import { getOrgAdminErrorMessage } from '@/features/orgAdmin/orgAdminErrors';
 import { getCreateInstructorErrorMessage } from '@/features/orgAdmin/createInstructorError';
 import { PasswordInput } from '@/components/forms/PasswordInput';
 import { useToast } from '@/components/ui/ToastProvider';
+import { isValidEmail } from '@/lib/validation';
 import {
   TableCard,
   UserAvatar,
@@ -200,7 +201,7 @@ export default function OrgUsersPage() {
 
     const trimmedEmail = email.trim();
     let valid = true;
-    if (!trimmedEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmedEmail)) {
+    if (!isValidEmail(trimmedEmail)) {
       setEmailError('Please enter a valid email address');
       toast.error('Please enter a valid email address');
       valid = false;

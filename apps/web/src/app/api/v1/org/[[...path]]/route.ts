@@ -1,5 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 
+const TRANSIENT_STATUSES = new Set([502, 503, 504]);
+const BACKEND_TIMEOUT_MS = 30_000;
+
 export async function GET(
   request: NextRequest,
   context: { params: Promise<{ path?: string[] }> }
@@ -23,24 +26,56 @@ export async function GET(
     const queryString = url.searchParams.toString();
     const forwardUrl = `${backendUrl}/api/v1/org/${path}${queryString ? '?' + queryString : ''}`;
 
-    const response = await fetch(forwardUrl, {
-      method: 'GET',
-      headers: {
-        'Cookie': request.headers.get('cookie') || '',
-        'X-Organization-Id': request.headers.get('X-Organization-Id') || '',
-        'Content-Type': 'application/json',
-      },
-      credentials: 'include',
-    });
+    for (let attempt = 0; attempt < 3; attempt += 1) {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), BACKEND_TIMEOUT_MS);
+      try {
+        const response = await fetch(forwardUrl, {
+          method: 'GET',
+          headers: {
+            'Cookie': request.headers.get('cookie') || '',
+            'X-Organization-Id': request.headers.get('X-Organization-Id') || '',
+            'Content-Type': 'application/json',
+          },
+          signal: controller.signal,
+          cache: 'no-store',
+        });
 
-    const data = await response.json();
+        if (TRANSIENT_STATUSES.has(response.status) && attempt < 2) {
+          await response.body?.cancel();
+          await new Promise((resolve) => setTimeout(resolve, 250 * (attempt + 1)));
+          continue;
+        }
 
-    return NextResponse.json(data, {
-      status: response.status,
-      headers: {
-        'Set-Cookie': response.headers.get('Set-Cookie') || '',
-      },
-    });
+        const text = await response.text();
+        if (TRANSIENT_STATUSES.has(response.status)) {
+          return NextResponse.json(
+            { success: false, error: 'BACKEND_UNAVAILABLE' },
+            { status: response.status },
+          );
+        }
+
+        try {
+          return NextResponse.json(JSON.parse(text), { status: response.status });
+        } catch {
+          return NextResponse.json(
+            { success: false, error: 'BACKEND_INVALID_RESPONSE' },
+            { status: 502 },
+          );
+        }
+      } catch (error) {
+        if (attempt === 2) {
+          return NextResponse.json(
+            { success: false, error: error instanceof Error && error.name === 'AbortError' ? 'BACKEND_TIMEOUT' : 'BACKEND_UNAVAILABLE' },
+            { status: error instanceof Error && error.name === 'AbortError' ? 504 : 503 },
+          );
+        }
+      } finally {
+        clearTimeout(timeoutId);
+      }
+    }
+
+    return NextResponse.json({ success: false, error: 'BACKEND_UNAVAILABLE' }, { status: 503 });
   } catch (error) {
     console.error('Org proxy error:', error);
     return NextResponse.json(

@@ -9,6 +9,7 @@ import { dispatchNotification } from './notificationDispatcher';
 import { record as recordAudit } from './auditLogService';
 import { getEmailQueue, isEmailQueueEnabled } from '../queues/emailQueue';
 import argon2 from 'argon2';
+import { isValidEmail, normalizeEmail } from '../utils/validation';
 
 const SESSION_TTL_SECONDS = 60 * 60 * 24 * 7; // 7 days
 // The assignment requires throttling "repeated login requests" but specifies no
@@ -54,7 +55,8 @@ async function getPrimaryOrganizationId(userId: string) {
 }
 
 export async function registerUser({ name, email, password, sendEmail = true, ip = '127.0.0.1', role }: { name?: string; email: string; password: string; sendEmail?: boolean; ip?: string; role?: string }) {
-  const normalizedEmail = email.trim().toLowerCase();
+  const normalizedEmail = normalizeEmail(email);
+  if (!normalizedEmail) throw new Error('INVALID_EMAIL');
   if (role && String(role).toUpperCase() === 'PLATFORM_ADMIN') throw new Error('ROLE_NOT_ALLOWED');
   
   // OPTIMIZATION #1: Rate limit check (early validation)
@@ -155,9 +157,10 @@ export async function registerUser({ name, email, password, sendEmail = true, ip
 }
 
 export async function loginUser({ email, password, ip = '127.0.0.1' }: { email: string; password: string; ip?: string }) {
+  if (!isValidEmail(email)) throw new Error('INVALID_EMAIL');
   await enforceRateLimit({ ip, keyPrefix: 'login', maxAttempts: LOGIN_RATE_LIMIT, windowSeconds: LOGIN_RATE_WINDOW });
 
-  const normalizedEmail = email.trim().toLowerCase();
+  const normalizedEmail = normalizeEmail(email)!;
   const user = await repo.findUserByEmail(normalizedEmail);
   if (!user) throw new Error('INVALID_CREDENTIALS');
   const ok = await argon2.verify(user.passwordHash, password);
@@ -221,7 +224,8 @@ export async function getSessionFromToken(token: string) {
 
 export async function requestPasswordReset(input: string | { email: string; ip?: string }, ipOverride?: string) {
   const normalizedInput = typeof input === 'string' ? { email: input, ip: ipOverride ?? '127.0.0.1' } : input;
-  const normalizedEmail = normalizedInput.email.trim().toLowerCase();
+  const normalizedEmail = normalizeEmail(normalizedInput.email);
+  if (!normalizedEmail) throw new Error('INVALID_EMAIL');
   await enforceRateLimit({ ip: normalizedInput.ip ?? '127.0.0.1', keyPrefix: 'forgot-password', maxAttempts: 5, windowSeconds: 60 * 60 });
 
   const user = await repo.findUserByEmail(normalizedEmail);
@@ -273,7 +277,8 @@ export async function requestPasswordReset(input: string | { email: string; ip?:
 export async function verifyPasswordResetCode({ email, code, ip = '127.0.0.1' }: { email: string; code: string; ip?: string }) {
   await enforceRateLimit({ ip, keyPrefix: 'forgot-password-verify', maxAttempts: 10, windowSeconds: 60 * 15 });
 
-  const normalizedEmail = email.trim().toLowerCase();
+  const normalizedEmail = normalizeEmail(email);
+  if (!normalizedEmail) throw new Error('INVALID_EMAIL');
   const user = await repo.findUserByEmail(normalizedEmail);
   if (!user) throw new Error('INVALID_CODE');
 
@@ -390,7 +395,8 @@ export async function verifyEmail(token: string, ip = '127.0.0.1') {
 
 export async function resendVerificationEmail(input: string | { email: string; ip?: string }, ipOverride?: string) {
   const normalizedInput = typeof input === 'string' ? { email: input, ip: ipOverride ?? '127.0.0.1' } : input;
-  const normalizedEmail = normalizedInput.email.trim().toLowerCase();
+  const normalizedEmail = normalizeEmail(normalizedInput.email);
+  if (!normalizedEmail) throw new Error('INVALID_EMAIL');
   await enforceRateLimit({ ip: normalizedInput.ip ?? '127.0.0.1', keyPrefix: 'resend-verification', maxAttempts: 5, windowSeconds: 60 * 60 });
 
   const user = await repo.findUserByEmail(normalizedEmail);
@@ -430,7 +436,8 @@ export async function resendVerificationEmail(input: string | { email: string; i
 }
 
 export async function updateUserEmail({ userId, email, ip = '127.0.0.1' }: { userId: string; email: string; ip?: string }) {
-  const normalizedEmail = email.trim().toLowerCase();
+  const normalizedEmail = normalizeEmail(email);
+  if (!normalizedEmail) throw new Error('INVALID_EMAIL');
   const user = await repo.findUserById(userId);
   if (!user) throw new Error('USER_NOT_FOUND');
 

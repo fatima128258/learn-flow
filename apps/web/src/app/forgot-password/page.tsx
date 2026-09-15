@@ -9,8 +9,8 @@ import { Stack } from '../../components/ui/layout/Stack';
 import { useSubmitState } from '../../lib/useSubmitState';
 import { useToast } from '../../components/ui/ToastProvider';
 import { getForgotPasswordErrorMessage } from '../../features/auth/authErrors';
+import { isValidEmail, normalizeEmail } from '../../lib/validation';
 
-const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState('');
@@ -27,11 +27,11 @@ export default function ForgotPasswordPage() {
   }, [error, toast]);
 
   const validateEmail = (): string | null => {
-    if (!email) {
+    if (!email.trim()) {
       setEmailError('Email is required');
       return 'Email is required';
     }
-    if (!EMAIL_RE.test(email)) {
+    if (!isValidEmail(email)) {
       setEmailError('Please enter a valid email address');
       return 'Please enter a valid email address';
     }
@@ -54,7 +54,7 @@ export default function ForgotPasswordPage() {
       const res = await fetch(`${apiBase}/api/v1/auth/forgot-password`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email }),
+        body: JSON.stringify({ email: normalizeEmail(email) }),
       });
 
       const data = await res.json();
@@ -83,7 +83,7 @@ export default function ForgotPasswordPage() {
       const res = await fetch(`${apiBase}/api/v1/auth/forgot-password/verify`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, code: code.trim() }),
+        body: JSON.stringify({ email: normalizeEmail(email), code: code.trim() }),
       });
 
       const data = await res.json();
@@ -101,7 +101,7 @@ export default function ForgotPasswordPage() {
       const res = await fetch('/api/v1/auth/forgot-password/resend', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email }),
+        body: JSON.stringify({ email: normalizeEmail(email) }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(getForgotPasswordErrorMessage(data?.error));

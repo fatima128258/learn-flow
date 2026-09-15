@@ -11,8 +11,7 @@ import { useCurrentUser, meKey } from '@/features/auth/useCurrentUser';
 import { ApiError, patchJson } from '@/lib/api';
 import { getUpdateEmailErrorMessage, getChangePasswordErrorMessage } from '@/features/auth/settingsErrors';
 import { useToast } from '@/components/ui/ToastProvider';
-
-const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+import { isValidEmail } from '@/lib/validation';
 
 type PasswordFieldErrors = {
   currentPassword?: string;
@@ -46,7 +45,7 @@ export default function SettingsPage() {
       toast.error('Please enter a new email address.');
       return;
     }
-    if (!EMAIL_RE.test(trimmedEmail)) {
+    if (!isValidEmail(trimmedEmail)) {
       setEmailFieldError('Please enter a valid email address.');
       toast.error('Please enter a valid email address.');
       return;

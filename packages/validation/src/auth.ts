@@ -4,8 +4,9 @@
 
 export function isValidEmail(email: string) {
   if (typeof email !== 'string') return false;
-  const re = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
-  return re.test(email);
+  const normalized = email.trim();
+  const re = /^[A-Za-z0-9]+(?:[._+-][A-Za-z0-9]+)*@[A-Za-z0-9](?:[A-Za-z0-9-]*[A-Za-z0-9])?(?:\.[A-Za-z0-9](?:[A-Za-z0-9-]*[A-Za-z0-9])?)+$/;
+  return re.test(normalized);
 }
 
 export function isValidPassword(password: string) {

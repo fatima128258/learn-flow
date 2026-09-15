@@ -6,6 +6,7 @@ import { PasswordInput } from '../forms/PasswordInput';
 import { SubmitButton } from '../forms/SubmitButton';
 import { Stack } from '../ui/layout/Stack';
 import { useToast } from '../ui/ToastProvider';
+import { isValidEmail, normalizeEmail } from '../../lib/validation';
 
 export interface LoginFormProps {
   onSubmit: (data: LoginFormData) => Promise<void>;
@@ -15,8 +16,6 @@ export interface LoginFormData {
   email: string;
   password: string;
 }
-
-const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 export const LoginForm: React.FC<LoginFormProps> = ({ onSubmit }) => {
   const [email, setEmail] = useState('');
@@ -31,11 +30,11 @@ export const LoginForm: React.FC<LoginFormProps> = ({ onSubmit }) => {
     setEmailError('');
     setPasswordError('');
 
-    if (!email) {
+    if (!email.trim()) {
       setEmailError('Email is required');
       return 'Email is required';
     }
-    if (!EMAIL_RE.test(email)) {
+    if (!isValidEmail(email)) {
       setEmailError('Please enter a valid email address');
       return 'Please enter a valid email address';
     }
@@ -59,7 +58,7 @@ export const LoginForm: React.FC<LoginFormProps> = ({ onSubmit }) => {
 
     setIsSubmitting(true);
     try {
-      await onSubmit({ email, password });
+      await onSubmit({ email: normalizeEmail(email), password });
     } finally {
       setIsSubmitting(false);
     }

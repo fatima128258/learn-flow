@@ -20,6 +20,7 @@ import { getEditOrganizationErrorMessage } from '../../../features/admin/editOrg
 import { getOrganizationStatusErrorMessage } from '../../../features/admin/organizationStatusError';
 import { getOrganizationMembersErrorMessage } from '../../../features/admin/organizationMembersError';
 import { getAssignAdminErrorMessage } from '../../../features/admin/assignAdminError';
+import { isValidEmail, normalizeEmail } from '../../../lib/validation';
 import { PasswordInput } from '../../../components/forms/PasswordInput';
 import { useToast } from '../../../components/ui/ToastProvider';
 import { useCurrentUser } from '../../../features/auth/useCurrentUser';
@@ -472,7 +473,7 @@ export default function OrganizationsPage() {
     const trimmedEmail = adminEmail.trim();
     let valid = true;
 
-    if (!trimmedEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmedEmail)) {
+    if (!isValidEmail(trimmedEmail)) {
       setAdminEmailError('Please enter a valid email address');
       toast.error('Please enter a valid email address');
       valid = false;
@@ -499,8 +500,8 @@ export default function OrganizationsPage() {
       const apiBase = '';
       const body =
         assignMode === 'new'
-          ? { email: trimmedEmail, password: adminPassword }
-          : { email: trimmedEmail };
+          ? { email: normalizeEmail(trimmedEmail), password: adminPassword }
+          : { email: normalizeEmail(trimmedEmail) };
 
       const res = await fetch(`${apiBase}/api/v1/organizations/${assignOrg.id}/admins`, {
         method: 'POST',

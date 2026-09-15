@@ -5,13 +5,7 @@ import * as orgAdminRepo from '../repositories/orgAdminRepository';
 import * as authRepo from '../repositories/authRepository';
 import { dispatchNotification } from './notificationDispatcher';
 import { record as recordAudit } from './auditLogService';
-
-// Temporary inline validation functions
-function isValidEmail(email: string) {
-  if (typeof email !== 'string') return false;
-  const re = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
-  return re.test(email);
-}
+import { normalizeEmail } from '../utils/validation';
 
 function isValidPassword(password: string) {
   if (typeof password !== 'string') return false;
@@ -297,8 +291,9 @@ export async function assignOrganizationAdmin(organizationId: string, input: {
     user = await authRepo.findUserById(input.userId);
     if (!user) throw new Error('USER_NOT_FOUND');
   } else if (input.email) {
-    if (!isValidEmail(input.email)) throw new Error('INVALID_EMAIL');
-    user = await authRepo.findUserByEmail(input.email.trim().toLowerCase());
+    const normalizedEmail = normalizeEmail(input.email);
+    if (!normalizedEmail) throw new Error('INVALID_EMAIL');
+    user = await authRepo.findUserByEmail(normalizedEmail);
   } else {
     throw new Error('MISSING_FIELDS');
   }
@@ -306,7 +301,8 @@ export async function assignOrganizationAdmin(organizationId: string, input: {
   if (!user) {
     if (!input.password) throw new Error('MISSING_FIELDS');
     if (!isValidPassword(input.password)) throw new Error('PASSWORD_TOO_SHORT');
-    const email = String(input.email).trim().toLowerCase();
+    const email = normalizeEmail(input.email);
+    if (!email) throw new Error('INVALID_EMAIL');
     const passwordHash = await argon2.hash(input.password, { type: argon2.argon2id });
     user = await authRepo.createUser({
       name: input.name ?? null,
