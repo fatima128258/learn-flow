@@ -16,6 +16,8 @@ export const listConversations = (organizationId: string, userId: string, organi
   include: { course: { select: { id: true, title: true } }, student: { select: { id: true, name: true, email: true } }, instructor: { select: { id: true, name: true, email: true } }, messages: { orderBy: { createdAt: 'desc' }, take: 1 } },
   orderBy: { updatedAt: 'desc' },
 });
+export const countUnread = (conversationId: string, userId: string) =>
+  db().message.count({ where: { conversationId, senderId: { not: userId }, readAt: null, deletedAt: null } });
 export const listMessages = (conversationId: string, take: number, cursor?: string) => db().message.findMany({
   where: { conversationId },
   orderBy: { createdAt: 'desc' },

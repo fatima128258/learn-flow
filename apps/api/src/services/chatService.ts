@@ -37,7 +37,11 @@ export async function open(orgId: string, courseId: string, userId: string, role
 }
 
 export async function list(orgId: string, userId: string, role?: string) {
-  return repo.listConversations(orgId, userId, role === 'ORG_ADMIN');
+  const conversations = await repo.listConversations(orgId, userId, role === 'ORG_ADMIN');
+  return Promise.all(conversations.map(async (conversation) => ({
+    ...conversation,
+    unreadCount: await repo.countUnread(conversation.id, userId),
+  })));
 }
 
 async function participant(orgId: string | undefined, id: string, userId: string, role?: string) {
@@ -76,6 +80,15 @@ export async function authorizeSocketConversation(id: string, userId: string) {
   });
   const conversation = await participant(undefined, id, userId, membership?.role);
   return conversation.organizationId;
+}
+export async function conversationParticipants(id: string) {
+  const conversation = await repo.findConversation(id);
+  if (!conversation) throw new Error('CONVERSATION_NOT_FOUND');
+  return { studentId: conversation.studentId, instructorId: conversation.instructorId };
+}
+export async function unreadCount(orgId: string, id: string, userId: string, role?: string) {
+  await participant(orgId, id, userId, role);
+  return repo.countUnread(id, userId);
 }
 export async function messages(orgId: string | undefined, id: string, userId: string, limit = 50, cursor?: string, role?: string) {
   await participant(orgId, id, userId, role);

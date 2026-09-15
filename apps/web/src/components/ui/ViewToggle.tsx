@@ -30,6 +30,19 @@ export const ViewToggle: React.FC<ViewToggleProps> = ({ value, onChange, storage
     if (hydrated && storageKey) window.localStorage.setItem(storageKey, value);
   }, [hydrated, storageKey, value]);
 
+  useEffect(() => {
+    if (!hydrated) return;
+
+    const mediaQuery = window.matchMedia('(max-width: 639px)');
+    const updateForViewport = () => {
+      if (mediaQuery.matches) onChangeRef.current('cards');
+    };
+
+    updateForViewport();
+    mediaQuery.addEventListener('change', updateForViewport);
+    return () => mediaQuery.removeEventListener('change', updateForViewport);
+  }, [hydrated]);
+
   const buttonClass = (mode: DataViewMode) =>
     `inline-flex h-9 w-9 items-center justify-center rounded-md transition-colors duration-200 ${
       value === mode
@@ -38,7 +51,7 @@ export const ViewToggle: React.FC<ViewToggleProps> = ({ value, onChange, storage
     }`;
 
   return (
-    <div className="flex items-center rounded-lg border border-[#ead8c6] bg-[#fffdf9] p-0.5" role="group" aria-label="Change data view">
+    <div className="hidden items-center rounded-lg border border-[#ead8c6] bg-[#fffdf9] p-0.5 sm:flex" role="group" aria-label="Change data view">
       <button type="button" className={buttonClass('table')} onClick={() => onChange('table')} aria-label="Table view" aria-pressed={value === 'table'} title="Table view">
         <svg aria-hidden="true" className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
           <rect x="4" y="5" width="16" height="14" rx="1.5" />

@@ -22,6 +22,7 @@ export type ChatConversation = {
   student?: { id: string; name: string | null; email: string };
   instructor?: { id: string; name: string | null; email: string };
   messages?: ChatMessage[];
+  unreadCount?: number;
 };
 
 export type ChatListResponse = { success: boolean; data: ChatConversation[] };

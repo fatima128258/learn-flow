@@ -44,19 +44,22 @@ export function ChatPanel({ organizationId, userId, initialConversationId, cours
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
   const [connected, setConnected] = useState(false);
+  const [participantOnline, setParticipantOnline] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [actionLoading, setActionLoading] = useState(false);
   const socketRef = useRef<Socket | null>(null);
   const activeIdRef = useRef(activeId);
+  const activeConversationRef = useRef<ChatConversation | null>(null);
+  const active = conversations.find((conversation) => conversation.id === activeId) ?? null;
 
   useEffect(() => { activeIdRef.current = activeId; }, [activeId]);
+  useEffect(() => { activeConversationRef.current = active; }, [active]);
 
   useEffect(() => {
     if (!activeId || !socketRef.current?.connected) return;
     socketRef.current.emit('conversation:join', activeId);
   }, [activeId]);
 
-  const active = conversations.find((conversation) => conversation.id === activeId) ?? null;
   const filtered = useMemo(() => conversations.filter((conversation) => {
     const value = `${conversation.course?.title ?? ''} ${participant(conversation, userId)}`.toLowerCase();
     return value.includes(search.toLowerCase());
@@ -68,6 +71,10 @@ export function ChatPanel({ organizationId, userId, initialConversationId, cours
     );
     setMessages([...response.data.messages].reverse());
     await postJson(apiPath(organizationId, `/conversations/${conversationId}/read`), undefined);
+    socketRef.current?.emit('conversation:read', conversationId);
+    setConversations((current) => current.map((conversation) =>
+      conversation.id === conversationId ? { ...conversation, unreadCount: 0 } : conversation,
+    ));
   }
 
   useEffect(() => {
@@ -107,10 +114,28 @@ export function ChatPanel({ organizationId, userId, initialConversationId, cours
     socketRef.current = socket;
     socket.on('connect', () => {
       setConnected(true);
-      if (activeIdRef.current) socket.emit('conversation:join', activeIdRef.current);
+      if (activeIdRef.current) {
+        socket.emit('conversation:join', activeIdRef.current);
+        socket.emit('conversation:read', activeIdRef.current);
+      }
     });
     socket.on('disconnect', () => setConnected(false));
     socket.on('connect_error', () => setConnected(false));
+    socket.on('presence:update', (event: { userId: string; online: boolean }) => {
+      const currentConversation = activeConversationRef.current;
+      if (!currentConversation) return;
+      const otherUserId = currentConversation.studentId === userId
+        ? currentConversation.instructorId
+        : currentConversation.studentId;
+      if (event.userId === otherUserId) setParticipantOnline(event.online);
+    });
+    socket.on('chat:unread', (event: { conversationId: string; unreadCount: number }) => {
+      setConversations((current) => current.map((conversation) =>
+        conversation.id === event.conversationId
+          ? { ...conversation, unreadCount: event.unreadCount }
+          : conversation,
+      ));
+    });
     socket.on('message:new', (message: ChatMessage) => {
       if (message.conversationId === activeIdRef.current) {
         setMessages((current) => current.some((item) => item.id === message.id) ? current : [...current, message]);
@@ -118,6 +143,9 @@ export function ChatPanel({ organizationId, userId, initialConversationId, cours
       setConversations((current) => current.map((conversation) => conversation.id === message.conversationId
         ? { ...conversation, updatedAt: message.createdAt, messages: [message] }
         : conversation));
+      if (message.conversationId === activeIdRef.current) {
+        socket.emit('conversation:read', message.conversationId);
+      }
     });
     return () => { socket.disconnect(); socketRef.current = null; };
   }, []);
@@ -127,6 +155,7 @@ export function ChatPanel({ organizationId, userId, initialConversationId, cours
     setError(null);
     try { await loadMessages(id); } catch { setError('Unable to load messages.'); }
     socketRef.current?.emit('conversation:join', id);
+    setParticipantOnline(false);
   }
 
   async function sendMessage() {
@@ -200,7 +229,14 @@ export function ChatPanel({ organizationId, userId, initialConversationId, cours
                   </time>
                 )}
               </div>
-              <p className="mt-1 truncate text-sm text-neutral-500">{conversation.messages?.[0]?.content || 'No messages yet'}</p>
+              <div className="mt-1 flex items-center gap-2">
+                <p className="min-w-0 flex-1 truncate text-sm text-neutral-500">{conversation.messages?.[0]?.content || 'No messages yet'}</p>
+                {(conversation.unreadCount ?? 0) > 0 && (
+                  <span className="shrink-0 rounded-full bg-red-600 px-1.5 py-0.5 text-[10px] font-bold leading-none text-white">
+                    {(conversation.unreadCount ?? 0) > 99 ? '99+' : conversation.unreadCount}
+                  </span>
+                )}
+              </div>
             </button>
           ))}
         </div>
@@ -211,8 +247,8 @@ export function ChatPanel({ organizationId, userId, initialConversationId, cours
             <div>
               <button type="button" onClick={() => setActiveId('')} className="mr-3 text-sm text-primary-700 md:hidden">← Conversations</button>
               <span className="font-semibold text-neutral-900">{participant(active, userId)}</span>
-              <span className={`ml-2 text-xs font-medium ${connected ? 'text-success-600' : 'text-neutral-500'}`}>
-                ({connected ? 'Online' : 'Offline'})
+              <span className={`ml-2 text-xs font-medium ${participantOnline ? 'text-success-600' : 'text-neutral-500'}`}>
+                ({participantOnline ? 'Online' : 'Offline'})
               </span>
               <p className="text-xs text-neutral-500">{active.course?.title}</p>
             </div>

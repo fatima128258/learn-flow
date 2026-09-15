@@ -8,6 +8,7 @@ import { orgAdminNav } from '@/features/organizationAdmin/nav';
 import { instructorNav } from '@/features/instructor/nav';
 import { studentNav } from '@/features/student/nav';
 import { useCurrentUser } from '@/features/auth/useCurrentUser';
+import { useChatUnread } from '@/features/chat/useChatUnread';
 
 export interface DashboardShellProps {
   children: React.ReactNode;
@@ -60,10 +61,15 @@ function DashboardShellInner({ children }: DashboardShellProps) {
   const searchParams = useSearchParams();
   const orgId = searchParams.get('organization');
   const { data: currentUser } = useCurrentUser();
+  const unreadChatCount = useChatUnread(currentUser?.organizationId ?? undefined, currentUser?.id);
 
-  const { navLabel, items } = useMemo(
+  const { navLabel, items: baseItems } = useMemo(
     () => resolveNav(pathname ?? '/dashboard', currentUser?.role, orgId),
     [pathname, currentUser?.role, orgId],
+  );
+  const items = useMemo(
+    () => baseItems.map((item) => item.label === 'Chat' ? { ...item, badge: unreadChatCount } : item),
+    [baseItems, unreadChatCount],
   );
 
   return (

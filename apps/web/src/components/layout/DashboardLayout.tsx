@@ -14,6 +14,7 @@ export interface NavItem {
   href: string;
   label: string;
   icon?: React.ReactNode;
+  badge?: number;
 }
 
 export interface DashboardLayoutProps {
@@ -205,7 +206,12 @@ function NavLink({
         />
       )}
       {item.icon}
-      {!collapsed && <span className="truncate">{item.label}</span>}
+      {!collapsed && <span className="min-w-0 flex-1 truncate">{item.label}</span>}
+      {!collapsed && item.badge !== undefined && item.badge > 0 && (
+        <span className="shrink-0 rounded-full bg-red-600 px-1.5 py-0.5 text-[10px] font-bold leading-none text-white">
+          {item.badge > 99 ? '99+' : item.badge}
+        </span>
+      )}
 
       {/* Tooltip — only visible when collapsed */}
       {collapsed && (
