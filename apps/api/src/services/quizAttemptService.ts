@@ -348,11 +348,13 @@ export async function submitQuizAttempt(
     // Recalculate after every submitted attempt. Failed attempts remain
     // incomplete, but later lesson/module activity must continue contributing
     // to progress and course completion must remain false until the quiz passes.
-    await progressService.refreshCourseProgressAfterQuiz(
+    void progressService.refreshCourseProgressAfterQuiz(
       organizationId,
       userId,
       courseId,
-    );
+    ).catch((err: unknown) => {
+      console.error('[quiz submit] course progress refresh failed', err);
+    });
 
     return {
       attemptId: completedAttempt.id,

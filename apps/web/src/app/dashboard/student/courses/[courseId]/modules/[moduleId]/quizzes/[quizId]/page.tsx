@@ -4,7 +4,6 @@ import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import {
-  Badge,
   Button,
   ErrorState,
   Spinner,
@@ -245,30 +244,37 @@ export default function StudentQuizTakingPage() {
         return;
       }
       setResult(body.data ?? null);
+      setSubmitting(false);
       if (body.data?.passed && organizationId && courseId && moduleId && quizId) {
-        const progressResponse = await fetch(
-          `/api/v1/organizations/${organizationId}/student/courses/${courseId}/progress`,
-          { credentials: 'include' },
-        );
-        if (progressResponse.ok) {
-          const progressBody = await progressResponse.json();
-          const completed = progressBody.data?.successfulCompletion === true;
-          setCourseCompleted(completed);
-          if (completed) {
-            toast.success('Congratulations! You completed the entire course.');
+        void (async () => {
+          const [progressResponse, nextUrl] = await Promise.all([
+            fetch(
+              `/api/v1/organizations/${organizationId}/student/courses/${courseId}/progress`,
+              { credentials: 'include' },
+            ),
+            getNextContentUrl({
+              organizationId,
+              courseId,
+              moduleId,
+              contentType: 'QUIZ',
+              contentId: quizId,
+            }),
+          ]);
+          if (progressResponse.ok) {
+            const progressBody = await progressResponse.json();
+            const completed = progressBody.data?.successfulCompletion === true;
+            setCourseCompleted(completed);
+            if (completed) {
+              toast.success('Congratulations! You completed the entire course.');
+            }
           }
-        }
-        const nextUrl = await getNextContentUrl({
-          organizationId,
-          courseId,
-          moduleId,
-          contentType: 'QUIZ',
-          contentId: quizId,
+          if (nextUrl) {
+            toast.success('Quiz passed! Moving to the next learning item.');
+            window.setTimeout(() => router.push(nextUrl), 1800);
+          }
+        })().catch(() => {
+          toast.error('Quiz submitted, but the next learning item could not be loaded.');
         });
-        if (nextUrl) {
-          toast.success('Quiz passed! Moving to the next learning item.');
-          window.setTimeout(() => router.push(nextUrl), 1800);
-        }
       }
     } catch {
       toast.error('Could not reach the server. Please try again.');
@@ -411,30 +417,21 @@ export default function StudentQuizTakingPage() {
 
         {quiz && !result && attemptsRemaining !== 0 && !started ? (
           <>
-            <div className="mb-6 rounded-2xl border border-neutral-200 bg-white p-6 shadow-sm">
-              <div className="flex flex-wrap items-center gap-2 mb-2">
-                <Badge variant="primary" size="sm">Quiz</Badge>
-                {quiz.timeLimitMinutes != null && (
-                  <Badge variant="default" size="sm">{quiz.timeLimitMinutes} min</Badge>
+            <div className="relative mb-6 overflow-hidden rounded-3xl border border-[#ead8c6] bg-white p-6 shadow-[0_12px_35px_rgba(90,50,31,0.08)] sm:p-9">
+              <div className="pointer-events-none absolute -right-12 -top-16 h-40 w-40 rounded-full bg-[#f8efe4]" />
+              <div className="relative">
+                <p className="text-xs font-bold uppercase tracking-[0.18em] text-[#9b765c]">Assessment</p>
+                <h1 className="mt-2 text-3xl font-bold tracking-tight text-[#17212b] sm:text-4xl">{quiz.title}</h1>
+                {quiz.description && (
+                  <p className="mt-3 max-w-3xl text-base leading-7 text-[#667085]">{quiz.description}</p>
                 )}
-                {quiz.passingPercentage != null && (
-                  <Badge variant="warning" size="sm">Pass {quiz.passingPercentage}%</Badge>
-                )}
-                {attemptsRemaining != null && (
-                  <Badge variant="info" size="sm">
-                    {attemptsRemaining} attempt{attemptsRemaining !== 1 ? 's' : ''} left
-                  </Badge>
-                )}
+                <div className="mt-6 flex flex-wrap gap-x-6 gap-y-2 border-t border-[#f0e4d8] pt-4 text-sm text-[#667085]">
+                  <span>{totalQuestions} question{totalQuestions !== 1 ? 's' : ''}</span>
+                  {quiz.timeLimitMinutes != null && <span>{quiz.timeLimitMinutes} minute time limit</span>}
+                  {quiz.passingPercentage != null && <span>Passing score {quiz.passingPercentage}%</span>}
+                  {attemptsRemaining != null && <span>{attemptsRemaining} attempt{attemptsRemaining !== 1 ? 's' : ''} remaining</span>}
+                </div>
               </div>
-              <h1 className="text-2xl font-bold text-neutral-900">{quiz.title}</h1>
-              {quiz.description && (
-                <p className="mt-2 text-neutral-600">{quiz.description}</p>
-              )}
-              <p className="mt-3 text-sm text-neutral-500">
-                {totalQuestions} question{totalQuestions !== 1 ? 's' : ''}
-                {quiz.timeLimitMinutes != null && ` · ${quiz.timeLimitMinutes} minute time limit`}
-                {quiz.passingPercentage != null && ` · passing score ${quiz.passingPercentage}%`}
-              </p>
             </div>
 
             <div className="rounded-2xl border border-neutral-200 bg-white p-8 shadow-sm">
@@ -454,18 +451,20 @@ export default function StudentQuizTakingPage() {
         {quiz && !result && started && question && !expired ? (
           <>
             <div className="grid min-w-0 gap-3 md:grid-cols-[180px_minmax(0,1fr)] xl:grid-cols-[170px_minmax(0,1fr)_200px]">
-              <aside className="min-w-0 rounded-xl border border-neutral-200 bg-[#fffdf9] p-3">
-                <div className="flex items-center justify-between text-xs font-semibold text-[#475569]">
-                  <span>Questions</span>
-                  <span>{answeredCount} / {totalQuestions}</span>
+              <aside className="min-w-0 rounded-2xl border border-[#ead8c6] bg-[#fffdf9] p-4">
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-sm font-semibold text-[#475569]">Question progress</span>
+                  <span className="text-sm font-bold text-[#5a321f]">{answeredCount} of {totalQuestions}</span>
                 </div>
-                <div className="mt-3 grid grid-cols-6 gap-2 sm:grid-cols-8 md:grid-cols-5">
+                <p className="mt-1 text-xs text-[#8a7a6b]">Select a question to continue</p>
+                <div className="mt-4 flex flex-wrap gap-2">
                   {quiz.questions.map((item, index) => (
                     <button
                       key={item.id}
                       type="button"
                       onClick={() => setCurrentQuestion(index)}
-                      className={`h-8 min-w-0 rounded-md border text-xs font-medium ${
+                      aria-label={`Go to question ${index + 1}`}
+                      className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full border text-sm font-semibold transition-colors ${
                         index === currentQuestion
                           ? 'border-[#5a321f] bg-[#5a321f] text-white'
                           : answers[item.id]

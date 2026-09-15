@@ -140,6 +140,26 @@ function CompletedCoursesSection({
           onCertificateGenerated();
           return;
         }
+
+        if (errorData.error === 'BACKEND_TIMEOUT') {
+          for (let attempt = 0; attempt < 3; attempt += 1) {
+            await new Promise((resolve) => window.setTimeout(resolve, 2000));
+            const certificatesResponse = await fetch(
+              `/api/v1/organizations/${organizationId}/student/certificates`,
+              { credentials: 'include', cache: 'no-store' },
+            );
+            if (!certificatesResponse.ok) continue;
+            const certificatesBody = await certificatesResponse.json();
+            const generated = (certificatesBody.data ?? []).some(
+              (certificate: Certificate) => certificate.courseId === courseId,
+            );
+            if (generated) {
+              setCompletedCourses(prev => prev.filter(c => c.courseId !== courseId));
+              onCertificateGenerated();
+              return;
+            }
+          }
+        }
         
         // Map error codes to user-friendly messages
         const errorMessages: Record<string, string> = {
