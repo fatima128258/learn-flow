@@ -28,9 +28,9 @@ export async function findByUserAndCourse(userId: string, courseId: string) {
   });
 }
 
-export async function listByUser(userId: string) {
+export async function listByUser(userId: string, organizationId?: string) {
   return prisma().enrollment.findMany({
-    where: { userId },
+    where: { userId, ...(organizationId ? { organizationId } : {}) },
     select: {
       id: true,
       userId: true,

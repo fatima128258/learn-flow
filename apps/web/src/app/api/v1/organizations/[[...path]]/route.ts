@@ -5,6 +5,7 @@ const BACKEND_TIMEOUT_MS = 20000;
 const ADMIN_ASSIGN_TIMEOUT_MS = 60000;
 const COURSE_STATUS_TIMEOUT_MS = 60000;
 const CERTIFICATE_TIMEOUT_MS = 60000;
+const STUDENT_PROGRESS_TIMEOUT_MS = 60000;
 
 function wait(milliseconds: number) {
   return new Promise((resolve) => setTimeout(resolve, milliseconds));
@@ -22,8 +23,11 @@ async function proxyRequest(
   const retryableAdminAssignment = method === 'POST' && path.endsWith('/admins');
   const courseStatusRequest = method === 'PATCH' && /\/courses\/[^/]+\/status$/.test(path);
   const certificateRequest = method === 'POST' && /\/student\/courses\/[^/]+\/certificate$/.test(path);
+  const studentProgressRequest = method === 'GET' && /\/student\/progress$/.test(path);
   const backendTimeoutMs = certificateRequest
     ? CERTIFICATE_TIMEOUT_MS
+    : studentProgressRequest
+      ? STUDENT_PROGRESS_TIMEOUT_MS
     : courseStatusRequest || retryableAdminAssignment
       ? COURSE_STATUS_TIMEOUT_MS
     : BACKEND_TIMEOUT_MS;

@@ -7,6 +7,7 @@ import {
 } from '../middleware/auth';
 import {
   getCourseProgress,
+  getStudentProgress,
   recordLessonProgress,
 } from '../controllers/progressController';
 
@@ -28,6 +29,12 @@ const studentMiddleware = [
   requireOrganizationContext,
   requireStudentOnly,
 ];
+
+progressRouter.get(
+  '/:organizationId/student/progress',
+  ...studentMiddleware,
+  getStudentProgress,
+);
 
 progressRouter.get(
   '/:organizationId/student/courses/:courseId/progress',

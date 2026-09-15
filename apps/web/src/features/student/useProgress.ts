@@ -10,9 +10,22 @@ export type ProgressModule = {
   order: number;
   lessonCount: number;
   completedLessons: number;
+  totalContentItems: number;
+  completedContentItems: number;
   percentage: number;
   complete: boolean;
   moduleIndex: number;
+  completedItemCount?: number;
+  requiredItemCount?: number;
+  items?: ProgressItem[];
+};
+
+export type ProgressItem = {
+  id: string;
+  type: 'LESSON' | 'QUIZ';
+  title: string;
+  order: number;
+  completed: boolean;
 };
 
 export type ProgressQuiz = {
@@ -31,6 +44,8 @@ export type CourseProgress = {
   organizationId: string;
   totalLessons: number;
   completedLessons: number;
+  totalContentItems: number;
+  completedContentItems: number;
   coursePercentage: number;
   courseComplete: boolean;
   contentComplete?: boolean;
@@ -44,7 +59,26 @@ export type CourseProgress = {
   } | null;
   modules: ProgressModule[];
   quizzes: ProgressQuiz[];
+  courseThumbnail?: string | null;
+  courseStatus?: string;
 };
+
+export function useStudentProgress(organizationId: string) {
+  return useQuery({
+    queryKey: ['student', 'progress', organizationId],
+    queryFn: async () => {
+      const body = await getJson<{ data?: CourseProgress[] }>(
+        `/api/v1/organizations/${organizationId}/student/progress`,
+      );
+      return body.data ?? [];
+    },
+    enabled: Boolean(organizationId),
+    staleTime: 30 * 1000,
+    gcTime: 5 * 60 * 1000,
+    retry: 3,
+    retryDelay: attemptIndex => Math.min(1000 * 2 ** attemptIndex, 30000),
+  });
+}
 
 export type RecordProgressResponse = {
   lessonId: string;

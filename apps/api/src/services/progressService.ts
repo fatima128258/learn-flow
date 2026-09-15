@@ -110,7 +110,7 @@ async function computeCourseProgress(
   });
   const allQuizzes = await prisma.quiz.findMany({
     where: { moduleId: { in: moduleIds } },
-    select: { id: true, moduleId: true, maxAttempts: true },
+    select: { id: true, moduleId: true, title: true, maxAttempts: true },
   });
 
   const lessonsByModule = new Map<string, { id: string }[]>();
@@ -118,7 +118,17 @@ async function computeCourseProgress(
   if ((prisma as any).moduleContentItem?.findMany) {
     const items = await (prisma as any).moduleContentItem.findMany({
       where: { moduleId: { in: moduleIds } },
-      select: { moduleId: true, type: true, lessonId: true, quizId: true },
+      select: {
+        id: true,
+        moduleId: true,
+        type: true,
+        lessonId: true,
+        quizId: true,
+        position: true,
+        lesson: { select: { title: true } },
+        quiz: { select: { title: true } },
+      },
+      orderBy: { position: 'asc' },
     });
     for (const item of items) {
       const list = contentItemsByModule.get(item.moduleId) ?? [];
@@ -148,8 +158,20 @@ async function computeCourseProgress(
     const trackedItems = contentItems.length > 0
       ? contentItems
       : [
-          ...lessons.map(lesson => ({ type: 'LESSON', lessonId: lesson.id })),
-          ...quizzes.map(quiz => ({ type: 'QUIZ', quizId: quiz.id })),
+          ...lessons.map((lesson, itemIndex) => ({
+            id: lesson.id,
+            type: 'LESSON',
+            lessonId: lesson.id,
+            position: itemIndex,
+            lesson: { title: (lesson as { title?: string }).title },
+          })),
+          ...quizzes.map((quiz, itemIndex) => ({
+            id: quiz.id,
+            type: 'QUIZ',
+            quizId: quiz.id,
+            position: lessons.length + itemIndex,
+            quiz: { title: quiz.title },
+          })),
         ];
     const completedItems = contentItems.length > 0
       ? trackedItems.filter((item) =>
@@ -179,6 +201,15 @@ async function computeCourseProgress(
       completedContentItems: completedItems,
       requiredItemCount: moduleDenominator,
       completedItemCount: completedItems,
+      items: trackedItems.map((item: any, itemIndex: number) => ({
+        id: item.id ?? `${module.id}-${item.type}-${item.lessonId ?? item.quizId ?? itemIndex}`,
+        type: item.type,
+        title: item.type === 'LESSON' ? item.lesson?.title ?? 'Lesson' : item.quiz?.title ?? 'Quiz',
+        order: item.position ?? itemIndex,
+        completed: item.type === 'LESSON'
+          ? completedLessonIds.has(item.lessonId ?? '')
+          : completedQuizIds.has(item.quizId ?? ''),
+      })),
     };
   });
 
@@ -292,6 +323,20 @@ export async function getCourseProgress(
   const { course } = await verifyCourseAccess(organizationId, userId, courseId);
   const courseProgress = await progressRepo.getCourseProgress(userId, courseId, organizationId);
   return computeCourseProgress(userId, courseId, organizationId, course, courseProgress);
+}
+
+export async function getStudentProgress(organizationId: string, userId: string) {
+  const enrollments = await enrollmentRepo.listByUser(userId, organizationId);
+  const activeEnrollments = enrollments.filter((enrollment) => !enrollment.status || enrollment.status === 'ACTIVE');
+
+  return Promise.all(activeEnrollments.map(async (enrollment) => {
+    const progress = await getCourseProgress(organizationId, userId, enrollment.courseId);
+    return {
+      ...progress,
+      courseThumbnail: enrollment.course.thumbnailUrl,
+      courseStatus: enrollment.course.status,
+    };
+  }));
 }
 
 export async function refreshCourseProgressAfterQuiz(
