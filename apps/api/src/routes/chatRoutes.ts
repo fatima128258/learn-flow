@@ -9,5 +9,7 @@ router.get('/:organizationId/conversations/:conversationId/messages', ...auth, c
 router.post('/:organizationId/conversations/:conversationId/messages', ...auth, controller.send);
 router.post('/:organizationId/conversations/:conversationId/read', ...auth, controller.read);
 router.post('/:organizationId/conversations/:conversationId/block', ...auth, controller.block);
+router.post('/:organizationId/conversations/:conversationId/unblock', ...auth, controller.unblock);
+router.delete('/:organizationId/conversations/:conversationId', ...auth, controller.removeConversation);
 router.delete('/:organizationId/conversations/:conversationId/messages/:messageId', ...auth, controller.remove);
 export default router;

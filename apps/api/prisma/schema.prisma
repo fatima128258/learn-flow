@@ -22,6 +22,7 @@ model Organization {
   notifications Notification[]
   orders        Order[]
   carts         Cart[]
+  conversations Conversation[]
   users         UserOrganization[]
 
   @@index([status])
@@ -332,14 +333,17 @@ model Enrollment {
 
 model Conversation {
   id             String    @id @default(cuid())
+  organizationId String
   courseId       String
   studentId      String
   instructorId   String
   blockedAt      DateTime?
   blockedById    String?
+  deletedAt      DateTime?
   createdAt      DateTime  @default(now())
   updatedAt      DateTime  @updatedAt
   course         Course    @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   student        User      @relation("ConversationStudent", fields: [studentId], references: [id], onDelete: Cascade)
   instructor     User      @relation("ConversationInstructor", fields: [instructorId], references: [id], onDelete: Cascade)
   messages       Message[]
@@ -347,6 +351,7 @@ model Conversation {
   @@index([studentId])
   @@index([instructorId])
   @@index([courseId])
+  @@index([organizationId])
 }
 
 model Message {

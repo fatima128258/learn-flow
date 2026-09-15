@@ -272,6 +272,7 @@ export default function StudentModuleLessonsPage() {
 
   // Helper to find module progress data
   const currentModule = progress?.modules.find(m => m.id === moduleId);
+  const { data: currentUser } = useCurrentUser();
 
   useEffect(() => {
     const firstLesson = lessonsData?.items?.find(
@@ -389,7 +390,17 @@ export default function StudentModuleLessonsPage() {
         ) : lessonsData ? (
           <>
             <div className="mb-6 rounded-2xl border border-neutral-200 bg-white p-6 shadow-sm">
-              <h1 className="text-2xl font-bold text-neutral-900">{lessonsData.moduleTitle}</h1>
+              <div className="flex flex-wrap items-start justify-between gap-4">
+                <h1 className="text-2xl font-bold text-neutral-900">{lessonsData.moduleTitle}</h1>
+                {currentUser?.organizationId && (
+                  <Link
+                    href={`/dashboard/student/chat?courseId=${courseId}`}
+                    className="inline-flex items-center rounded-lg bg-primary-700 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-primary-800"
+                  >
+                    Chat with Instructor
+                  </Link>
+                )}
+              </div>
               {currentModule && (
                 <p className="mt-1 text-sm text-neutral-500">
                   {currentModule.completedLessons} of {currentModule.lessonCount} lessons completed ({currentModule.percentage}%)

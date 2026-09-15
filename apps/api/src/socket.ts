@@ -30,18 +30,20 @@ export function initializeChatSocket(httpServer: HttpServer) {
   });
   io.on('connection', (socket) => {
     socket.on('conversation:join', async (conversationId: string, ack?: (result: unknown) => void) => {
-      try { await chatService.messages(conversationId, socket.data.userId, 1); socket.join(`conversation:${conversationId}`); ack?.({ success: true }); }
+      try { await chatService.messages(undefined, conversationId, socket.data.userId, 1); socket.join(`conversation:${conversationId}`); ack?.({ success: true }); }
       catch { ack?.({ success: false, error: 'FORBIDDEN' }); }
     });
     socket.on('message:send', async (payload: { conversationId: string; content: string }, ack?: (result: unknown) => void) => {
       try {
-        const message = await chatService.send(payload.conversationId, socket.data.userId, payload.content);
+        const conversation = await chatService.messages(undefined, payload.conversationId, socket.data.userId, 1).catch(() => null);
+        if (!conversation) throw new Error('FORBIDDEN');
+        const message = await chatService.send(undefined, payload.conversationId, socket.data.userId, payload.content);
         io.to(`conversation:${payload.conversationId}`).emit('message:new', message);
         ack?.({ success: true, data: message });
       } catch (e) { ack?.({ success: false, error: e instanceof Error ? e.message : 'SERVER_ERROR' }); }
     });
     socket.on('conversation:read', async (conversationId: string) => {
-      try { await chatService.read(conversationId, socket.data.userId); io.to(`conversation:${conversationId}`).emit('conversation:read', { userId: socket.data.userId }); } catch { /* REST remains authoritative */ }
+      try { await chatService.read(undefined, conversationId, socket.data.userId); io.to(`conversation:${conversationId}`).emit('conversation:read', { userId: socket.data.userId }); } catch { /* REST remains authoritative */ }
     });
   });
   return io;
