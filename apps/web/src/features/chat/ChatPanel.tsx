@@ -420,6 +420,14 @@ export function ChatPanel({ organizationId, userId, initialConversationId, cours
                         <div className="group relative">
                           <div className={`rounded-[20px] px-4 py-2 text-[15px] leading-6 shadow-sm ${isOutgoing ? 'rounded-br-md bg-[#f0dfc8] text-neutral-900' : 'rounded-bl-md bg-[#f2f2f2] text-neutral-900'}`}>
                           <p className={`${message.deletedAt ? 'italic opacity-70' : ''} ${!message.deletedAt ? 'pr-5' : ''}`}>{message.deletedAt ? 'This message was deleted' : message.content}</p>
+                          <div className={`mt-1 flex items-center gap-1 text-[10px] text-neutral-500 ${isOutgoing ? 'justify-end' : 'justify-start'}`}>
+                            <span>{formatMessageTime(message.createdAt)}</span>
+                            {isOutgoing && !message.deletedAt && (
+                              <span className={message.readAt ? 'text-sky-600' : 'text-neutral-500'}>
+                                {deliveredMessageIds.has(message.id) ? '✓✓' : '✓'}
+                              </span>
+                            )}
+                          </div>
                           {!message.deletedAt && (
                             <div className="absolute right-2 top-2 opacity-0 transition-opacity group-hover:opacity-100">
                               <button
@@ -432,7 +440,7 @@ export function ChatPanel({ organizationId, userId, initialConversationId, cours
                                 ▾
                               </button>
                               {openMessageMenuId === message.id && (
-                                <div className="absolute right-0 top-7 z-20 w-28 rounded-lg border border-[#e4ddd6] bg-white p-1 text-left text-xs shadow-lg">
+                                <div className="absolute bottom-7 right-0 z-20 w-28 rounded-lg border border-[#e4ddd6] bg-white p-1 text-left text-xs shadow-lg">
                                   <button
                                     type="button"
                                     onClick={() => { setReplyTo(message); setOpenMessageMenuId(null); }}
@@ -461,25 +469,6 @@ export function ChatPanel({ organizationId, userId, initialConversationId, cours
                             </div>
                           )}
                           </div>
-                        </div>
-                        <div className={`mt-1 flex items-center gap-2 text-[10px] ${isOutgoing ? 'justify-end text-neutral-500' : 'justify-start text-neutral-500'}`}>
-                          <span>{formatMessageTime(message.createdAt)}</span>
-                          {isOutgoing && !message.deletedAt && (
-                            <>
-                              <span className={message.readAt ? 'text-sky-600' : 'text-neutral-500'}>{deliveredMessageIds.has(message.id) ? '✓✓' : '✓'}</span>
-                              <button
-                                type="button"
-                                onClick={() => void deleteMessage(message.id)}
-                                className="rounded p-1 transition-colors hover:bg-black/5"
-                                aria-label="Delete message"
-                                title="Delete message"
-                              >
-                                <svg aria-hidden="true" viewBox="0 0 24 24" className="h-3.5 w-3.5 fill-none stroke-current stroke-2">
-                                  <path strokeLinecap="round" strokeLinejoin="round" d="M4 7h16M10 11v6m4-6v6M6 7l1 13h10l1-13M9 7l1-3h4l1 3" />
-                                </svg>
-                              </button>
-                            </>
-                          )}
                         </div>
                       </div>
                     </div>
