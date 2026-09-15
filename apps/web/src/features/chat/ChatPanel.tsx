@@ -18,6 +18,18 @@ function formatTime(value: string) {
   return new Intl.DateTimeFormat(undefined, { dateStyle: 'short', timeStyle: 'short' }).format(new Date(value));
 }
 
+function formatConversationTime(value: string) {
+  const date = new Date(value);
+  const now = new Date();
+  const sameDay = date.getFullYear() === now.getFullYear()
+    && date.getMonth() === now.getMonth()
+    && date.getDate() === now.getDate();
+
+  return new Intl.DateTimeFormat(undefined, sameDay
+    ? { hour: 'numeric', minute: '2-digit' }
+    : { month: 'short', day: 'numeric' }).format(date);
+}
+
 export function ChatPanel({ organizationId, userId, initialConversationId, courseId }: {
   organizationId: string;
   userId: string;
@@ -86,11 +98,11 @@ export function ChatPanel({ organizationId, userId, initialConversationId, cours
   }, [organizationId, initialConversationId, courseId]);
 
   useEffect(() => {
-    const socketUrl = process.env.NEXT_PUBLIC_SOCKET_URL || process.env.NEXT_PUBLIC_BACKEND_URL;
-    if (!socketUrl) {
-      setError('Chat server is not configured.');
-      return;
-    }
+    // The REST endpoints remain authoritative, while Socket.IO provides live
+    // updates when the deployed API is reachable.
+    const socketUrl = process.env.NEXT_PUBLIC_SOCKET_URL
+      || process.env.NEXT_PUBLIC_BACKEND_URL
+      || 'https://learn-flow-1-1gl3.onrender.com';
     const socket = io(socketUrl, { withCredentials: true, transports: ['websocket', 'polling'] });
     socketRef.current = socket;
     socket.on('connect', () => {
@@ -98,6 +110,7 @@ export function ChatPanel({ organizationId, userId, initialConversationId, cours
       if (activeIdRef.current) socket.emit('conversation:join', activeIdRef.current);
     });
     socket.on('disconnect', () => setConnected(false));
+    socket.on('connect_error', () => setConnected(false));
     socket.on('message:new', (message: ChatMessage) => {
       if (message.conversationId === activeIdRef.current) {
         setMessages((current) => current.some((item) => item.id === message.id) ? current : [...current, message]);
@@ -170,8 +183,8 @@ export function ChatPanel({ organizationId, userId, initialConversationId, cours
   if (loading) return <div className="rounded-2xl border border-neutral-200 bg-white p-8 text-neutral-600">Loading chat...</div>;
 
   return (
-    <div className="flex min-h-[620px] overflow-hidden rounded-2xl border border-neutral-200 bg-white shadow-sm">
-      <aside className={`${active ? 'hidden md:flex' : 'flex'} w-full flex-col border-r border-neutral-200 md:w-80`}>
+    <div className="flex h-[calc(100dvh-8rem)] min-h-0 overflow-hidden rounded-2xl border border-neutral-200 bg-white shadow-sm">
+      <aside className={`${active ? 'hidden md:flex' : 'flex'} min-h-0 w-full flex-col border-r border-neutral-200 md:w-80`}>
         <div className="border-b border-neutral-200 p-4">
           <h1 className="text-xl font-bold text-neutral-900">Chat</h1>
           <input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search conversations" className="mt-3 w-full rounded-lg border border-neutral-200 px-3 py-2 text-sm outline-none focus:border-primary-500" />
@@ -179,18 +192,48 @@ export function ChatPanel({ organizationId, userId, initialConversationId, cours
         <div className="flex-1 overflow-y-auto">
           {filtered.length === 0 ? <p className="p-6 text-sm text-neutral-500">No conversations yet.</p> : filtered.map((conversation) => (
             <button key={conversation.id} type="button" onClick={() => void selectConversation(conversation.id)} className={`w-full border-b border-neutral-100 p-4 text-left hover:bg-primary-50 ${conversation.id === activeId ? 'bg-primary-50' : ''}`}>
-              <p className="font-semibold text-neutral-900">{conversation.course?.title || 'Course'}</p>
-              <p className="text-sm text-neutral-600">{participant(conversation, userId)}</p>
-              <p className="mt-1 truncate text-xs text-neutral-500">{conversation.messages?.[0]?.content || 'No messages yet'}</p>
+              <div className="flex items-center justify-between gap-3">
+                <p className="min-w-0 truncate font-semibold text-neutral-900">{participant(conversation, userId)}</p>
+                {conversation.messages?.[0] && (
+                  <time className="shrink-0 text-xs text-neutral-500" dateTime={conversation.messages[0].createdAt}>
+                    {formatConversationTime(conversation.messages[0].createdAt)}
+                  </time>
+                )}
+              </div>
+              <p className="mt-1 truncate text-sm text-neutral-500">{conversation.messages?.[0]?.content || 'No messages yet'}</p>
             </button>
           ))}
         </div>
       </aside>
-      <section className={`${active ? 'flex' : 'hidden md:flex'} min-w-0 flex-1 flex-col`}>
+      <section className={`${active ? 'flex' : 'hidden md:flex'} min-h-0 min-w-0 flex-1 flex-col`}>
         {active ? <>
           <header className="flex items-center justify-between border-b border-neutral-200 p-4">
-            <div><button type="button" onClick={() => setActiveId('')} className="mr-3 text-sm text-primary-700 md:hidden">← Conversations</button><span className="font-semibold text-neutral-900">{participant(active, userId)}</span><p className="text-xs text-neutral-500">{active.course?.title}</p></div>
-            <div className="flex items-center gap-2"><span className={`hidden text-xs sm:inline ${connected ? 'text-success-600' : 'text-neutral-500'}`}>{connected ? 'Connected' : 'Offline'}</span><button type="button" disabled={actionLoading} onClick={() => void updateConversation(active.blockedAt ? 'unblock' : 'block')} className="text-xs font-medium text-neutral-600 hover:text-primary-700 disabled:opacity-50">{active.blockedAt ? 'Unblock' : 'Block'}</button><button type="button" disabled={actionLoading} onClick={() => void updateConversation('delete')} className="text-xs font-medium text-red-600 hover:text-red-700 disabled:opacity-50">Delete</button></div>
+            <div>
+              <button type="button" onClick={() => setActiveId('')} className="mr-3 text-sm text-primary-700 md:hidden">← Conversations</button>
+              <span className="font-semibold text-neutral-900">{participant(active, userId)}</span>
+              <span className={`ml-2 text-xs font-medium ${connected ? 'text-success-600' : 'text-neutral-500'}`}>
+                ({connected ? 'Online' : 'Offline'})
+              </span>
+              <p className="text-xs text-neutral-500">{active.course?.title}</p>
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                disabled={actionLoading}
+                onClick={() => void updateConversation(active.blockedAt ? 'unblock' : 'block')}
+                className="rounded-lg bg-[#5a301e] px-3 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-[#432216] disabled:opacity-50"
+              >
+                {active.blockedAt ? 'Unblock' : 'Block'}
+              </button>
+              <button
+                type="button"
+                disabled={actionLoading}
+                onClick={() => void updateConversation('delete')}
+                className="rounded-lg bg-[#ead8c2] px-3 py-1.5 text-xs font-semibold text-[#5a301e] transition-colors hover:bg-[#dfc5a8] disabled:opacity-50"
+              >
+                Delete
+              </button>
+            </div>
           </header>
           <div className="flex-1 space-y-3 overflow-y-auto bg-neutral-50 p-4">
             {messages.map((message) => <div key={message.id} className={`group flex ${message.senderId === userId ? 'justify-end' : 'justify-start'}`}><div className={`max-w-[80%] rounded-2xl px-4 py-2 text-sm ${message.senderId === userId ? 'bg-primary-700 text-white' : 'bg-white text-neutral-800 shadow-sm'}`}><p>{message.content}</p><div className="mt-1 flex items-center justify-between gap-3 text-[10px] opacity-70"><span>{formatTime(message.createdAt)}</span>{message.senderId === userId && !message.deletedAt && <button type="button" onClick={() => void deleteMessage(message.id)}>Delete</button>}</div></div></div>)}
