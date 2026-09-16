@@ -16,7 +16,7 @@ export function QuizSteps({
   ] as const;
 
   return (
-    <div className="mb-6 flex flex-wrap items-center gap-2 rounded-2xl border border-[#e9ece9] bg-[#f8faf9] p-2">
+    <div className="mb-6 flex items-center gap-2 rounded-2xl border border-[#e9ece9] bg-[#f8faf9] p-2">
       {steps.map((step) => {
         const isActive = step.key === active;
         const content = (
@@ -27,7 +27,7 @@ export function QuizSteps({
             {step.label}
           </>
         );
-        const className = `flex items-center gap-2 rounded-xl border px-3 py-2 text-xs font-semibold shadow-sm sm:text-sm ${isActive ? 'border-[#d69a5b] bg-[#f5ebdd] text-[#5a321f] shadow-[0_2px_8px_rgb(90_50_31_/_0.12)]' : 'border-transparent text-neutral-500'}`;
+        const className = `flex min-w-0 flex-1 items-center justify-center gap-2 rounded-xl border px-3 py-2 text-xs font-semibold shadow-sm sm:text-sm ${isActive ? 'border-[#d69a5b] bg-[#f5ebdd] text-[#5a321f] shadow-[0_2px_8px_rgb(90_50_31_/_0.12)]' : 'border-transparent text-neutral-500'}`;
         const href = step.key === 'details' ? detailsHref : questionsHref;
 
         return href ? (

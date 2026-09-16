@@ -26,7 +26,7 @@ function QuizActionsMenu({ quiz, courseId, moduleId, dashboardPrefix, onEdit, on
   const [isOpen, setIsOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
-  const [menuPosition, setMenuPosition] = useState({ top: 0, left: 0 });
+  const [menuPosition, setMenuPosition] = useState({ top: 0, right: 0 });
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -46,11 +46,12 @@ function QuizActionsMenu({ quiz, courseId, moduleId, dashboardPrefix, onEdit, on
       const rect = buttonRef.current.getBoundingClientRect();
       const menuWidth = 192;
       const menuHeight = 144;
-      const left = rect.left - menuWidth - 8 >= 8
-        ? rect.left - menuWidth - 8
-        : Math.min(rect.right + 8, window.innerWidth - menuWidth - 8);
-      const top = Math.max(8, Math.min(rect.top, window.innerHeight - menuHeight - 8));
-      setMenuPosition({ top, left });
+      const right = Math.max(8, window.innerWidth - rect.right);
+      const belowTop = rect.bottom + 8;
+      const top = belowTop + menuHeight <= window.innerHeight - 8
+        ? belowTop
+        : Math.max(8, rect.top - menuHeight - 8);
+      setMenuPosition({ top, right });
     }
     setIsOpen(!isOpen);
   }
@@ -71,7 +72,7 @@ function QuizActionsMenu({ quiz, courseId, moduleId, dashboardPrefix, onEdit, on
       {isOpen && (
         <div
           ref={menuRef}
-          style={{ position: 'fixed', top: menuPosition.top, left: menuPosition.left, zIndex: 9999 }}
+          style={{ position: 'fixed', top: menuPosition.top, right: menuPosition.right, zIndex: 9999 }}
           className="w-48 rounded-lg border border-neutral-200 bg-white shadow-lg"
         >
           <Link

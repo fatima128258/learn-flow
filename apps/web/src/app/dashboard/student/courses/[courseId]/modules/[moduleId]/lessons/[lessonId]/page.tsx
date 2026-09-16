@@ -367,10 +367,16 @@ export default function StudentLessonPage() {
                   <Button
                     size="sm"
                     variant="primary"
-                    disabled={marking}
-                    onClick={() => markComplete(true)}
+                    disabled={marking || (isCompleted && nextResolving)}
+                    onClick={() => {
+                      if (isCompleted) {
+                        void goToNextContent();
+                      } else {
+                        void markComplete(true);
+                      }
+                    }}
                   >
-                    {marking ? 'Saving...' : isCompleted ? 'Completed' : 'Complete'}
+                    {marking ? 'Saving...' : isCompleted ? (nextResolving ? 'Loading next...' : 'Next') : 'Complete'}
                   </Button>
                 </div>
               </div>

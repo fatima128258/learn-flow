@@ -586,6 +586,16 @@ export default function QuizQuestionsPage() {
     }
   }
 
+  async function viewQuestion(questionId: string) {
+    await toggleOptions(questionId);
+    window.setTimeout(() => {
+      document.getElementById(`quiz-question-${questionId}`)?.scrollIntoView({
+        behavior: 'smooth',
+        block: 'start',
+      });
+    }, 0);
+  }
+
   function openCreateOptionModal(questionId: string) {
     setOptionTargetQuestion(questionId);
     clearOptionForm();
@@ -773,7 +783,6 @@ export default function QuizQuestionsPage() {
           <div className="mb-6">
             <div>
               <h1 className="text-2xl font-bold tracking-[-0.04em] text-neutral-900 sm:text-3xl">Create Quiz</h1>
-              <p className="mt-1 text-sm text-neutral-500">Add questions, mark answers, and publish your quiz with confidence.</p>
             </div>
           </div>
 
@@ -788,20 +797,10 @@ export default function QuizQuestionsPage() {
                 id="inline-question-builder"
                 className="rounded-[24px] border border-[#dfece9] bg-[#f7faf9] p-4 sm:p-5"
               >
-                <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <div className="mb-4">
                   <h2 className="text-xl font-bold text-neutral-900">
                     Question {questions.length + 1}
                   </h2>
-                  <div className="flex flex-wrap gap-2">
-                    {['Multiple Choice', 'True / False', 'Short Answer', 'Essay'].map((type) => (
-                      <span
-                        key={type}
-                        className="rounded-full border border-[#e7e7e7] bg-white px-2.5 py-1.5 text-[11px] font-medium text-neutral-600"
-                      >
-                        {type}
-                      </span>
-                    ))}
-                  </div>
                 </div>
 
                 <div className="space-y-4">
@@ -825,7 +824,7 @@ export default function QuizQuestionsPage() {
                               name="inline-correct-answer"
                               checked={option.isCorrect}
                               onChange={() => setInlineOptions((previous) => previous.map((item, itemIndex) => ({ ...item, isCorrect: itemIndex === index })))}
-                              className="h-4 w-4 accent-[#2e7a74]"
+                              className="h-5 w-5 accent-[#2e7a74]"
                               aria-label={`Mark option ${index + 1} as correct`}
                               disabled={savingInlineQuestion}
                             />
@@ -877,7 +876,7 @@ export default function QuizQuestionsPage() {
               {questions.length > 0 && (
                 <div className="space-y-4">
                   {questions.map((question) => (
-                    <div key={question.id} className="rounded-[24px] border border-[#e5e7e6] bg-[#fafcfb] p-4 shadow-[0_4px_20px_rgba(15,23,42,0.02)] sm:p-5">
+                    <div id={`quiz-question-${question.id}`} key={question.id} className="scroll-mt-6 rounded-[24px] border border-[#e5e7e6] bg-[#fafcfb] p-4 shadow-[0_4px_20px_rgba(15,23,42,0.02)] sm:p-5">
                       <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
                         <div className="min-w-0 flex-1">
                           <div className="mb-2 flex flex-wrap items-center gap-2">
@@ -991,7 +990,7 @@ export default function QuizQuestionsPage() {
           ) : null}
         </div>
 
-        <aside className="h-fit rounded-[26px] border border-[#e3e6e3] bg-[#fcfdfd] p-4 shadow-[0_6px_24px_rgba(19,33,28,0.04)] sm:p-5">
+        <aside className="h-fit min-h-[520px] rounded-[26px] border border-[#e3e6e3] bg-[#fcfdfd] p-4 shadow-[0_6px_24px_rgba(19,33,28,0.04)] sm:p-5">
           <div className="flex items-center justify-between gap-2 border-b border-[#edf1ef] pb-3">
             <div>
               <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-neutral-500">Quiz Summary</p>
@@ -1011,13 +1010,37 @@ export default function QuizQuestionsPage() {
               </div>
             </div>
 
+            <div className="rounded-2xl border border-[#e9efed] bg-white p-3">
+              <div className="mb-3 flex items-center justify-between">
+                <span className="text-sm font-semibold text-neutral-700">Questions</span>
+                <span className="text-xs font-medium text-neutral-500">{questions?.length ?? 0} total</span>
+              </div>
+              {questions && questions.length > 0 ? (
+                <div className="grid grid-cols-4 gap-2">
+                  {questions.map((question, index) => (
+                    <button
+                      key={question.id}
+                      type="button"
+                      onClick={() => void viewQuestion(question.id)}
+                      aria-label={`View question ${index + 1}`}
+                      className={`flex h-11 w-11 items-center justify-center rounded-full text-sm font-bold transition-colors ${expandedQuestion === question.id ? 'bg-[#5a321f] text-white shadow-[0_3px_10px_rgb(90_50_31_/_0.2)]' : 'bg-[#f5ebdd] text-[#5a321f] hover:bg-[#ead8c6]'}`}
+                    >
+                      {index + 1}
+                    </button>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-sm text-neutral-500">Add a question to view it here.</p>
+              )}
+            </div>
+
             <div className="space-y-2 border-t border-[#edf1ef] pt-4">
               <button
                 type="button"
                 onClick={() => router.push(`${dashboardPrefix}/courses/${courseId}/modules/${moduleId}/quizzes${organizationId ? `?organization=${organizationId}` : ''}`)}
                 className="flex w-full items-center justify-center rounded-xl bg-[#2e7a74] px-4 py-3 text-sm font-semibold text-white shadow-[0_8px_20px_rgba(46,122,116,0.25)] transition-colors hover:bg-[#255f5a]"
               >
-                Publish
+                Save Quiz
               </button>
             </div>
           </div>

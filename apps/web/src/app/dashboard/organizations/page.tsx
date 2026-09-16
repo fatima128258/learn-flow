@@ -830,10 +830,8 @@ export default function OrganizationsPage() {
                             {org.name}
                           </Button>
                         </td>
-                        <td className={tableStatusClass}>
-                          <Badge variant={org.status === 'ACTIVE' ? 'success' : 'error'} size="sm">
-                            {org.status}
-                          </Badge>
+                        <td className={`${tableStatusClass} text-neutral-700`}>
+                          {org.status}
                         </td>
                         <td className={tableCellClass}>
                           {org.admins && org.admins.length > 0 ? (
@@ -896,11 +894,9 @@ export default function OrganizationsPage() {
                     </div>
                   </div>
 
-                  {/* Status badge */}
-                  <div className="mt-2">
-                    <Badge variant={org.status === 'ACTIVE' ? 'success' : 'error'} size="sm">
-                      {org.status}
-                    </Badge>
+                  {/* Status text without pill badge */}
+                  <div className="mt-2 text-xs font-medium uppercase tracking-[0.12em] text-neutral-500">
+                    {org.status}
                   </div>
 
                   {/* Organization email — full, no truncation */}
