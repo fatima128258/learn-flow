@@ -137,7 +137,9 @@ export async function createOrganization(
   try {
     const organization = await orgRepo.createOrganization({ name, slug });
     if (input.actor?.userId) {
-      await recordAudit({
+      // Audit logging is best effort and must not hold the organization
+      // creation response open while the database is under load.
+      void recordAudit({
         action: 'ORGANIZATION_CREATED',
         organizationId: organization.id,
         actorUserId: input.actor.userId,
