@@ -1084,7 +1084,7 @@ export default function QuizQuestionsPage() {
           ) : null}
         </div>
 
-        <aside className="h-fit min-h-[520px] rounded-[26px] border border-[#e3e6e3] bg-[#fcfdfd] p-4 shadow-[0_6px_24px_rgba(19,33,28,0.04)] sm:p-5">
+        <aside className="h-fit self-start rounded-[26px] border border-[#e3e6e3] bg-[#fcfdfd] p-4 shadow-[0_6px_24px_rgba(19,33,28,0.04)] sm:p-5">
           <div className="flex items-center justify-between gap-2 border-b border-[#edf1ef] pb-3">
             <div>
               <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-neutral-500">Quiz Summary</p>
