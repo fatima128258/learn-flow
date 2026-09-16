@@ -105,7 +105,11 @@ export default function StudentCourseProgressPage() {
   }, [user, userLoading]);
 
   const isLoading = userLoading || progressLoading;
-  const error = progressError?.message;
+  const error = progressError instanceof Error
+    ? progressError.message
+    : progressError
+      ? 'Could not load course progress. Please try again.'
+      : null;
 
   if (isLoading) {
     return (
