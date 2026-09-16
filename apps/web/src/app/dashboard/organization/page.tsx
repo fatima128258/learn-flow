@@ -218,6 +218,8 @@ export default function OrganizationDashboardPage() {
       setLoading(false);
       return;
     }
+
+    if (!user) return;
     
     if (user.role !== 'ORG_ADMIN' && user.role !== 'PLATFORM_ADMIN') {
       router.push('/login');
