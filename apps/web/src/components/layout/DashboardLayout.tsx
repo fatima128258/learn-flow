@@ -428,7 +428,7 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
             aria-label="Close navigation overlay"
             tabIndex={-1}
           />
-          <div className="absolute inset-y-0 left-0 flex w-72 flex-col bg-white shadow-xl">
+          <div className="absolute inset-y-0 left-0 flex w-64 flex-col bg-white shadow-xl">
             <div className="flex h-16 items-center justify-between border-b border-neutral-200 px-6">
               {brand}
               <button
