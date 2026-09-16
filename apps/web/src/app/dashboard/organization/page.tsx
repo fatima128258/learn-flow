@@ -105,7 +105,7 @@ export default function OrganizationDashboardPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const orgId = searchParams.get('organization');
-  const { data: user, isLoading: userLoading } = useCurrentUser();
+  const { data: user, isLoading: userLoading, isError: userError } = useCurrentUser();
 
   const [summary, setSummary] = useState<DashboardSummary | null>(null);
   const [courseCount, setCourseCount] = useState<number | null>(null);
@@ -208,8 +208,14 @@ export default function OrganizationDashboardPage() {
   useEffect(() => {
     if (userLoading) return;
     
-    if (!user) {
+    if (!user && !userError) {
       router.push('/login');
+      return;
+    }
+
+    if (userError) {
+      setError('We could not verify your session. Please try again.');
+      setLoading(false);
       return;
     }
     
@@ -219,7 +225,7 @@ export default function OrganizationDashboardPage() {
     }
     
     void load();
-  }, [user, userLoading]);
+  }, [user, userLoading, userError]);
 
   function closeInstructorModal() {
     if (creatingInstructor) return;
