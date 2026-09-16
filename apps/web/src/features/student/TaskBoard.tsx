@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type React from 'react';
 import { ApiError, deleteJson, getJson, patchJson, postJson } from '@/lib/api';
 import { Button, ConfirmModal, Drawer, Input, Select, Spinner } from '@/components/ui';
@@ -76,6 +76,10 @@ export default function TaskBoard() {
     });
     setFormOpen(true);
   }
+
+  const closeTaskDrawer = useCallback(() => {
+    if (!saving) setFormOpen(false);
+  }, [saving]);
 
   async function saveTask(event: React.FormEvent) {
     event.preventDefault();
@@ -180,13 +184,28 @@ export default function TaskBoard() {
           </section>
         ))}
       </div>
-      <Drawer isOpen={formOpen} onClose={() => { if (!saving) setFormOpen(false); }} title={editing ? 'Edit Task' : 'Add Task'}>
+      <Drawer isOpen={formOpen} onClose={closeTaskDrawer} title={editing ? 'Edit Task' : 'Add Task'}>
         <form id="task-form" onSubmit={saveTask} className="flex min-h-full flex-col gap-4">
           <Input label="Title" required value={form.title} onChange={(event) => setForm((current) => ({ ...current, title: event.target.value }))} maxLength={200} />
           <div><label htmlFor="task-description" className="mb-1.5 block text-sm font-medium text-neutral-700">Description</label><textarea id="task-description" value={form.description} onChange={(event) => setForm((current) => ({ ...current, description: event.target.value }))} maxLength={5000} rows={4} className="w-full rounded-xl border border-[#e5d5c4] bg-[#fffdf9] px-4 py-3 text-sm outline-none focus:border-[#7a4a2e]" /></div>
-          <div className="grid w-full grid-cols-2 gap-4"><Select label="Status" value={form.status} onChange={(value) => setForm((current) => ({ ...current, status: value as TaskStatus }))} options={[{ value: 'PENDING', label: 'Pending' }, { value: 'IN_PROGRESS', label: 'In Progress' }, { value: 'COMPLETED', label: 'Completed' }]} /><Select label="Priority" value={form.priority} onChange={(value) => setForm((current) => ({ ...current, priority: value as Priority }))} options={[{ value: 'LOW', label: 'Low' }, { value: 'MEDIUM', label: 'Medium' }, { value: 'HIGH', label: 'High' }]} /></div>
+          <div className="grid w-full grid-cols-2 gap-4">
+            <Select
+              label="Status"
+              value={form.status}
+              onChange={(value) => setForm((current) => ({ ...current, status: value as TaskStatus }))}
+              options={[{ value: 'PENDING', label: 'Pending' }, { value: 'IN_PROGRESS', label: 'In Progress' }, { value: 'COMPLETED', label: 'Completed' }]}
+              className="rounded-xl bg-[#fcf3e8] p-2 [&>button]:border-[#ead8c6] [&>button]:bg-[#fffaf5]"
+            />
+            <Select
+              label="Priority"
+              value={form.priority}
+              onChange={(value) => setForm((current) => ({ ...current, priority: value as Priority }))}
+              options={[{ value: 'LOW', label: 'Low' }, { value: 'MEDIUM', label: 'Medium' }, { value: 'HIGH', label: 'High' }]}
+              className="rounded-xl bg-[#fcf3e8] p-2 [&>button]:border-[#ead8c6] [&>button]:bg-[#fffaf5]"
+            />
+          </div>
           <div className="mt-auto flex justify-end gap-3 border-t border-neutral-200 pt-5">
-            <Button variant="outline" type="button" onClick={() => setFormOpen(false)} disabled={saving} className="border-[#7a4a2e] bg-[#fffaf5] text-[#7a4a2e] hover:bg-[#f5e8dc]">Cancel</Button>
+            <Button variant="outline" type="button" onClick={() => setFormOpen(false)} disabled={saving} className="border-[#ead8c6] bg-[#f5e8dc] text-[#7a4a2e] hover:bg-[#eedbc9]">Cancel</Button>
             <Button type="submit" loading={saving}>{editing ? 'Save Changes' : 'Create Task'}</Button>
           </div>
         </form>

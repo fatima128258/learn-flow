@@ -312,21 +312,21 @@ export function ChatPanel({ organizationId, userId, initialConversationId, cours
 
   return (
     <>
-    <div className="flex h-[calc(100dvh-8rem)] min-h-0 overflow-hidden rounded-[18px] border border-[#dfe2df] bg-[#f5f2ee] shadow-sm">
-      <aside className={`${active ? 'hidden md:flex' : 'flex'} min-h-0 w-full flex-col border-r border-[#dfe2df] bg-[#f5f3f2] md:w-[420px]`}>
-        <div className="border-b border-[#dfe2df] bg-[#f7f4f2] px-4 py-3">
-          <div className="flex rounded-xl border border-[#d9d1ca] bg-[#eee9e5] p-1">
+    <div className="flex h-[calc(100dvh-8rem)] min-h-0 overflow-hidden rounded-[18px] border border-[#ead8c6] bg-[#fffaf5] shadow-sm">
+      <aside className={`${active ? 'hidden md:flex' : 'flex'} min-h-0 w-full flex-col border-r border-[#ead8c6] bg-[#fffdf9] md:w-[420px]`}>
+        <div className="border-b border-[#ead8c6] bg-[#fffaf5] px-4 py-3">
+          <div className="flex rounded-xl border border-[#dfcdbb] bg-[#f5ebdd] p-1">
           <button
             type="button"
             onClick={() => setTab('active')}
-            className={`flex-1 rounded-lg px-3 py-2 text-center text-sm font-semibold transition-colors ${tab === 'active' ? 'bg-white text-[#2e7a74] shadow-sm' : 'text-[#6c726f] hover:text-[#2e7a74]'}`}
+            className={`flex-1 rounded-lg px-3 py-2 text-center text-sm font-semibold transition-colors ${tab === 'active' ? 'bg-white text-[#5a321f] shadow-sm' : 'text-[#8b6b55] hover:text-[#7a4a2e]'}`}
           >
             Active
           </button>
           <button
             type="button"
             onClick={() => setTab('blocked')}
-            className={`flex-1 rounded-lg px-3 py-2 text-center text-sm font-semibold transition-colors ${tab === 'blocked' ? 'bg-white text-[#2e7a74] shadow-sm' : 'text-[#6c726f] hover:text-[#2e7a74]'}`}
+            className={`flex-1 rounded-lg px-3 py-2 text-center text-sm font-semibold transition-colors ${tab === 'blocked' ? 'bg-white text-[#5a321f] shadow-sm' : 'text-[#8b6b55] hover:text-[#7a4a2e]'}`}
           >
             Blocked
           </button>
@@ -334,20 +334,20 @@ export function ChatPanel({ organizationId, userId, initialConversationId, cours
         </div>
 
         <div className="p-4">
-          <div className="flex items-center gap-3 border-b border-[#dfe2df] pb-3">
-            <svg aria-hidden="true" viewBox="0 0 24 24" className="h-5 w-5 stroke-[1.8] text-[#5b5e5d]">
+          <div className="flex items-center gap-3 border-b border-[#ead8c6] pb-3">
+            <svg aria-hidden="true" viewBox="0 0 24 24" className="h-5 w-5 stroke-[1.8] text-[#7a4a2e]">
               <circle cx="11" cy="11" r="6.5" fill="none" stroke="currentColor" />
               <path d="M16 16L21 21" fill="none" stroke="currentColor" strokeLinecap="round" />
             </svg>
-            <input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search by name..." className="w-full border-0 bg-transparent text-[1.05rem] text-neutral-700 placeholder:text-[#8c8f8c] focus:outline-none" />
+            <input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search by name..." className="w-full border-0 bg-transparent text-[1.05rem] text-[#5a321f] placeholder:text-[#a78d79] focus:outline-none" />
           </div>
         </div>
 
         <div className="flex-1 space-y-3 overflow-y-auto px-3 pb-3">
           {loading ? <p className="p-6 text-sm text-neutral-500">Loading conversations...</p>
-            : filtered.length === 0 ? <p className="p-6 text-sm text-neutral-500">No conversations yet.</p> : filtered.map((conversation) => (
-            <button key={conversation.id} type="button" onClick={() => void selectConversation(conversation.id)} className={`flex w-full items-center gap-3 rounded-[18px] border px-4 py-4 text-left transition-colors ${conversation.id === activeId ? 'border-[#d5d0ca] bg-[#f0e9e3] shadow-sm' : 'border-[#dfe2df] bg-[#f6f8f7] hover:bg-[#f2efe9]'}`}>
-              <div className="flex h-14 w-14 items-center justify-center rounded-full bg-[#cfcfcf] text-lg font-semibold text-[#fafafa] shadow-sm">
+            : filtered.length === 0 ? <p className="p-6 text-sm text-[#8b6b55]">No conversations yet.</p> : filtered.map((conversation) => (
+            <button key={conversation.id} type="button" onClick={() => void selectConversation(conversation.id)} className={`flex w-full items-center gap-3 rounded-[18px] border px-4 py-4 text-left transition-colors ${conversation.id === activeId ? 'border-[#d69a5b] bg-[#f5ebdd] shadow-sm' : 'border-[#ead8c6] bg-[#fffaf5] hover:bg-[#f5ebdd]'}`}>
+              <div className="flex h-14 w-14 items-center justify-center rounded-full bg-[#d4b596] text-lg font-semibold text-[#fffaf5] shadow-sm">
                 {participant(conversation, userId).charAt(0).toUpperCase()}
               </div>
               <div className="min-w-0 flex-1">

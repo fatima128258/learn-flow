@@ -26,7 +26,7 @@ interface QuestionRecord {
 }
 
 function toQuestionDto(question: QuestionRecord) {
-  return {
+  const dto = {
     id: question.id,
     quizId: question.quizId,
     questionText: question.questionText,
@@ -35,6 +35,7 @@ function toQuestionDto(question: QuestionRecord) {
     createdAt: question.createdAt,
     updatedAt: question.updatedAt,
   };
+  return question.options ? { ...dto, options: question.options.map(toOptionDto) } : dto;
 }
 
 function toQuestionDetailDto(question: QuestionRecord) {

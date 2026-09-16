@@ -22,6 +22,7 @@ type QuestionListItem = {
   order: number;
   createdAt: string;
   updatedAt: string;
+  options?: OptionItem[];
 };
 
 type OptionItem = {
@@ -161,6 +162,13 @@ export default function QuizQuestionsPage() {
         const body: ListQuestionsResponse = await res.json();
         if (!active) return;
         setQuestions(body.data ?? []);
+        setQuestionOptions(
+          Object.fromEntries(
+            (body.data ?? [])
+              .filter((question) => question.options)
+              .map((question) => [question.id, question.options ?? []]),
+          ),
+        );
         if (body.data?.length) setExpandedQuestion(body.data[0].id);
       } catch {
         if (active) toast.error(getQuizErrorMessage(null));
@@ -187,6 +195,13 @@ export default function QuizQuestionsPage() {
       if (res.ok) {
         const body: ListQuestionsResponse = await res.json();
         setQuestions(body.data ?? []);
+        setQuestionOptions(
+          Object.fromEntries(
+            (body.data ?? [])
+              .filter((question) => question.options)
+              .map((question) => [question.id, question.options ?? []]),
+          ),
+        );
       }
     } finally {
       setLoading(false);
@@ -195,19 +210,16 @@ export default function QuizQuestionsPage() {
 
   async function reloadOptions(questionId: string) {
     if (!organizationId || !courseId || !moduleId || !quizId) return;
-    try {
-      const apiBase = '';
-      const res = await fetch(
-        `${apiBase}/api/v1/organizations/${organizationId}/courses/${courseId}/modules/${moduleId}/quizzes/${quizId}/questions/${questionId}/options`,
-        { credentials: 'include' }
-      );
-      if (res.ok) {
-        const body: ListOptionsResponse = await res.json();
-        setQuestionOptions((prev) => ({ ...prev, [questionId]: body.data ?? [] }));
-      }
-    } catch {
-      // silent fail
+    const apiBase = '';
+    const res = await fetch(
+      `${apiBase}/api/v1/organizations/${organizationId}/courses/${courseId}/modules/${moduleId}/quizzes/${quizId}/questions/${questionId}/options`,
+      { credentials: 'include' }
+    );
+    if (!res.ok) {
+      throw new Error('OPTIONS_LOAD_FAILED');
     }
+    const body: ListOptionsResponse = await res.json();
+    setQuestionOptions((prev) => ({ ...prev, [questionId]: body.data ?? [] }));
   }
 
   function addInlineOption() {
@@ -661,8 +673,13 @@ export default function QuizQuestionsPage() {
     setExpandedQuestion(questionId);
     if (!questionOptions[questionId]) {
       setLoadingOptions(questionId);
-      await reloadOptions(questionId);
-      setLoadingOptions(null);
+      try {
+        await reloadOptions(questionId);
+      } catch {
+        toast.error('Unable to load answer options.');
+      } finally {
+        setLoadingOptions(null);
+      }
     }
   }
 
@@ -830,7 +847,7 @@ export default function QuizQuestionsPage() {
       <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-[0.22em] text-[#2e7a74]">
           <span className="inline-flex h-2 w-2 rounded-full bg-[#2e7a74]" />
-          Quizzes <span className="text-neutral-500">/</span> Create Quiz
+          Quizzes
         </div>
         <LinkButton
           href={`${dashboardPrefix}/courses/${courseId}/modules${organizationId ? `?organization=${organizationId}` : ''}`}
@@ -848,12 +865,6 @@ export default function QuizQuestionsPage() {
             detailsHref={`${dashboardPrefix}/courses/${courseId}/modules/${moduleId}/quizzes/${quizId}${organizationId ? `?organization=${organizationId}` : ''}`}
           />
 
-          <div className="mb-6">
-            <div>
-              <h1 className="text-2xl font-bold tracking-[-0.04em] text-neutral-900 sm:text-3xl">Create Quiz</h1>
-            </div>
-          </div>
-
           {loading ? (
             <div className="mt-8 flex items-center gap-3 text-neutral-700">
               <Spinner size="md" label="Loading questions..." />
@@ -865,10 +876,23 @@ export default function QuizQuestionsPage() {
                 id="inline-question-builder"
                 className="rounded-[24px] border border-[#dfece9] bg-[#f7faf9] p-4 sm:p-5"
               >
-                <div className="mb-4">
+                <div className="mb-4 flex items-end justify-between gap-4">
                   <h2 className="text-xl font-bold text-neutral-900">
                     Question {questions.length + 1}
                   </h2>
+                  <div className="w-24 shrink-0 sm:w-28">
+                    <Input
+                      label="Marks"
+                      type="number"
+                      min={1}
+                      step={1}
+                      value={inlineMarks}
+                      onChange={(event) => setInlineMarks(event.target.value)}
+                      placeholder="e.g. 5"
+                      disabled={savingInlineQuestion}
+                      required
+                    />
+                  </div>
                 </div>
 
                 <div className="space-y-4">
@@ -881,46 +905,32 @@ export default function QuizQuestionsPage() {
                     required
                   />
 
-                  <div className="grid gap-4 md:grid-cols-[minmax(0,1fr)_180px]">
-                    <div>
-                      <p className="mb-2 text-sm font-semibold text-neutral-800">Answer Options</p>
-                      <div className="space-y-3">
-                        {inlineOptions.map((option, index) => (
-                          <div key={index} className="flex items-center gap-3">
-                            <input
-                              type="radio"
-                              name="inline-correct-answer"
-                              checked={option.isCorrect}
-                              onChange={() => setInlineOptions((previous) => previous.map((item, itemIndex) => ({ ...item, isCorrect: itemIndex === index })))}
-                              className="h-5 w-5 accent-[#2e7a74]"
-                              aria-label={`Mark option ${index + 1} as correct`}
+                  <div>
+                    <p className="mb-2 text-sm font-semibold text-neutral-800">Answer Options</p>
+                    <div className="space-y-3">
+                      {inlineOptions.map((option, index) => (
+                        <div key={index} className="flex items-end gap-3">
+                          <input
+                            type="radio"
+                            name="inline-correct-answer"
+                            checked={option.isCorrect}
+                            onChange={() => setInlineOptions((previous) => previous.map((item, itemIndex) => ({ ...item, isCorrect: itemIndex === index })))}
+                            className="mb-3 h-5 w-5 shrink-0 accent-[#2e7a74]"
+                            aria-label={`Mark option ${index + 1} as correct`}
+                            disabled={savingInlineQuestion}
+                          />
+                          <div className="min-w-0 flex-1">
+                            <Input
+                              aria-label={`Option ${index + 1}`}
+                              value={option.text}
+                              onChange={(event) => setInlineOptions((previous) => previous.map((item, itemIndex) => itemIndex === index ? { ...item, text: event.target.value } : item))}
+                              placeholder={`Option ${index + 1}`}
                               disabled={savingInlineQuestion}
                             />
-                            <div className="flex-1">
-                              <Input
-                                aria-label={`Option ${index + 1}`}
-                                value={option.text}
-                                onChange={(event) => setInlineOptions((previous) => previous.map((item, itemIndex) => itemIndex === index ? { ...item, text: event.target.value } : item))}
-                                placeholder={`Option ${index + 1}`}
-                                disabled={savingInlineQuestion}
-                              />
-                            </div>
                           </div>
-                        ))}
-                      </div>
+                        </div>
+                      ))}
                     </div>
-
-                    <Input
-                      label="Marks"
-                      type="number"
-                      min={1}
-                      step={1}
-                      value={inlineMarks}
-                      onChange={(event) => setInlineMarks(event.target.value)}
-                      placeholder="e.g. 5"
-                      disabled={savingInlineQuestion}
-                      required
-                    />
                   </div>
 
                   <div className="flex flex-col gap-3 border-t border-[#e6ece9] pt-4 sm:flex-row sm:items-center sm:justify-end">
@@ -1121,9 +1131,9 @@ export default function QuizQuestionsPage() {
             type="button"
             aria-label="Close question drawer"
             onClick={() => setExpandedQuestion(null)}
-            className="fixed inset-0 z-40 bg-neutral-950/30"
+            className="fixed inset-0 z-[60] bg-neutral-950/30"
           />
-          <aside className="fixed inset-y-0 right-0 z-50 flex w-full max-w-md flex-col border-l border-[#ead8c6] bg-[#fffdf9] shadow-2xl">
+          <aside className="fixed inset-y-0 right-0 z-[70] flex w-full max-w-md flex-col border-l border-[#ead8c6] bg-[#fffdf9] shadow-2xl">
             {(() => {
               const question = questions?.find((item) => item.id === expandedQuestion);
               if (!question) return null;

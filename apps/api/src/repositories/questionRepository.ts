@@ -34,6 +34,18 @@ export async function listByQuiz(quizId: string) {
       order: true,
       createdAt: true,
       updatedAt: true,
+      options: {
+        orderBy: { order: 'asc' },
+        select: {
+          id: true,
+          questionId: true,
+          text: true,
+          isCorrect: true,
+          order: true,
+          createdAt: true,
+          updatedAt: true,
+        },
+      },
     },
     orderBy: { order: 'asc' },
   });
