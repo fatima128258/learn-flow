@@ -1,7 +1,7 @@
 'use client';
 
 import { useQuery } from '@tanstack/react-query';
-import { apiRequest, logout } from '../../lib/api';
+import { ApiError, apiRequest, logout } from '../../lib/api';
 import type { CurrentUser, MeResponse } from '../../lib/types';
 
 export const meKey = ['auth', 'me'] as const;
