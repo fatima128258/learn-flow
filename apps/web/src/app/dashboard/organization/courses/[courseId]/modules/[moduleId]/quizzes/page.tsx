@@ -3,6 +3,7 @@
 import { useEffect, useState, useRef } from 'react';
 import { useParams, usePathname, useRouter } from 'next/navigation';
 import { Badge, Button, ConfirmModal, Drawer, EmptyState, EmptyStateIcons, Spinner } from '../../../../../../../../components/ui';
+import { createPortal } from 'react-dom';
 import { Input } from '../../../../../../../../components/ui/Input';
 import { Textarea } from '../../../../../../../../components/forms/Textarea';
 import { LinkButton } from '../../../../../../../../components/ui/LinkButton';
@@ -69,18 +70,18 @@ function QuizActionsMenu({ quiz, courseId, moduleId, dashboardPrefix, onEdit, on
         </svg>
       </button>
 
-      {isOpen && (
+      {isOpen && typeof document !== 'undefined' && createPortal(
         <div
           ref={menuRef}
           style={{ position: 'fixed', top: menuPosition.top, right: menuPosition.right, zIndex: 9999 }}
-          className="w-48 rounded-lg border border-neutral-200 bg-white shadow-lg"
+          className="w-48 rounded-lg border border-neutral-200 bg-white text-left shadow-lg"
         >
           <Link
             href={`${dashboardPrefix}/courses/${courseId}/modules/${moduleId}/quizzes/${quiz.id}/questions`}
             className="block px-4 py-2 text-sm text-neutral-700 hover:bg-neutral-50 border-b border-neutral-100 first:rounded-t-lg focus:outline-none focus-visible:outline-none"
             onClick={() => setIsOpen(false)}
           >
-            ❓ Questions
+            Questions
           </Link>
           <button
             onClick={() => {
@@ -89,7 +90,7 @@ function QuizActionsMenu({ quiz, courseId, moduleId, dashboardPrefix, onEdit, on
             }}
             className="w-full border-0 text-left px-4 py-2 text-sm text-neutral-700 hover:bg-neutral-50 border-b border-neutral-100 focus:border-0 focus:outline-none focus-visible:border-0 focus-visible:outline-none focus:ring-0 focus-visible:ring-0"
           >
-            ✏️ Edit
+            Edit
           </button>
           <button
             onClick={() => {
@@ -98,9 +99,10 @@ function QuizActionsMenu({ quiz, courseId, moduleId, dashboardPrefix, onEdit, on
             }}
             className="w-full border-0 text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 rounded-b-lg focus:border-0 focus:outline-none focus-visible:border-0 focus-visible:outline-none focus:ring-0 focus-visible:ring-0"
           >
-            🗑️ Delete
+            Delete
           </button>
-        </div>
+        </div>,
+        document.body,
       )}
     </div>
   );

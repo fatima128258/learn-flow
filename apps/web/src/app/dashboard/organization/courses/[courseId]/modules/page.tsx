@@ -78,14 +78,14 @@ function ModuleActionsMenu({ module, courseId, organizationId, dashboardPrefix, 
             className="block px-4 py-2 text-sm text-neutral-700 hover:bg-neutral-50 border-b border-neutral-100 first:rounded-t-lg focus:outline-none focus-visible:outline-none"
             onClick={() => setIsOpen(false)}
           >
-            📚 Add Lesson
+            Add Lesson
           </Link>
           <Link
             href={`${dashboardPrefix}/courses/${courseId}/modules/${module.id}/quizzes${organizationId ? `?organization=${organizationId}` : ''}`}
             className="block px-4 py-2 text-sm text-neutral-700 hover:bg-neutral-50 border-b border-neutral-100 focus:outline-none focus-visible:outline-none"
             onClick={() => setIsOpen(false)}
           >
-            ❓ Add Quiz
+            Add Quiz
           </Link>
           <button
             onClick={() => {
@@ -94,7 +94,7 @@ function ModuleActionsMenu({ module, courseId, organizationId, dashboardPrefix, 
             }}
             className="w-full border-0 text-left px-4 py-2 text-sm text-neutral-700 hover:bg-neutral-50 focus:border-0 focus:outline-none focus-visible:border-0 focus-visible:outline-none focus:ring-0 focus-visible:ring-0 border-b border-neutral-100"
           >
-            ✏️ Edit
+            Edit
           </button>
           <button
             onClick={() => {
@@ -103,7 +103,7 @@ function ModuleActionsMenu({ module, courseId, organizationId, dashboardPrefix, 
             }}
             className="w-full border-0 text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 rounded-b-lg focus:border-0 focus:outline-none focus-visible:border-0 focus-visible:outline-none focus:ring-0 focus-visible:ring-0"
           >
-            🗑️ Delete
+            Delete
           </button>
         </div>,
         document.body,

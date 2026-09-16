@@ -218,10 +218,12 @@ export default function StudentCourseOverviewPage() {
                 <p className="mt-2 text-neutral-900">{course.description || 'No description available.'}</p>
               </div>
 
-              <div className="mt-6">
-                <h2 className="text-sm font-bold uppercase tracking-wide text-neutral-900">Instructor</h2>
-                <p className="mt-2 text-neutral-900">{course.instructor?.name || 'Instructor unavailable'}</p>
-              </div>
+              {course.instructor?.name && (
+                <div className="mt-6">
+                  <h2 className="text-sm font-bold uppercase tracking-wide text-neutral-900">Instructor</h2>
+                  <p className="mt-2 text-neutral-900">{course.instructor.name}</p>
+                </div>
+              )}
 
               <div className="mt-6 grid gap-4 sm:grid-cols-2">
                 <div>
@@ -310,14 +312,20 @@ export default function StudentCourseOverviewPage() {
               )}
               <div className="space-y-3">
                 <div className="flex justify-between gap-4"><span className="text-neutral-600">Course</span><span className="text-right font-medium text-neutral-900">{course.title}</span></div>
-                <div className="flex justify-between gap-4"><span className="text-neutral-600">Instructor</span><span className="text-right font-medium text-neutral-900">{course.instructor?.name || 'Instructor unavailable'}</span></div>
+                {course.instructor?.name && (
+                  <div className="flex justify-between gap-4">
+                    <span className="text-neutral-600">Instructor</span>
+                    <span className="text-right font-medium text-neutral-900">{course.instructor.name}</span>
+                  </div>
+                )}
                 <div className="flex justify-between border-t border-neutral-200 pt-3"><span className="font-semibold text-neutral-900">Total</span><span className="text-xl font-bold text-neutral-900">{currency(order?.totalAmount ?? getCoursePricing(course.price, course.discountPrice).currentPrice ?? 0)}</span></div>
               </div>
               <div className="flex justify-end gap-3 pt-2">
                 <Button
-                  variant="outline"
+                  variant="ghost"
                   onClick={() => setShowCheckout(false)}
                   disabled={checkoutMutation.isPending || paymentMutation.isPending}
+                  className="border border-[#ead8c6] bg-[#fffaf5] text-[#7a4a2e] hover:bg-[#f5ebdd]"
                 >
                   Cancel
                 </Button>

@@ -112,6 +112,17 @@ export default function QuizQuestionsPage() {
   const [optionTextError, setOptionTextError] = useState('');
   const [optionOrderError, setOptionOrderError] = useState('');
 
+  useEffect(() => {
+    if (!expandedQuestion) return;
+
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+
+    return () => {
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [expandedQuestion]);
+
   // Check auth and set organizationId
   useEffect(() => {
     if (userLoading) return;
@@ -168,7 +179,6 @@ export default function QuizQuestionsPage() {
               .map((question) => [question.id, question.options ?? []]),
           ),
         );
-        if (body.data?.length) setExpandedQuestion(body.data[0].id);
       } catch {
         if (active) toast.error(getQuizErrorMessage(null));
       } finally {
@@ -238,6 +248,22 @@ export default function QuizQuestionsPage() {
 
   async function editQuestionInBuilder(question: QuestionListItem) {
     if (!organizationId || !courseId || !moduleId || !quizId) return;
+
+    const cachedOptions = questionOptions[question.id];
+    setInlineEditingQuestionId(question.id);
+    setInlineQuestionText(question.questionText);
+    setInlineMarks(String(question.marks));
+    setInlineOptions(
+      cachedOptions?.map((option) => ({
+        text: option.text,
+        isCorrect: option.isCorrect,
+      })) ?? [{ text: '', isCorrect: true }],
+    );
+    setExpandedQuestion(null);
+    document.getElementById('inline-question-builder')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+    if (cachedOptions) return;
+
     try {
       const res = await fetch(
         `/api/v1/organizations/${organizationId}/courses/${courseId}/modules/${moduleId}/quizzes/${quizId}/questions/${question.id}`,
@@ -248,15 +274,12 @@ export default function QuizQuestionsPage() {
         toast.error(getQuizErrorMessage(body?.error));
         return;
       }
-      setInlineEditingQuestionId(question.id);
       setInlineQuestionText(body.data.questionText);
       setInlineMarks(String(body.data.marks));
       setInlineOptions(body.data.options.map((option) => ({
         text: option.text,
         isCorrect: option.isCorrect,
       })));
-      setExpandedQuestion(null);
-      document.getElementById('inline-question-builder')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
     } catch {
       toast.error(getQuizErrorMessage(null));
     }
@@ -354,7 +377,6 @@ export default function QuizQuestionsPage() {
       setInlineMarks('1');
       setInlineOptions([{ text: '', isCorrect: true }]);
       toast.success('Question and options saved successfully.');
-      setExpandedQuestion(createdQuestion.data.id);
       setQuestions((previous) => [
         ...(previous ?? []),
         createdQuestion.data as QuestionListItem,
@@ -842,7 +864,7 @@ export default function QuizQuestionsPage() {
   }
 
   return (
-    <div className="quiz-theme mx-auto max-w-7xl px-3 pb-8 pt-3 sm:px-4 lg:px-6">
+    <div className="quiz-theme relative top-[-20px] mx-auto max-w-7xl px-3 pb-8 pt-0 sm:px-4 lg:px-6">
       <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-[0.22em] text-[#2e7a74]">
           <span className="inline-flex h-2 w-2 rounded-full bg-[#2e7a74]" />
@@ -858,17 +880,17 @@ export default function QuizQuestionsPage() {
       </div>
 
       <div className="grid gap-6 xl:grid-cols-[minmax(0,1.7fr)_360px]">
-        <div className="rounded-[26px] border border-[#e3e6e3] bg-white p-4 shadow-[0_6px_24px_rgba(19,33,28,0.04)] sm:p-5 lg:p-6">
+        <div className="min-w-0 self-start">
           {loading ? (
             <div className="mt-8 flex items-center gap-3 text-neutral-700">
               <Spinner size="md" label="Loading questions..." />
               <span>Loading questions...</span>
             </div>
           ) : questions !== null ? (
-            <div className="space-y-5">
+            <div>
               <div
                 id="inline-question-builder"
-                className="rounded-[24px] border border-[#dfece9] bg-[#f7faf9] p-4 sm:p-5"
+                className="rounded-xl border border-[#dfece9] bg-[#f5ebdd] p-3 sm:p-4"
               >
                 <div className="mb-4 flex items-end justify-between gap-4">
                   <h2 className="text-xl font-bold text-neutral-900">
@@ -1078,7 +1100,7 @@ export default function QuizQuestionsPage() {
                 <span className="text-xs font-medium text-neutral-500">{questions?.length ?? 0} total</span>
               </div>
               {questions && questions.length > 0 ? (
-                <div className="grid grid-cols-4 gap-0.5">
+                <div className="flex flex-wrap items-center justify-start gap-2">
                   {questions.map((question, index) => (
                     <button
                       key={question.id}
@@ -1125,9 +1147,9 @@ export default function QuizQuestionsPage() {
             type="button"
             aria-label="Close question drawer"
             onClick={() => setExpandedQuestion(null)}
-            className="fixed inset-0 z-[60] bg-neutral-950/30"
+            className="fixed inset-0 z-[100] overscroll-none bg-neutral-950/30"
           />
-          <aside className="fixed inset-y-0 right-0 z-[70] flex w-full max-w-md flex-col border-l border-[#ead8c6] bg-[#fffdf9] shadow-2xl">
+          <aside className="fixed inset-y-0 right-0 z-[110] flex h-dvh w-full max-w-md flex-col overscroll-contain border-l border-[#ead8c6] bg-[#fffdf9] shadow-2xl">
             {(() => {
               const question = questions?.find((item) => item.id === expandedQuestion);
               if (!question) return null;

@@ -14,7 +14,7 @@ import { useCurrentUser } from '@/features/auth/useCurrentUser';
 type CourseHit = {
   id: string;
   organizationId: string;
-  instructor: { id: string; name: string | null };
+  instructor?: { id: string; name: string | null } | null;
   title: string;
   slug: string;
   description: string | null;
@@ -202,10 +202,6 @@ export default function StudentSearchPage() {
           </div>
         ) : (
           <>
-            <p className="mb-4 text-sm text-neutral-600">
-              {results.length} course{results.length !== 1 ? 's' : ''} available
-              {submittedQuery && ` matching "${submittedQuery}"`}
-            </p>
             <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
               {results.map((course) => (
                 <div key={course.id} className="rounded-2xl border border-neutral-200 bg-white shadow-sm transition-all hover:border-primary-200 hover:shadow-md overflow-hidden">
@@ -233,9 +229,11 @@ export default function StudentSearchPage() {
                     >
                       {course.title}
                     </h3>
-                    <p className="mt-1 text-sm text-neutral-500">
-                      {course.instructor?.name ? `Instructor: ${course.instructor.name}` : 'Instructor unavailable'}
-                    </p>
+                    {course.instructor?.name && (
+                      <p className="mt-1 text-sm text-neutral-500">
+                        Instructor: {course.instructor.name}
+                      </p>
+                    )}
                     <div className="mt-4 flex items-center gap-4 text-sm text-neutral-500">
                       <span>{course.enrollmentCount.toLocaleString()} enrolled</span>
                     </div>

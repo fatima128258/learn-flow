@@ -15,6 +15,7 @@ export interface SelectProps {
   label?: string;
   'aria-label'?: string;
   className?: string;
+  buttonClassName?: string;
   menuClassName?: string;
 }
 
@@ -26,6 +27,7 @@ export const Select: React.FC<SelectProps> = ({
   label,
   'aria-label': ariaLabel,
   className = '',
+  buttonClassName = '',
   menuClassName = '',
 }) => {
   const [open, setOpen] = useState(false);
@@ -94,7 +96,7 @@ export const Select: React.FC<SelectProps> = ({
         aria-haspopup="listbox"
         aria-expanded={open}
         aria-controls={listboxId}
-        className="flex w-full items-center justify-between rounded-md border border-neutral-300 bg-[#fffdf9] px-3 py-2 text-left text-neutral-900 outline-none transition-colors focus:border-[#7a4a2e] focus:ring-2 focus:ring-[#a8784f]/20 disabled:cursor-not-allowed disabled:bg-[#f8f2eb] disabled:text-neutral-400"
+        className={`flex w-full items-center justify-between rounded-md border border-neutral-300 bg-[#fffdf9] px-3 py-2 text-left text-neutral-900 outline-none transition-colors focus:border-[#7a4a2e] focus:ring-2 focus:ring-[#a8784f]/20 disabled:cursor-not-allowed disabled:bg-[#f8f2eb] disabled:text-neutral-400 ${buttonClassName}`.trim()}
         onClick={() => setOpen((current) => !current)}
         onKeyDown={handleKeyDown}
       >

@@ -92,21 +92,21 @@ export function StudentProgressView({ apiPath }: Props) {
 
   return (
     <div className="mx-auto max-w-6xl space-y-5">
-      <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-        <div>
-          <h1 className="text-2xl font-semibold text-neutral-900">Student Progress</h1>
-        </div>
-        <ViewToggle value={view} onChange={(value) => setView(value as 'table' | 'cards')} storageKey={`student-progress-${apiPath}`} />
-      </div>
-      <div className="flex flex-col gap-3 sm:flex-row">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
         <input
           value={query}
           onChange={(event) => { setPage(1); setQuery(event.target.value); }}
           placeholder="Search students or courses..."
           aria-label="Search students or courses"
-          className="min-w-0 flex-1 rounded-xl border border-[#e5d5c4] bg-[#fffdf9] px-4 py-3 text-sm outline-none focus:border-[#7a4a2e] focus:ring-2 focus:ring-[#a8784f]/20"
+          className="min-w-0 flex-1 rounded-xl border border-[#e5d5c4] bg-[#fffdf9] px-4 py-3 text-sm outline-none focus:border-[#7a4a2e] focus:ring-2 focus:ring-[#a8784f]/20 sm:max-w-2xl"
         />
-        <Select value={progressFilter} onChange={(value) => { setPage(1); setProgressFilter(value); }} options={[{ value: 'ALL', label: 'All progress' }, { value: 'NOT_STARTED', label: 'Not started' }, { value: 'IN_PROGRESS', label: 'In progress' }, { value: 'COMPLETED', label: 'Completed' }]} />
+        <Select
+          value={progressFilter}
+          onChange={(value) => { setPage(1); setProgressFilter(value); }}
+          options={[{ value: 'ALL', label: 'All progress' }, { value: 'NOT_STARTED', label: 'Not started' }, { value: 'IN_PROGRESS', label: 'In progress' }, { value: 'COMPLETED', label: 'Completed' }]}
+          className="sm:w-44"
+        />
+        <ViewToggle value={view} onChange={(value) => setView(value as 'table' | 'cards')} storageKey={`student-progress-${apiPath}`} />
       </div>
       {loading ? (
         <div className="flex items-center gap-3 text-neutral-700"><Spinner size="md" label="Loading student progress..." /><span>Loading student progress...</span></div>

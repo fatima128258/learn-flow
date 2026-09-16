@@ -192,7 +192,13 @@ export default function CourseDetailPage() {
                   <p className="mt-1 text-sm text-neutral-500">{course.slug}</p>
                 </div>
                 <div className="flex items-center gap-2">
-                  <Select value={course.status} onChange={handleStatusChange} disabled={updatingStatus} options={STATUS_OPTIONS.map((opt) => ({ value: opt.value, label: opt.label }))} />
+                  <Select
+                    value={course.status}
+                    onChange={handleStatusChange}
+                    disabled={updatingStatus}
+                    options={STATUS_OPTIONS.map((opt) => ({ value: opt.value, label: opt.label }))}
+                    buttonClassName={course.status === 'DRAFT' ? 'border-[#ead8c6] bg-[#f5ebdd] text-[#5a321f]' : ''}
+                  />
                   <LinkButton href={`${dashboardPrefix}/courses/${courseId}/modules${organizationId ? `?organization=${organizationId}` : ''}`} size="sm" variant="primary">
                     Manage Modules
                   </LinkButton>
