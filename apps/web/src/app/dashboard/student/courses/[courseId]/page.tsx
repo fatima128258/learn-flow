@@ -170,9 +170,6 @@ export default function StudentCoursePage() {
             <div className="mb-4 flex items-center justify-between gap-3">
               <h2 className="text-lg font-semibold text-neutral-900">Course Content</h2>
               <div className="flex items-center gap-2">
-                <span className="rounded-full bg-primary-50 px-3 py-1 text-sm font-semibold text-primary-700">
-                  {course.modules.length} module{course.modules.length !== 1 ? 's' : ''} total
-                </span>
                 <Link
                   href={`/dashboard/student/chat?courseId=${course.courseId}`}
                   className="rounded-lg bg-primary-700 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-primary-800"
@@ -230,7 +227,7 @@ export default function StudentCoursePage() {
                               )}
                             </div>
                             {module.description && (
-                              <p className="mt-0.5 line-clamp-1 text-sm text-neutral-500">{module.description}</p>
+                              <p className="mt-1 max-w-2xl text-sm leading-5 text-neutral-600">{module.description}</p>
                             )}
                           </div>
                         </div>
