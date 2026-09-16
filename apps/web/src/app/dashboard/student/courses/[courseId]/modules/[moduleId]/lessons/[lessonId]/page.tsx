@@ -329,14 +329,16 @@ export default function StudentLessonPage() {
         ) : data ? (
           <div className="rounded-2xl border border-neutral-200 bg-white shadow-sm">
             <div className="border-b border-neutral-200 p-6">
-              <div className="flex flex-wrap items-center gap-2 mb-2">
+              <div className="mb-2 flex flex-wrap items-center gap-2">
                 {data.lesson.isPreview && <Badge variant="info" size="sm">Preview</Badge>}
                 {data.lesson.duration != null && (
                   <Badge variant="default" size="sm">{data.lesson.duration} min</Badge>
                 )}
+              </div>
+              <div className="flex items-center justify-between gap-4">
+                <h1 className="min-w-0 text-2xl font-bold text-neutral-900">{data.lesson.title}</h1>
                 {isCompleted && <Badge variant="success" size="sm">Completed</Badge>}
               </div>
-              <h1 className="text-2xl font-bold text-neutral-900">{data.lesson.title}</h1>
               {data.lesson.description && (
                 <p className="mt-2 text-neutral-600">{data.lesson.description}</p>
               )}

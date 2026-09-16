@@ -264,9 +264,8 @@ export async function generateCertificate(organizationId: string, userId: string
       // Continue even if audit fails
     }
 
-    console.log('[CERTIFICATE] Step 6: Dispatching notification...');
-    try {
-      await dispatchNotification({
+    console.log('[CERTIFICATE] Step 6: Scheduling notification...');
+    void dispatchNotification({
         type: 'CERTIFICATE_GENERATED',
         title: `Certificate for ${course.title}`,
         body: `Your certificate for ${course.title} has been generated.`,
@@ -282,17 +281,16 @@ export async function generateCertificate(organizationId: string, userId: string
           courseTitle: course.title,
           certificateUrl: verificationUrl(certificate.verificationToken),
         },
+      })
+      .then(() => {
+        console.log('[CERTIFICATE] ✓ Background notification dispatched');
+      })
+      .catch((notifErr) => {
+        console.error('[CERTIFICATE] ✗ Background notification failed:', notifErr);
       });
-      console.log('[CERTIFICATE] ✓ Notification dispatched');
-    } catch (notifErr) {
-      console.error('[CERTIFICATE] ✗ Notification error (non-critical, continuing):', notifErr);
-      // IMPORTANT: Continue even if notification fails - certificate is still valid
-      // This prevents Redis/queue issues from blocking certificate generation
-    }
 
-    // PDF generation and storage can be slow or retry several times when the
-    // storage provider is waking up. The certificate record is already valid,
-    // so do not keep the student waiting for this optional artifact.
+    // PDF generation, storage, and notifications are optional follow-up work.
+    // The certificate record is already valid, so return it without waiting.
     console.log('[CERTIFICATE] Step 7: Scheduling PDF generation in the background...');
     void createCertificatePdf(certificateRecord, organizationId).then((pdfUrl) => {
       if (pdfUrl) {

@@ -47,6 +47,7 @@ function CompletedCoursesSection({
   generatingCourseId,
   setGeneratingCourseId,
   onCertificateGenerated,
+  onCompletedCoursesChange,
 }: {
   courses: Array<{ courseId: string; title: string }>;
   certificates: Certificate[];
@@ -54,16 +55,22 @@ function CompletedCoursesSection({
   generatingCourseId: string | null;
   setGeneratingCourseId: (id: string | null) => void;
   onCertificateGenerated: () => void;
+  onCompletedCoursesChange: (count: number) => void;
 }) {
   const [completedCourses, setCompletedCourses] = useState<Array<{ courseId: string; title: string; percentage: number }>>([]);
   const [loadingProgress, setLoadingProgress] = useState(false);
 
   // Fetch progress for each course to check completion
   useEffect(() => {
-    if (!organizationId || courses.length === 0) return;
+    if (!organizationId || courses.length === 0) {
+      setCompletedCourses([]);
+      onCompletedCoursesChange(0);
+      return;
+    }
 
     const fetchProgress = async () => {
       setLoadingProgress(true);
+      onCompletedCoursesChange(-1);
       const completed: Array<{ courseId: string; title: string; percentage: number }> = [];
       
       for (const course of courses) {
@@ -93,11 +100,12 @@ function CompletedCoursesSection({
       }
       
       setCompletedCourses(completed);
+      onCompletedCoursesChange(completed.length);
       setLoadingProgress(false);
     };
 
     fetchProgress();
-  }, [courses, certificates, organizationId]);
+  }, [courses, certificates, organizationId, onCompletedCoursesChange]);
 
   const handleGenerateCertificate = async (courseId: string) => {
     console.log('[FRONTEND-CERT] === Certificate Generation Started ===');
@@ -249,6 +257,7 @@ export default function StudentCertificatesPage() {
   const [error, setError] = useState<string | null>(null);
   const [organizationId, setOrganizationId] = useState<string | null>(null);
   const [generatingCourseId, setGeneratingCourseId] = useState<string | null>(null);
+  const [completedCoursesCount, setCompletedCoursesCount] = useState(-1);
 
   // Fetch enrolled courses to check for completed ones
   const { data: courses = [], isLoading: coursesLoading } = useMyCourses(organizationId || '');
@@ -350,10 +359,11 @@ export default function StudentCertificatesPage() {
                   loadCertificates(organizationId);
                 }
               }}
+              onCompletedCoursesChange={setCompletedCoursesCount}
             />
 
             {/* Existing Certificates Section */}
-            {certificates && certificates.length === 0 && !coursesLoading ? (
+            {certificates && certificates.length === 0 && completedCoursesCount === 0 && !coursesLoading ? (
               <div className="rounded-2xl border border-neutral-200 bg-white shadow-sm">
                 <EmptyState
                   icon={EmptyStateIcons.NoData}
@@ -363,12 +373,10 @@ export default function StudentCertificatesPage() {
               </div>
             ) : certificates && certificates.length > 0 ? (
               <>
-                <h2 className="mb-4 text-lg font-semibold text-neutral-900">Your Certificates</h2>
                 <div className="grid gap-4 sm:grid-cols-2">
                   {certificates.map((cert) => (
                     <div key={cert.certificateId} className="rounded-2xl border border-neutral-200 bg-white p-6 shadow-sm">
                       <div className="mb-3 flex items-center justify-between">
-                        <Badge variant="success" size="sm">Earned</Badge>
                         <span className="text-xs text-neutral-400">{formatDate(cert.issuedAt)}</span>
                       </div>
                       <h2 className="text-lg font-bold text-neutral-900">{cert.courseTitle}</h2>

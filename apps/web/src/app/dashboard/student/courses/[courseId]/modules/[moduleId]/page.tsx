@@ -395,7 +395,7 @@ export default function StudentModuleLessonsPage() {
                 {currentUser?.organizationId && (
                   <Link
                     href={`/dashboard/student/chat?courseId=${courseId}`}
-                    className="inline-flex items-center rounded-lg bg-primary-700 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-primary-800"
+                    className="inline-flex items-center rounded-lg bg-[#f5e8dc] px-4 py-2 text-sm font-semibold text-[#5a321f] transition-colors hover:bg-[#eedbc9]"
                   >
                     Chat with Instructor
                   </Link>

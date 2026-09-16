@@ -108,6 +108,14 @@ export function ChatPanel({ organizationId, userId, initialConversationId, cours
       if (requestId !== messagesRequestRef.current) return;
       setMessages([...response.data.messages].reverse());
       setDeliveredMessageIds(new Set(response.data.messages.map((message) => message.id)));
+      const latestMessage = response.data.messages[0];
+      if (latestMessage) {
+        setConversations((current) => current.map((conversation) =>
+          conversation.id === conversationId
+            ? { ...conversation, updatedAt: latestMessage.createdAt, messages: [latestMessage] }
+            : conversation,
+        ));
+      }
 
       // Read synchronization is independent from history rendering. A slow or
       // unavailable read endpoint must not keep the chat page in its loading state.
@@ -253,12 +261,26 @@ export function ChatPanel({ organizationId, userId, initialConversationId, cours
         await new Promise<void>((resolve, reject) => {
           socketRef.current?.emit('message:send', { conversationId: active.id, content }, (result: { success: boolean; data?: ChatMessage; error?: string }) => {
             if (!result.success || !result.data) reject(new Error(result.error || 'MESSAGE_FAILED'));
-            else { setMessages((current) => current.some((item) => item.id === result.data!.id) ? current : [...current, result.data!]); setDeliveredMessageIds((current) => new Set(current).add(result.data!.id)); resolve(); }
+            else {
+              setMessages((current) => current.some((item) => item.id === result.data!.id) ? current : [...current, result.data!]);
+              setDeliveredMessageIds((current) => new Set(current).add(result.data!.id));
+              setConversations((current) => current.map((conversation) =>
+                conversation.id === active.id
+                  ? { ...conversation, updatedAt: result.data!.createdAt, messages: [result.data!] }
+                  : conversation,
+              ));
+              resolve();
+            }
           });
         });
       } else {
         const result = await postJson<{ data: ChatMessage }>(apiPath(organizationId, `/conversations/${active.id}/messages`), { content });
         setMessages((current) => [...current, result.data]);
+        setConversations((current) => current.map((conversation) =>
+          conversation.id === active.id
+            ? { ...conversation, updatedAt: result.data.createdAt, messages: [result.data] }
+            : conversation,
+        ));
       }
       setText('');
       setReplyTo(null);
@@ -385,9 +407,7 @@ export function ChatPanel({ organizationId, userId, initialConversationId, cours
                 type="button"
                 disabled={actionLoading}
                 onClick={() => void updateConversation(active.blockedAt ? 'unblock' : 'block')}
-                className={`inline-flex items-center rounded-xl border px-3 py-2 text-xs font-semibold transition-colors disabled:opacity-50 ${active.blockedAt
-                  ? 'border-[#8fc8bd] bg-[#d8eee9] text-[#246b63] hover:bg-[#c8e5df]'
-                  : 'border-[#d8a875] bg-[#f6dfc2] text-[#7d4b21] hover:bg-[#efd0aa]'}`}
+                className="inline-flex items-center rounded-xl border border-[#5a321f] bg-[#5a321f] px-3 py-2 text-xs font-semibold text-white transition-colors hover:bg-[#472617] disabled:opacity-50"
               >
                 {active.blockedAt ? 'Unblock' : 'Block'}
               </button>
@@ -395,7 +415,7 @@ export function ChatPanel({ organizationId, userId, initialConversationId, cours
                 type="button"
                 disabled={actionLoading}
                 onClick={() => void updateConversation('delete')}
-                className="inline-flex items-center rounded-xl border border-[#d99a8f] bg-[#f6dcd7] px-3 py-2 text-xs font-semibold text-[#963f32] transition-colors hover:bg-[#edc5bf] disabled:opacity-50"
+                className="inline-flex items-center rounded-xl border border-[#ead8c6] bg-[#fffaf5] px-3 py-2 text-xs font-semibold text-[#7a4a2e] transition-colors hover:bg-[#f5ebdd] disabled:opacity-50"
               >
                 Delete
               </button>
@@ -412,7 +432,7 @@ export function ChatPanel({ organizationId, userId, initialConversationId, cours
                   <div key={message.id} className="flex flex-col">
                     {showDateSeparator && (
                       <div className="my-2 flex justify-center">
-                        <span className="rounded-full bg-[#ebe7e4] px-3 py-1 text-[11px] font-medium text-neutral-600 shadow-sm">
+                        <span className="rounded-md bg-[#ebe7e4] px-3 py-1 text-[11px] font-medium text-neutral-600 shadow-sm">
                           {formatDateSeparator(message.createdAt)}
                         </span>
                       </div>
@@ -430,7 +450,7 @@ export function ChatPanel({ organizationId, userId, initialConversationId, cours
                           <div className={`mt-1 flex items-center gap-1 text-[10px] text-neutral-500 ${isOutgoing ? 'justify-end' : 'justify-start'}`}>
                             <span>{formatMessageTime(message.createdAt)}</span>
                             {isOutgoing && !message.deletedAt && (
-                              <span className={message.readAt ? 'text-sky-600' : 'text-neutral-500'}>
+                              <span className={`-ml-0.5 tracking-[-0.12em] ${message.readAt ? 'text-sky-600' : 'text-neutral-500'}`}>
                                 {deliveredMessageIds.has(message.id) ? '✓✓' : '✓'}
                               </span>
                             )}

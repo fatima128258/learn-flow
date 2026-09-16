@@ -9,7 +9,7 @@ import { useStudentProgress, type CourseProgress } from '@/features/student/useP
 function ProgressBar({ value }: { value: number }) {
   const percentage = Math.max(0, Math.min(100, value));
   return (
-    <div className="h-2.5 w-full overflow-hidden rounded-full bg-neutral-200">
+    <div className="h-2 w-full overflow-hidden rounded-full bg-neutral-200">
       <div className="h-full rounded-full bg-primary-600 transition-all" style={{ width: `${percentage}%` }} />
     </div>
   );
@@ -30,21 +30,21 @@ function CourseCard({ course }: { course: CourseProgress }) {
           <div>
             <h2 className="text-xl font-semibold text-neutral-900">{course.courseTitle}</h2>
           </div>
-          <span className="text-2xl font-bold text-primary-700">{course.coursePercentage}%</span>
+          <span className="text-2xl font-medium text-primary-700">{course.coursePercentage}%</span>
         </div>
         <div className="mt-4"><ProgressBar value={course.coursePercentage} /></div>
         <div className="mt-4 flex flex-wrap gap-2">
           {!course.courseComplete && course.lastVisited?.lessonId && course.lastVisited.moduleId ? (
             <Link
               href={`/dashboard/student/courses/${course.courseId}/modules/${course.lastVisited.moduleId}/lessons/${course.lastVisited.lessonId}`}
-              className="rounded-lg bg-primary-600 px-4 py-2 text-sm font-medium text-white hover:bg-primary-700"
+              className="flex-1 rounded-lg bg-[#f5e8dc] px-4 py-2 text-center text-sm font-medium text-[#5a321f] hover:bg-[#eedbc9]"
             >
               Continue Learning
             </Link>
           ) : (
             <Link
               href={`/dashboard/student/courses/${course.courseId}`}
-              className="rounded-lg bg-primary-500 px-4 py-2 text-sm font-medium text-white hover:bg-primary-600"
+              className="flex-1 rounded-lg bg-[#f5e8dc] px-4 py-2 text-center text-sm font-medium text-[#5a321f] hover:bg-[#eedbc9]"
             >
               {course.courseComplete ? 'View Course' : 'Start Learning'}
             </Link>
@@ -52,7 +52,7 @@ function CourseCard({ course }: { course: CourseProgress }) {
           <button
             type="button"
             onClick={() => setExpanded((value) => !value)}
-            className="rounded-lg bg-primary-600 px-4 py-2 text-sm font-medium text-white hover:bg-primary-700"
+            className="flex-1 rounded-lg bg-[#5a321f] px-4 py-2 text-sm font-medium text-white hover:bg-[#472719]"
             aria-expanded={expanded}
           >
             {expanded ? 'Hide modules' : 'View modules'}

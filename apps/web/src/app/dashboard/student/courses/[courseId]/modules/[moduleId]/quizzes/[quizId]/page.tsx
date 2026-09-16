@@ -529,11 +529,11 @@ export default function StudentQuizTakingPage() {
               <div className="pointer-events-none absolute -right-12 -top-16 h-40 w-40 rounded-full bg-[#f8efe4]" />
               <div className="relative">
                 <p className="text-xs font-bold uppercase tracking-[0.18em] text-[#9b765c]">Assessment</p>
-                <h1 className="mt-2 text-3xl font-bold tracking-tight text-[#17212b] sm:text-4xl">{quiz.title}</h1>
+                <h1 className="mt-2 text-3xl font-semibold tracking-tight text-[#17212b] sm:text-4xl">{quiz.title}</h1>
                 {quiz.description && (
                   <p className="mt-3 max-w-3xl text-base leading-7 text-[#667085]">{quiz.description}</p>
                 )}
-                <div className="mt-6 flex flex-wrap gap-x-6 gap-y-2 border-t border-[#f0e4d8] pt-4 text-sm text-[#667085]">
+                <div className="mt-6 flex flex-wrap gap-x-6 gap-y-2 border-t border-[#f0e4d8] pt-4 text-sm text-black">
                   <span>{totalQuestions} question{totalQuestions !== 1 ? 's' : ''}</span>
                   {quiz.timeLimitMinutes != null && <span>{quiz.timeLimitMinutes} minute time limit</span>}
                   {quiz.passingPercentage != null && <span>Passing score {quiz.passingPercentage}%</span>}

@@ -172,7 +172,7 @@ export default function StudentCoursePage() {
               <div className="flex items-center gap-2">
                 <Link
                   href={`/dashboard/student/chat?courseId=${course.courseId}`}
-                  className="rounded-lg bg-primary-700 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-primary-800"
+                  className="rounded-lg bg-[#f5e8dc] px-4 py-2 text-sm font-semibold text-[#5a321f] transition-colors hover:bg-[#eedbc9]"
                 >
                   Chat with instructor
                 </Link>
