@@ -14,6 +14,12 @@ describe('getAssignAdminErrorMessage', () => {
     expect(getAssignAdminErrorMessage('PLATFORM_ADMIN_REQUIRED')).toBe(
       'You do not have permission to assign organization admins.'
     );
+    expect(getAssignAdminErrorMessage('BACKEND_UNAVAILABLE')).toBe(
+      'The admin service is temporarily unavailable. Please try again shortly.'
+    );
+    expect(getAssignAdminErrorMessage('BACKEND_TIMEOUT')).toBe(
+      'The admin service took too long to respond. Please try again shortly.'
+    );
   });
 
   it('falls back to a generic message for unknown or missing error codes', () => {

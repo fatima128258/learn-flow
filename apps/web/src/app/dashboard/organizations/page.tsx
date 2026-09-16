@@ -525,8 +525,27 @@ export default function OrganizationsPage() {
       }
 
       const adminEmailAssigned = resBody.data.user.email;
+      const assignedUser = resBody.data.user;
+      setOrganizations((current) =>
+        current?.map((organization) =>
+          organization.id === assignOrg.id
+            ? {
+                ...organization,
+                admins: [
+                  ...(organization.admins ?? []).filter((admin) => admin.id !== assignedUser.id),
+                  {
+                    id: assignedUser.id,
+                    name: assignedUser.name,
+                    email: assignedUser.email,
+                    emailVerified: assignedUser.emailVerified,
+                    role: resBody?.data?.role ?? 'ORG_ADMIN',
+                  },
+                ],
+              }
+            : organization,
+        ) ?? null,
+      );
       setAssignOrg(null);
-      await load();
       toast.success(`Organization admin ${adminEmailAssigned} assigned to "${assignOrg.name}".`);
     } catch {
       clearAdminCredentials();

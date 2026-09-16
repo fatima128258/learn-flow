@@ -21,7 +21,10 @@ async function proxyRequest(
   const path = pathSegments.join('/');
   const cookie = req.headers.get('cookie') || '';
   const retryableProgressRequest = method === 'POST' && path.endsWith('/progress');
-  const retryableAdminAssignment = method === 'POST' && path.endsWith('/admins');
+  // Admin assignment creates/updates a membership and is not safe to replay.
+  // A transient response must be returned to the client instead of issuing
+  // the same non-idempotent POST up to three times.
+  const adminAssignmentRequest = method === 'POST' && path.endsWith('/admins');
   const courseStatusRequest = method === 'PATCH' && /\/courses\/[^/]+\/status$/.test(path);
   const certificateRequest = method === 'POST' && /\/student\/courses\/[^/]+\/certificate$/.test(path);
   const studentProgressRequest = method === 'GET' && /\/student\/progress$/.test(path);
@@ -32,7 +35,9 @@ async function proxyRequest(
       ? STUDENT_PROGRESS_TIMEOUT_MS
     : chatMessageRequest
       ? CHAT_MESSAGE_TIMEOUT_MS
-    : courseStatusRequest || retryableAdminAssignment
+    : adminAssignmentRequest
+      ? ADMIN_ASSIGN_TIMEOUT_MS
+    : courseStatusRequest
       ? COURSE_STATUS_TIMEOUT_MS
     : BACKEND_TIMEOUT_MS;
   
@@ -69,7 +74,7 @@ async function proxyRequest(
 
       if (
         !TRANSIENT_STATUSES.has(resp.status) ||
-        (!retryableProgressRequest && !retryableAdminAssignment && method !== 'GET') ||
+        (!retryableProgressRequest && method !== 'GET') ||
         attempt === 2
       ) {
         break;

@@ -324,7 +324,10 @@ export async function assignOrganizationAdmin(organizationId: string, input: {
   const membership = await orgRepo.upsertOrganizationAdmin(user.id, organizationId);
 
   if (createdNew) {
-    await dispatchNotification({
+    // Account creation and organization assignment should not wait for Redis or
+    // SMTP availability. Notification delivery is best effort and is handled
+    // independently after the membership has been committed.
+    void dispatchNotification({
       type: 'WELCOME',
       title: `🎉 Welcome, ${user.name || 'User'}!`,
       body: `Your learning journey begins now! Explore courses, complete lessons, and unlock certificates. Let's achieve great things together! 🚀`,

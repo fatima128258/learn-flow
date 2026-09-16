@@ -6,6 +6,9 @@ const ERROR_MESSAGES: Record<string, string> = {
   ORGANIZATION_NOT_FOUND: 'This organization no longer exists.',
   USER_NOT_FOUND: 'No user was found for the provided details.',
   PLATFORM_ADMIN_REQUIRED: 'You do not have permission to assign organization admins.',
+  BACKEND_UNAVAILABLE: 'The admin service is temporarily unavailable. Please try again shortly.',
+  BACKEND_TIMEOUT: 'The admin service took too long to respond. Please try again shortly.',
+  PROXY_ERROR: 'The admin service is temporarily unavailable. Please try again shortly.',
 };
 
 export function getAssignAdminErrorMessage(code?: unknown): string {
