@@ -159,7 +159,7 @@ export default function StudentDashboardPage() {
                   )}
                   <div className="p-5">
                     <h3
-                      className="truncate text-lg font-semibold text-neutral-900 transition-colors group-hover:text-primary-600"
+                      className="block truncate text-base font-medium text-neutral-900 transition-colors group-hover:text-primary-600"
                       title={course.title}
                     >
                       {course.title}

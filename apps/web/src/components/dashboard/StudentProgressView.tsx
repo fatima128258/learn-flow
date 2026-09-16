@@ -104,7 +104,8 @@ export function StudentProgressView({ apiPath }: Props) {
           value={progressFilter}
           onChange={(value) => { setPage(1); setProgressFilter(value); }}
           options={[{ value: 'ALL', label: 'All progress' }, { value: 'NOT_STARTED', label: 'Not started' }, { value: 'IN_PROGRESS', label: 'In progress' }, { value: 'COMPLETED', label: 'Completed' }]}
-          className="sm:w-44"
+          className="rounded-xl bg-[#f5e8dc] p-1 sm:w-44"
+          buttonClassName="border-[#ead8c6] bg-[#f5ebdd]"
         />
         <ViewToggle value={view} onChange={(value) => setView(value as 'table' | 'cards')} storageKey={`student-progress-${apiPath}`} />
       </div>

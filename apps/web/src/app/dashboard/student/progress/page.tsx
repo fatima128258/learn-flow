@@ -9,8 +9,8 @@ import { useStudentProgress, type CourseProgress } from '@/features/student/useP
 function ProgressBar({ value }: { value: number }) {
   const percentage = Math.max(0, Math.min(100, value));
   return (
-    <div className="h-2 w-full overflow-hidden rounded-full bg-neutral-200">
-      <div className="h-full rounded-full bg-primary-600 transition-all" style={{ width: `${percentage}%` }} />
+    <div className="h-2.5 w-full overflow-hidden rounded-full bg-[#f5e8dc]">
+      <div className="h-full rounded-full bg-[#5a321f] transition-all" style={{ width: `${percentage}%` }} />
     </div>
   );
 }
@@ -30,7 +30,7 @@ function CourseCard({ course }: { course: CourseProgress }) {
           <div>
             <h2 className="text-xl font-semibold text-neutral-900">{course.courseTitle}</h2>
           </div>
-          <span className="text-2xl font-medium text-primary-700">{course.coursePercentage}%</span>
+          <span className="text-xl font-semibold text-[#5a321f]">{course.coursePercentage}%</span>
         </div>
         <div className="mt-4"><ProgressBar value={course.coursePercentage} /></div>
         <div className="mt-4 flex flex-wrap gap-2">
