@@ -125,6 +125,9 @@ export function ChatPanel({ organizationId, userId, initialConversationId, cours
           setConversations((current) => current.map((conversation) =>
             conversation.id === conversationId ? { ...conversation, unreadCount: 0 } : conversation,
           ));
+          window.dispatchEvent(new CustomEvent('learnflow:chat-unread', {
+            detail: { conversationId, unreadCount: 0 },
+          }));
         })
         .catch(() => setError('Messages loaded, but could not be marked as read.'));
     } finally {
@@ -368,8 +371,8 @@ export function ChatPanel({ organizationId, userId, initialConversationId, cours
         <div className="flex-1 space-y-3 overflow-y-auto px-3 pb-3">
           {loading ? <p className="p-6 text-sm text-neutral-500">Loading conversations...</p>
             : filtered.length === 0 ? <p className="p-6 text-sm text-[#8b6b55]">No conversations yet.</p> : filtered.map((conversation) => (
-            <button key={conversation.id} type="button" onClick={() => void selectConversation(conversation.id)} className={`flex w-full items-center gap-3 rounded-[18px] border px-4 py-4 text-left transition-colors ${conversation.id === activeId ? 'border-[#d69a5b] bg-[#f5ebdd] shadow-sm' : 'border-[#ead8c6] bg-[#fffaf5] hover:bg-[#f5ebdd]'}`}>
-              <div className="flex h-14 w-14 items-center justify-center rounded-full bg-[#d4b596] text-lg font-semibold text-[#fffaf5] shadow-sm">
+            <button key={conversation.id} type="button" onClick={() => void selectConversation(conversation.id)} className={`flex w-full items-center gap-3 rounded-[18px] border px-4 py-3 text-left transition-colors ${conversation.id === activeId ? 'border-[#d69a5b] bg-[#f5ebdd] shadow-sm' : 'border-[#ead8c6] bg-[#fffaf5] hover:bg-[#f5ebdd]'}`}>
+              <div className="flex h-12 w-12 items-center justify-center rounded-full bg-[#d4b596] text-lg font-semibold text-[#fffaf5] shadow-sm">
                 {participant(conversation, userId).charAt(0).toUpperCase()}
               </div>
               <div className="min-w-0 flex-1">
@@ -381,7 +384,7 @@ export function ChatPanel({ organizationId, userId, initialConversationId, cours
                     </time>
                   )}
                 </div>
-                <div className="mt-2 flex items-center gap-2">
+                <div className="mt-1 flex items-center gap-2">
                   <p className="min-w-0 flex-1 truncate text-[1rem] text-neutral-700">{conversation.messages?.[0]?.content || 'No messages yet'}</p>
                 </div>
               </div>
@@ -391,15 +394,12 @@ export function ChatPanel({ organizationId, userId, initialConversationId, cours
       </aside>
       <section className={`${active ? 'flex' : 'hidden md:flex'} min-h-0 min-w-0 flex-1 flex-col bg-[#f7f5f3]`}>
         {loading ? <div className="m-auto text-sm text-neutral-500">Loading chat...</div> : active ? <>
-          <header className="flex items-center justify-between border-b border-[#e8dfd4] bg-[#f6f3f1] p-4">
-            <div className="flex min-w-0 items-center gap-3">
+          <header className="flex items-center justify-between border-b border-[#e8dfd4] bg-[#f6f3f1] px-3 py-2.5">
+            <div className="flex min-w-0 items-center gap-2.5">
               <button type="button" onClick={() => setActiveId('')} className="mr-1 text-sm text-primary-700 md:hidden">←</button>
-              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#d4b596] text-sm font-semibold text-[#fdfbf8]">{participant(active, userId).charAt(0).toUpperCase()}</div>
+              <div className="flex h-9 w-9 items-center justify-center rounded-full bg-[#d4b596] text-sm font-semibold text-[#fdfbf8]">{participant(active, userId).charAt(0).toUpperCase()}</div>
               <div className="min-w-0">
                 <span className="block truncate text-[1.05rem] font-bold leading-tight text-neutral-900">{participant(active, userId)}</span>
-                <div className="mt-1 flex items-center gap-1.5">
-                  <span className="text-xs font-medium leading-tight text-neutral-500">{participantOnline ? 'Online' : 'Offline'}</span>
-                </div>
               </div>
             </div>
             <div className="flex items-center gap-2">
@@ -407,7 +407,7 @@ export function ChatPanel({ organizationId, userId, initialConversationId, cours
                 type="button"
                 disabled={actionLoading}
                 onClick={() => void updateConversation(active.blockedAt ? 'unblock' : 'block')}
-                className="inline-flex items-center rounded-xl border border-[#5a321f] bg-[#5a321f] px-3 py-2 text-xs font-semibold text-white transition-colors hover:bg-[#472617] disabled:opacity-50"
+                className="inline-flex items-center rounded-[10px] border border-[#5a321f] bg-[#5a321f] px-3 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-[#472617] disabled:opacity-50"
               >
                 {active.blockedAt ? 'Unblock' : 'Block'}
               </button>
@@ -415,7 +415,7 @@ export function ChatPanel({ organizationId, userId, initialConversationId, cours
                 type="button"
                 disabled={actionLoading}
                 onClick={() => void updateConversation('delete')}
-                className="inline-flex items-center rounded-xl border border-[#ead8c6] bg-[#fffaf5] px-3 py-2 text-xs font-semibold text-[#7a4a2e] transition-colors hover:bg-[#f5ebdd] disabled:opacity-50"
+                className="inline-flex items-center rounded-[10px] border border-[#ead8c6] bg-[#fffaf5] px-3 py-1.5 text-xs font-semibold text-[#7a4a2e] transition-colors hover:bg-[#f5ebdd] disabled:opacity-50"
               >
                 Delete
               </button>
@@ -445,7 +445,7 @@ export function ChatPanel({ organizationId, userId, initialConversationId, cours
                       )}
                       <div className={`max-w-[68%] ${isOutgoing ? 'items-end' : 'items-start'} flex flex-col`}>
                         <div className="group relative">
-                          <div className={`rounded-[20px] px-4 py-2 text-[15px] leading-6 shadow-sm ${isOutgoing ? 'rounded-br-md bg-[#f0dfc8] text-neutral-900' : 'rounded-bl-md bg-[#f2f2f2] text-neutral-900'}`}>
+                          <div className={`rounded-[20px] px-4 py-2 text-[15px] leading-6 shadow-sm ${isOutgoing ? 'rounded-br-md bg-[#f0dfc8] text-[#343434]' : 'rounded-bl-md bg-[#f2f2f2] text-[#3f3f3f]'}`}>
                           <p className={`${message.deletedAt ? 'italic opacity-70' : ''} ${!message.deletedAt ? 'pr-5' : ''}`}>{message.deletedAt ? 'This message was deleted' : message.content}</p>
                           <div className={`mt-1 flex items-center gap-1 text-[10px] text-neutral-500 ${isOutgoing ? 'justify-end' : 'justify-start'}`}>
                             <span>{formatMessageTime(message.createdAt)}</span>
@@ -519,10 +519,7 @@ export function ChatPanel({ organizationId, userId, initialConversationId, cours
               <div className="flex items-center gap-3">
               <input value={text} onChange={(event) => setText(event.target.value)} placeholder="Type a message..." className="min-w-0 flex-1 rounded-full border border-[#d9c8b7] bg-white px-4 py-3 text-sm text-neutral-700 placeholder:text-neutral-400 focus:border-[#c7a58a] focus:outline-none" maxLength={5000} />
               <button type="submit" disabled={sending || !text.trim()} className="flex items-center justify-center rounded-full bg-[#593421] px-5 py-3 text-sm font-semibold text-white shadow-sm transition-opacity disabled:opacity-50">
-                <svg aria-hidden="true" viewBox="0 0 24 24" className="h-4 w-4 fill-current">
-                  <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z" />
-                </svg>
-                <span className="ml-2">Send</span>
+                {sending ? 'Sending...' : 'Send'}
               </button>
               </div>
             </form>

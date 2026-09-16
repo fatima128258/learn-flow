@@ -25,6 +25,13 @@ export function useChatUnread(organizationId?: string, userId?: string) {
     };
 
     const { socket, release } = acquireChatSocket(socketUrl);
+    const handleLocalUnreadUpdate = (event: Event) => {
+      const detail = (event as CustomEvent<{ conversationId?: string; unreadCount?: number }>).detail;
+      if (!detail?.conversationId || typeof detail.unreadCount !== 'number') return;
+      socketEventVersion += 1;
+      setCounts((current) => ({ ...current, [detail.conversationId]: detail.unreadCount }));
+    };
+    window.addEventListener('learnflow:chat-unread', handleLocalUnreadUpdate);
     socket.on('chat:unread', (event: { conversationId: string; unreadCount: number }) => {
       socketEventVersion += 1;
       setCounts((current) => ({ ...current, [event.conversationId]: event.unreadCount }));
@@ -40,6 +47,7 @@ export function useChatUnread(organizationId?: string, userId?: string) {
 
     return () => {
       cancelled = true;
+      window.removeEventListener('learnflow:chat-unread', handleLocalUnreadUpdate);
       release();
     };
   }, [organizationId, socketUrl, userId]);
