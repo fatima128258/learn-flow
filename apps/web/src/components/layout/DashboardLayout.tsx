@@ -435,7 +435,7 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
                 ref={closeButtonRef}
                 type="button"
                 onClick={() => setMobileOpen(false)}
-                className="rounded-md p-2 text-neutral-500 hover:bg-neutral-100 hover:text-neutral-700 focus:outline-none focus:ring-2 focus:ring-primary-500 border-none"
+                className="rounded-md border-0 p-2 text-neutral-500 hover:bg-neutral-100 hover:text-neutral-700 focus:border-0 focus:outline-none focus:ring-0"
                 aria-label="Close navigation"
               >
                 <svg

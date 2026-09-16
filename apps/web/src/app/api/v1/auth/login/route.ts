@@ -15,7 +15,9 @@ export async function POST(req: Request) {
   
   // Forward Set-Cookie headers from backend
   // Use getSetCookie() which properly handles multiple Set-Cookie headers
-  const setCookies = resp.headers.getSetCookie();
+  const setCookies = typeof resp.headers.getSetCookie === 'function'
+    ? resp.headers.getSetCookie()
+    : (resp.headers.get('set-cookie') ? [resp.headers.get('set-cookie') as string] : []);
   for (const cookie of setCookies) {
     response.headers.append('set-cookie', cookie);
   }

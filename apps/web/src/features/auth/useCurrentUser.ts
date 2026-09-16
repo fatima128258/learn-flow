@@ -17,7 +17,7 @@ function readCachedUser(): CurrentUser | null {
   }
 }
 
-function cacheUser(user: CurrentUser | null) {
+export function cacheUser(user: CurrentUser | null) {
   if (typeof window === 'undefined') return;
   try {
     if (user) {
@@ -46,7 +46,7 @@ export function useCurrentUser() {
         cacheUser(user);
         return user;
       } catch (error) {
-        if (error instanceof ApiError && (error.status === 0 || error.status === 429 || error.status >= 500)) {
+        if (error instanceof ApiError && (error.status === 0 || error.status === 400 || error.status === 429 || error.status >= 500)) {
           const cachedUser = readCachedUser();
           if (cachedUser) return cachedUser;
         }

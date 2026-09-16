@@ -6,7 +6,7 @@ import { LoginForm, LoginFormData } from './LoginForm';
 import { RegisterForm, RegisterFormData } from './RegisterForm';
 import { getPostLoginRedirect } from '../../features/auth/postLoginRedirect';
 import { getLoginErrorMessage, getRegisterErrorMessage } from '../../features/auth/authErrors';
-import { meKey } from '../../features/auth/useCurrentUser';
+import { cacheUser, meKey } from '../../features/auth/useCurrentUser';
 import { useToast } from '../ui/ToastProvider';
 
 export type AuthMode = 'login' | 'register';
@@ -64,6 +64,7 @@ export const AuthSwitch: React.FC<AuthSwitchProps> = ({ initialMode = 'login' })
       // outage there must not turn a successful login into a failed redirect.
       if (responseData?.user) {
         queryClient.setQueryData(meKey, responseData.user);
+        cacheUser(responseData.user);
       }
       
       // Use window.location.href for a full page reload to ensure proper session/cookie handling
