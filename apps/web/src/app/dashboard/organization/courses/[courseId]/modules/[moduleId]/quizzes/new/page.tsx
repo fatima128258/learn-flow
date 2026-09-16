@@ -83,7 +83,7 @@ export default function CreateQuizPage() {
         toast.error('Quiz was created but its ID was not returned.');
         return;
       }
-      toast.success('Quiz created. Add questions and options to continue.');
+      toast.success('Quiz saved as a draft. Add questions and options to continue.');
       router.push(`${dashboardPrefix}/courses/${courseId}/modules/${moduleId}/quizzes/${created.data.id}/questions${organizationId ? `?organization=${organizationId}` : ''}`);
     } catch {
       toast.error(getQuizErrorMessage(null));
@@ -119,7 +119,7 @@ export default function CreateQuizPage() {
           </div>
           <div className="flex justify-end gap-3 border-t border-neutral-200 pt-5">
             <LinkButton href={`${dashboardPrefix}/courses/${courseId}/modules/${moduleId}/quizzes${organizationId ? `?organization=${organizationId}` : ''}`} variant="ghost" disabled={creating}>Cancel</LinkButton>
-            <Button type="button" onClick={handleCreate} loading={creating} disabled={creating}>Create Quiz</Button>
+            <Button type="button" onClick={handleCreate} loading={creating} disabled={creating}>Save Quiz</Button>
           </div>
         </div>
       </div>

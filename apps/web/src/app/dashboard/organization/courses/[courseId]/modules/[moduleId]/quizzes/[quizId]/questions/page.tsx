@@ -765,7 +765,10 @@ export default function QuizQuestionsPage() {
 
       <div className="grid gap-6 xl:grid-cols-[minmax(0,1.7fr)_360px]">
         <div className="rounded-[26px] border border-[#e3e6e3] bg-white p-4 shadow-[0_6px_24px_rgba(19,33,28,0.04)] sm:p-5 lg:p-6">
-          <QuizSteps active="questions" />
+          <QuizSteps
+            active="questions"
+            detailsHref={`${dashboardPrefix}/courses/${courseId}/modules/${moduleId}/quizzes/${quizId}${organizationId ? `?organization=${organizationId}` : ''}`}
+          />
 
           <div className="mb-6">
             <div>
@@ -786,12 +789,9 @@ export default function QuizQuestionsPage() {
                 className="rounded-[24px] border border-[#dfece9] bg-[#f7faf9] p-4 sm:p-5"
               >
                 <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                  <div>
-                    <p className="text-sm font-medium uppercase tracking-[0.18em] text-neutral-500">Question Builder</p>
-                    <h2 className="mt-1 text-xl font-bold text-neutral-900">
-                      Question {questions.length + 1}
-                    </h2>
-                  </div>
+                  <h2 className="text-xl font-bold text-neutral-900">
+                    Question {questions.length + 1}
+                  </h2>
                   <div className="flex flex-wrap gap-2">
                     {['Multiple Choice', 'True / False', 'Short Answer', 'Essay'].map((type) => (
                       <span
@@ -806,7 +806,6 @@ export default function QuizQuestionsPage() {
 
                 <div className="space-y-4">
                   <Textarea
-                    label="Question"
                     value={inlineQuestionText}
                     onChange={(event) => setInlineQuestionText(event.target.value)}
                     placeholder="What is the correct way to declare a variable in JavaScript?"
@@ -863,7 +862,7 @@ export default function QuizQuestionsPage() {
                         type="button"
                         onClick={addInlineOption}
                         disabled={savingInlineQuestion}
-                        className="inline-flex items-center justify-center rounded-xl border border-[#d69a5b] bg-[#f5ebdd] px-4 py-2.5 text-sm font-semibold text-[#5a321f] shadow-sm transition-colors hover:bg-[#ead8c6] disabled:cursor-not-allowed disabled:opacity-50"
+                        className="inline-flex w-fit shrink-0 items-center justify-center rounded-xl border border-[#b9793f] bg-[#f5ebdd] px-4 py-2.5 text-sm font-semibold text-[#5a321f] shadow-[0_3px_10px_rgb(90_50_31_/_0.14)] transition-colors hover:border-[#7a4a2e] hover:bg-[#ead8c6] disabled:cursor-not-allowed disabled:opacity-50"
                       >
                         + Add Option
                       </button>
@@ -1009,22 +1008,6 @@ export default function QuizQuestionsPage() {
               </div>
               <div className="mt-3 h-2.5 overflow-hidden rounded-full bg-[#e7ecea]">
                 <div className="h-full rounded-full bg-[#2e7a74]" style={{ width: `${Math.min((totalMarks / Math.max(totalMarks || 1, 1)) * 100, 100)}%` }} />
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <div className="rounded-2xl border border-[#e9efed] bg-white p-3">
-                <div className="text-xs font-semibold uppercase tracking-[0.18em] text-neutral-500">Marks by Question</div>
-                <div className="mt-3 space-y-2 text-sm text-neutral-700">
-                  {questions && questions.length > 0 ? questions.map((question, index) => (
-                    <div key={question.id} className="flex items-center justify-between gap-3 rounded-xl bg-[#f6faf9] px-2.5 py-2">
-                      <span className="font-medium text-neutral-700">Q{index + 1}</span>
-                      <span className="font-semibold text-[#1d6b65]">{question.marks}</span>
-                    </div>
-                  )) : (
-                    <span className="text-sm text-neutral-500">Add questions to see marks breakdown.</span>
-                  )}
-                </div>
               </div>
             </div>
 
