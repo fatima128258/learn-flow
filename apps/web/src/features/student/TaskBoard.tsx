@@ -44,6 +44,7 @@ export default function TaskBoard() {
   const [editing, setEditing] = useState<Task | null>(null);
   const [form, setForm] = useState<TaskForm>(emptyForm);
   const [deleting, setDeleting] = useState<Task | null>(null);
+  const [openTaskMenuId, setOpenTaskMenuId] = useState<string | null>(null);
   const [draggedId, setDraggedId] = useState<string | null>(null);
   const [movingTaskId, setMovingTaskId] = useState<string | null>(null);
   const moveVersions = useRef(new Map<string, number>());
@@ -175,9 +176,45 @@ export default function TaskBoard() {
                   onDragEnd={() => setDraggedId(null)}
                   className={`rounded-xl border border-neutral-200 bg-white p-4 shadow-sm ${task.status === 'COMPLETED' ? 'opacity-75' : ''} ${movingTaskId === task.id ? 'cursor-wait opacity-60' : 'cursor-grab active:cursor-grabbing'}`}
                 >
-                  <div className="flex items-start justify-between gap-2"><h3 className="font-semibold text-neutral-900">{task.title}</h3><span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${task.priority === 'HIGH' ? 'bg-red-100 text-red-700' : task.priority === 'LOW' ? 'bg-neutral-100 text-neutral-600' : 'bg-amber-100 text-amber-700'}`}>{task.priority}</span></div>
+                  <div className="relative flex items-start justify-between gap-2">
+                    <div className="min-w-0">
+                      <h3 className="truncate font-semibold text-neutral-900">{task.title}</h3>
+                      <div className="mt-2 flex items-center gap-2">
+                        <span className="text-[11px] font-medium text-neutral-500">Priority</span>
+                        <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${task.priority === 'HIGH' ? 'bg-red-100 text-red-700' : task.priority === 'LOW' ? 'bg-neutral-100 text-neutral-600' : 'bg-amber-100 text-amber-700'}`}>{task.priority}</span>
+                      </div>
+                    </div>
+                    <div className="relative shrink-0">
+                      <button
+                        type="button"
+                        aria-label={`Actions for ${task.title}`}
+                        aria-expanded={openTaskMenuId === task.id}
+                        onClick={() => setOpenTaskMenuId((current) => current === task.id ? null : task.id)}
+                        className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-lg leading-none text-neutral-500 hover:bg-[#f5ebdd] hover:text-[#7a4a2e] focus:outline-none"
+                      >
+                        <span aria-hidden="true">⋯</span>
+                      </button>
+                      {openTaskMenuId === task.id && (
+                        <div className="absolute right-0 top-9 z-20 w-28 rounded-lg border border-[#ead8c6] bg-[#fffdf9] p-1 shadow-lg">
+                          <button
+                            type="button"
+                            onClick={() => { setOpenTaskMenuId(null); openEdit(task); }}
+                            className="block w-full rounded-md px-3 py-2 text-left text-xs font-medium text-[#7a4a2e] hover:bg-[#f5ebdd]"
+                          >
+                            Edit
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => { setOpenTaskMenuId(null); setDeleting(task); }}
+                            className="block w-full rounded-md px-3 py-2 text-left text-xs font-medium text-red-600 hover:bg-red-50"
+                          >
+                            Delete
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  </div>
                   {task.description && <p className="mt-2 whitespace-pre-wrap text-sm text-neutral-600">{task.description}</p>}
-                  <div className="mt-3 flex justify-end gap-2 text-xs text-neutral-500"><button type="button" onClick={() => openEdit(task)} className="font-medium text-primary-700 hover:underline">Edit</button><button type="button" onClick={() => setDeleting(task)} className="font-medium text-red-600 hover:underline">Delete</button></div>
                 </article>
               ))}
             </div>
@@ -205,7 +242,7 @@ export default function TaskBoard() {
             />
           </div>
           <div className="mt-auto flex justify-end gap-3 border-t border-neutral-200 pt-5">
-            <Button variant="outline" type="button" onClick={() => setFormOpen(false)} disabled={saving} className="border-[#ead8c6] bg-[#f5e8dc] text-[#7a4a2e] hover:bg-[#eedbc9]">Cancel</Button>
+            <Button variant="ghost" type="button" onClick={() => setFormOpen(false)} disabled={saving} className="border border-[#ead8c6] bg-[#fffaf5] text-[#7a4a2e] hover:border-[#d8b99b] hover:bg-[#f5ebdd]">Cancel</Button>
             <Button type="submit" loading={saving}>{editing ? 'Save Changes' : 'Create Task'}</Button>
           </div>
         </form>
