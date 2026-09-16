@@ -180,7 +180,7 @@ export default function TaskBoard() {
                     <div className="min-w-0">
                       <h3 className="truncate font-semibold text-neutral-900">{task.title}</h3>
                       <div className="mt-2 flex items-center gap-2">
-                        <span className="text-[11px] font-medium text-neutral-500">Priority</span>
+                        <span className="text-[11px] font-medium text-neutral-900">Priority</span>
                         <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${task.priority === 'HIGH' ? 'bg-red-100 text-red-700' : task.priority === 'LOW' ? 'bg-neutral-100 text-neutral-600' : 'bg-amber-100 text-amber-700'}`}>{task.priority}</span>
                       </div>
                     </div>
@@ -190,9 +190,9 @@ export default function TaskBoard() {
                         aria-label={`Actions for ${task.title}`}
                         aria-expanded={openTaskMenuId === task.id}
                         onClick={() => setOpenTaskMenuId((current) => current === task.id ? null : task.id)}
-                        className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-lg leading-none text-neutral-500 hover:bg-[#f5ebdd] hover:text-[#7a4a2e] focus:outline-none"
+                        className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-xl font-bold leading-none text-neutral-900 hover:bg-[#f5ebdd] hover:text-[#5a321f] focus:outline-none"
                       >
-                        <span aria-hidden="true">⋯</span>
+                        <span aria-hidden="true">⋮</span>
                       </button>
                       {openTaskMenuId === task.id && (
                         <div className="absolute right-0 top-9 z-20 w-28 rounded-lg border border-[#ead8c6] bg-[#fffdf9] p-1 shadow-lg">
