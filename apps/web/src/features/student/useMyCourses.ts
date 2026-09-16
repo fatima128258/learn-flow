@@ -1,5 +1,10 @@
 import { useQuery } from '@tanstack/react-query';
-import { getJson } from '../../lib/api';
+import { ApiError, getJson } from '../../lib/api';
+
+function retryTransientStudentRequest(failureCount: number, error: unknown) {
+  if (!(error instanceof ApiError)) return failureCount < 2;
+  return (error.status === 0 || error.status >= 500) && failureCount < 2;
+}
 
 export type StudentStats = {
   availableCourses: number;
@@ -46,10 +51,8 @@ export function useMyCourses(organizationId: string) {
     staleTime: 30 * 1000,
     // Cache time: 5 minutes - keep data in cache for this long
     gcTime: 5 * 60 * 1000,
-    // Retry failed requests up to 3 times
-    retry: 3,
-    // Retry delay: exponential backoff (100ms, 200ms, 400ms)
-    retryDelay: attemptIndex => Math.min(1000 * 2 ** attemptIndex, 30000),
+    retry: retryTransientStudentRequest,
+    retryDelay: attemptIndex => Math.min(2000 * 2 ** attemptIndex, 10000),
   });
 }
 
@@ -69,7 +72,7 @@ export function useMyStats(organizationId: string) {
     enabled: Boolean(organizationId),
     staleTime: 30 * 1000,
     gcTime: 5 * 60 * 1000,
-    retry: 3,
-    retryDelay: attemptIndex => Math.min(1000 * 2 ** attemptIndex, 30000),
+    retry: retryTransientStudentRequest,
+    retryDelay: attemptIndex => Math.min(2000 * 2 ** attemptIndex, 10000),
   });
 }

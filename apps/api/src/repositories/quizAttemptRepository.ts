@@ -28,6 +28,7 @@ export async function listResultsByQuizAndUser(quizId: string, userId: string) {
       passed: true,
       submittedAt: true,
       status: true,
+      answers: true,
       quiz: { select: { passingPercentage: true } },
     },
   });
@@ -74,6 +75,7 @@ export async function completeAttempt(
     incorrectCount: number;
     percentage: number;
     passed: boolean;
+    answers: Record<string, string>;
   },
 ) {
   const result = await prisma().quizAttempt.updateMany({
@@ -134,10 +136,12 @@ export async function getQuizWithQuestionsForGrading(quizId: string) {
         orderBy: { order: 'asc' },
         select: {
           id: true,
+          questionText: true,
           marks: true,
           options: {
             select: {
               id: true,
+              text: true,
               isCorrect: true,
             },
           },

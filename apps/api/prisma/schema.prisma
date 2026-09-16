@@ -332,6 +332,7 @@ model QuizAttempt {
   startedAt      DateTime @default(now())
   expiresAt      DateTime?
   submittedAt    DateTime?
+  answers        Json?
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
   quiz           Quiz     @relation(fields: [quizId], references: [id], onDelete: Cascade)

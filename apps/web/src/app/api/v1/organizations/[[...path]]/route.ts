@@ -20,6 +20,12 @@ async function proxyRequest(
   const backendUrl = process.env.BACKEND_URL || 'https://learn-flow-1-1gl3.onrender.com';
   const path = pathSegments.join('/');
   const cookie = req.headers.get('cookie') || '';
+  const forwardedFor = req.headers.get('x-forwarded-for');
+  const proxyHeaders: Record<string, string> = {
+    Cookie: cookie,
+    'Content-Type': 'application/json',
+  };
+  if (forwardedFor) proxyHeaders['x-forwarded-for'] = forwardedFor;
   const retryableProgressRequest = method === 'POST' && path.endsWith('/progress');
   // Admin assignment creates/updates a membership and is not safe to replay.
   // A transient response must be returned to the client instead of issuing
@@ -60,10 +66,7 @@ async function proxyRequest(
           `${backendUrl}/api/v1/organizations/${path}${queryString}`,
           {
             method,
-            headers: {
-              Cookie: cookie,
-              'Content-Type': 'application/json',
-            },
+            headers: proxyHeaders,
             body: body || undefined,
             signal: controller.signal,
           }

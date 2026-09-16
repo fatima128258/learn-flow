@@ -1,7 +1,7 @@
 ﻿'use client';
 
 import { useEffect, useState } from 'react';
-import { useParams, useRouter } from 'next/navigation';
+import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import {
   Button,
@@ -11,7 +11,6 @@ import {
 import { getQuizErrorMessage } from '@/features/course/quizErrors';
 import { useToast } from '@/components/ui/ToastProvider';
 import { useCurrentUser } from '@/features/auth/useCurrentUser';
-import { getNextContentUrl } from '@/features/student/nextContent';
 
 type QuizOption = {
   id: string;
@@ -59,6 +58,19 @@ type AttemptResult = {
   attemptsRemaining: number | null;
 };
 
+type AttemptReview = AttemptResult & {
+  questions?: Array<{
+    id: string;
+    questionText: string;
+    options: Array<{
+      id: string;
+      text: string;
+      isCorrect: boolean;
+      selected: boolean;
+    }>;
+  }>;
+};
+
 type ActiveAttempt = {
   attemptId: string;
   attemptNumber: number;
@@ -71,7 +83,6 @@ export default function StudentQuizTakingPage() {
   const courseId = typeof params.courseId === 'string' ? params.courseId : null;
   const moduleId = typeof params.moduleId === 'string' ? params.moduleId : null;
   const quizId = typeof params.quizId === 'string' ? params.quizId : null;
-  const router = useRouter();
   const toast = useToast();
   const { data: user, isLoading: userLoading } = useCurrentUser();
 
@@ -89,6 +100,10 @@ export default function StudentQuizTakingPage() {
   const [starting, setStarting] = useState(false);
   const [expired, setExpired] = useState(false);
   const [courseCompleted, setCourseCompleted] = useState(false);
+  const [attempts, setAttempts] = useState<AttemptReview[]>([]);
+  const [attemptsLoading, setAttemptsLoading] = useState(false);
+  const [attemptsError, setAttemptsError] = useState<string | null>(null);
+  const [reviewAttempt, setReviewAttempt] = useState<AttemptReview | null>(null);
 
   async function loadQuiz(orgId: string, cid: string, mid: string, qid: string) {
     try {
@@ -214,6 +229,27 @@ export default function StudentQuizTakingPage() {
     setAnswers((prev) => ({ ...prev, [questionId]: optionId }));
   }
 
+  async function loadAttempts() {
+    if (!organizationId || !courseId || !moduleId || !quizId) return;
+    setAttemptsLoading(true);
+    setAttemptsError(null);
+    try {
+      const res = await fetch(
+        `/api/v1/organizations/${organizationId}/student/courses/${courseId}/modules/${moduleId}/quizzes/${quizId}/attempts`,
+        { credentials: 'include' },
+      );
+      const body = await res.json();
+      if (!res.ok || !Array.isArray(body.data)) {
+        throw new Error(getQuizErrorMessage(body?.error));
+      }
+      setAttempts(body.data);
+    } catch (err) {
+      setAttemptsError(err instanceof Error ? err.message : 'Could not load quiz attempts.');
+    } finally {
+      setAttemptsLoading(false);
+    }
+  }
+
   async function submitAttempt() {
     if (!quiz || !organizationId || !courseId || !moduleId || !quizId) return;
     if (quiz.questions.some((q) => !answers[q.id])) {
@@ -248,19 +284,10 @@ export default function StudentQuizTakingPage() {
       if (body.data?.passed && organizationId && courseId && moduleId && quizId) {
         toast.success('Quiz passed!');
         void (async () => {
-          const [progressResponse, nextUrl] = await Promise.all([
-            fetch(
-              `/api/v1/organizations/${organizationId}/student/courses/${courseId}/progress`,
-              { credentials: 'include' },
-            ),
-            getNextContentUrl({
-              organizationId,
-              courseId,
-              moduleId,
-              contentType: 'QUIZ',
-              contentId: quizId,
-            }),
-          ]);
+          const progressResponse = await fetch(
+            `/api/v1/organizations/${organizationId}/student/courses/${courseId}/progress`,
+            { credentials: 'include' },
+          );
           if (progressResponse.ok) {
             const progressBody = await progressResponse.json();
             const completed = progressBody.data?.successfulCompletion === true;
@@ -269,11 +296,8 @@ export default function StudentQuizTakingPage() {
               toast.success('Congratulations! You completed the entire course.');
             }
           }
-          if (nextUrl) {
-            router.push(nextUrl);
-          }
         })().catch(() => {
-          // The quiz result is already displayed; next-item discovery is optional.
+          // The quiz result is already displayed; progress refresh is optional.
         });
       }
     } catch {
@@ -397,20 +421,104 @@ export default function StudentQuizTakingPage() {
 
               <div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <div />
-                {courseCompleted && result.passed && (
-                  <Link
-                    href="/dashboard/student/certificates"
-                    className="inline-flex items-center justify-center rounded-lg bg-[#5A321F] px-4 py-2 text-sm font-semibold text-white hover:bg-[#472719]"
+                <div className="flex flex-col gap-3 sm:flex-row">
+                  <Button
+                    className="w-full sm:w-auto"
+                    variant="secondary"
+                    onClick={() => {
+                      setReviewAttempt(null);
+                      void loadAttempts();
+                    }}
+                    loading={attemptsLoading}
                   >
-                    Go to Certificate
-                  </Link>
-                )}
-                {!result.passed && (result.attemptsRemaining == null || result.attemptsRemaining > 0) && (
-                  <Button className="w-full sm:w-auto" variant="primary" onClick={retryAttempt} loading={starting}>
-                    Retry Quiz
+                    View Attempts
                   </Button>
-                )}
+                  {courseCompleted && result.passed && (
+                    <Link
+                      href="/dashboard/student/certificates"
+                      className="inline-flex items-center justify-center rounded-lg bg-[#5A321F] px-4 py-2 text-sm font-semibold text-white hover:bg-[#472719]"
+                    >
+                      Go to Certificate
+                    </Link>
+                  )}
+                  {!result.passed && (result.attemptsRemaining == null || result.attemptsRemaining > 0) && (
+                    <Button className="w-full sm:w-auto" variant="primary" onClick={retryAttempt} loading={starting}>
+                      Retry Quiz
+                    </Button>
+                  )}
+                </div>
               </div>
+
+              {(attemptsLoading || attemptsError || attempts.length > 0) && (
+                <div className="mt-6 rounded-2xl border border-[#ead8c6] bg-[#fffdf9] p-4">
+                  <h2 className="text-lg font-semibold text-[#17212b]">Quiz attempts</h2>
+                  {attemptsError ? (
+                    <p className="mt-2 text-sm text-red-600">{attemptsError}</p>
+                  ) : attemptsLoading ? (
+                    <p className="mt-2 text-sm text-neutral-600">Loading attempts...</p>
+                  ) : (
+                    <div className="mt-3 space-y-2">
+                      {attempts.map((attempt) => (
+                        <div key={attempt.attemptId} className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-[#ead8c6] bg-white px-3 py-3">
+                          <div className="text-sm text-neutral-700">
+                            <span className="font-semibold">Attempt {attempt.attemptNumber}</span>
+                            <span className="mx-2 text-neutral-300">•</span>
+                            {attempt.percentage}% · {attempt.passed ? 'Passed' : 'Not passed'}
+                          </div>
+                          <Button size="sm" variant="secondary" onClick={() => setReviewAttempt(attempt)}>
+                            View
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {reviewAttempt && (
+                <div className="mt-6 rounded-2xl border border-[#ead8c6] bg-white p-4">
+                  <div className="flex items-center justify-between gap-3">
+                    <h2 className="text-lg font-semibold text-[#17212b]">
+                      Attempt {reviewAttempt.attemptNumber} review
+                    </h2>
+                    <Button size="sm" variant="ghost" onClick={() => setReviewAttempt(null)}>
+                      Close
+                    </Button>
+                  </div>
+                  {reviewAttempt.questions?.length ? (
+                    <div className="mt-4 space-y-4">
+                      {reviewAttempt.questions.map((question, index) => (
+                        <div key={question.id} className="rounded-xl border border-neutral-200 p-4">
+                          <p className="font-medium text-neutral-900">{index + 1}. {question.questionText}</p>
+                          <div className="mt-3 space-y-2">
+                            {question.options.map((option) => (
+                              <div
+                                key={option.id}
+                                className={`rounded-lg border px-3 py-2 text-sm ${
+                                  option.isCorrect
+                                    ? 'border-green-200 bg-green-50 text-green-800'
+                                    : option.selected
+                                      ? 'border-red-200 bg-red-50 text-red-800'
+                                      : 'border-neutral-200 text-neutral-700'
+                                }`}
+                              >
+                                {option.text}
+                                {option.isCorrect && <span className="ml-2 font-semibold">Correct answer</span>}
+                                {option.selected && !option.isCorrect && <span className="ml-2 font-semibold">Your answer</span>}
+                                {option.selected && option.isCorrect && <span className="ml-2 font-semibold">Your answer</span>}
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="mt-3 text-sm text-neutral-600">
+                      This attempt was completed before answer review was added, so its selected options are unavailable.
+                    </p>
+                  )}
+                </div>
+              )}
             </div>
           </div>
         ) : null}

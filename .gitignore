@@ -166,6 +166,7 @@ temp/
 !apps/api/prisma/migrations/20260912_quiz_attempt_timer/migration.sql
 !apps/api/prisma/migrations/20260915_password_reset_verification_code/migration.sql
 !apps/api/prisma/migrations/20260915_cart_support/migration.sql
+!apps/api/prisma/migrations/20260916_quiz_attempt_answers/migration.sql
 *.py
 temp*.js
 temp*.ps1

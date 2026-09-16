@@ -343,6 +343,7 @@ export async function submitQuizAttempt(
       incorrectCount,
       percentage,
       passed,
+      answers: Object.fromEntries(answers),
     });
 
     // Recalculate after every submitted attempt. Failed attempts remain
@@ -405,5 +406,21 @@ export async function getQuizResults(
     attemptsRemaining: quiz.maxAttempts == null
       ? null
       : Math.max(0, quiz.maxAttempts - attempt.attemptNumber),
+    questions: (gradingQuiz?.questions ?? []).map((question) => {
+      const selectedOptionId =
+        attempt.answers && typeof attempt.answers === 'object' && !Array.isArray(attempt.answers)
+          ? (attempt.answers as Record<string, unknown>)[question.id]
+          : undefined;
+      return {
+        id: question.id,
+        questionText: question.questionText,
+        options: question.options.map((option) => ({
+          id: option.id,
+          text: option.text,
+          isCorrect: option.isCorrect,
+          selected: option.id === selectedOptionId,
+        })),
+      };
+    }),
   }));
 }

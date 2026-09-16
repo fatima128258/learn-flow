@@ -4,7 +4,10 @@ export async function POST(req: Request) {
   // Server-side: use direct Render backend URL (not proxied)
   const backendUrl = process.env.BACKEND_URL || 'https://learn-flow-1-1gl3.onrender.com';
   const body = await req.json();
-  const resp = await fetch(`${backendUrl}/api/v1/auth/login`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body), credentials: 'include' });
+  const forwardedFor = req.headers.get('x-forwarded-for');
+  const headers: HeadersInit = { 'Content-Type': 'application/json' };
+  if (forwardedFor) headers['x-forwarded-for'] = forwardedFor;
+  const resp = await fetch(`${backendUrl}/api/v1/auth/login`, { method: 'POST', headers, body: JSON.stringify(body), credentials: 'include' });
   const data = await resp.text();
   
   // Create response with proper Set-Cookie forwarding

@@ -3,6 +3,9 @@ import { NextResponse } from 'next/server';
 export async function GET(req: Request) {
   const backendUrl = process.env.BACKEND_URL || 'https://learn-flow-1-1gl3.onrender.com';
   const cookie = req.headers.get('cookie') || '';
+  const forwardedFor = req.headers.get('x-forwarded-for');
+  const headers: HeadersInit = { Cookie: cookie };
+  if (forwardedFor) headers['x-forwarded-for'] = forwardedFor;
   const transientStatuses = new Set([502, 503, 504]);
 
   for (let attempt = 0; attempt < 3; attempt += 1) {
@@ -12,7 +15,7 @@ export async function GET(req: Request) {
     try {
       const resp = await fetch(`${backendUrl}/api/v1/auth/me`, {
         method: 'GET',
-        headers: { Cookie: cookie },
+        headers,
         signal: controller.signal,
       });
 
