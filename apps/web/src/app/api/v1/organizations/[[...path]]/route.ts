@@ -8,6 +8,8 @@ const CERTIFICATE_TIMEOUT_MS = 60000;
 const STUDENT_PROGRESS_TIMEOUT_MS = 60000;
 const STUDENT_LEARNING_TIMEOUT_MS = 60000;
 const CHAT_MESSAGE_TIMEOUT_MS = 60000;
+const CHAT_HISTORY_TIMEOUT_MS = 60000;
+const COURSE_SEARCH_TIMEOUT_MS = 60000;
 
 function wait(milliseconds: number) {
   return new Promise((resolve) => setTimeout(resolve, milliseconds));
@@ -37,6 +39,8 @@ async function proxyRequest(
   const studentProgressRequest = method === 'GET' && /\/student\/progress$/.test(path);
   const studentLearningRequest = method === 'GET' && /\/student\/courses\/[^/]+\/modules(?:\/|$)/.test(path);
   const chatMessageRequest = method === 'POST' && /\/conversations\/[^/]+\/messages$/.test(path);
+  const chatHistoryRequest = method === 'GET' && /\/conversations\/[^/]+\/messages$/.test(path);
+  const courseSearchRequest = method === 'GET' && /\/student\/search$/.test(path);
   const backendTimeoutMs = certificateRequest
     ? CERTIFICATE_TIMEOUT_MS
     : studentProgressRequest
@@ -45,6 +49,10 @@ async function proxyRequest(
       ? STUDENT_LEARNING_TIMEOUT_MS
     : chatMessageRequest
       ? CHAT_MESSAGE_TIMEOUT_MS
+    : chatHistoryRequest
+      ? CHAT_HISTORY_TIMEOUT_MS
+    : courseSearchRequest
+      ? COURSE_SEARCH_TIMEOUT_MS
     : adminAssignmentRequest
       ? ADMIN_ASSIGN_TIMEOUT_MS
     : courseStatusRequest

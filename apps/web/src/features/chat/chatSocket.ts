@@ -9,7 +9,9 @@ export function acquireChatSocket(socketUrl: string) {
     sharedSocket?.disconnect();
     sharedSocket = io(socketUrl, {
       withCredentials: true,
-      transports: ['websocket', 'polling'],
+      // Start with polling so Render can wake a sleeping service before
+      // Socket.IO attempts the WebSocket upgrade.
+      transports: ['polling', 'websocket'],
       reconnection: true,
       reconnectionAttempts: 3,
       reconnectionDelay: 5000,

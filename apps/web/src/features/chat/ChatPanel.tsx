@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { Socket } from 'socket.io-client';
-import { ApiError, deleteJson, getJson, postJson } from '@/lib/api';
+import { ApiError, deleteJson, getJson, postJson, postJsonWithTimeout } from '@/lib/api';
 import { ConfirmModal } from '@/components/ui';
 import type { ChatConversation, ChatListResponse, ChatMessage, ChatMessagesResponse } from './types';
 import { acquireChatSocket } from './chatSocket';
@@ -64,7 +64,6 @@ export function ChatPanel({ organizationId, userId, initialConversationId, cours
   const [loading, setLoading] = useState(true);
   const [messagesLoading, setMessagesLoading] = useState(false);
   const [sending, setSending] = useState(false);
-  const [connected, setConnected] = useState(false);
   const [participantOnline, setParticipantOnline] = useState(false);
   const [deliveredMessageIds, setDeliveredMessageIds] = useState<Set<string>>(new Set());
   const [openMessageMenuId, setOpenMessageMenuId] = useState<string | null>(null);
@@ -175,14 +174,11 @@ export function ChatPanel({ organizationId, userId, initialConversationId, cours
     const { socket, release } = acquireChatSocket(socketUrl);
     socketRef.current = socket;
     socket.on('connect', () => {
-      setConnected(true);
       if (activeIdRef.current) {
         socket.emit('conversation:join', activeIdRef.current);
         socket.emit('conversation:read', activeIdRef.current);
       }
     });
-    socket.on('disconnect', () => setConnected(false));
-    socket.on('connect_error', () => setConnected(false));
     socket.on('presence:update', (event: { userId: string; online: boolean }) => {
       const currentConversation = activeConversationRef.current;
       if (!currentConversation) return;
@@ -260,31 +256,18 @@ export function ChatPanel({ organizationId, userId, initialConversationId, cours
     setSending(true);
     setError(null);
     try {
-      if (connected && socketRef.current) {
-        await new Promise<void>((resolve, reject) => {
-          socketRef.current?.emit('message:send', { conversationId: active.id, content }, (result: { success: boolean; data?: ChatMessage; error?: string }) => {
-            if (!result.success || !result.data) reject(new Error(result.error || 'MESSAGE_FAILED'));
-            else {
-              setMessages((current) => current.some((item) => item.id === result.data!.id) ? current : [...current, result.data!]);
-              setDeliveredMessageIds((current) => new Set(current).add(result.data!.id));
-              setConversations((current) => current.map((conversation) =>
-                conversation.id === active.id
-                  ? { ...conversation, updatedAt: result.data!.createdAt, messages: [result.data!] }
-                  : conversation,
-              ));
-              resolve();
-            }
-          });
-        });
-      } else {
-        const result = await postJson<{ data: ChatMessage }>(apiPath(organizationId, `/conversations/${active.id}/messages`), { content });
-        setMessages((current) => [...current, result.data]);
-        setConversations((current) => current.map((conversation) =>
-          conversation.id === active.id
-            ? { ...conversation, updatedAt: result.data.createdAt, messages: [result.data] }
-            : conversation,
-        ));
-      }
+      const result = await postJsonWithTimeout<{ data: ChatMessage }>(
+        apiPath(organizationId, `/conversations/${active.id}/messages`),
+        { content },
+        15000,
+      );
+      setMessages((current) => current.some((item) => item.id === result.data.id) ? current : [...current, result.data]);
+      setDeliveredMessageIds((current) => new Set(current).add(result.data.id));
+      setConversations((current) => current.map((conversation) =>
+        conversation.id === active.id
+          ? { ...conversation, updatedAt: result.data.createdAt, messages: [result.data] }
+          : conversation,
+      ));
       setText('');
       setReplyTo(null);
     } catch (sendError) {

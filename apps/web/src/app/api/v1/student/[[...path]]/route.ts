@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 
 const STUDENT_TASK_TIMEOUT_MS = 60000;
+const TRANSIENT_STATUSES = new Set([502, 503, 504]);
 
 function getBackendUrl() {
   return process.env.BACKEND_URL
@@ -21,17 +22,44 @@ async function proxyRequest(
 
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), STUDENT_TASK_TIMEOUT_MS);
-  let response: Response;
   try {
-    response = await fetch(forwardUrl, {
-      method,
-      headers: {
-        Cookie: request.headers.get('cookie') || '',
-        'Content-Type': 'application/json',
-      },
-      body: body !== undefined ? JSON.stringify(body) : undefined,
-      signal: controller.signal,
-    });
+    let response: Response | undefined;
+    for (let attempt = 0; attempt < 3; attempt += 1) {
+      const requestController = attempt === 0 ? controller : new AbortController();
+      const requestTimeoutId = attempt === 0
+        ? timeoutId
+        : setTimeout(() => requestController.abort(), STUDENT_TASK_TIMEOUT_MS);
+      try {
+        response = await fetch(forwardUrl, {
+          method,
+          headers: {
+            Cookie: request.headers.get('cookie') || '',
+            'Content-Type': 'application/json',
+          },
+          body: body !== undefined ? JSON.stringify(body) : undefined,
+          signal: requestController.signal,
+        });
+      } finally {
+        if (attempt > 0) clearTimeout(requestTimeoutId);
+      }
+      if (!TRANSIENT_STATUSES.has(response.status) || method !== 'GET' || attempt === 2) break;
+      await response.body?.cancel();
+      await new Promise((resolve) => setTimeout(resolve, 250 * (attempt + 1)));
+    }
+    if (!response) {
+      return NextResponse.json({ success: false, error: 'BACKEND_UNAVAILABLE' }, { status: 503 });
+    }
+
+    const text = await response.text();
+    try {
+      const data = JSON.parse(text);
+      return NextResponse.json(data, { status: response.status });
+    } catch {
+      return NextResponse.json(
+        { success: false, error: 'BACKEND_INVALID_RESPONSE' },
+        { status: response.ok ? 502 : response.status },
+      );
+    }
   } catch (error) {
     if (error instanceof DOMException && error.name === 'AbortError') {
       return NextResponse.json({ success: false, error: 'BACKEND_TIMEOUT' }, { status: 504 });
@@ -39,17 +67,6 @@ async function proxyRequest(
     throw error;
   } finally {
     clearTimeout(timeoutId);
-  }
-
-  const text = await response.text();
-  try {
-    const data = JSON.parse(text);
-    return NextResponse.json(data, { status: response.status });
-  } catch {
-    return NextResponse.json(
-      { success: false, error: 'BACKEND_INVALID_RESPONSE' },
-      { status: response.ok ? 502 : response.status },
-    );
   }
 }
 
