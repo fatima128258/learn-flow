@@ -151,15 +151,33 @@ export async function createQuestion(organizationId: string, courseId: string, m
   const questionText = requireQuestionText(input.questionText);
   const order = requireOrder(input.order);
   const marks = requireMarks(input.marks);
+  const rawOptions = input.options;
+  const options = rawOptions === undefined
+    ? null
+    : Array.isArray(rawOptions)
+      ? rawOptions.map((rawOption, index) => {
+          const option = (rawOption ?? {}) as Record<string, unknown>;
+          return {
+            text: requireOptionText(option.text),
+            isCorrect: option.isCorrect !== undefined ? requireBoolean(option.isCorrect) : false,
+            order: option.order === undefined ? index : requireOrder(option.order),
+          };
+        })
+      : (() => {
+          throw new Error('INVALID_VALUE');
+        })();
 
   try {
-    const question = await questionRepo.createQuestion({
-      quizId,
-      questionText,
-      marks,
-      order,
-    });
-    return toQuestionDto(question);
+    const question = options
+      ? await questionRepo.createQuestionWithOptions({
+          quizId,
+          questionText,
+          marks,
+          order,
+          options,
+        })
+      : await questionRepo.createQuestion({ quizId, questionText, marks, order });
+    return options ? toQuestionDetailDto(question) : toQuestionDto(question);
   } catch (err) {
     if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === 'P2002') {
       throw new Error('QUESTION_ORDER_TAKEN');

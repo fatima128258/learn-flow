@@ -96,6 +96,7 @@ export default function QuizQuestionsPage() {
   const [inlineQuestionText, setInlineQuestionText] = useState('');
   const [inlineMarks, setInlineMarks] = useState('1');
   const [inlineOptions, setInlineOptions] = useState([{ text: '', isCorrect: true }]);
+  const [inlineEditingQuestionId, setInlineEditingQuestionId] = useState<string | null>(null);
   const [savingInlineQuestion, setSavingInlineQuestion] = useState(false);
 
   const [showCreateOptionModal, setShowCreateOptionModal] = useState(false);
@@ -209,15 +210,45 @@ export default function QuizQuestionsPage() {
     }
   }
 
-  useEffect(() => {
-    if (!questions || questions.length === 0) return;
-    questions.forEach((question) => {
-      if (!questionOptions[question.id]) void reloadOptions(question.id);
-    });
-  }, [questions, questionOptions]);
-
   function addInlineOption() {
     setInlineOptions((previous) => [...previous, { text: '', isCorrect: false }]);
+  }
+
+  function startAddingQuestion() {
+    setInlineEditingQuestionId(null);
+    setInlineQuestionText('');
+    setInlineMarks('1');
+    setInlineOptions([{ text: '', isCorrect: true }]);
+    document.getElementById('inline-question-builder')?.scrollIntoView({
+      behavior: 'smooth',
+      block: 'start',
+    });
+  }
+
+  async function editQuestionInBuilder(question: QuestionListItem) {
+    if (!organizationId || !courseId || !moduleId || !quizId) return;
+    try {
+      const res = await fetch(
+        `/api/v1/organizations/${organizationId}/courses/${courseId}/modules/${moduleId}/quizzes/${quizId}/questions/${question.id}`,
+        { credentials: 'include' },
+      );
+      const body: QuestionApiResponse = await res.json();
+      if (!res.ok || !body.data) {
+        toast.error(getQuizErrorMessage(body?.error));
+        return;
+      }
+      setInlineEditingQuestionId(question.id);
+      setInlineQuestionText(body.data.questionText);
+      setInlineMarks(String(body.data.marks));
+      setInlineOptions(body.data.options.map((option) => ({
+        text: option.text,
+        isCorrect: option.isCorrect,
+      })));
+      setExpandedQuestion(null);
+      document.getElementById('inline-question-builder')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    } catch {
+      toast.error(getQuizErrorMessage(null));
+    }
   }
 
   async function saveInlineQuestion() {
@@ -241,6 +272,51 @@ export default function QuizQuestionsPage() {
     setSavingInlineQuestion(true);
     try {
       const base = `/api/v1/organizations/${organizationId}/courses/${courseId}/modules/${moduleId}/quizzes/${quizId}`;
+      if (inlineEditingQuestionId) {
+        const existingOptions = questionOptions[inlineEditingQuestionId] ?? [];
+        const questionResponse = await fetch(`${base}/questions/${inlineEditingQuestionId}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({ questionText: questionTextValue, marks: marksValue }),
+        });
+        if (!questionResponse.ok) {
+          const code = (await questionResponse.json().catch(() => ({})))?.error;
+          toast.error(getQuizErrorMessage(code));
+          return;
+        }
+        for (const [index, option] of options.entries()) {
+          const existing = existingOptions[index];
+          const response = await fetch(
+            existing
+              ? `${base}/questions/${inlineEditingQuestionId}/options/${existing.id}`
+              : `${base}/questions/${inlineEditingQuestionId}/options`,
+            {
+              method: existing ? 'PATCH' : 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              credentials: 'include',
+              body: JSON.stringify({ text: option.text, order: index, isCorrect: option.isCorrect }),
+            },
+          );
+          if (!response.ok) {
+            const code = (await response.json().catch(() => ({})))?.error;
+            toast.error(getQuizErrorMessage(code));
+            return;
+          }
+        }
+        setQuestions((previous) => previous?.map((item) =>
+          item.id === inlineEditingQuestionId
+            ? { ...item, questionText: questionTextValue, marks: marksValue }
+            : item,
+        ) ?? null);
+        await reloadOptions(inlineEditingQuestionId);
+        setInlineEditingQuestionId(null);
+        setInlineQuestionText('');
+        setInlineMarks('1');
+        setInlineOptions([{ text: '', isCorrect: true }]);
+        toast.success('Question updated successfully.');
+        return;
+      }
       const questionResponse = await fetch(`${base}/questions`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -249,6 +325,7 @@ export default function QuizQuestionsPage() {
           questionText: questionTextValue,
           marks: marksValue,
           order: questions?.length ?? 0,
+          options,
         }),
       });
       if (!questionResponse.ok) {
@@ -261,26 +338,20 @@ export default function QuizQuestionsPage() {
         toast.error('Question was created but its ID was not returned.');
         return;
       }
-      for (const [index, option] of options.entries()) {
-        const optionResponse = await fetch(`${base}/questions/${createdQuestion.data.id}/options`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          credentials: 'include',
-          body: JSON.stringify({ text: option.text, order: index, isCorrect: option.isCorrect }),
-        });
-        if (!optionResponse.ok) {
-          const code = (await optionResponse.json().catch(() => ({})))?.error;
-          toast.error(getQuizErrorMessage(code));
-          return;
-        }
-      }
+      setInlineEditingQuestionId(null);
       setInlineQuestionText('');
       setInlineMarks('1');
       setInlineOptions([{ text: '', isCorrect: true }]);
       toast.success('Question and options saved successfully.');
       setExpandedQuestion(createdQuestion.data.id);
-      await reloadOptions(createdQuestion.data.id);
-      await reloadQuestions();
+      setQuestions((previous) => [
+        ...(previous ?? []),
+        createdQuestion.data as QuestionListItem,
+      ]);
+      setQuestionOptions((previous) => ({
+        ...previous,
+        [createdQuestion.data!.id]: createdQuestion.data!.options ?? [],
+      }));
       window.setTimeout(() => {
         document.getElementById('inline-question-builder')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
       }, 0);
@@ -587,13 +658,12 @@ export default function QuizQuestionsPage() {
   }
 
   async function viewQuestion(questionId: string) {
-    await toggleOptions(questionId);
-    window.setTimeout(() => {
-      document.getElementById(`quiz-question-${questionId}`)?.scrollIntoView({
-        behavior: 'smooth',
-        block: 'start',
-      });
-    }, 0);
+    setExpandedQuestion(questionId);
+    if (!questionOptions[questionId]) {
+      setLoadingOptions(questionId);
+      await reloadOptions(questionId);
+      setLoadingOptions(null);
+    }
   }
 
   function openCreateOptionModal(questionId: string) {
@@ -755,8 +825,6 @@ export default function QuizQuestionsPage() {
     );
   }
 
-  const totalMarks = questions?.reduce((total, question) => total + question.marks, 0) ?? 0;
-
   return (
     <div className="quiz-theme mx-auto max-w-7xl px-3 pb-8 pt-3 sm:px-4 lg:px-6">
       <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -866,16 +934,16 @@ export default function QuizQuestionsPage() {
                         + Add Option
                       </button>
                       <Button type="button" onClick={saveInlineQuestion} loading={savingInlineQuestion} disabled={savingInlineQuestion}>
-                        {savingInlineQuestion ? 'Saving...' : 'Add Question'}
+                        {savingInlineQuestion ? 'Saving...' : 'Save Question'}
                       </Button>
                     </div>
                   </div>
                 </div>
               </div>
 
-              {questions.length > 0 && (
+              {false && (questions?.length ?? 0) > 0 && (
                 <div className="space-y-4">
-                  {questions.map((question) => (
+                  {questions?.map((question) => (
                     <div id={`quiz-question-${question.id}`} key={question.id} className="scroll-mt-6 rounded-[24px] border border-[#e5e7e6] bg-[#fafcfb] p-4 shadow-[0_4px_20px_rgba(15,23,42,0.02)] sm:p-5">
                       <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
                         <div className="min-w-0 flex-1">
@@ -1000,23 +1068,13 @@ export default function QuizQuestionsPage() {
           </div>
 
           <div className="mt-4 space-y-4">
-            <div className="rounded-2xl border border-[#e9efed] bg-[#f7fbfa] p-3">
-              <div className="flex items-center justify-between text-sm text-neutral-600">
-                <span>Total Marks</span>
-                <span className="font-bold text-[#1d6b65]">{totalMarks}</span>
-              </div>
-              <div className="mt-3 h-2.5 overflow-hidden rounded-full bg-[#e7ecea]">
-                <div className="h-full rounded-full bg-[#2e7a74]" style={{ width: `${Math.min((totalMarks / Math.max(totalMarks || 1, 1)) * 100, 100)}%` }} />
-              </div>
-            </div>
-
             <div className="rounded-2xl border border-[#e9efed] bg-white p-3">
               <div className="mb-3 flex items-center justify-between">
                 <span className="text-sm font-semibold text-neutral-700">Questions</span>
                 <span className="text-xs font-medium text-neutral-500">{questions?.length ?? 0} total</span>
               </div>
               {questions && questions.length > 0 ? (
-                <div className="grid grid-cols-4 gap-2">
+                <div className="grid grid-cols-4 gap-1.5">
                   {questions.map((question, index) => (
                     <button
                       key={question.id}
@@ -1035,17 +1093,108 @@ export default function QuizQuestionsPage() {
             </div>
 
             <div className="space-y-2 border-t border-[#edf1ef] pt-4">
-              <button
-                type="button"
-                onClick={() => router.push(`${dashboardPrefix}/courses/${courseId}/modules/${moduleId}/quizzes${organizationId ? `?organization=${organizationId}` : ''}`)}
-                className="flex w-full items-center justify-center rounded-xl bg-[#2e7a74] px-4 py-3 text-sm font-semibold text-white shadow-[0_8px_20px_rgba(46,122,116,0.25)] transition-colors hover:bg-[#255f5a]"
-              >
-                Save Quiz
-              </button>
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  onClick={startAddingQuestion}
+                  disabled={savingInlineQuestion}
+                  className="flex w-full items-center justify-center rounded-xl border border-[#b9793f] bg-[#f5ebdd] px-3 py-3 text-sm font-semibold text-[#5a321f] transition-colors hover:border-[#7a4a2e] hover:bg-[#ead8c6] disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  Add Question
+                </button>
+                <button
+                  type="button"
+                  onClick={() => router.push(`${dashboardPrefix}/courses/${courseId}/modules/${moduleId}/quizzes${organizationId ? `?organization=${organizationId}` : ''}`)}
+                  className="flex w-full items-center justify-center rounded-xl bg-[#2e7a74] px-3 py-3 text-sm font-semibold text-white shadow-[0_8px_20px_rgba(46,122,116,0.25)] transition-colors hover:bg-[#255f5a]"
+                >
+                  Save Quiz
+                </button>
+              </div>
             </div>
           </div>
         </aside>
       </div>
+
+      {expandedQuestion && (
+        <>
+          <button
+            type="button"
+            aria-label="Close question drawer"
+            onClick={() => setExpandedQuestion(null)}
+            className="fixed inset-0 z-40 bg-neutral-950/30"
+          />
+          <aside className="fixed inset-y-0 right-0 z-50 flex w-full max-w-md flex-col border-l border-[#ead8c6] bg-[#fffdf9] shadow-2xl">
+            {(() => {
+              const question = questions?.find((item) => item.id === expandedQuestion);
+              if (!question) return null;
+              return (
+                <>
+                  <div className="flex items-start justify-between gap-4 border-b border-[#ead8c6] p-5">
+                    <div>
+                      <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#9b765c]">
+                        Question {question.order + 1}
+                      </p>
+                      <h2 className="mt-1 text-xl font-bold text-neutral-900">{question.questionText}</h2>
+                      <p className="mt-1 text-sm text-neutral-500">{question.marks} marks</p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setExpandedQuestion(null)}
+                      className="rounded-lg px-2 py-1 text-2xl leading-none text-neutral-500 hover:bg-neutral-100"
+                      aria-label="Close"
+                    >
+                      ×
+                    </button>
+                  </div>
+                  <div className="flex-1 overflow-y-auto p-5">
+                    <p className="mb-3 text-xs font-semibold uppercase tracking-[0.16em] text-neutral-500">Answer options</p>
+                    {loadingOptions === question.id ? (
+                      <div className="flex items-center gap-2 text-neutral-500">
+                        <Spinner size="sm" label="Loading options..." />
+                        <span className="text-sm">Loading options...</span>
+                      </div>
+                    ) : (
+                      <div className="space-y-3">
+                        {(questionOptions[question.id] ?? []).map((option, index) => (
+                          <div key={option.id} className="rounded-xl border border-[#e7ecea] bg-white p-3">
+                            <div className="flex items-start gap-3">
+                              <span className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-bold ${option.isCorrect ? 'bg-[#2e7a74] text-white' : 'bg-[#f5ebdd] text-[#5a321f]'}`}>
+                                {String.fromCharCode(65 + index)}
+                              </span>
+                              <div className="min-w-0">
+                                <p className="text-sm text-neutral-800">{option.text}</p>
+                                {option.isCorrect && <p className="mt-1 text-xs font-semibold text-[#2e7a74]">Correct answer</p>}
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                  <div className="flex gap-3 border-t border-[#ead8c6] p-5">
+                    <Button
+                      type="button"
+                      variant="primary"
+                      className="flex-1"
+                      onClick={() => void editQuestionInBuilder(question)}
+                    >
+                      Edit
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      className="flex-1"
+                      onClick={() => setExpandedQuestion(null)}
+                    >
+                      Close
+                    </Button>
+                  </div>
+                </>
+              );
+            })()}
+          </aside>
+        </>
+      )}
 
       <Modal
         isOpen={showCreateModal}

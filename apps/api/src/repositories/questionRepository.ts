@@ -11,6 +11,12 @@ export interface CreateQuestionData {
   order: number;
 }
 
+export interface CreateQuestionOptionData {
+  text: string;
+  isCorrect: boolean;
+  order: number;
+}
+
 export interface UpdateQuestionData {
   questionText?: string;
   marks?: number;
@@ -51,6 +57,27 @@ export async function createQuestion(data: CreateQuestionData) {
       questionText: data.questionText,
       marks: data.marks,
       order: data.order,
+    },
+  });
+}
+
+export async function createQuestionWithOptions(
+  data: CreateQuestionData & { options: CreateQuestionOptionData[] },
+) {
+  return prisma().question.create({
+    data: {
+      quizId: data.quizId,
+      questionText: data.questionText,
+      marks: data.marks,
+      order: data.order,
+      options: {
+        create: data.options,
+      },
+    },
+    include: {
+      options: {
+        orderBy: { order: 'asc' },
+      },
     },
   });
 }
