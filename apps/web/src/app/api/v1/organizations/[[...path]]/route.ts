@@ -6,6 +6,7 @@ const ADMIN_ASSIGN_TIMEOUT_MS = 60000;
 const COURSE_STATUS_TIMEOUT_MS = 60000;
 const CERTIFICATE_TIMEOUT_MS = 60000;
 const STUDENT_PROGRESS_TIMEOUT_MS = 60000;
+const STUDENT_LEARNING_TIMEOUT_MS = 60000;
 const CHAT_MESSAGE_TIMEOUT_MS = 60000;
 
 function wait(milliseconds: number) {
@@ -34,11 +35,14 @@ async function proxyRequest(
   const courseStatusRequest = method === 'PATCH' && /\/courses\/[^/]+\/status$/.test(path);
   const certificateRequest = method === 'POST' && /\/student\/courses\/[^/]+\/certificate$/.test(path);
   const studentProgressRequest = method === 'GET' && /\/student\/progress$/.test(path);
+  const studentLearningRequest = method === 'GET' && /\/student\/courses\/[^/]+\/modules(?:\/|$)/.test(path);
   const chatMessageRequest = method === 'POST' && /\/conversations\/[^/]+\/messages$/.test(path);
   const backendTimeoutMs = certificateRequest
     ? CERTIFICATE_TIMEOUT_MS
     : studentProgressRequest
       ? STUDENT_PROGRESS_TIMEOUT_MS
+    : studentLearningRequest
+      ? STUDENT_LEARNING_TIMEOUT_MS
     : chatMessageRequest
       ? CHAT_MESSAGE_TIMEOUT_MS
     : adminAssignmentRequest

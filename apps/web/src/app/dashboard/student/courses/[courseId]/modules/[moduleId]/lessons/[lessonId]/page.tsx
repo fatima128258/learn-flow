@@ -128,6 +128,8 @@ export default function StudentLessonPage() {
           setError('This lesson is locked. Complete the previous course item first.');
         } else if (code === 'CONTENT_SEQUENCE_MISSING') {
           setError('This lesson is not available yet. Please return to the module and try again.');
+        } else if (code === 'BACKEND_TIMEOUT' || code === 'BACKEND_UNAVAILABLE' || code === 'PROXY_ERROR') {
+          setError('The learning server is taking longer than expected. Please try again in a moment.');
         } else {
           setError('Could not load lesson. Please try again.');
         }
@@ -237,7 +239,7 @@ export default function StudentLessonPage() {
           message: completedCourse
             ? 'Congratulations! You completed the course.'
             : 'Congratulations! You completed this lesson.',
-          duration: 0,
+          duration: 5000,
           action: (
             <>
               <button

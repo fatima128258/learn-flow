@@ -7,7 +7,14 @@ let consumerCount = 0;
 export function acquireChatSocket(socketUrl: string) {
   if (!sharedSocket || sharedSocketUrl !== socketUrl) {
     sharedSocket?.disconnect();
-    sharedSocket = io(socketUrl, { withCredentials: true, transports: ['websocket', 'polling'] });
+    sharedSocket = io(socketUrl, {
+      withCredentials: true,
+      transports: ['websocket', 'polling'],
+      reconnection: true,
+      reconnectionAttempts: 3,
+      reconnectionDelay: 5000,
+      reconnectionDelayMax: 15000,
+    });
     sharedSocketUrl = socketUrl;
   }
   consumerCount += 1;

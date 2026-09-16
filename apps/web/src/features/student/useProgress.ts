@@ -1,5 +1,12 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { getJson, postJson } from '../../lib/api';
+import { ApiError, getJson, postJson } from '../../lib/api';
+
+function retryTransientQuery(failureCount: number, error: unknown) {
+  if (error instanceof ApiError && [401, 403, 429].includes(error.status)) {
+    return false;
+  }
+  return failureCount < 3;
+}
 
 /**
  * Types for course progress tracking
@@ -76,7 +83,7 @@ export function useStudentProgress(organizationId: string) {
     enabled: Boolean(organizationId),
     staleTime: 30 * 1000,
     gcTime: 5 * 60 * 1000,
-    retry: 3,
+    retry: retryTransientQuery,
     retryDelay: attemptIndex => Math.min(1000 * 2 ** attemptIndex, 30000),
   });
 }
@@ -126,7 +133,7 @@ export function useProgress(organizationId: string, courseId: string) {
     enabled: Boolean(organizationId) && Boolean(courseId),
     staleTime: 30 * 1000,
     gcTime: 5 * 60 * 1000,
-    retry: 3,
+    retry: retryTransientQuery,
     retryDelay: attemptIndex => Math.min(1000 * 2 ** attemptIndex, 30000),
   });
 }
@@ -146,7 +153,7 @@ export function useModuleLessons(organizationId: string, courseId: string, modul
     enabled: Boolean(organizationId && courseId && moduleId),
     staleTime: 30 * 1000,
     gcTime: 5 * 60 * 1000,
-    retry: 3,
+    retry: retryTransientQuery,
     retryDelay: attemptIndex => Math.min(1000 * 2 ** attemptIndex, 30000),
   });
 }
