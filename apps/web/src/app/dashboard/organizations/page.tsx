@@ -345,9 +345,23 @@ export default function OrganizationsPage() {
     setLoading(true);
     try {
       const apiBase = '';
-      const res = await fetch(`${apiBase}/api/v1/organizations`, { credentials: 'include' });
+      let res: Response | null = null;
+      for (let attempt = 0; attempt < 3; attempt += 1) {
+        res = await fetch(`${apiBase}/api/v1/organizations`, { credentials: 'include' });
+        if (res.ok || (res.status !== 502 && res.status !== 503 && res.status !== 504) || attempt === 2) {
+          break;
+        }
+        await new Promise((resolve) => window.setTimeout(resolve, 1000 * (attempt + 1)));
+      }
+      if (!res) {
+        throw new Error('Organizations request did not return a response');
+      }
       if (!res.ok) {
-        setError(`Failed to load organizations (HTTP ${res.status})`);
+        setError(
+          res.status === 502 || res.status === 503 || res.status === 504
+            ? 'The organizations service is temporarily unavailable because the database is not responding. Please retry in a moment.'
+            : `Failed to load organizations (HTTP ${res.status})`
+        );
         return;
       }
       const body: OrganizationsResponse = await res.json();
