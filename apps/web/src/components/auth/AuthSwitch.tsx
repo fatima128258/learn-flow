@@ -59,14 +59,12 @@ export const AuthSwitch: React.FC<AuthSwitchProps> = ({ initialMode = 'login' })
         console.debug('[AuthSwitch] User object from response:', responseData?.user);
       }
       
-      // OPTIMIZATION: Invalidate auth cache to ensure fresh /auth/me data after login
-      // This populates the React Query cache before navigation, eliminating the need for
-      // redundant /auth/me calls when landing on dashboard or other authenticated pages
-      await queryClient.invalidateQueries({ queryKey: meKey });
-      await queryClient.refetchQueries({ queryKey: meKey });
-      
-      // Small delay to ensure cookies are properly set before redirect
-      await new Promise(resolve => setTimeout(resolve, 100));
+      // The login response is already authoritative for the first redirect.
+      // Do not block navigation on a second /auth/me request: a transient backend
+      // outage there must not turn a successful login into a failed redirect.
+      if (responseData?.user) {
+        queryClient.setQueryData(meKey, responseData.user);
+      }
       
       // Use window.location.href for a full page reload to ensure proper session/cookie handling
       // This is consistent with how the login page handles redirects
