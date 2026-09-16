@@ -28,8 +28,10 @@ export function useChatUnread(organizationId?: string, userId?: string) {
     const handleLocalUnreadUpdate = (event: Event) => {
       const detail = (event as CustomEvent<{ conversationId?: string; unreadCount?: number }>).detail;
       if (!detail?.conversationId || typeof detail.unreadCount !== 'number') return;
+      const conversationId = detail.conversationId;
+      const unreadCount = detail.unreadCount;
       socketEventVersion += 1;
-      setCounts((current) => ({ ...current, [detail.conversationId]: detail.unreadCount }));
+      setCounts((current) => ({ ...current, [conversationId]: unreadCount }));
     };
     window.addEventListener('learnflow:chat-unread', handleLocalUnreadUpdate);
     socket.on('chat:unread', (event: { conversationId: string; unreadCount: number }) => {
