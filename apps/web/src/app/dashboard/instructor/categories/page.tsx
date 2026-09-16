@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Badge, Button, Drawer, EmptyState, EmptyStateIcons, ErrorState, Input, Modal, Skeleton, ViewToggle } from '@/components/ui';
+import { Badge, Button, Drawer, EmptyState, EmptyStateIcons, ErrorState, Input, Modal, Select, Skeleton, ViewToggle } from '@/components/ui';
 import { useCurrentUser } from '@/features/auth/useCurrentUser';
 import { ApiError, apiRequest } from '@/lib/api';
 
@@ -172,10 +172,7 @@ export default function InstructorCategoriesPage() {
           <Input label="Description" value={privateDescription} onChange={(event) => setPrivateDescription(event.target.value)} maxLength={1000} disabled={creating} />
           <label className="block text-sm font-medium text-neutral-700">
             Status
-            <select className="mt-1.5 block w-full rounded-md border border-neutral-300 bg-white px-3 py-2" value={privateStatus} onChange={(event) => setPrivateStatus(event.target.value as 'ACTIVE' | 'INACTIVE')} disabled={creating}>
-              <option value="ACTIVE">Active</option>
-              <option value="INACTIVE">Inactive</option>
-            </select>
+            <Select className="mt-1.5" value={privateStatus} onChange={(value) => setPrivateStatus(value as 'ACTIVE' | 'INACTIVE')} disabled={creating} options={[{ value: 'ACTIVE', label: 'Active' }, { value: 'INACTIVE', label: 'Inactive' }]} />
           </label>
         </div>
       </Modal>

@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { EmptyState, EmptyStateIcons, ErrorState, Spinner, ViewToggle } from '@/components/ui';
+import { EmptyState, EmptyStateIcons, ErrorState, Select, Spinner, ViewToggle } from '@/components/ui';
 import { TableCard, ProgressBar, tableCellClass, tableHeadClass, tableRowHoverClass } from '@/components/dashboard';
 
 type StudentProgressItem = {
@@ -106,12 +106,7 @@ export function StudentProgressView({ apiPath }: Props) {
           aria-label="Search students or courses"
           className="min-w-0 flex-1 rounded-xl border border-[#e5d5c4] bg-[#fffdf9] px-4 py-3 text-sm outline-none focus:border-[#7a4a2e] focus:ring-2 focus:ring-[#a8784f]/20"
         />
-        <select value={progressFilter} onChange={(event) => { setPage(1); setProgressFilter(event.target.value); }} className="rounded-xl border border-[#e5d5c4] bg-[#fffdf9] px-4 py-3 text-sm">
-          <option value="ALL">All progress</option>
-          <option value="NOT_STARTED">Not started</option>
-          <option value="IN_PROGRESS">In progress</option>
-          <option value="COMPLETED">Completed</option>
-        </select>
+        <Select value={progressFilter} onChange={(value) => { setPage(1); setProgressFilter(value); }} options={[{ value: 'ALL', label: 'All progress' }, { value: 'NOT_STARTED', label: 'Not started' }, { value: 'IN_PROGRESS', label: 'In progress' }, { value: 'COMPLETED', label: 'Completed' }]} />
       </div>
       {loading ? (
         <div className="flex items-center gap-3 text-neutral-700"><Spinner size="md" label="Loading student progress..." /><span>Loading student progress...</span></div>

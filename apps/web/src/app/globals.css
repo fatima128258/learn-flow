@@ -113,6 +113,63 @@ body {
   background: transparent;
 }
 
+/* Keep the quiz builder aligned with the application's warm brown theme. */
+.quiz-theme [class*="text-[#2e7a74]"],
+.quiz-theme [class*="text-[#1f766d]"],
+.quiz-theme [class*="text-[#1d6b65]"],
+.quiz-theme [class*="text-[#1e736b]"] {
+  color: var(--color-primary) !important;
+}
+
+.quiz-theme [class*="bg-[#2e7a74]"] {
+  background-color: var(--color-primary) !important;
+}
+
+.quiz-theme [class*="accent-[#2e7a74]"] {
+  accent-color: var(--color-primary) !important;
+}
+
+.quiz-theme [class*="bg-[#edf7f5]"],
+.quiz-theme [class*="bg-[#edf9f7]"],
+.quiz-theme [class*="bg-[#f7fbfa]"],
+.quiz-theme [class*="bg-[#f7faf9]"],
+.quiz-theme [class*="bg-[#f6faf9]"],
+.quiz-theme [class*="bg-[#f8fbfa]"],
+.quiz-theme [class*="bg-[#f2fbfa]"] {
+  background-color: var(--color-primary-soft) !important;
+}
+
+.quiz-theme [class*="border-[#cfe7e3]"],
+.quiz-theme [class*="border-[#dfe8e6]"],
+.quiz-theme [class*="border-[#dfe8e5]"],
+.quiz-theme [class*="border-[#e9efed]"] {
+  border-color: var(--color-border) !important;
+}
+
+.quiz-theme [class*="border-[#2e7a74]"] {
+  border-color: var(--color-primary) !important;
+}
+
+.quiz-theme [class*="hover:bg-[#f2fbfa]"]:hover {
+  background-color: var(--color-accent-soft) !important;
+}
+
+.quiz-theme [class*="hover:border-[#2e7a74]"]:hover {
+  border-color: var(--color-primary-hover) !important;
+}
+
+.quiz-theme [class*="hover:text-[#1f766d]"]:hover {
+  color: var(--color-primary-hover) !important;
+}
+
+.quiz-theme [class*="bg-[#2e7a74]"][class*="hover:bg-[#255f5a]"]:hover {
+  background-color: var(--color-primary-hover) !important;
+}
+
+.quiz-theme [class*="shadow-[0_8px_20px_rgba(46,122,116,0.25)]"] {
+  box-shadow: 0 8px 20px rgb(90 50 31 / 0.25) !important;
+}
+
 /* Smooth scrolling for same-page anchor navigation, disabled for users who
    prefer reduced motion. */
 @media (prefers-reduced-motion: no-preference) {

@@ -9,6 +9,7 @@ import { LinkButton } from '@/components/ui/LinkButton';
 import { useToast } from '@/components/ui/ToastProvider';
 import { getQuizErrorMessage } from '@/features/course/quizErrors';
 import { useCurrentUser } from '@/features/auth/useCurrentUser';
+import { QuizSteps } from '@/components/forms/QuizSteps';
 
 export default function CreateQuizPage() {
   const params = useParams();
@@ -104,6 +105,7 @@ export default function CreateQuizPage() {
         </LinkButton>
       </div>
       <div className="rounded-2xl border border-neutral-200 bg-white p-6 shadow-sm">
+        <QuizSteps active="details" />
         <h1 className="text-2xl font-bold text-neutral-900">Create Quiz</h1>
         <p className="mt-1 text-sm text-neutral-500">Set the quiz details before adding questions and options.</p>
         <div className="mt-6 space-y-5">

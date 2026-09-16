@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useSearchParams } from 'next/navigation';
-import { Badge, Button, Card, ConfirmModal, Drawer, EmptyState, EmptyStateIcons, ErrorState, Input, Modal, Skeleton, ViewToggle, useToast } from '@/components/ui';
+import { Badge, Button, Card, ConfirmModal, Drawer, EmptyState, EmptyStateIcons, ErrorState, Input, Modal, Select, Skeleton, ViewToggle, useToast } from '@/components/ui';
 import { Textarea } from '@/components/forms/Textarea';
 import { ApiError, apiRequest } from '@/lib/api';
 
@@ -248,5 +248,5 @@ function CategoryModal({ category, organizationId, onClose, onSaved }: { categor
       toast.success(category ? 'Category updated successfully.' : 'Category created successfully.'); onSaved();
     } catch (err) { toast.error(errorMessage(err)); } finally { setSaving(false); }
   }
-  return <Modal isOpen onClose={onClose} title={category ? 'Edit category' : 'Create category'} footer={<><Button variant="ghost" onClick={onClose} disabled={saving}>Cancel</Button><Button onClick={() => void save()} loading={saving}>{category ? 'Save changes' : 'Create category'}</Button></>}><div className="space-y-4"><Input label="Name" value={name} maxLength={100} onChange={(event) => setName(event.target.value)} required /><Textarea label="Description" value={description} maxLength={1000} rows={4} onChange={(event) => setDescription(event.target.value)} /><label className="block text-sm font-medium text-neutral-700">Status<select className="mt-1.5 block w-full rounded-md border border-neutral-300 bg-white px-3 py-2" value={status} onChange={(event) => setStatus(event.target.value as 'ACTIVE' | 'INACTIVE')}><option value="ACTIVE">Active</option><option value="INACTIVE">Inactive</option></select></label></div></Modal>;
+  return <Modal isOpen onClose={onClose} title={category ? 'Edit category' : 'Create category'} footer={<><Button variant="ghost" onClick={onClose} disabled={saving}>Cancel</Button><Button onClick={() => void save()} loading={saving}>{category ? 'Save changes' : 'Create category'}</Button></>}><div className="space-y-4"><Input label="Name" value={name} maxLength={100} onChange={(event) => setName(event.target.value)} required /><Textarea label="Description" value={description} maxLength={1000} rows={4} onChange={(event) => setDescription(event.target.value)} /><Select label="Status" value={status} onChange={(value) => setStatus(value as 'ACTIVE' | 'INACTIVE')} options={[{ value: 'ACTIVE', label: 'Active' }, { value: 'INACTIVE', label: 'Inactive' }]} /></div></Modal>;
 }

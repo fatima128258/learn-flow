@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type React from 'react';
 import { ApiError, deleteJson, getJson, patchJson, postJson } from '@/lib/api';
-import { Button, ConfirmModal, Drawer, Input, Spinner } from '@/components/ui';
+import { Button, ConfirmModal, Drawer, Input, Select, Spinner } from '@/components/ui';
 import { useToast } from '@/components/ui/ToastProvider';
 
 type TaskStatus = 'PENDING' | 'IN_PROGRESS' | 'COMPLETED';
@@ -184,7 +184,7 @@ export default function TaskBoard() {
         <form id="task-form" onSubmit={saveTask} className="flex min-h-full flex-col gap-4">
           <Input label="Title" required value={form.title} onChange={(event) => setForm((current) => ({ ...current, title: event.target.value }))} maxLength={200} />
           <div><label htmlFor="task-description" className="mb-1.5 block text-sm font-medium text-neutral-700">Description</label><textarea id="task-description" value={form.description} onChange={(event) => setForm((current) => ({ ...current, description: event.target.value }))} maxLength={5000} rows={4} className="w-full rounded-xl border border-[#e5d5c4] bg-[#fffdf9] px-4 py-3 text-sm outline-none focus:border-[#7a4a2e]" /></div>
-          <div className="grid w-full grid-cols-2 gap-4"><label className="text-sm font-medium text-neutral-700">Status<select value={form.status} onChange={(event) => setForm((current) => ({ ...current, status: event.target.value as TaskStatus }))} className="mt-1.5 w-full rounded-xl border border-[#e5d5c4] bg-[#fffdf9] px-3 py-3 text-sm"><option value="PENDING">Pending</option><option value="IN_PROGRESS">In Progress</option><option value="COMPLETED">Completed</option></select></label><label className="text-sm font-medium text-neutral-700">Priority<select value={form.priority} onChange={(event) => setForm((current) => ({ ...current, priority: event.target.value as Priority }))} className="mt-1.5 w-full rounded-xl border border-[#e5d5c4] bg-[#fffdf9] px-3 py-3 text-sm"><option value="LOW">Low</option><option value="MEDIUM">Medium</option><option value="HIGH">High</option></select></label></div>
+          <div className="grid w-full grid-cols-2 gap-4"><Select label="Status" value={form.status} onChange={(value) => setForm((current) => ({ ...current, status: value as TaskStatus }))} options={[{ value: 'PENDING', label: 'Pending' }, { value: 'IN_PROGRESS', label: 'In Progress' }, { value: 'COMPLETED', label: 'Completed' }]} /><Select label="Priority" value={form.priority} onChange={(value) => setForm((current) => ({ ...current, priority: value as Priority }))} options={[{ value: 'LOW', label: 'Low' }, { value: 'MEDIUM', label: 'Medium' }, { value: 'HIGH', label: 'High' }]} /></div>
           <div className="mt-auto flex justify-end gap-3 border-t border-neutral-200 pt-5">
             <Button variant="outline" type="button" onClick={() => setFormOpen(false)} disabled={saving} className="border-[#7a4a2e] bg-[#fffaf5] text-[#7a4a2e] hover:bg-[#f5e8dc]">Cancel</Button>
             <Button type="submit" loading={saving}>{editing ? 'Save Changes' : 'Create Task'}</Button>

@@ -13,6 +13,7 @@ export * from './ErrorState';
 export * from './Toast';
 export * from './ToastProvider';
 export * from './Modal';
+export * from './Select';
 export * from './Drawer';
 export * from './ViewToggle';
 export * from './layout/Container';

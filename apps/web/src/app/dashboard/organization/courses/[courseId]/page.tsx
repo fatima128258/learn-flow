@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useParams, usePathname } from 'next/navigation';
-import { Alert, Spinner } from '../../../../../components/ui';
+import { Alert, Select, Spinner } from '../../../../../components/ui';
 import { LinkButton } from '../../../../../components/ui/LinkButton';
 import { getCreateCourseErrorMessage } from '../../../../../features/course/createCourseErrors';
 import { useToast } from '../../../../../components/ui/ToastProvider';
@@ -192,18 +192,7 @@ export default function CourseDetailPage() {
                   <p className="mt-1 text-sm text-neutral-500">{course.slug}</p>
                 </div>
                 <div className="flex items-center gap-2">
-                  <select
-                    value={course.status}
-                    onChange={(e) => handleStatusChange(e.target.value)}
-                    disabled={updatingStatus}
-                    className="rounded-md border border-neutral-300 bg-white px-3 py-1.5 text-sm font-medium text-neutral-900 focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500 disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    {STATUS_OPTIONS.map((opt) => (
-                      <option key={opt.value} value={opt.value}>
-                        {opt.label}
-                      </option>
-                    ))}
-                  </select>
+                  <Select value={course.status} onChange={handleStatusChange} disabled={updatingStatus} options={STATUS_OPTIONS.map((opt) => ({ value: opt.value, label: opt.label }))} />
                   <LinkButton href={`${dashboardPrefix}/courses/${courseId}/modules${organizationId ? `?organization=${organizationId}` : ''}`} size="sm" variant="primary">
                     Manage Modules
                   </LinkButton>
