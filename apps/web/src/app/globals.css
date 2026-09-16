@@ -76,20 +76,40 @@ body {
   scrollbar-color: #9b765c transparent;
 }
 
-html::-webkit-scrollbar,
-body::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #9b765c transparent;
 }
 
-html::-webkit-scrollbar-thumb,
-body::-webkit-scrollbar-thumb {
+*::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+
+*::-webkit-scrollbar-thumb {
   border-radius: 9999px;
   background-color: #9b765c;
 }
 
-html::-webkit-scrollbar-track,
-body::-webkit-scrollbar-track {
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.modal-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: #9b765c transparent;
+}
+
+.modal-scrollbar::-webkit-scrollbar {
+  width: 5px;
+}
+
+.modal-scrollbar::-webkit-scrollbar-thumb {
+  border-radius: 9999px;
+  background-color: #9b765c;
+}
+
+.modal-scrollbar::-webkit-scrollbar-track {
   background: transparent;
 }
 
