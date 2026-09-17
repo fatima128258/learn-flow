@@ -248,10 +248,11 @@ export default function CourseDetailPage() {
                   disabled={updatingStatus}
                   aria-label="Course status"
                   mobileIcon={<svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true"><path strokeLinecap="round" strokeLinejoin="round" d="M5 12h14M12 5v14" /></svg>}
+                  menuClassName="bottom-full mb-1 mt-0"
                   options={STATUS_OPTIONS.map((opt) => ({ value: opt.value, label: opt.label }))}
                   buttonClassName={
                     course.status === 'PUBLISHED'
-                      ? 'border-[#b88b68] bg-[#f0dcc4] text-[#5a321f] shadow-sm'
+                      ? 'border-0 bg-[#e5c9a8] text-[#5a321f] shadow-sm aria-expanded:bg-[#d8b58e] focus:border-0'
                       : course.status === 'DRAFT'
                         ? 'border-[#ead8c6] bg-[#f5ebdd] text-[#5a321f]'
                         : ''

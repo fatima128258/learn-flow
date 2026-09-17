@@ -201,7 +201,7 @@ function CategoryActionsMenu({ onView, onEdit }: { onView: () => void; onEdit: (
 
   return (
     <div className="flex justify-end">
-      <button ref={buttonRef} type="button" aria-label="Category actions" className="inline-flex items-center justify-center rounded-lg border-0 p-2 text-neutral-500 hover:bg-neutral-100 hover:text-neutral-800 focus:border-0 focus:outline-none focus-visible:border-0 focus-visible:outline-none focus:ring-0 focus-visible:ring-0" onClick={toggleMenu}>
+      <button ref={buttonRef} type="button" aria-label="Category actions" className="inline-flex items-center justify-center rounded-lg border-0 p-2 text-neutral-900 hover:bg-neutral-100 hover:text-neutral-800 focus:border-0 focus:outline-none focus-visible:border-0 focus-visible:outline-none focus:ring-0 focus-visible:ring-0" onClick={toggleMenu}>
         <span className="sr-only">Category actions</span>
         <svg className="h-5 w-5" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="12" cy="5" r="1.8" /><circle cx="12" cy="12" r="1.8" /><circle cx="12" cy="19" r="1.8" /></svg>
       </button>

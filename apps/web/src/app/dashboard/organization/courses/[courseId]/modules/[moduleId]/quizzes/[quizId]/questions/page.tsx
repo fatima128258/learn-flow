@@ -320,31 +320,42 @@ export default function QuizQuestionsPage() {
           toast.error(getQuizErrorMessage(code));
           return;
         }
-        for (const [index, option] of options.entries()) {
-          const existing = existingOptions[index];
-          const response = await fetch(
-            existing
-              ? `${base}/questions/${inlineEditingQuestionId}/options/${existing.id}`
-              : `${base}/questions/${inlineEditingQuestionId}/options`,
-            {
-              method: existing ? 'PATCH' : 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              credentials: 'include',
-              body: JSON.stringify({ text: option.text, order: index, isCorrect: option.isCorrect }),
-            },
-          );
-          if (!response.ok) {
-            const code = (await response.json().catch(() => ({})))?.error;
-            toast.error(getQuizErrorMessage(code));
-            return;
-          }
-        }
+        const optionResponses = await Promise.all(
+          options.map(async (option, index) => {
+            const existing = existingOptions[index];
+            const response = await fetch(
+              existing
+                ? `${base}/questions/${inlineEditingQuestionId}/options/${existing.id}`
+                : `${base}/questions/${inlineEditingQuestionId}/options`,
+              {
+                method: existing ? 'PATCH' : 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                credentials: 'include',
+                body: JSON.stringify({ text: option.text, order: index, isCorrect: option.isCorrect }),
+              },
+            );
+            const body = await response.json().catch(() => ({}));
+            if (!response.ok) {
+              throw new Error(body?.error ?? 'OPTION_UPDATE_FAILED');
+            }
+            return body.data as OptionItem;
+          }),
+        ).catch((error: unknown) => {
+          toast.error(getQuizErrorMessage(error instanceof Error ? error.message : null));
+          return null;
+        });
+        if (!optionResponses) return;
         setQuestions((previous) => previous?.map((item) =>
           item.id === inlineEditingQuestionId
             ? { ...item, questionText: questionTextValue, marks: marksValue }
             : item,
         ) ?? null);
-        await reloadOptions(inlineEditingQuestionId);
+        if (optionResponses.every(Boolean)) {
+          setQuestionOptions((previous) => ({
+            ...previous,
+            [inlineEditingQuestionId]: optionResponses as OptionItem[],
+          }));
+        }
         setInlineEditingQuestionId(null);
         setInlineQuestionText('');
         setInlineMarks('1');
@@ -895,7 +906,9 @@ export default function QuizQuestionsPage() {
               >
                 <div className="mb-4 flex items-end justify-between gap-4">
                   <h2 className="text-xl font-bold text-neutral-900">
-                    Question {questions.length + 1}
+                    Question {inlineEditingQuestionId
+                      ? questions.findIndex((question) => question.id === inlineEditingQuestionId) + 1
+                      : questions.length + 1}
                   </h2>
                   <div className="w-24 shrink-0 sm:w-28">
                     <Input
@@ -1159,7 +1172,7 @@ export default function QuizQuestionsPage() {
                   <div className="flex items-start justify-between gap-4 border-b border-[#ead8c6] p-5">
                     <div>
                       <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#9b765c]">
-                        Question {question.order + 1}
+                        Question {questions.findIndex((item) => item.id === question.id) + 1}
                       </p>
                       <h2 className="mt-1 text-xl font-bold text-neutral-900">{question.questionText}</h2>
                       <p className="mt-1 text-sm text-neutral-500">{question.marks}</p>

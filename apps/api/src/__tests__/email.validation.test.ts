@@ -18,6 +18,7 @@ describe('email validation', () => {
     'fatima@ gmail.com',
     'fatima@@gmail.com',
     'fatima@g mail.com',
+    'in@g.com',
     'fatima@gmail..com',
     '',
     '   ',

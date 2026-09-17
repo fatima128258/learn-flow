@@ -9,6 +9,6 @@ export const orgAdminNav: NavItem[] = [
   { href: '/dashboard/organization/student-progress', label: 'Student Progress', icon: NavIcons.progress },
   // Temporarily disabled while the real-time chat service is stabilized.
   // { href: '/dashboard/organization/chat', label: 'Chat', icon: NavIcons.chat },
-  { href: '/dashboard/settings', label: 'Settings', icon: NavIcons.settings },
   { href: '/dashboard/organization/audit-logs', label: 'Audit Logs', icon: NavIcons.audit },
+  { href: '/dashboard/settings', label: 'Settings', icon: NavIcons.settings },
 ];

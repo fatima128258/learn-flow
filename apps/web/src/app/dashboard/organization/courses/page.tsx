@@ -232,11 +232,13 @@ export default function MyCoursesPage() {
   const [statusModalCourseId, setStatusModalCourseId] = useState<string | null>(null);
   const [courseDrawer, setCourseDrawer] = useState<CourseDrawerData | null>(null);
   const [courseDrawerLoading, setCourseDrawerLoading] = useState(false);
+  const [courseDrawerContentLoading, setCourseDrawerContentLoading] = useState(false);
   const [viewMode, setViewMode] = useState<'table' | 'cards'>('table');
   const [searchTerm, setSearchTerm] = useState('');
 
   async function openCourseView(course: CourseListItem) {
     if (!organizationId) return;
+    let shellLoaded = false;
     setCourseDrawerLoading(true);
     setCourseDrawer({ course: course as CourseContent, modules: [] });
     try {
@@ -248,7 +250,17 @@ export default function MyCoursesPage() {
       if (!courseResponse.ok || !modulesResponse.ok) throw new Error('Unable to load course content');
       const courseBody: { data?: CourseContent } = await courseResponse.json();
       const modulesBody: { data?: Array<{ id: string; title: string; description: string | null; order: number }> } = await modulesResponse.json();
-      const modules = await Promise.all((modulesBody.data ?? []).map(async (module) => {
+      const baseModules: CourseModule[] = (modulesBody.data ?? []).map((module) => ({
+        ...module,
+        lessons: [],
+        quizzes: [],
+      }));
+      setCourseDrawer({ course: courseBody.data ?? course as CourseContent, modules: baseModules.sort((a, b) => a.order - b.order) });
+      shellLoaded = true;
+      setCourseDrawerLoading(false);
+      setCourseDrawerContentLoading(true);
+
+      const modules = await Promise.all(baseModules.map(async (module) => {
         const [lessonsResponse, quizzesResponse] = await Promise.all([
           fetch(`${prefix}/modules/${module.id}/lessons`, { credentials: 'include' }),
           fetch(`${prefix}/modules/${module.id}/quizzes`, { credentials: 'include' }),
@@ -270,10 +282,15 @@ export default function MyCoursesPage() {
       }));
       setCourseDrawer({ course: courseBody.data ?? course as CourseContent, modules: modules.sort((a, b) => a.order - b.order) });
     } catch {
-      setCourseDrawer(null);
-      toast.error('Unable to load complete course details.');
+      if (!shellLoaded) {
+        setCourseDrawer(null);
+        toast.error('Unable to load course details.');
+      } else {
+        toast.error('Some course content could not be loaded.');
+      }
     } finally {
       setCourseDrawerLoading(false);
+      setCourseDrawerContentLoading(false);
     }
   }
 
@@ -529,6 +546,7 @@ export default function MyCoursesPage() {
             <section>
               <h3 className="border-b border-neutral-200 pb-2 text-base font-semibold text-neutral-900">Modules</h3>
               <div className="mt-4 space-y-6">
+                {courseDrawerContentLoading ? <div className="flex items-center gap-3 text-sm text-neutral-600"><Spinner size="sm" label="Loading modules..." /><span>Loading lessons and quizzes...</span></div> : null}
                 {courseDrawer.modules.length === 0 ? <p className="text-sm text-neutral-400">No modules available.</p> : courseDrawer.modules.map((module) => (
                   <div key={module.id} className="rounded-lg border border-neutral-200 p-4">
                     <h4 className="font-semibold text-neutral-900">{module.order}. {module.title}</h4>

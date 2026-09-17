@@ -1,4 +1,4 @@
-const EMAIL_PATTERN = /^[A-Za-z0-9]+(?:[._+-][A-Za-z0-9]+)*@[A-Za-z0-9](?:[A-Za-z0-9-]*[A-Za-z0-9])?(?:\.[A-Za-z0-9](?:[A-Za-z0-9-]*[A-Za-z0-9])?)+$/;
+const EMAIL_PATTERN = /^[A-Za-z0-9]+(?:[._+-][A-Za-z0-9]+)*@[A-Za-z0-9]{2,}(?:[A-Za-z0-9-]*[A-Za-z0-9])?(?:\.[A-Za-z0-9]{2,}(?:[A-Za-z0-9-]*[A-Za-z0-9])?)+$/;
 
 export function normalizeEmail(email: unknown): string | null {
   if (typeof email !== 'string') return null;

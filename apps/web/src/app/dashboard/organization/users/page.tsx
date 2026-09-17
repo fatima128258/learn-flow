@@ -80,7 +80,7 @@ function MemberActionsMenu({ member, onView, onStatus }: { member: MemberItem; o
     </div>
   ) : null;
   return <>
-    <button ref={buttonRef} type="button" aria-label="Member actions" className="inline-flex items-center justify-center rounded-lg border-0 p-2 text-neutral-500 hover:bg-neutral-100 focus:border-0 focus:outline-none focus-visible:border-0 focus-visible:outline-none focus:ring-0 focus-visible:ring-0" onClick={toggle}>
+    <button ref={buttonRef} type="button" aria-label="Member actions" className="inline-flex items-center justify-center rounded-lg border-0 p-2 text-neutral-900 hover:bg-neutral-100 focus:border-0 focus:outline-none focus-visible:border-0 focus-visible:outline-none focus:ring-0 focus-visible:ring-0" onClick={toggle}>
       <span className="sr-only">Member actions</span><span aria-hidden="true">⋮</span>
     </button>
     {typeof document !== 'undefined' && menu ? createPortal(menu, document.body) : null}

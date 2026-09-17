@@ -59,10 +59,10 @@ function ModuleActionsMenu({ module, courseId, organizationId, dashboardPrefix, 
       <button
         ref={buttonRef}
         onClick={toggleMenu}
-        className="inline-flex items-center justify-center rounded-lg border-0 p-1 text-neutral-500 transition-colors hover:bg-neutral-100 focus:border-0 focus:outline-none focus-visible:border-0 focus-visible:outline-none focus:ring-0 focus-visible:ring-0"
+        className="inline-flex items-center justify-center rounded-lg border-0 p-1 text-neutral-900 transition-colors hover:bg-neutral-100 focus:border-0 focus:outline-none focus-visible:border-0 focus-visible:outline-none focus:ring-0 focus-visible:ring-0"
         aria-label="Module actions"
       >
-        <svg className="w-5 h-5 text-neutral-500" fill="currentColor" viewBox="0 0 24 24">
+        <svg className="h-5 w-5 text-neutral-900" fill="currentColor" viewBox="0 0 24 24">
           <path d="M12 8c1.1 0 2-0.9 2-2s-0.9-2-2-2-2 0.9-2 2 0.9 2 2 2zm0 2c-1.1 0-2 0.9-2 2s0.9 2 2 2 2-0.9 2-2-0.9-2-2-2zm0 6c-1.1 0-2 0.9-2 2s0.9 2 2 2 2-0.9 2-2-0.9-2-2-2z" />
         </svg>
       </button>
