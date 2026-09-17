@@ -4,7 +4,7 @@ import { useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { ErrorState, Spinner } from '@/components/ui';
 import { useCurrentUser } from '@/features/auth/useCurrentUser';
-import { getJson } from '@/lib/api';
+import { ApiError, getJson } from '@/lib/api';
 import { Calendar, ChartCard, LineChart, PageHeader, StatCard, StatCardSkeleton } from '@/components/dashboard';
 
 type InstructorDashboard = {
@@ -18,7 +18,7 @@ export default function InstructorDashboardPage() {
   const { data: user, isLoading: userLoading } = useCurrentUser();
   const organizationId = user?.organizationId ?? '';
 
-  const { data, isLoading, isError, refetch } = useQuery({
+  const { data, isLoading, isError, error, refetch } = useQuery({
     queryKey: ['instructor', 'dashboard', organizationId, user?.id],
     queryFn: async () => {
       const response = await getJson<{ data?: InstructorDashboard }>(
@@ -61,6 +61,12 @@ export default function InstructorDashboardPage() {
           <div className="mb-8 grid grid-cols-1 gap-4 sm:grid-cols-3"><StatCardSkeleton /><StatCardSkeleton /><StatCardSkeleton /></div>
           <div className="flex items-center gap-3 text-neutral-700"><Spinner size="lg" label="Loading instructor dashboard..." /><span>Loading instructor dashboard...</span></div>
         </>
+      ) : isError && error instanceof ApiError && error.code === 'EMAIL_NOT_VERIFIED' ? (
+        <ErrorState
+          title="Verify your email address"
+          message="Your dashboard is unavailable until the new email address is verified. Check your inbox for the verification link."
+          action={{ label: 'Open verification page', onClick: () => { window.location.href = '/welcome'; } }}
+        />
       ) : isError ? (
         <ErrorState title="Unable to load your dashboard" message="Your course and enrollment data could not be loaded." action={{ label: 'Retry', onClick: () => void refetch() }} />
       ) : data ? (

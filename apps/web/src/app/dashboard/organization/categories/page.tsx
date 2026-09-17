@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useSearchParams } from 'next/navigation';
-import { Badge, Button, ConfirmModal, Drawer, EmptyState, EmptyStateIcons, ErrorState, Input, Modal, Select, Spinner, ViewToggle, useToast } from '@/components/ui';
+import { Badge, Button, Drawer, EmptyState, EmptyStateIcons, ErrorState, Input, Modal, Select, Spinner, ViewToggle, useToast } from '@/components/ui';
 import { Textarea } from '@/components/forms/Textarea';
 import { ApiError, apiRequest } from '@/lib/api';
 import { TableCard, tableActionClass, tableCellClass, tableHeadClass, tableRowHoverClass, tableStatusClass } from '@/components/dashboard';
@@ -40,7 +40,6 @@ export default function CategoriesPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
   const [editing, setEditing] = useState<Category | null | undefined>(undefined);
-  const [deleting, setDeleting] = useState<Category | null>(null);
   const [selectedCategory, setSelectedCategory] = useState<Category | null>(null);
   const requestControllerRef = useRef<AbortController | null>(null);
 
@@ -81,18 +80,6 @@ export default function CategoriesPage() {
   const hasCategories = categories.length > 0;
   const emptyAction = useMemo(() => ({ label: 'Create category', onClick: () => setEditing(null) }), []);
 
-  async function removeCategory() {
-    if (!deleting) return;
-    try {
-      await apiRequest(`/api/v1/org/categories/${deleting.id}`, {
-        method: 'DELETE',
-        headers: organizationId ? { 'X-Organization-Id': organizationId } : undefined,
-      });
-      toast.success('Category deleted successfully.');
-      setDeleting(null); void load();
-    } catch (err) { toast.error(errorMessage(err)); }
-  }
-
   return (
     <div className="mx-auto max-w-6xl">
       <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -124,7 +111,7 @@ export default function CategoriesPage() {
                 <article key={category.id} className="flex min-h-52 flex-col rounded-2xl border border-[#ead8c6] bg-[#fff9f0] p-5 shadow-sm transition-shadow hover:shadow-md">
                   <div className="flex items-start justify-between gap-3">
                     <h2 className="min-w-0 truncate text-lg font-semibold text-[#17212b]">{category.name}</h2>
-                    <CategoryActionsMenu onView={() => setSelectedCategory(category)} onEdit={() => setEditing(category)} onDelete={() => setDeleting(category)} />
+                    <CategoryActionsMenu onView={() => setSelectedCategory(category)} onEdit={() => setEditing(category)} />
                   </div>
                   <div className="mt-3"><Badge variant={category.status === 'ACTIVE' ? 'success' : 'default'} size="sm">{category.status}</Badge></div>
                   <p className="mt-4 line-clamp-2 flex-1 text-sm leading-6 text-[#5f6368]">{category.description || 'No description provided.'}</p>
@@ -138,7 +125,7 @@ export default function CategoriesPage() {
           )           : <div className="min-w-0">
               <table className="min-w-full divide-y divide-neutral-200">
                 <thead className="bg-neutral-50"><tr><th className={tableHeadClass}>Category Name</th><th className={tableHeadClass}>Description</th><th className={`${tableHeadClass} text-center`}>Courses</th><th className={tableHeadClass}>Instructors</th><th className={`${tableHeadClass} text-center`}>Status</th><th className={`${tableHeadClass} text-center`}>Actions</th></tr></thead>
-                <tbody className="divide-y divide-neutral-200">{categories.map((category) => <tr key={category.id} className={`${tableRowHoverClass} cursor-pointer`} onClick={() => setSelectedCategory(category)}><td className={`${tableCellClass} font-medium text-neutral-900`}>{category.name}</td><td className={`${tableCellClass} max-w-xs text-neutral-700`}><span className="block max-w-xs truncate">{category.description || '—'}</span></td><td className={`${tableCellClass} text-center text-neutral-700`}>{category.courseCount}</td><td className={`${tableCellClass} max-w-xs text-neutral-700`}><span className="block line-clamp-2">{category.instructors?.length ? category.instructors.map((instructor) => instructor.name).join(', ') : '—'}</span></td><td className={tableStatusClass}><Badge variant={category.status === 'ACTIVE' ? 'success' : 'default'} size="sm">{category.status}</Badge></td><td className={tableActionClass} onClick={(event) => event.stopPropagation()}><div className="flex items-center justify-center"><CategoryActionsMenu onView={() => setSelectedCategory(category)} onEdit={() => setEditing(category)} onDelete={() => setDeleting(category)} /></div></td></tr>)}</tbody>
+                <tbody className="divide-y divide-neutral-200">{categories.map((category) => <tr key={category.id} className={`${tableRowHoverClass} cursor-pointer`} onClick={() => setSelectedCategory(category)}><td className={`${tableCellClass} font-medium text-neutral-900`}>{category.name}</td><td className={`${tableCellClass} max-w-xs text-neutral-700`}><span className="block max-w-xs truncate">{category.description || '—'}</span></td><td className={`${tableCellClass} text-center text-neutral-700`}>{category.courseCount}</td><td className={`${tableCellClass} max-w-xs text-neutral-700`}><span className="block line-clamp-2">{category.instructors?.length ? category.instructors.map((instructor) => instructor.name).join(', ') : '—'}</span></td><td className={tableStatusClass}><Badge variant={category.status === 'ACTIVE' ? 'success' : 'default'} size="sm">{category.status}</Badge></td><td className={tableActionClass} onClick={(event) => event.stopPropagation()}><div className="flex items-center justify-center"><CategoryActionsMenu onView={() => setSelectedCategory(category)} onEdit={() => setEditing(category)} /></div></td></tr>)}</tbody>
               </table>
             </div>}
         {meta && meta.totalPages > 1 && <div className="mx-4 mt-0 flex items-center justify-between border-t border-neutral-200 px-1 py-4 text-sm text-neutral-600"><span>Page {meta.page} of {meta.totalPages}</span><div className="flex gap-2"><Button size="sm" variant="outline" disabled={page <= 1} onClick={() => setPage((value) => value - 1)}>Previous</Button><Button size="sm" variant="outline" disabled={page >= meta.totalPages} onClick={() => setPage((value) => value + 1)}>Next</Button></div></div>}
@@ -167,17 +154,15 @@ export default function CategoriesPage() {
             </div>
             <div className="grid grid-cols-1 gap-3 border-t border-[#ead8c6] pt-5 sm:grid-cols-2">
               <Button size="sm" className="w-full" onClick={() => { setEditing(selectedCategory); setSelectedCategory(null); }}>Edit category</Button>
-              <Button size="sm" className="w-full" variant="danger" onClick={() => { setDeleting(selectedCategory); setSelectedCategory(null); }}>Delete</Button>
             </div>
           </div>
         ) : null}
       </Drawer>
-      <ConfirmModal isOpen={!!deleting} onClose={() => setDeleting(null)} onConfirm={() => void removeCategory()} title="Delete category" message={`Delete "${deleting?.name}"? Categories assigned to courses cannot be deleted.`} variant="danger" />
     </div>
   );
 }
 
-function CategoryActionsMenu({ onView, onEdit, onDelete }: { onView: () => void; onEdit: () => void; onDelete: () => void }) {
+function CategoryActionsMenu({ onView, onEdit }: { onView: () => void; onEdit: () => void }) {
   const [open, setOpen] = useState(false);
   const [position, setPosition] = useState({ top: 0, right: 0 });
   const buttonRef = useRef<HTMLButtonElement>(null);
@@ -224,7 +209,6 @@ function CategoryActionsMenu({ onView, onEdit, onDelete }: { onView: () => void;
         <div ref={menuRef} className="fixed z-[60] w-36 rounded-lg border border-neutral-200 bg-white py-1 shadow-lg" style={{ top: position.top, right: position.right }}>
           <button type="button" className="block w-full border-0 px-3 py-2 text-left text-sm text-neutral-700 hover:bg-neutral-50 focus:border-0 focus:outline-none focus-visible:border-0 focus-visible:outline-none focus:ring-0 focus-visible:ring-0" onClick={() => { setOpen(false); onView(); }}>View details</button>
           <button type="button" className="block w-full border-0 px-3 py-2 text-left text-sm text-neutral-700 hover:bg-neutral-50 focus:border-0 focus:outline-none focus-visible:border-0 focus-visible:outline-none focus:ring-0 focus-visible:ring-0" onClick={() => { setOpen(false); onEdit(); }}>Edit</button>
-          <button type="button" className="block w-full border-0 px-3 py-2 text-left text-sm text-red-600 hover:bg-red-50 focus:border-0 focus:outline-none focus-visible:border-0 focus-visible:outline-none focus:ring-0 focus-visible:ring-0" onClick={() => { setOpen(false); onDelete(); }}>Delete</button>
         </div>,
         document.body,
       ) : null}

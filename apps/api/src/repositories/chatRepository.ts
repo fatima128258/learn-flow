@@ -1,6 +1,7 @@
 import getPrisma from '../prisma';
 
 const db = () => getPrisma();
+const MAX_CONVERSATIONS_PER_REQUEST = 100;
 
 export const findConversation = (id: string, organizationId?: string) => db().conversation.findFirst({ where: { id, ...(organizationId ? { organizationId } : {}), deletedAt: null } });
 export const findForCourse = (organizationId: string, courseId: string, studentId: string, instructorId: string) =>
@@ -13,7 +14,26 @@ export const createConversation = (organizationId: string, courseId: string, stu
   db().conversation.create({ data: { organizationId, courseId, studentId, instructorId } });
 export const listConversations = (organizationId: string, userId: string, organizationAdmin = false) => db().conversation.findMany({
   where: { organizationId, deletedAt: null, ...(organizationAdmin ? {} : { OR: [{ studentId: userId }, { instructorId: userId }] }) },
-  include: { course: { select: { id: true, title: true } }, student: { select: { id: true, name: true, email: true } }, instructor: { select: { id: true, name: true, email: true } }, messages: { orderBy: { createdAt: 'desc' }, take: 1 } },
+  take: MAX_CONVERSATIONS_PER_REQUEST,
+  include: {
+    course: { select: { id: true, title: true } },
+    student: { select: { id: true, name: true, email: true } },
+    instructor: { select: { id: true, name: true, email: true } },
+    messages: {
+      orderBy: { createdAt: 'desc' },
+      take: 1,
+      select: {
+        id: true,
+        conversationId: true,
+        senderId: true,
+        content: true,
+        readAt: true,
+        deletedAt: true,
+        createdAt: true,
+        updatedAt: true,
+      },
+    },
+  },
   orderBy: { updatedAt: 'desc' },
 });
 export const countUnread = (conversationId: string, userId: string) =>
