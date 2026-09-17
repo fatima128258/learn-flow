@@ -104,11 +104,15 @@ export async function messages(orgId: string | undefined, id: string, userId: st
   const hasMore = rows.length > Math.min(Math.max(limit, 1), 100);
   return { messages: hasMore ? rows.slice(0, -1) : rows, nextCursor: hasMore ? rows[rows.length - 1].id : null };
 }
-export async function send(orgId: string | undefined, id: string, userId: string, content: string, role?: string) {
+export async function send(orgId: string | undefined, id: string, userId: string, content: string, role?: string, replyToId?: string) {
   const c = await participant(orgId, id, userId, role);
   if (c.blockedAt) throw new Error('CONVERSATION_BLOCKED');
   if (typeof content !== 'string' || !content.trim() || content.trim().length > 5000) throw new Error('INVALID_CONTENT');
-  return repo.createMessage(id, userId, content.trim());
+  if (replyToId) {
+    const reply = await getPrisma().message.findFirst({ where: { id: replyToId, conversationId: id } });
+    if (!reply) throw new Error('INVALID_REPLY');
+  }
+  return repo.createMessage(id, userId, content.trim(), replyToId);
 }
 export async function read(orgId: string | undefined, id: string, userId: string, role?: string) { await participant(orgId, id, userId, role); return repo.markRead(id, userId); }
 export async function block(orgId: string, id: string, userId: string, role?: string) { await participant(orgId, id, userId, role); return repo.blockConversation(id, orgId, userId); }

@@ -1,5 +1,6 @@
 import { NextFunction, Request, Response } from 'express';
 import { getRedis } from '../utils/redis';
+import { durationMs, logAuthPerf, type AuthPerfContext, now } from '../utils/authPerf';
 
 export interface RateLimitOptions {
   windowMs?: number;
@@ -74,7 +75,14 @@ export function createRateLimiter(options: RateLimitOptions = {}) {
       const redis = getRedis();
       const sha = await ensureScriptLoaded(redis);
 
-      const result = await redis.evalsha(sha, 1, key, windowMs.toString(), max.toString(), now.toString()) as [number, number, number, number];
+      const redisStart = now();
+      const result = await redis.evalsha(sha, 1, key, windowMs.toString(), max.toString(), Date.now().toString()) as [number, number, number, number];
+      const redisDuration = durationMs(redisStart);
+      const authPerf = res.locals.authPerf as AuthPerfContext | undefined;
+      if (authPerf) {
+        authPerf.redisLimiterMs = redisDuration;
+        logAuthPerf(authPerf.requestId, 'redis_general_rate_limiter_evalsha', redisDuration);
+      }
 
       const [allowed, count, resetAt, limit] = result;
       const remaining = Math.max(0, limit - count);

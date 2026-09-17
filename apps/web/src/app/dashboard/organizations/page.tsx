@@ -396,10 +396,6 @@ export default function OrganizationsPage() {
     setNameError('');
   }
 
-  function openOrganization(org: OrganizationItem) {
-    router.push(`/dashboard/organization?organization=${encodeURIComponent(org.id)}`);
-  }
-
   function openEditModal(org: OrganizationItem) {
     setEditingOrg(org);
     setEditName(org.name);
@@ -820,15 +816,7 @@ export default function OrganizationsPage() {
                     {filteredOrganizations.map((org) => (
                       <tr key={org.id} className={tableRowHoverClass}>
                         <td className={tableCellClass}>
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => openOrganization(org)}
-                            className="!rounded-md !px-0 !py-0 font-medium text-neutral-900 transition-colors hover:text-blue-600"
-                          >
-                            {org.name}
-                          </Button>
+                          <span className="font-medium text-neutral-900">{org.name}</span>
                         </td>
                         <td className={`${tableStatusClass} text-neutral-700`}>
                           {org.status}

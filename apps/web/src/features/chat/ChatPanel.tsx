@@ -72,6 +72,7 @@ export function ChatPanel({ organizationId, userId, initialConversationId, cours
   const [actionLoading, setActionLoading] = useState(false);
   const [pendingConversationAction, setPendingConversationAction] = useState<'block' | 'delete' | null>(null);
   const socketRef = useRef<Socket | null>(null);
+  const messagesContainerRef = useRef<HTMLDivElement>(null);
   const activeIdRef = useRef(activeId);
   const activeConversationRef = useRef<ChatConversation | null>(null);
   const messagesRequestRef = useRef(0);
@@ -79,6 +80,13 @@ export function ChatPanel({ organizationId, userId, initialConversationId, cours
 
   useEffect(() => { activeIdRef.current = activeId; }, [activeId]);
   useEffect(() => { activeConversationRef.current = active; }, [active]);
+
+  useEffect(() => {
+    if (messagesLoading) return;
+    const container = messagesContainerRef.current;
+    if (!container) return;
+    container.scrollTo({ top: container.scrollHeight, behavior: 'smooth' });
+  }, [activeId, messages, messagesLoading]);
 
   useEffect(() => {
     if (!activeId || !socketRef.current?.connected) return;
@@ -258,7 +266,7 @@ export function ChatPanel({ organizationId, userId, initialConversationId, cours
     try {
       const result = await postJsonWithTimeout<{ data: ChatMessage }>(
         apiPath(organizationId, `/conversations/${active.id}/messages`),
-        { content },
+        { content, ...(replyTo ? { replyToId: replyTo.id } : {}) },
         15000,
       );
       setMessages((current) => current.some((item) => item.id === result.data.id) ? current : [...current, result.data]);
@@ -382,7 +390,7 @@ export function ChatPanel({ organizationId, userId, initialConversationId, cours
               <button type="button" onClick={() => setActiveId('')} className="mr-1 text-sm text-primary-700 md:hidden">←</button>
               <div className="flex h-9 w-9 items-center justify-center rounded-full bg-[#d4b596] text-sm font-semibold text-[#fdfbf8]">{participant(active, userId).charAt(0).toUpperCase()}</div>
               <div className="min-w-0">
-                <span className="block truncate text-[1.05rem] font-bold leading-tight text-neutral-900">{participant(active, userId)}</span>
+                <span className="block truncate text-[1.05rem] font-normal leading-tight text-neutral-900">{participant(active, userId)}</span>
               </div>
             </div>
             <div className="flex items-center gap-2">
@@ -390,7 +398,7 @@ export function ChatPanel({ organizationId, userId, initialConversationId, cours
                 type="button"
                 disabled={actionLoading}
                 onClick={() => void updateConversation(active.blockedAt ? 'unblock' : 'block')}
-                className="inline-flex items-center rounded-[10px] border border-[#5a321f] bg-[#5a321f] px-3 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-[#472617] disabled:opacity-50"
+                className="inline-flex items-center rounded-md border border-[#5a321f] bg-[#5a321f] px-3 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-[#472617] disabled:opacity-50"
               >
                 {active.blockedAt ? 'Unblock' : 'Block'}
               </button>
@@ -398,13 +406,13 @@ export function ChatPanel({ organizationId, userId, initialConversationId, cours
                 type="button"
                 disabled={actionLoading}
                 onClick={() => void updateConversation('delete')}
-                className="inline-flex items-center rounded-[10px] border border-[#ead8c6] bg-[#fffaf5] px-3 py-1.5 text-xs font-semibold text-[#7a4a2e] transition-colors hover:bg-[#f5ebdd] disabled:opacity-50"
+                className="inline-flex items-center rounded-md border border-[#ead8c6] bg-[#fffaf5] px-3 py-1.5 text-xs font-semibold text-[#7a4a2e] transition-colors hover:bg-[#f5ebdd] disabled:opacity-50"
               >
                 Delete
               </button>
             </div>
           </header>
-          <div className="flex-1 space-y-4 overflow-y-auto bg-[#f7f5f3] p-4">
+          <div ref={messagesContainerRef} className="flex-1 space-y-4 overflow-y-auto bg-[#f7f5f3] p-4">
             {messagesLoading ? <p className="m-auto text-sm text-neutral-500">Loading messages...</p>
               : messages.map((message, index) => {
                 const previousMessage = messages[index - 1];
@@ -429,11 +437,19 @@ export function ChatPanel({ organizationId, userId, initialConversationId, cours
                       <div className={`max-w-[68%] ${isOutgoing ? 'items-end' : 'items-start'} flex flex-col`}>
                         <div className="group relative">
                           <div className={`rounded-[20px] px-4 py-2 text-[15px] leading-6 shadow-sm ${isOutgoing ? 'rounded-br-md bg-[#f0dfc8] text-[#343434]' : 'rounded-bl-md bg-[#f2f2f2] text-[#3f3f3f]'}`}>
+                          {message.replyTo && (
+                            <div className="mb-2 border-l-2 border-[#c58c63] bg-black/5 px-2.5 py-1.5 text-xs leading-5 text-neutral-600">
+                              <p className="font-semibold text-[#7a4a2a]">
+                                {message.replyTo.senderId === userId ? 'You' : participant(active, userId)}
+                              </p>
+                              <p className="truncate">{message.replyTo.deletedAt ? 'This message was deleted' : message.replyTo.content}</p>
+                            </div>
+                          )}
                           <p className={`${message.deletedAt ? 'italic opacity-70' : ''} ${!message.deletedAt ? 'pr-5' : ''}`}>{message.deletedAt ? 'This message was deleted' : message.content}</p>
                           <div className={`mt-1 flex items-center gap-1 text-[10px] text-neutral-500 ${isOutgoing ? 'justify-end' : 'justify-start'}`}>
                             <span>{formatMessageTime(message.createdAt)}</span>
                             {isOutgoing && !message.deletedAt && (
-                              <span className={`-ml-0.5 tracking-[-0.12em] ${message.readAt ? 'text-sky-600' : 'text-neutral-500'}`}>
+                              <span className={`-ml-0.5 text-[11px] font-bold tracking-[-0.08em] ${message.readAt ? 'text-sky-700' : 'text-neutral-700'}`}>
                                 {deliveredMessageIds.has(message.id) ? '✓✓' : '✓'}
                               </span>
                             )}

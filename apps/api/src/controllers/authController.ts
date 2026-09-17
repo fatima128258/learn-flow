@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import * as service from '../services/authService';
 import { AuthenticatedRequest } from '../middleware/auth';
 import { isValidEmail } from '../utils/validation';
+import { durationMs, logAuthPerf, now, type AuthPerfContext } from '../utils/authPerf';
 
 function isValidPassword(password: string) {
   if (typeof password !== 'string') return false;
@@ -99,14 +100,26 @@ export async function register(req: Request, res: Response) {
 }
 
 export async function login(req: Request, res: Response) {
+  const authPerf = res.locals.authPerf as AuthPerfContext | undefined;
   try {
     const { email, password } = req.body;
     if (!email || !password) return res.status(400).json({ error: 'MISSING_FIELDS' });
     if (!isValidEmail(email)) return res.status(400).json({ error: 'INVALID_EMAIL' });
-    const { user, token, expiresAt } = await service.loginUser({ email, password, ip: getClientIp(req) });
+    const { user, token, expiresAt } = await service.loginUser({
+      email,
+      password,
+      ip: getClientIp(req),
+      perf: authPerf,
+    });
     
+    const responseStart = now();
     setSessionCookie(res, token, expiresAt);
-    return res.json({ user: userDto(user) });
+    const response = res.json({ user: userDto(user) });
+    if (authPerf) {
+      authPerf.responseGenerationMs = durationMs(responseStart);
+      logAuthPerf(authPerf.requestId, 'response_generation', authPerf.responseGenerationMs);
+    }
+    return response;
   } catch (err) {
     const message = err instanceof Error ? err.message : undefined;
     if (message === 'INVALID_EMAIL') return res.status(400).json({ error: 'INVALID_EMAIL' });

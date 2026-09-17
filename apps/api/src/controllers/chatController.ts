@@ -5,7 +5,7 @@ import { chatEvents } from '../chatEvents';
 
 const error = (res: Response, e: unknown) => {
   const m = e instanceof Error ? e.message : '';
-  const map: Record<string, number> = { COURSE_NOT_FOUND: 404, CONVERSATION_NOT_FOUND: 404, ENROLLMENT_REQUIRED: 403, FORBIDDEN: 403, CONVERSATION_BLOCKED: 403, INVALID_CONTENT: 400 };
+  const map: Record<string, number> = { COURSE_NOT_FOUND: 404, CONVERSATION_NOT_FOUND: 404, ENROLLMENT_REQUIRED: 403, FORBIDDEN: 403, CONVERSATION_BLOCKED: 403, INVALID_CONTENT: 400, INVALID_REPLY: 400 };
   return res.status(map[m] || 500).json({ success: false, error: map[m] ? m : 'SERVER_ERROR' });
 };
 export async function open(req: AuthenticatedRequest, res: Response) { try { return res.status(200).json({ success: true, data: await service.open(req.params.organizationId, req.params.courseId, req.user!.id, req.user!.role, req.body?.studentId) }); } catch (e) { return error(res, e); } }
@@ -13,7 +13,7 @@ export async function list(req: AuthenticatedRequest, res: Response) { try { ret
 export async function messages(req: AuthenticatedRequest, res: Response) { try { return res.json({ success: true, data: await service.messages(req.params.organizationId, req.params.conversationId, req.user!.id, Number(req.query.limit) || 50, typeof req.query.cursor === 'string' ? req.query.cursor : undefined, req.user!.role) }); } catch (e) { return error(res, e); } }
 export async function send(req: AuthenticatedRequest, res: Response) {
   try {
-    const message = await service.send(req.params.organizationId, req.params.conversationId, req.user!.id, req.body?.content, req.user!.role);
+    const message = await service.send(req.params.organizationId, req.params.conversationId, req.user!.id, req.body?.content, req.user!.role, req.body?.replyToId);
     chatEvents.emit('messages:change', {
       type: 'created',
       conversationId: req.params.conversationId,

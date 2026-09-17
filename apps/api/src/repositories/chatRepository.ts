@@ -47,13 +47,17 @@ export const countUnreadForUser = (organizationId: string, userId: string) =>
   });
 export const listMessages = (conversationId: string, take: number, cursor?: string) => db().message.findMany({
   where: { conversationId },
+  include: { replyTo: { select: { id: true, senderId: true, content: true, deletedAt: true } } },
   orderBy: { createdAt: 'desc' },
   take: take + 1,
   ...(cursor ? { skip: 1, cursor: { id: cursor } } : {}),
 });
-export const createMessage = (conversationId: string, senderId: string, content: string) =>
+export const createMessage = (conversationId: string, senderId: string, content: string, replyToId?: string) =>
   db().$transaction(async (tx) => {
-    const message = await tx.message.create({ data: { conversationId, senderId, content } });
+    const message = await tx.message.create({
+      data: { conversationId, senderId, content, ...(replyToId ? { replyToId } : {}) },
+      include: { replyTo: { select: { id: true, senderId: true, content: true, deletedAt: true } } },
+    });
     await tx.conversation.update({ where: { id: conversationId }, data: { updatedAt: new Date() } });
     return message;
   });

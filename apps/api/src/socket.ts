@@ -63,10 +63,10 @@ export function initializeChatSocket(httpServer: HttpServer) {
         ack?.({ success: false, error: e instanceof Error ? e.message : 'FORBIDDEN' });
       }
     });
-    socket.on('message:send', async (payload: { conversationId: string; content: string }, ack?: (result: unknown) => void) => {
+    socket.on('message:send', async (payload: { conversationId: string; content: string; replyToId?: string }, ack?: (result: unknown) => void) => {
       try {
         const organizationId = await chatService.authorizeSocketConversation(payload.conversationId, userId);
-        const message = await chatService.send(organizationId, payload.conversationId, userId, payload.content);
+        const message = await chatService.send(organizationId, payload.conversationId, userId, payload.content, undefined, payload.replyToId);
         io.to(`conversation:${payload.conversationId}`).emit('message:new', message);
         // A successful persistence result is the send acknowledgement. Do not
         // make the sender wait for optional unread-notification work.

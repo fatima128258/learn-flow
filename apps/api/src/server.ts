@@ -33,6 +33,8 @@ import { collectHealthReport } from './services/healthService';
 import { initializeServices } from './services/serviceInitializer';
 import chatRouter from './routes/chatRoutes';
 import studentTaskRouter from './routes/studentTaskRoutes';
+import { randomUUID } from 'crypto';
+import { logAuthPerfSummary, type AuthPerfContext, durationMs, now } from './utils/authPerf';
 
 export const app = express();
 
@@ -59,6 +61,23 @@ app.use(cors({
 }));
 app.use(cookieParser());
 app.use(express.json({ limit: '1mb' }));
+
+// Temporary login-only timing context. This records infrastructure timings
+// without logging credentials, tokens, cookies, or user data.
+app.use((req, res, next) => {
+  if (req.method === 'POST' && req.path === '/api/v1/auth/login') {
+    const requestId = typeof req.headers['x-request-id'] === 'string'
+      ? req.headers['x-request-id']
+      : randomUUID();
+    const context: AuthPerfContext = { requestId, startedAt: now() };
+    res.locals.authPerf = context;
+    res.setHeader('x-request-id', requestId);
+    res.on('finish', () => {
+      logAuthPerfSummary(context, durationMs(context.startedAt));
+    });
+  }
+  next();
+});
 
 // General API rate limiting (per IP + method + path) - exempt health/readiness
 app.use((req, res, next) => {

@@ -7,6 +7,12 @@ export type ChatMessage = {
   deletedAt: string | null;
   createdAt: string;
   updatedAt: string;
+  replyTo?: {
+    id: string;
+    senderId: string;
+    content: string;
+    deletedAt: string | null;
+  } | null;
 };
 
 export type ChatConversation = {
