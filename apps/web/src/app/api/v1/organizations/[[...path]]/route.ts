@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-const TRANSIENT_STATUSES = new Set([502, 503, 504]);
+const TRANSIENT_STATUSES = new Set([429, 502, 503, 504]);
 const BACKEND_TIMEOUT_MS = 20000;
 const ADMIN_ASSIGN_TIMEOUT_MS = 60000;
 const COURSE_STATUS_TIMEOUT_MS = 60000;
@@ -14,6 +14,14 @@ const COURSE_SEARCH_TIMEOUT_MS = 60000;
 
 function wait(milliseconds: number) {
   return new Promise((resolve) => setTimeout(resolve, milliseconds));
+}
+
+function retryDelay(response: Response, attempt: number) {
+  const retryAfter = Number(response.headers.get('retry-after'));
+  if (Number.isFinite(retryAfter) && retryAfter > 0) {
+    return Math.min(retryAfter * 1000, 10_000);
+  }
+  return Math.min(2000 * 2 ** attempt, 10_000);
 }
 
 async function proxyRequest(
@@ -102,7 +110,7 @@ async function proxyRequest(
       }
 
       await resp.body?.cancel();
-      await wait(250 * (attempt + 1));
+      await wait(retryDelay(resp, attempt));
     }
 
     if (!resp) {

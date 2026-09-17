@@ -75,7 +75,7 @@ export function useCurrentUser() {
       if (!(error instanceof ApiError)) return false;
       return (error.status === 0 || error.status >= 500) && failureCount < 2;
     },
-    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 4000),
+    retryDelay: (attemptIndex) => Math.min(5000 * 2 ** attemptIndex, 15000),
   });
 }
 

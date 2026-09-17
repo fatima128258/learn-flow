@@ -1,7 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server';
 
 const STUDENT_TASK_TIMEOUT_MS = 60000;
-const TRANSIENT_STATUSES = new Set([502, 503, 504]);
+const TRANSIENT_STATUSES = new Set([429, 502, 503, 504]);
+const MAX_RETRY_WAIT_MS = 10_000;
+
+function retryDelay(response: Response, attempt: number) {
+  const retryAfter = Number(response.headers.get('retry-after'));
+  if (Number.isFinite(retryAfter) && retryAfter > 0) {
+    return Math.min(retryAfter * 1000, MAX_RETRY_WAIT_MS);
+  }
+  return Math.min(2000 * 2 ** attempt, MAX_RETRY_WAIT_MS);
+}
 
 function getBackendUrl() {
   return process.env.BACKEND_URL
@@ -44,7 +53,7 @@ async function proxyRequest(
       }
       if (!TRANSIENT_STATUSES.has(response.status) || method !== 'GET' || attempt === 2) break;
       await response.body?.cancel();
-      await new Promise((resolve) => setTimeout(resolve, 250 * (attempt + 1)));
+      await new Promise((resolve) => setTimeout(resolve, retryDelay(response, attempt)));
     }
     if (!response) {
       return NextResponse.json({ success: false, error: 'BACKEND_UNAVAILABLE' }, { status: 503 });

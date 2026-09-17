@@ -1,5 +1,16 @@
 import { NextResponse } from 'next/server';
 
+const TRANSIENT_STATUSES = new Set([429, 502, 503, 504]);
+const MAX_RETRY_WAIT_MS = 10_000;
+
+function retryDelay(response: Response, attempt: number) {
+  const retryAfter = Number(response.headers.get('retry-after'));
+  if (Number.isFinite(retryAfter) && retryAfter > 0) {
+    return Math.min(retryAfter * 1000, MAX_RETRY_WAIT_MS);
+  }
+  return Math.min(2000 * 2 ** attempt, MAX_RETRY_WAIT_MS);
+}
+
 async function proxyRequest(req: Request, method: 'GET' | 'PATCH') {
   const backendUrl = process.env.BACKEND_URL || 'https://learn-flow-1-1gl3.onrender.com';
   const cookie = req.headers.get('cookie') || '';
@@ -9,7 +20,6 @@ async function proxyRequest(req: Request, method: 'GET' | 'PATCH') {
     ...(method === 'PATCH' ? { 'Content-Type': 'application/json' } : {}),
   };
   if (forwardedFor) headers['x-forwarded-for'] = forwardedFor;
-  const transientStatuses = new Set([502, 503, 504]);
   const body = method === 'PATCH' ? await req.text() : undefined;
 
   for (let attempt = 0; attempt < 3; attempt += 1) {
@@ -26,7 +36,7 @@ async function proxyRequest(req: Request, method: 'GET' | 'PATCH') {
 
       if (transientStatuses.has(resp.status) && attempt < 2) {
         await resp.body?.cancel();
-        await new Promise((resolve) => setTimeout(resolve, 250 * (attempt + 1)));
+        await new Promise((resolve) => setTimeout(resolve, retryDelay(resp, attempt)));
         continue;
       }
 

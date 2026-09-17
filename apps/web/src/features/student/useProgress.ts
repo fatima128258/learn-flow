@@ -1,6 +1,10 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { ApiError, getJson, postJson } from '../../lib/api';
 
+function retryDelay(attemptIndex: number) {
+  return Math.min(5000 * 2 ** attemptIndex, 15000);
+}
+
 function retryTransientQuery(failureCount: number, error: unknown) {
   if (error instanceof ApiError && [401, 403, 429].includes(error.status)) {
     return false;
@@ -84,7 +88,7 @@ export function useStudentProgress(organizationId: string) {
     staleTime: 30 * 1000,
     gcTime: 5 * 60 * 1000,
     retry: retryTransientQuery,
-    retryDelay: attemptIndex => Math.min(1000 * 2 ** attemptIndex, 30000),
+    retryDelay,
   });
 }
 
@@ -134,7 +138,7 @@ export function useProgress(organizationId: string, courseId: string) {
     staleTime: 30 * 1000,
     gcTime: 5 * 60 * 1000,
     retry: retryTransientQuery,
-    retryDelay: attemptIndex => Math.min(1000 * 2 ** attemptIndex, 30000),
+    retryDelay,
   });
 }
 
@@ -154,7 +158,7 @@ export function useModuleLessons(organizationId: string, courseId: string, modul
     staleTime: 30 * 1000,
     gcTime: 5 * 60 * 1000,
     retry: retryTransientQuery,
-    retryDelay: attemptIndex => Math.min(1000 * 2 ** attemptIndex, 30000),
+    retryDelay,
   });
 }
 
@@ -202,7 +206,7 @@ export function useCertificates(organizationId: string) {
     staleTime: 30 * 1000,
     gcTime: 5 * 60 * 1000,
     retry: 3,
-    retryDelay: attemptIndex => Math.min(1000 * 2 ** attemptIndex, 30000),
+    retryDelay,
   });
 }
 
