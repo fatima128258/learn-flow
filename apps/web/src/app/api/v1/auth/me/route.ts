@@ -56,14 +56,6 @@ async function proxyRequest(req: Request, method: 'GET' | 'PATCH') {
           { status: 503 },
         );
       }
-
-      export async function GET(req: Request) {
-        return proxyRequest(req, 'GET');
-      }
-
-      export async function PATCH(req: Request) {
-        return proxyRequest(req, 'PATCH');
-      }
     } finally {
       clearTimeout(timeoutId);
     }
@@ -73,4 +65,12 @@ async function proxyRequest(req: Request, method: 'GET' | 'PATCH') {
     { success: false, error: 'BACKEND_UNAVAILABLE' },
     { status: 503 },
   );
+}
+
+export async function GET(req: Request) {
+  return proxyRequest(req, 'GET');
+}
+
+export async function PATCH(req: Request) {
+  return proxyRequest(req, 'PATCH');
 }
