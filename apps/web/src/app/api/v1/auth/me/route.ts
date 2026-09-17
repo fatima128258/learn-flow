@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 
-const TRANSIENT_STATUSES = new Set([429, 502, 503, 504]);
+const TRANSIENT_STATUSES = new Set([502, 503, 504]);
 const MAX_RETRY_WAIT_MS = 10_000;
 
 function retryDelay(response: Response, attempt: number) {
@@ -48,9 +48,15 @@ async function proxyRequest(req: Request, method: 'GET' | 'PATCH') {
         );
       }
 
+      const responseHeaders: HeadersInit = {
+        'Content-Type': resp.headers.get('content-type') || 'application/json',
+      };
+      const retryAfter = resp.headers.get('retry-after');
+      if (retryAfter) responseHeaders['Retry-After'] = retryAfter;
+
       return new NextResponse(data, {
         status: resp.status,
-        headers: { 'Content-Type': 'application/json' },
+        headers: responseHeaders,
       });
     } catch (err) {
       const isAbort = err instanceof Error && err.name === 'AbortError';
