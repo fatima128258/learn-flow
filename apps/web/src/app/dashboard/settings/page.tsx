@@ -3,12 +3,11 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useQueryClient } from '@tanstack/react-query';
 import { Button, Card, ErrorState, Input, Skeleton } from '@/components/ui';
 import { PasswordInput } from '@/components/forms/PasswordInput';
 import { SectionHeader } from '@/components/dashboard';
-import { useCurrentUser, meKey } from '@/features/auth/useCurrentUser';
-import { ApiError, patchJson } from '@/lib/api';
+import { useCurrentUser } from '@/features/auth/useCurrentUser';
+import { ApiError, logout, patchJson } from '@/lib/api';
 import { getUpdateEmailErrorMessage, getChangePasswordErrorMessage } from '@/features/auth/settingsErrors';
 import { useToast } from '@/components/ui/ToastProvider';
 import { isValidEmail } from '@/lib/validation';
@@ -21,7 +20,6 @@ type PasswordFieldErrors = {
 
 export default function SettingsPage() {
   const router = useRouter();
-  const queryClient = useQueryClient();
   const { data: user, isLoading, error } = useCurrentUser();
   const toast = useToast();
 
@@ -65,7 +63,7 @@ export default function SettingsPage() {
         'Your email address was updated and a verification link was sent to your new address.',
         'Email updated',
       );
-      await queryClient.invalidateQueries({ queryKey: meKey });
+      await logout();
     } catch (err) {
       const code = err instanceof ApiError ? err.code : undefined;
       toast.error(getUpdateEmailErrorMessage(code));
@@ -103,6 +101,7 @@ export default function SettingsPage() {
       setNewPassword('');
       setConfirmNewPassword('');
       toast.success('Your password was changed successfully.', 'Password updated');
+      await logout();
     } catch (err) {
       const code = err instanceof ApiError ? err.code : undefined;
       toast.error(getChangePasswordErrorMessage(code));
