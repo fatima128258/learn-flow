@@ -77,7 +77,7 @@ export const Drawer: React.FC<DrawerProps> = ({
           <div className="min-w-0">
             <p className="text-xs font-medium uppercase tracking-wide text-neutral-500">Details</p>
             {title ? (
-              <h2 id={titleId} className="truncate text-lg font-semibold text-neutral-900">
+              <h2 id={titleId} className="whitespace-normal break-words text-lg font-semibold text-neutral-900">
                 {title}
               </h2>
             ) : null}

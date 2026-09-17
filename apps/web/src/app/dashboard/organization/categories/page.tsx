@@ -3,9 +3,10 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useSearchParams } from 'next/navigation';
-import { Badge, Button, Card, ConfirmModal, Drawer, EmptyState, EmptyStateIcons, ErrorState, Input, Modal, Select, Skeleton, ViewToggle, useToast } from '@/components/ui';
+import { Badge, Button, ConfirmModal, Drawer, EmptyState, EmptyStateIcons, ErrorState, Input, Modal, Select, Spinner, ViewToggle, useToast } from '@/components/ui';
 import { Textarea } from '@/components/forms/Textarea';
 import { ApiError, apiRequest } from '@/lib/api';
+import { TableCard, tableActionClass, tableCellClass, tableHeadClass, tableRowHoverClass, tableStatusClass } from '@/components/dashboard';
 
 type Category = {
   id: string;
@@ -113,8 +114,8 @@ export default function CategoriesPage() {
           <ViewToggle value={viewMode} onChange={setViewMode} storageKey="learnhub-organization-categories-view" />
         </div>
       </div>
-      <Card padding="none" shadow="sm" className="overflow-hidden rounded-2xl border-[#ead8c6] bg-[#fffdf9]">
-        {loading ? <div className="space-y-4 p-5"><Skeleton variant="text" height={28} /><Skeleton variant="text" height={28} /><Skeleton variant="text" height={28} /></div>
+      <TableCard>
+        {loading ? <div className="flex items-center justify-center py-16"><Spinner size="lg" label="Loading categories..." /></div>
           : error ? <ErrorState title="Unable to load categories" action={{ label: 'Try again', onClick: () => void load() }} />
           : !hasCategories ? <EmptyState icon={search ? EmptyStateIcons.NoResults : EmptyStateIcons.NoData} title={search ? 'No matching categories' : 'No categories yet'} description={search ? 'Try a different search.' : 'Create your first category to organize courses.'} action={!search ? emptyAction : undefined} />
           : viewMode === 'cards' ? (
@@ -134,14 +135,14 @@ export default function CategoriesPage() {
                 </article>
               ))}
             </div>
-          ) : <div className="overflow-x-auto px-4 pb-4">
+          )           : <div className="min-w-0">
               <table className="min-w-full divide-y divide-neutral-200">
-                <thead className="bg-[#f8fafc]"><tr className="text-left text-sm font-medium uppercase tracking-wide text-[#17212b]"><th className="px-6 py-5 align-middle">Category Name</th><th className="px-6 py-5 align-middle">Description</th><th className="px-6 py-5 text-center align-middle">Courses</th><th className="px-6 py-5 align-middle">Instructors</th><th className="px-6 py-5 text-center align-middle">Status</th><th className="px-6 py-5 text-center align-middle">Actions</th></tr></thead>
-                <tbody className="divide-y divide-[#f0e2d3]">{categories.map((category) => <tr key={category.id} className="cursor-pointer text-sm transition-colors hover:bg-[#fff9f0]" onClick={() => setSelectedCategory(category)}><td className="px-4 py-4 align-middle font-semibold text-[#17212b]">{category.name}</td><td className="max-w-xs px-4 py-4 align-middle text-[#5f6368]"><span className="block max-w-xs truncate">{category.description || '—'}</span></td><td className="px-4 py-4 text-center align-middle text-[#5f6368]">{category.courseCount}</td><td className="max-w-xs px-4 py-4 align-middle text-[#5f6368]"><span className="line-clamp-2">{category.instructors?.length ? category.instructors.map((instructor) => instructor.name).join(', ') : '—'}</span></td><td className="px-4 py-4 text-center align-middle"><Badge variant={category.status === 'ACTIVE' ? 'success' : 'default'} size="sm">{category.status}</Badge></td><td className="px-4 py-4 text-center align-middle" onClick={(event) => event.stopPropagation()}><div className="flex items-center justify-center"><CategoryActionsMenu onView={() => setSelectedCategory(category)} onEdit={() => setEditing(category)} onDelete={() => setDeleting(category)} /></div></td></tr>)}</tbody>
+                <thead className="bg-neutral-50"><tr><th className={tableHeadClass}>Category Name</th><th className={tableHeadClass}>Description</th><th className={`${tableHeadClass} text-center`}>Courses</th><th className={tableHeadClass}>Instructors</th><th className={`${tableHeadClass} text-center`}>Status</th><th className={`${tableHeadClass} text-center`}>Actions</th></tr></thead>
+                <tbody className="divide-y divide-neutral-200">{categories.map((category) => <tr key={category.id} className={`${tableRowHoverClass} cursor-pointer`} onClick={() => setSelectedCategory(category)}><td className={`${tableCellClass} font-medium text-neutral-900`}>{category.name}</td><td className={`${tableCellClass} max-w-xs text-neutral-700`}><span className="block max-w-xs truncate">{category.description || '—'}</span></td><td className={`${tableCellClass} text-center text-neutral-700`}>{category.courseCount}</td><td className={`${tableCellClass} max-w-xs text-neutral-700`}><span className="block line-clamp-2">{category.instructors?.length ? category.instructors.map((instructor) => instructor.name).join(', ') : '—'}</span></td><td className={tableStatusClass}><Badge variant={category.status === 'ACTIVE' ? 'success' : 'default'} size="sm">{category.status}</Badge></td><td className={tableActionClass} onClick={(event) => event.stopPropagation()}><div className="flex items-center justify-center"><CategoryActionsMenu onView={() => setSelectedCategory(category)} onEdit={() => setEditing(category)} onDelete={() => setDeleting(category)} /></div></td></tr>)}</tbody>
               </table>
             </div>}
         {meta && meta.totalPages > 1 && <div className="mx-4 mt-0 flex items-center justify-between border-t border-neutral-200 px-1 py-4 text-sm text-neutral-600"><span>Page {meta.page} of {meta.totalPages}</span><div className="flex gap-2"><Button size="sm" variant="outline" disabled={page <= 1} onClick={() => setPage((value) => value - 1)}>Previous</Button><Button size="sm" variant="outline" disabled={page >= meta.totalPages} onClick={() => setPage((value) => value + 1)}>Next</Button></div></div>}
-      </Card>
+      </TableCard>
       <CategoryModal
         key={editing ? editing.id : 'new-category'}
         category={editing}

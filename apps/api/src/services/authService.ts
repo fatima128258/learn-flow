@@ -10,6 +10,7 @@ import { record as recordAudit } from './auditLogService';
 import { getEmailQueue, isEmailQueueEnabled } from '../queues/emailQueue';
 import argon2 from 'argon2';
 import { isValidEmail, normalizeEmail } from '../utils/validation';
+import { durationMs, logAuthPerf, now, type AuthPerfContext } from '../utils/authPerf';
 
 const SESSION_TTL_SECONDS = 60 * 60 * 24 * 7; // 7 days
 // The assignment requires throttling "repeated login requests" but specifies no
@@ -28,14 +29,30 @@ function generateSixDigitCode() {
   return crypto.randomInt(100000, 1000000).toString().padStart(6, '0');
 }
 
-async function enforceRateLimit({ ip, keyPrefix, maxAttempts, windowSeconds }: { ip: string; keyPrefix: string; maxAttempts: number; windowSeconds: number }) {
+async function enforceRateLimit({ ip, keyPrefix, maxAttempts, windowSeconds, perf }: { ip: string; keyPrefix: string; maxAttempts: number; windowSeconds: number; perf?: AuthPerfContext }) {
   const redis = getRedis();
   const key = `rl:${keyPrefix}:ip:${ip}`;
+  const incrStart = now();
   try {
     const attempts = await redis.incr(key);
-    if (attempts === 1) await redis.expire(key, windowSeconds);
+    const incrMs = durationMs(incrStart);
+    if (perf) {
+      perf.redisLoginMs = incrMs;
+      logAuthPerf(perf.requestId, 'redis_login_incr', incrMs);
+    }
+    if (attempts === 1) {
+      const expireStart = now();
+      await redis.expire(key, windowSeconds);
+      const expireMs = durationMs(expireStart);
+      if (perf) logAuthPerf(perf.requestId, 'redis_login_expire', expireMs);
+    }
     if (attempts > maxAttempts) throw new Error('TOO_MANY_ATTEMPTS');
   } catch (err) {
+    const incrMs = durationMs(incrStart);
+    if (perf) {
+      perf.redisLoginMs = incrMs;
+      logAuthPerf(perf.requestId, 'redis_login_incr', incrMs);
+    }
     if (err instanceof Error && err.message === 'TOO_MANY_ATTEMPTS') throw err;
     // Fail open: if Redis is unreachable, allow the request through
     console.warn(`[enforceRateLimit] Redis error, failing open: ${err instanceof Error ? err.message : err}`);
@@ -156,17 +173,35 @@ export async function registerUser({ name, email, password, sendEmail = true, ip
   };
 }
 
-export async function loginUser({ email, password, ip = '127.0.0.1' }: { email: string; password: string; ip?: string }) {
+export async function loginUser({ email, password, ip = '127.0.0.1', perf }: { email: string; password: string; ip?: string; perf?: AuthPerfContext }) {
   if (!isValidEmail(email)) throw new Error('INVALID_EMAIL');
-  await enforceRateLimit({ ip, keyPrefix: 'login', maxAttempts: LOGIN_RATE_LIMIT, windowSeconds: LOGIN_RATE_WINDOW });
+  await enforceRateLimit({ ip, keyPrefix: 'login', maxAttempts: LOGIN_RATE_LIMIT, windowSeconds: LOGIN_RATE_WINDOW, perf });
 
   const normalizedEmail = normalizeEmail(email)!;
+  const userLookupStart = now();
   const user = await repo.findUserByEmail(normalizedEmail);
+  const userLookupMs = durationMs(userLookupStart);
+  if (perf) {
+    perf.dbUserLookupMs = userLookupMs;
+    logAuthPerf(perf.requestId, 'db_user_lookup', userLookupMs);
+  }
   if (!user) throw new Error('INVALID_CREDENTIALS');
+  const argon2Start = now();
   const ok = await argon2.verify(user.passwordHash, password);
+  const argon2Ms = durationMs(argon2Start);
+  if (perf) {
+    perf.argon2Ms = argon2Ms;
+    logAuthPerf(perf.requestId, 'argon2_verify', argon2Ms);
+  }
   if (!ok) throw new Error('INVALID_CREDENTIALS');
 
+  const membershipStart = now();
   const memberships: Array<{ role?: string; organizationId?: string; status?: string }> = await repo.findUserOrganizationsByUserId(user.id);
+  const membershipMs = durationMs(membershipStart);
+  if (perf) {
+    perf.membershipMs = membershipMs;
+    logAuthPerf(perf.requestId, 'db_membership_lookup', membershipMs);
+  }
   const primaryMembership = memberships.find((membership) => membership.role === 'PLATFORM_ADMIN')
     ?? memberships.find((membership) => membership.role === 'ORG_ADMIN')
     ?? memberships.find((membership) => membership.role === 'INSTRUCTOR')
@@ -176,15 +211,33 @@ export async function loginUser({ email, password, ip = '127.0.0.1' }: { email: 
   const token = generateToken();
   const tokenHash = hashToken(token);
   const expiresAt = new Date(Date.now() + SESSION_TTL_SECONDS * 1000);
+  const sessionStart = now();
   const session = await repo.createSession({ userId: user.id, tokenHash, expiresAt });
+  const sessionMs = durationMs(sessionStart);
+  if (perf) {
+    perf.sessionMs = sessionMs;
+    logAuthPerf(perf.requestId, 'db_session_create', sessionMs);
+  }
   const redis = getRedis();
+  const redisCleanupStart = now();
   try {
     await redis.del(`rl:login:ip:${ip}`);
+    const redisCleanupMs = durationMs(redisCleanupStart);
+    if (perf) {
+      perf.redisCleanupMs = redisCleanupMs;
+      logAuthPerf(perf.requestId, 'redis_login_cleanup_del', redisCleanupMs);
+    }
   } catch (err) {
+    const redisCleanupMs = durationMs(redisCleanupStart);
+    if (perf) {
+      perf.redisCleanupMs = redisCleanupMs;
+      logAuthPerf(perf.requestId, 'redis_login_cleanup_del', redisCleanupMs);
+    }
     // Rate-limit cleanup is non-critical after a successful login.
     console.warn(`[loginUser] Unable to clear login rate limit: ${err instanceof Error ? err.message : err}`);
   }
 
+  const auditStart = now();
   await recordAudit({
     action: 'LOGIN',
     organizationId: primaryMembership?.organizationId ?? null,
@@ -196,6 +249,11 @@ export async function loginUser({ email, password, ip = '127.0.0.1' }: { email: 
     resourceId: session?.id ?? null,
     ipAddress: ip,
   });
+  const auditLogMs = durationMs(auditStart);
+  if (perf) {
+    perf.auditLogMs = auditLogMs;
+    logAuthPerf(perf.requestId, 'db_audit_log_insert', auditLogMs);
+  }
 
   return {
     user: {

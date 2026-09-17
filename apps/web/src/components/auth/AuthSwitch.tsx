@@ -31,14 +31,17 @@ export const AuthSwitch: React.FC<AuthSwitchProps> = ({ initialMode = 'login' })
   };
 
   const handleLogin = async (data: LoginFormData) => {
+    const requestId = crypto.randomUUID();
+    const startedAt = performance.now();
     try {
       setIsSubmitting(true);
       const res = await fetch(`${apiBase}/api/v1/auth/login`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', 'x-request-id': requestId },
         body: JSON.stringify(data),
         credentials: 'include'
       });
+      console.log(`[AUTH_PERF] request=${requestId} stage=frontend_login_submit durationMs=${Number((performance.now() - startedAt).toFixed(2))}`);
 
       const responseData = await res.json().catch(() => ({}));
 
@@ -65,6 +68,8 @@ export const AuthSwitch: React.FC<AuthSwitchProps> = ({ initialMode = 'login' })
       if (responseData?.user) {
         queryClient.setQueryData(meKey, responseData.user);
         cacheUser(responseData.user);
+        sessionStorage.setItem('learnflow:last-login-success-at', String(performance.now()));
+        sessionStorage.setItem('learnflow:last-login-request-id', requestId);
       }
       
       // Use window.location.href for a full page reload to ensure proper session/cookie handling

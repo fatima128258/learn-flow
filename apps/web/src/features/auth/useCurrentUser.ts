@@ -34,18 +34,23 @@ export function useCurrentUser() {
   return useQuery({
     queryKey: meKey,
     queryFn: async ({ signal }) => {
+      const requestId = crypto.randomUUID();
       const timeoutController = new AbortController();
       const timeoutId = setTimeout(() => timeoutController.abort(), 10_000);
+      const startedAt = performance.now();
       const abortRequest = () => timeoutController.abort();
       signal.addEventListener('abort', abortRequest, { once: true });
       try {
         const body = await apiRequest<MeResponse>('/api/v1/auth/me', {
           signal: timeoutController.signal,
+          headers: { 'x-request-id': requestId },
         });
+        console.log(`[AUTH_PERF] request=${requestId} stage=frontend_auth_me durationMs=${Number((performance.now() - startedAt).toFixed(2))}`);
         const user = body.user ?? null;
         cacheUser(user);
         return user;
       } catch (error) {
+        console.log(`[AUTH_PERF] request=${requestId} stage=frontend_auth_me durationMs=${Number((performance.now() - startedAt).toFixed(2))}`);
         if (error instanceof ApiError && (error.status === 0 || error.status === 400 || error.status === 429 || error.status >= 500)) {
           const cachedUser = readCachedUser();
           if (cachedUser) return cachedUser;

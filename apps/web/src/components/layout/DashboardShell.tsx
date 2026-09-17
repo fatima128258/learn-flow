@@ -1,6 +1,6 @@
 'use client';
 
-import React, { Suspense, useMemo } from 'react';
+import React, { Suspense, useEffect, useMemo } from 'react';
 import { usePathname, useSearchParams } from 'next/navigation';
 import { DashboardLayout, type NavItem } from './DashboardLayout';
 import { platformAdminNav } from '@/features/platformAdmin/nav';
@@ -62,6 +62,17 @@ function DashboardShellInner({ children }: DashboardShellProps) {
   const orgId = searchParams.get('organization');
   const { data: currentUser } = useCurrentUser();
   const unreadChatCount = useChatUnread(currentUser?.organizationId ?? undefined, currentUser?.id);
+
+  useEffect(() => {
+    if (!currentUser) return;
+    const loginStartedAt = sessionStorage.getItem('learnflow:last-login-success-at');
+    if (!loginStartedAt) return;
+    const requestId = sessionStorage.getItem('learnflow:last-login-request-id') || 'frontend-auth-flow';
+    const durationMs = Number((performance.now() - Number(loginStartedAt)).toFixed(2));
+    console.log(`[AUTH_PERF] request=${requestId} stage=dashboard_auth_render durationMs=${durationMs}`);
+    sessionStorage.removeItem('learnflow:last-login-success-at');
+    sessionStorage.removeItem('learnflow:last-login-request-id');
+  }, [currentUser]);
 
   const { navLabel, items: baseItems } = useMemo(
     () => resolveNav(pathname ?? '/dashboard', currentUser?.role, orgId),

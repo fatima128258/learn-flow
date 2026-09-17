@@ -70,10 +70,12 @@ export function CategorySelect({
   }
 
   return (
-    <label className="block text-sm font-medium text-neutral-700">
-      Category
+    <div className="w-full">
+      <label className="mb-1.5 block text-sm font-medium text-neutral-700">
+        Category
+      </label>
       <Select
-        className="mt-1.5"
+        className="w-full"
         value={value}
         onChange={onChange}
         disabled={disabled || loading || failed}
@@ -93,6 +95,6 @@ export function CategorySelect({
           <button type="button" className="rounded-md border border-primary-600 px-3 py-2 text-sm font-medium text-primary-700 disabled:opacity-50" onClick={() => void createPrivateCategory()} disabled={disabled || creating || !privateName.trim()}>{creating ? 'Creating...' : 'Add private'}</button>
         </div>
       )}
-    </label>
+    </div>
   );
 }

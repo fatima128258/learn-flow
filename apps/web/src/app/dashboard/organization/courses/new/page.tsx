@@ -319,7 +319,8 @@ export default function CreateCoursePage() {
               />
 
               <SubmitButton loading={submitting} loadingText="Creating draft...">
-                Create draft and add module
+                <span className="hidden sm:inline">Create draft and add module</span>
+                <span className="whitespace-nowrap sm:hidden">Create and add module</span>
               </SubmitButton>
             </div>
           </form>

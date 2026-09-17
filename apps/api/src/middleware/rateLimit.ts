@@ -1,6 +1,6 @@
 import { NextFunction, Request, Response } from 'express';
 import { getRedis } from '../utils/redis';
-import { durationMs, logAuthPerf, type AuthPerfContext, now } from '../utils/authPerf';
+import { durationMs, logAuthPerf, type AuthPerfContext, now as perfNow } from '../utils/authPerf';
 
 export interface RateLimitOptions {
   windowMs?: number;
@@ -71,11 +71,12 @@ export function createRateLimiter(options: RateLimitOptions = {}) {
     const key = `${keyPrefix}:${req.method}:${req.path}:${ip}`;
     const now = Date.now();
 
+    let redisStart: number | undefined;
     try {
       const redis = getRedis();
       const sha = await ensureScriptLoaded(redis);
 
-      const redisStart = now();
+      redisStart = perfNow();
       const result = await redis.evalsha(sha, 1, key, windowMs.toString(), max.toString(), Date.now().toString()) as [number, number, number, number];
       const redisDuration = durationMs(redisStart);
       const authPerf = res.locals.authPerf as AuthPerfContext | undefined;
@@ -97,6 +98,12 @@ export function createRateLimiter(options: RateLimitOptions = {}) {
 
       return next();
     } catch (err) {
+      const authPerf = res.locals.authPerf as AuthPerfContext | undefined;
+      if (authPerf && redisStart !== undefined) {
+        const redisDuration = durationMs(redisStart);
+        authPerf.redisLimiterMs = redisDuration;
+        logAuthPerf(authPerf.requestId, 'redis_general_rate_limiter_evalsha', redisDuration);
+      }
       // On Redis failure, fail open with a warning log but do not silently disable
       // In production, consider failing closed; here we log and allow the request
       // to avoid a Redis outage causing total service denial.
