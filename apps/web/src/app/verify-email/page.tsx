@@ -1,16 +1,19 @@
 'use client';
 import React, { useState, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
+import { useQueryClient } from '@tanstack/react-query';
 import { AuthLayout } from '../../components/layout/AuthLayout';
 import { AuthCard } from '../../components/auth/AuthCard';
 import { Alert } from '../../components/ui/Alert';
 import { Stack } from '../../components/ui/layout/Stack';
 import { SubmitButton } from '../../components/forms/SubmitButton';
 import { PageLoader } from '../../components/ui/Spinner';
+import { cacheUser, meKey } from '../../features/auth/useCurrentUser';
 
 function VerifyEmailForm() {
   const searchParams = useSearchParams();
   const token = searchParams.get('token');
+  const queryClient = useQueryClient();
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -46,6 +49,8 @@ function VerifyEmailForm() {
         throw new Error(data?.error || 'Failed to verify email');
       }
 
+      cacheUser(null);
+      queryClient.removeQueries({ queryKey: meKey });
       setSuccess(true);
       // Redirect to home after 2 seconds
       setTimeout(() => {
