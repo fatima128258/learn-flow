@@ -170,7 +170,7 @@ export default function CourseDetailPage() {
 
   return (
     <div>
-      <div className="mx-auto max-w-3xl">
+      <div className="mx-auto w-full max-w-none">
         <div className="mb-4 flex items-center justify-between">
           <p className="text-sm font-medium uppercase tracking-wide text-primary-600">Course Details</p>
           <LinkButton href={`${dashboardPrefix}/courses${organizationId ? `?organization=${organizationId}` : ''}`} variant="ghost" size="sm">
@@ -191,21 +191,6 @@ export default function CourseDetailPage() {
                   <h1 className="text-2xl font-bold text-neutral-900">{course.title}</h1>
                   <p className="mt-1 text-sm text-neutral-500">{course.slug}</p>
                 </div>
-                <div className="flex items-center gap-2">
-                  <Select
-                    value={course.status}
-                    onChange={handleStatusChange}
-                    disabled={updatingStatus}
-                    options={STATUS_OPTIONS.map((opt) => ({ value: opt.value, label: opt.label }))}
-                    buttonClassName={course.status === 'DRAFT' ? 'border-[#ead8c6] bg-[#f5ebdd] text-[#5a321f]' : ''}
-                  />
-                  <LinkButton href={`${dashboardPrefix}/courses/${courseId}/modules${organizationId ? `?organization=${organizationId}` : ''}`} size="sm" variant="primary">
-                    Manage Modules
-                  </LinkButton>
-                  <LinkButton href={`${dashboardPrefix}/courses/${courseId}/edit${organizationId ? `?organization=${organizationId}` : ''}`} size="sm" variant="secondary">
-                    Edit
-                  </LinkButton>
-                </div>
               </div>
 
               <dl className="mt-6 space-y-4">
@@ -219,34 +204,30 @@ export default function CourseDetailPage() {
                 </div>
                 <div className="grid gap-4 md:grid-cols-2">
                   <div>
-                    <dt className="text-sm font-medium text-neutral-500">Category</dt>
+                    <dt className="text-sm font-semibold text-neutral-900">Category</dt>
                     <dd className="mt-1 text-sm text-neutral-900">{course.category ?? '—'}</dd>
                   </div>
                   <div>
-                    <dt className="text-sm font-medium text-neutral-500">Difficulty</dt>
+                    <dt className="text-sm font-semibold text-neutral-900">Difficulty</dt>
                     <dd className="mt-1 text-sm text-neutral-900">{course.difficulty ?? '—'}</dd>
                   </div>
                   <div>
-                    <dt className="text-sm font-medium text-neutral-500">Price</dt>
+                    <dt className="text-sm font-semibold text-neutral-900">Price</dt>
                     <dd className="mt-1 text-sm text-neutral-900">{formatMoney(course.price)}</dd>
                   </div>
                   <div>
-                    <dt className="text-sm font-medium text-neutral-500">Discount price</dt>
+                    <dt className="text-sm font-semibold text-neutral-900">Discount price</dt>
                     <dd className="mt-1 text-sm text-neutral-900">{formatMoney(course.discountPrice)}</dd>
                   </div>
                   <div>
-                    <dt className="text-sm font-medium text-neutral-500">Estimated minutes</dt>
-                    <dd className="mt-1 text-sm text-neutral-900">{course.estimatedMinutes ?? '—'}</dd>
-                  </div>
-                  <div>
-                    <dt className="text-sm font-medium text-neutral-500">Created</dt>
+                    <dt className="text-sm font-semibold text-neutral-900">Created</dt>
                     <dd className="mt-1 text-sm text-neutral-900">
                       {new Date(course.createdAt).toLocaleDateString()}
                     </dd>
                   </div>
                 </div>
                 <div>
-                  <dt className="text-sm font-medium text-neutral-500">Learning objectives</dt>
+                  <dt className="text-sm font-semibold text-neutral-900">Learning objectives</dt>
                   <dd className="mt-1">
                     {course.learningObjectives && course.learningObjectives.length > 0 ? (
                       <ul className="list-inside list-disc space-y-1 text-sm text-neutral-900">
@@ -260,6 +241,35 @@ export default function CourseDetailPage() {
                   </dd>
                 </div>
               </dl>
+              <div className="mt-6 flex flex-wrap items-center gap-2 border-t border-neutral-200 pt-5">
+                <LinkButton href={`${dashboardPrefix}/courses${organizationId ? `?organization=${organizationId}` : ''}`} variant="ghost" size="sm" aria-label="Back to My Courses">
+                  <span className="hidden sm:inline">Back to My Courses</span>
+                  <svg className="h-5 w-5 sm:hidden" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true"><path strokeLinecap="round" strokeLinejoin="round" d="M19 12H5m7 7-7-7 7-7" /></svg>
+                </LinkButton>
+                <Select
+                  value={course.status}
+                  onChange={handleStatusChange}
+                  disabled={updatingStatus}
+                  aria-label="Course status"
+                  mobileIcon={<svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true"><path strokeLinecap="round" strokeLinejoin="round" d="M5 12h14M12 5v14" /></svg>}
+                  options={STATUS_OPTIONS.map((opt) => ({ value: opt.value, label: opt.label }))}
+                  buttonClassName={
+                    course.status === 'PUBLISHED'
+                      ? 'border-success-200 bg-success-100 text-success-800'
+                      : course.status === 'DRAFT'
+                        ? 'border-[#ead8c6] bg-[#f5ebdd] text-[#5a321f]'
+                        : ''
+                  }
+                />
+                <LinkButton href={`${dashboardPrefix}/courses/${courseId}/modules${organizationId ? `?organization=${organizationId}` : ''}`} size="sm" variant="primary" aria-label="Manage Modules">
+                  <span className="hidden sm:inline">Manage Modules</span>
+                  <svg className="h-5 w-5 sm:hidden" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true"><path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" /></svg>
+                </LinkButton>
+                <LinkButton href={`${dashboardPrefix}/courses/${courseId}/edit${organizationId ? `?organization=${organizationId}` : ''}`} size="sm" variant="secondary" aria-label="Edit course">
+                  <span className="hidden sm:inline">Edit</span>
+                  <svg className="h-5 w-5 sm:hidden" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true"><path strokeLinecap="round" strokeLinejoin="round" d="m4 16 9.5-9.5a2.1 2.1 0 0 1 3 0l1 1a2.1 2.1 0 0 1 0 3L8 20H4v-4Z" /><path strokeLinecap="round" d="m13 7 4 4" /></svg>
+                </LinkButton>
+              </div>
             </>
           ) : (
             <Alert variant="warning" title="Course unavailable">

@@ -241,8 +241,10 @@ export default function MyCoursesPage() {
     setCourseDrawer({ course: course as CourseContent, modules: [] });
     try {
       const prefix = `/api/v1/organizations/${organizationId}/courses/${course.id}`;
-      const courseResponse = await fetch(prefix, { credentials: 'include' });
-      const modulesResponse = await fetch(`${prefix}/modules`, { credentials: 'include' });
+      const [courseResponse, modulesResponse] = await Promise.all([
+        fetch(prefix, { credentials: 'include' }),
+        fetch(`${prefix}/modules`, { credentials: 'include' }),
+      ]);
       if (!courseResponse.ok || !modulesResponse.ok) throw new Error('Unable to load course content');
       const courseBody: { data?: CourseContent } = await courseResponse.json();
       const modulesBody: { data?: Array<{ id: string; title: string; description: string | null; order: number }> } = await modulesResponse.json();
@@ -258,12 +260,9 @@ export default function MyCoursesPage() {
           const questionsResponse = await fetch(`${prefix}/modules/${module.id}/quizzes/${quiz.id}/questions`, { credentials: 'include' });
           if (!questionsResponse.ok) throw new Error('Unable to load quiz questions');
           const questionsBody: { data?: Array<Omit<CourseQuestion, 'options'> & { options?: CourseOption[] }> } = await questionsResponse.json();
-          const questions = await Promise.all((questionsBody.data ?? []).map(async (question) => {
-            if (question.options) return question as CourseQuestion;
-            const detailResponse = await fetch(`${prefix}/modules/${module.id}/quizzes/${quiz.id}/questions/${question.id}`, { credentials: 'include' });
-            if (!detailResponse.ok) throw new Error('Unable to load question options');
-            const detailBody: { data?: CourseQuestion } = await detailResponse.json();
-            return detailBody.data ?? { ...question, options: [] };
+          const questions = (questionsBody.data ?? []).map((question) => ({
+            ...question,
+            options: question.options ?? [],
           }));
           return { ...quiz, questions };
         }));
@@ -521,11 +520,10 @@ export default function MyCoursesPage() {
             <section className="space-y-3">
               <h3 className="text-base font-semibold text-neutral-900">Course</h3>
               <p className="whitespace-pre-wrap text-sm text-neutral-700">{courseDrawer.course.description || 'No description available.'}</p>
-              <div className="grid grid-cols-2 gap-3 text-sm text-neutral-700">
+              <div className="grid grid-cols-2 gap-3 text-sm text-neutral-900">
                 <span>Category: {courseDrawer.course.category || '—'}</span>
                 <span>Difficulty: {courseDrawer.course.difficulty || '—'}</span>
                 <span>Modules: {courseDrawer.modules.length}</span>
-                <span>Duration: {courseDrawer.course.estimatedMinutes ? `${courseDrawer.course.estimatedMinutes} minutes` : '—'}</span>
               </div>
             </section>
             <section>

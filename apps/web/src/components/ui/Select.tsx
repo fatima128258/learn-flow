@@ -17,6 +17,7 @@ export interface SelectProps {
   className?: string;
   buttonClassName?: string;
   menuClassName?: string;
+  mobileIcon?: React.ReactNode;
 }
 
 export const Select: React.FC<SelectProps> = ({
@@ -29,6 +30,7 @@ export const Select: React.FC<SelectProps> = ({
   className = '',
   buttonClassName = '',
   menuClassName = '',
+  mobileIcon,
 }) => {
   const [open, setOpen] = useState(false);
   const [highlightedIndex, setHighlightedIndex] = useState(() => Math.max(0, options.findIndex((option) => option.value === value)));
@@ -100,7 +102,8 @@ export const Select: React.FC<SelectProps> = ({
         onClick={() => setOpen((current) => !current)}
         onKeyDown={handleKeyDown}
       >
-        <span className="truncate">{selected?.label ?? 'Select an option'}</span>
+        <span className={mobileIcon ? 'hidden truncate sm:inline' : 'truncate'}>{selected?.label ?? 'Select an option'}</span>
+        {mobileIcon ? <span className="sm:hidden" aria-hidden="true">{mobileIcon}</span> : null}
         <svg className={`ml-3 h-4 w-4 flex-shrink-0 text-[#7a4a2e] transition-transform ${open ? 'rotate-180' : ''}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" aria-hidden="true">
           <path strokeLinecap="round" strokeLinejoin="round" d="m6 9 6 6 6-6" />
         </svg>
