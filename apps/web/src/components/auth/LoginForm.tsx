@@ -57,8 +57,11 @@ export const LoginForm: React.FC<LoginFormProps> = ({ onSubmit }) => {
     }
 
     setIsSubmitting(true);
+    const normalizedEmail = normalizeEmail(email);
+    if (!normalizedEmail) return;
+
     try {
-      await onSubmit({ email: normalizeEmail(email), password });
+      await onSubmit({ email: normalizedEmail, password });
     } finally {
       setIsSubmitting(false);
     }

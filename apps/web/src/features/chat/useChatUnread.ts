@@ -39,13 +39,23 @@ export function useChatUnread(organizationId?: string, userId?: string) {
       setCounts((current) => ({ ...current, [event.conversationId]: event.unreadCount }));
     });
 
-    getJson<ChatListResponse>(`/api/v1/organizations/${organizationId}/conversations`)
-      .then((response) => {
-        applyServerCounts(response);
-      })
-      .catch(() => {
-        // Preserve any server-backed socket state already received.
-      });
+    const loadCounts = async () => {
+      for (let attempt = 0; attempt < 3; attempt += 1) {
+        try {
+          const response = await getJson<ChatListResponse>(
+            `/api/v1/organizations/${organizationId}/conversations`,
+          );
+          applyServerCounts(response);
+          return;
+        } catch {
+          if (attempt < 2) {
+            await new Promise((resolve) => setTimeout(resolve, 1000 * (attempt + 1)));
+          }
+        }
+      }
+      // Preserve any server-backed socket state already received.
+    };
+    void loadCounts();
 
     return () => {
       cancelled = true;

@@ -1,12 +1,16 @@
 import { NextResponse } from 'next/server';
 
-export async function GET(req: Request) {
+async function proxyRequest(req: Request, method: 'GET' | 'PATCH') {
   const backendUrl = process.env.BACKEND_URL || 'https://learn-flow-1-1gl3.onrender.com';
   const cookie = req.headers.get('cookie') || '';
   const forwardedFor = req.headers.get('x-forwarded-for');
-  const headers: HeadersInit = { Cookie: cookie };
+  const headers: HeadersInit = {
+    Cookie: cookie,
+    ...(method === 'PATCH' ? { 'Content-Type': 'application/json' } : {}),
+  };
   if (forwardedFor) headers['x-forwarded-for'] = forwardedFor;
   const transientStatuses = new Set([502, 503, 504]);
+  const body = method === 'PATCH' ? await req.text() : undefined;
 
   for (let attempt = 0; attempt < 3; attempt += 1) {
     const controller = new AbortController();
@@ -14,8 +18,9 @@ export async function GET(req: Request) {
 
     try {
       const resp = await fetch(`${backendUrl}/api/v1/auth/me`, {
-        method: 'GET',
+        method,
         headers,
+        body,
         signal: controller.signal,
       });
 
@@ -50,6 +55,14 @@ export async function GET(req: Request) {
           { success: false, error: 'BACKEND_UNAVAILABLE' },
           { status: 503 },
         );
+      }
+
+      export async function GET(req: Request) {
+        return proxyRequest(req, 'GET');
+      }
+
+      export async function PATCH(req: Request) {
+        return proxyRequest(req, 'PATCH');
       }
     } finally {
       clearTimeout(timeoutId);

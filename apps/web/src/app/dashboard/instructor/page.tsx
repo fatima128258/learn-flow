@@ -51,7 +51,10 @@ export default function InstructorDashboardPage() {
 
   return (
     <div className="mx-auto max-w-6xl">
-      <PageHeader title={`Welcome, ${user?.name ?? 'Instructor'}`} />
+      <PageHeader
+        title={`Welcome, ${user?.name ?? 'Instructor'}`}
+        className="-mt-4 mb-0 !py-1"
+      />
 
       {isLoading || userLoading ? (
         <>

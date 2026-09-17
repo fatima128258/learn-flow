@@ -8,9 +8,19 @@ describe('web email validation', () => {
     '@gmail.com',
     'fatima@gmail',
     'fatima@gmail.',
-    'fatima @gmail.com',
-    'fatima@gmail..com',
+    'fatima.com',
+    'fatima@.com',
     'fatima..ramzan@gmail.com',
+    '.fatima@gmail.com',
+    'fatima.@gmail.com',
+    'fatima @gmail.com',
+    'fatima@gmail .com',
+    'fatima@ gmail.com',
+    'fatima@@gmail.com',
+    'fatima@g mail.com',
+    'fatima@gmail..com',
+    '',
+    '   ',
   ])('rejects malformed email %s', (email) => {
     expect(isValidEmail(email)).toBe(false);
   });
@@ -27,5 +37,9 @@ describe('web email validation', () => {
 
   it('normalizes surrounding whitespace and casing', () => {
     expect(normalizeEmail('  Fatima@Gmail.COM ')).toBe('fatima@gmail.com');
+  });
+
+  it('does not repair internal whitespace', () => {
+    expect(normalizeEmail('fatima @gmail.com')).toBeNull();
   });
 });

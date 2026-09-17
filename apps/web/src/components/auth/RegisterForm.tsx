@@ -94,8 +94,11 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
     }
 
     setLoading(true);
+    const normalizedEmail = normalizeEmail(email);
+    if (!normalizedEmail) return;
+
     try {
-      await onSubmit({ name, email: normalizeEmail(email), password, confirmPassword });
+      await onSubmit({ name, email: normalizedEmail, password, confirmPassword });
     } catch {
       // API errors are surfaced by AuthSwitch via toast
     } finally {

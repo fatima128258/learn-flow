@@ -9,6 +9,7 @@ const STUDENT_PROGRESS_TIMEOUT_MS = 60000;
 const STUDENT_LEARNING_TIMEOUT_MS = 60000;
 const CHAT_MESSAGE_TIMEOUT_MS = 60000;
 const CHAT_HISTORY_TIMEOUT_MS = 60000;
+const CHAT_LIST_TIMEOUT_MS = 60000;
 const COURSE_SEARCH_TIMEOUT_MS = 60000;
 
 function wait(milliseconds: number) {
@@ -40,6 +41,7 @@ async function proxyRequest(
   const studentLearningRequest = method === 'GET' && /\/student\/courses\/[^/]+\/modules(?:\/|$)/.test(path);
   const chatMessageRequest = method === 'POST' && /\/conversations\/[^/]+\/messages$/.test(path);
   const chatHistoryRequest = method === 'GET' && /\/conversations\/[^/]+\/messages$/.test(path);
+  const chatListRequest = method === 'GET' && /\/conversations$/.test(path);
   const courseSearchRequest = method === 'GET' && /\/student\/search$/.test(path);
   const backendTimeoutMs = certificateRequest
     ? CERTIFICATE_TIMEOUT_MS
@@ -51,6 +53,8 @@ async function proxyRequest(
       ? CHAT_MESSAGE_TIMEOUT_MS
     : chatHistoryRequest
       ? CHAT_HISTORY_TIMEOUT_MS
+    : chatListRequest
+      ? CHAT_LIST_TIMEOUT_MS
     : courseSearchRequest
       ? COURSE_SEARCH_TIMEOUT_MS
     : adminAssignmentRequest
@@ -87,8 +91,10 @@ async function proxyRequest(
         clearTimeout(timeoutId);
       }
 
+      const retryableResponse = TRANSIENT_STATUSES.has(resp.status)
+        || (chatListRequest && resp.status === 500);
       if (
-        !TRANSIENT_STATUSES.has(resp.status) ||
+        !retryableResponse ||
         (!retryableProgressRequest && method !== 'GET') ||
         attempt === 2
       ) {

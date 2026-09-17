@@ -1,12 +1,13 @@
-// Basic validation utilities for authentication-related input.
-// Kept intentionally dependency-free. These return boolean and can be
-// composed into more complex validators later.
+const EMAIL_PATTERN = /^[A-Za-z0-9]+(?:[._+-][A-Za-z0-9]+)*@[A-Za-z0-9](?:[A-Za-z0-9-]*[A-Za-z0-9])?(?:\.[A-Za-z0-9](?:[A-Za-z0-9-]*[A-Za-z0-9])?)+$/;
 
-export function isValidEmail(email: string) {
-  if (typeof email !== 'string') return false;
-  const normalized = email.trim();
-  const re = /^[A-Za-z0-9]+(?:[._+-][A-Za-z0-9]+)*@[A-Za-z0-9](?:[A-Za-z0-9-]*[A-Za-z0-9])?(?:\.[A-Za-z0-9](?:[A-Za-z0-9-]*[A-Za-z0-9])?)+$/;
-  return re.test(normalized);
+export function normalizeEmail(email: unknown): string | null {
+  if (typeof email !== 'string') return null;
+  const normalized = email.trim().toLowerCase();
+  return EMAIL_PATTERN.test(normalized) ? normalized : null;
+}
+
+export function isValidEmail(email: unknown): boolean {
+  return normalizeEmail(email) !== null;
 }
 
 export function isValidPassword(password: string) {
