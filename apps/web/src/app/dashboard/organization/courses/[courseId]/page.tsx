@@ -195,12 +195,12 @@ export default function CourseDetailPage() {
 
               <dl className="mt-6 space-y-4">
                 <div>
-                  <dt className="text-sm font-medium text-neutral-500">Description</dt>
-                  <dd className="mt-1 text-sm text-neutral-900">{course.description ?? '—'}</dd>
+                  <dt className="text-sm font-semibold text-neutral-900">Description</dt>
+                  <dd className="mt-1 text-sm font-semibold text-neutral-900">{course.description ?? '—'}</dd>
                 </div>
                 <div>
-                  <dt className="text-sm font-medium text-neutral-500">Thumbnail URL</dt>
-                  <dd className="mt-1 break-all text-sm text-neutral-900">{course.thumbnailUrl ?? '—'}</dd>
+                  <dt className="text-sm font-semibold text-neutral-900">Thumbnail URL</dt>
+                  <dd className="mt-1 break-all text-sm font-semibold text-neutral-900">{course.thumbnailUrl ?? '—'}</dd>
                 </div>
                 <div className="grid gap-4 md:grid-cols-2">
                   <div>
@@ -241,11 +241,7 @@ export default function CourseDetailPage() {
                   </dd>
                 </div>
               </dl>
-              <div className="mt-6 flex flex-wrap items-center gap-2 border-t border-neutral-200 pt-5">
-                <LinkButton href={`${dashboardPrefix}/courses${organizationId ? `?organization=${organizationId}` : ''}`} variant="ghost" size="sm" aria-label="Back to My Courses">
-                  <span className="hidden sm:inline">Back to My Courses</span>
-                  <svg className="h-5 w-5 sm:hidden" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true"><path strokeLinecap="round" strokeLinejoin="round" d="M19 12H5m7 7-7-7 7-7" /></svg>
-                </LinkButton>
+              <div className="mt-6 flex flex-wrap items-center justify-end gap-2 border-t border-neutral-200 pt-5">
                 <Select
                   value={course.status}
                   onChange={handleStatusChange}
@@ -255,7 +251,7 @@ export default function CourseDetailPage() {
                   options={STATUS_OPTIONS.map((opt) => ({ value: opt.value, label: opt.label }))}
                   buttonClassName={
                     course.status === 'PUBLISHED'
-                      ? 'border-success-200 bg-success-100 text-success-800'
+                      ? 'border-[#b88b68] bg-[#f5ebdd] text-[#5a321f]'
                       : course.status === 'DRAFT'
                         ? 'border-[#ead8c6] bg-[#f5ebdd] text-[#5a321f]'
                         : ''
