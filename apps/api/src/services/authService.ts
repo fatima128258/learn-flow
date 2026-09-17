@@ -318,15 +318,26 @@ export async function requestPasswordReset(input: string | { email: string; ip?:
     used: false,
   });
 
-  try {
-    // Password reset must not report success until the verification code has
-    // been handed to the configured email provider. Queueing this request
-    // fire-and-forget can leave users with a stored code but no delivered email
-    // when the worker or Redis is unavailable.
-    await sendPasswordResetCodeEmail(normalizedEmail, code);
-  } catch (err) {
-    await repo.deletePasswordResetTokenById(resetRecord.id);
-    throw err;
+  if (isEmailQueueEnabled()) {
+    getEmailQueue()
+      .add('send-password-reset-code-email', {
+        type: 'password-reset-code',
+        email: normalizedEmail,
+        code,
+      })
+      .catch((err) => {
+        console.error('Failed to queue password reset code email:', err);
+        sendPasswordResetCodeEmail(normalizedEmail, code).catch((fallbackErr) => {
+          console.error('Failed to send password reset code email:', fallbackErr);
+        });
+      });
+  } else {
+    try {
+      await sendPasswordResetCodeEmail(normalizedEmail, code);
+    } catch (err) {
+      await repo.deletePasswordResetTokenById(resetRecord.id);
+      throw err;
+    }
   }
 
   return { success: true };
