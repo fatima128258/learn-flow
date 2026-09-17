@@ -169,6 +169,7 @@ export default function StudentCoursePage() {
           <>
             <div className="mb-4 flex items-center justify-between gap-3">
               <h2 className="text-lg font-semibold text-neutral-900">Course Content</h2>
+              {/* Temporarily disabled while the real-time chat service is stabilized.
               <div className="flex items-center gap-2">
                 <Link
                   href={`/dashboard/student/chat?courseId=${course.courseId}`}
@@ -177,6 +178,7 @@ export default function StudentCoursePage() {
                   Chat with instructor
                 </Link>
               </div>
+              */}
             </div>
             {course.modules.length === 0 ? (
               <div className="rounded-2xl border border-neutral-200 bg-white shadow-sm">

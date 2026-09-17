@@ -392,6 +392,7 @@ export default function StudentModuleLessonsPage() {
             <div className="mb-6 rounded-2xl border border-neutral-200 bg-white p-6 shadow-sm">
               <div className="flex flex-wrap items-start justify-between gap-4">
                 <h1 className="text-2xl font-bold text-neutral-900">{lessonsData.moduleTitle}</h1>
+                {/* Temporarily disabled while the real-time chat service is stabilized.
                 {currentUser?.organizationId && (
                   <Link
                     href={`/dashboard/student/chat?courseId=${courseId}`}
@@ -400,6 +401,7 @@ export default function StudentModuleLessonsPage() {
                     Chat with Instructor
                   </Link>
                 )}
+                */}
               </div>
               {currentModule && (
                 <p className="mt-1 text-sm text-neutral-500">

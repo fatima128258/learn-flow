@@ -390,17 +390,17 @@ export async function getLessonContent(
 ) {
   await verifyEnrollment(userId, courseId, organizationId);
 
-  const course = await courseRepo.getById(organizationId, courseId);
+  const [course, module, lesson] = await Promise.all([
+    courseRepo.getById(organizationId, courseId),
+    moduleRepo.getById(courseId, moduleId),
+    lessonRepo.getById(moduleId, lessonId),
+  ]);
   if (!course) {
     throw new Error('COURSE_NOT_FOUND');
   }
-
-  const module = await moduleRepo.getById(courseId, moduleId);
   if (!module) {
     throw new Error('MODULE_NOT_FOUND');
   }
-
-  const lesson = await lessonRepo.getById(moduleId, lessonId);
   if (!lesson) {
     throw new Error('LESSON_NOT_FOUND');
   }
