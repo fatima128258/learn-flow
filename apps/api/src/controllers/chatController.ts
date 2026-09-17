@@ -6,6 +6,9 @@ import { chatEvents } from '../chatEvents';
 const error = (res: Response, e: unknown) => {
   const m = e instanceof Error ? e.message : '';
   const map: Record<string, number> = { COURSE_NOT_FOUND: 404, CONVERSATION_NOT_FOUND: 404, ENROLLMENT_REQUIRED: 403, FORBIDDEN: 403, CONVERSATION_BLOCKED: 403, INVALID_CONTENT: 400, INVALID_REPLY: 400 };
+  if (!map[m]) {
+    console.error('[chat] request failed', e);
+  }
   return res.status(map[m] || 500).json({ success: false, error: map[m] ? m : 'SERVER_ERROR' });
 };
 export async function open(req: AuthenticatedRequest, res: Response) { try { return res.status(200).json({ success: true, data: await service.open(req.params.organizationId, req.params.courseId, req.user!.id, req.user!.role, req.body?.studentId) }); } catch (e) { return error(res, e); } }

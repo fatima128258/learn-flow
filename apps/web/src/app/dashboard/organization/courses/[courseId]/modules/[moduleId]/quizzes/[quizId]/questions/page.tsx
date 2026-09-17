@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useParams, usePathname, useRouter } from 'next/navigation';
+import { createPortal } from 'react-dom';
 import { Badge, Button, EmptyState, EmptyStateIcons, Spinner } from '../../../../../../../../../../components/ui';
 import { Input } from '../../../../../../../../../../components/ui/Input';
 import { Textarea } from '../../../../../../../../../../components/forms/Textarea';
@@ -1141,15 +1142,15 @@ export default function QuizQuestionsPage() {
         </aside>
       </div>
 
-      {expandedQuestion && (
+      {expandedQuestion && typeof document !== 'undefined' ? createPortal(
         <>
           <button
             type="button"
             aria-label="Close question drawer"
             onClick={() => setExpandedQuestion(null)}
-            className="fixed inset-0 z-[100] overscroll-none bg-neutral-950/30"
+            className="fixed inset-0 z-[1000] overscroll-none bg-neutral-950/30"
           />
-          <aside className="fixed inset-y-0 right-0 z-[110] flex h-dvh w-full max-w-md flex-col overscroll-contain border-l border-[#ead8c6] bg-[#fffdf9] shadow-2xl">
+          <aside className="fixed inset-y-0 right-0 z-[1010] flex h-dvh w-full max-w-md flex-col overscroll-contain border-l border-[#ead8c6] bg-[#fffdf9] shadow-2xl">
             {(() => {
               const question = questions?.find((item) => item.id === expandedQuestion);
               if (!question) return null;
@@ -1219,8 +1220,9 @@ export default function QuizQuestionsPage() {
               );
             })()}
           </aside>
-        </>
-      )}
+        </>,
+        document.body,
+      ) : null}
 
       <Modal
         isOpen={showCreateModal}

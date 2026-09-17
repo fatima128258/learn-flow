@@ -10,3 +10,11 @@ services:
         value: production
       - key: SESSION_COOKIE_SECURE
         value: "true"
+      # The API web service should not run BullMQ polling workers. Keeping
+      # these disabled prevents continuous Redis queue polling from exhausting
+      # the shared Upstash request quota. Queue producers retain their
+      # existing inline fallbacks when these features are disabled.
+      - key: EMAIL_QUEUE_ENABLED
+        value: "false"
+      - key: NOTIFICATIONS_QUEUE_ENABLED
+        value: "false"
