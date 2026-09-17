@@ -39,7 +39,7 @@ async function proxyRequest(
         ? timeoutId
         : setTimeout(() => requestController.abort(), STUDENT_TASK_TIMEOUT_MS);
       try {
-        response = await fetch(forwardUrl, {
+        const fetchedResponse = await fetch(forwardUrl, {
           method,
           headers: {
             Cookie: request.headers.get('cookie') || '',
@@ -48,12 +48,13 @@ async function proxyRequest(
           body: body !== undefined ? JSON.stringify(body) : undefined,
           signal: requestController.signal,
         });
+        response = fetchedResponse;
+        if (!TRANSIENT_STATUSES.has(fetchedResponse.status) || method !== 'GET' || attempt === 2) break;
+        await fetchedResponse.body?.cancel();
+        await new Promise((resolve) => setTimeout(resolve, retryDelay(fetchedResponse, attempt)));
       } finally {
         if (attempt > 0) clearTimeout(requestTimeoutId);
       }
-      if (!TRANSIENT_STATUSES.has(response.status) || method !== 'GET' || attempt === 2) break;
-      await response.body?.cancel();
-      await new Promise((resolve) => setTimeout(resolve, retryDelay(response, attempt)));
     }
     if (!response) {
       return NextResponse.json({ success: false, error: 'BACKEND_UNAVAILABLE' }, { status: 503 });

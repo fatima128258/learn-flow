@@ -34,14 +34,14 @@ async function proxyRequest(req: Request, method: 'GET' | 'PATCH') {
         signal: controller.signal,
       });
 
-      if (transientStatuses.has(resp.status) && attempt < 2) {
+      if (TRANSIENT_STATUSES.has(resp.status) && attempt < 2) {
         await resp.body?.cancel();
         await new Promise((resolve) => setTimeout(resolve, retryDelay(resp, attempt)));
         continue;
       }
 
       const data = await resp.text();
-      if (transientStatuses.has(resp.status)) {
+      if (TRANSIENT_STATUSES.has(resp.status)) {
         return NextResponse.json(
           { success: false, error: 'BACKEND_UNAVAILABLE' },
           { status: resp.status },
