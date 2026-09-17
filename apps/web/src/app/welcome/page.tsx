@@ -41,6 +41,7 @@ function WelcomeContent() {
       const res = await fetch(`${apiBase}/api/v1/auth/resend-verification`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: registeredEmail }),
         credentials: 'include',
       });
 
@@ -132,6 +133,28 @@ function WelcomeContent() {
               </div>
             </div>
           </div>
+
+          {!isVerified && registeredEmail && (
+            <div className="rounded-lg border border-blue-200 bg-blue-50 p-4">
+              <p className="text-sm text-blue-800">
+                We sent a verification link to <span className="font-semibold">{registeredEmail}</span>.
+              </p>
+              <Button
+                variant="secondary"
+                className="mt-3 w-full"
+                onClick={() => void handleResendVerification()}
+                disabled={resending}
+              >
+                {resending ? 'Resending...' : 'Resend verification email'}
+              </Button>
+              {resendSuccess && (
+                <p className="mt-2 text-sm text-green-700">A new verification email has been sent.</p>
+              )}
+              {resendError && (
+                <p className="mt-2 text-sm text-red-700">{resendError}</p>
+              )}
+            </div>
+          )}
 
 
 
