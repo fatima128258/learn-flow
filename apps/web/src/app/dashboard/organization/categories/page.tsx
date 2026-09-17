@@ -115,7 +115,7 @@ export default function CategoriesPage() {
         </div>
       </div>
       <TableCard>
-        {loading ? <div className="flex items-center justify-center py-16"><Spinner size="lg" label="Loading categories..." /></div>
+        {loading ? <div className="flex items-center gap-3 p-5 text-neutral-700"><Spinner size="lg" label="Loading categories..." /><span>Loading categories...</span></div>
           : error ? <ErrorState title="Unable to load categories" action={{ label: 'Try again', onClick: () => void load() }} />
           : !hasCategories ? <EmptyState icon={search ? EmptyStateIcons.NoResults : EmptyStateIcons.NoData} title={search ? 'No matching categories' : 'No categories yet'} description={search ? 'Try a different search.' : 'Create your first category to organize courses.'} action={!search ? emptyAction : undefined} />
           : viewMode === 'cards' ? (
