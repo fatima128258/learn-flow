@@ -196,11 +196,11 @@ export default function CourseDetailPage() {
               <dl className="mt-6 space-y-4">
                 <div>
                   <dt className="text-sm font-semibold text-neutral-900">Description</dt>
-                  <dd className="mt-1 text-sm font-semibold text-neutral-900">{course.description ?? '—'}</dd>
+                  <dd className="mt-1 text-sm font-normal leading-6 text-neutral-700">{course.description ?? '—'}</dd>
                 </div>
                 <div>
                   <dt className="text-sm font-semibold text-neutral-900">Thumbnail URL</dt>
-                  <dd className="mt-1 break-all text-sm font-semibold text-neutral-900">{course.thumbnailUrl ?? '—'}</dd>
+                  <dd className="mt-1 break-all text-sm font-normal leading-6 text-neutral-700">{course.thumbnailUrl ?? '—'}</dd>
                 </div>
                 <div className="grid gap-4 md:grid-cols-2">
                   <div>
@@ -251,7 +251,7 @@ export default function CourseDetailPage() {
                   options={STATUS_OPTIONS.map((opt) => ({ value: opt.value, label: opt.label }))}
                   buttonClassName={
                     course.status === 'PUBLISHED'
-                      ? 'border-[#b88b68] bg-[#f5ebdd] text-[#5a321f]'
+                      ? 'border-[#b88b68] bg-[#f0dcc4] text-[#5a321f] shadow-sm'
                       : course.status === 'DRAFT'
                         ? 'border-[#ead8c6] bg-[#f5ebdd] text-[#5a321f]'
                         : ''
