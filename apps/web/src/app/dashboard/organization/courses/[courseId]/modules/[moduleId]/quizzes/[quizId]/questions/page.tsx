@@ -1167,12 +1167,13 @@ export default function QuizQuestionsPage() {
             {(() => {
               const question = questions?.find((item) => item.id === expandedQuestion);
               if (!question) return null;
+              const questionIndex = questions?.findIndex((item) => item.id === question.id) ?? -1;
               return (
                 <>
                   <div className="flex items-start justify-between gap-4 border-b border-[#ead8c6] p-5">
                     <div>
                       <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#9b765c]">
-                        Question {questions.findIndex((item) => item.id === question.id) + 1}
+                        Question {questionIndex + 1}
                       </p>
                       <h2 className="mt-1 text-xl font-bold text-neutral-900">{question.questionText}</h2>
                       <p className="mt-1 text-sm text-neutral-500">{question.marks}</p>
