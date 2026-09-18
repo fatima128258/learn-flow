@@ -70,6 +70,14 @@ export default function StudentLessonPage() {
     moduleLessonCompleted ||
     legacyLessonCompleted ||
     Boolean(lessonId && progress?.completedLessonIds.includes(lessonId));
+  const isCourseComplete =
+    courseCompleted ||
+    progress?.courseComplete === true ||
+    progress?.contentComplete === true;
+  const currentLessonIndex = moduleLessons?.lessons?.findIndex(
+    (lesson: { id?: string }) => lesson.id === lessonId,
+  ) ?? -1;
+  const hasPreviousLesson = currentLessonIndex > 0;
 
   useEffect(() => {
     setNextContentUrl(null);
@@ -230,7 +238,8 @@ export default function StudentLessonPage() {
       setCompletedLocally(completed);
       const completedCourse =
         responseBody?.data?.courseProgress?.contentComplete === true ||
-        responseBody?.data?.courseProgress?.courseComplete === true;
+        responseBody?.data?.courseProgress?.courseComplete === true ||
+        responseBody?.data?.courseProgress?.successfulCompletion === true;
       setCourseCompleted(completedCourse);
       if (completed) {
         toast.toast({
@@ -242,14 +251,16 @@ export default function StudentLessonPage() {
           duration: 5000,
           action: (
             <>
-              <button
-                type="button"
-                onClick={() => void goToNextContent()}
-                disabled={nextResolving}
-                className="rounded-md bg-[#5A321F] px-3 py-1.5 text-xs font-semibold text-white hover:bg-[#472719] disabled:cursor-not-allowed disabled:opacity-60"
-              >
-                {nextResolving ? 'Loading next...' : 'Next'}
-              </button>
+              {!completedCourse && (
+                <button
+                  type="button"
+                  onClick={() => void goToNextContent()}
+                  disabled={nextResolving}
+                  className="rounded-md bg-[#5A321F] px-3 py-1.5 text-xs font-semibold text-white hover:bg-[#472719] disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  {nextResolving ? 'Loading next...' : 'Next'}
+                </button>
+              )}
               {completedCourse && (
                 <Link
                   href="/dashboard/student/certificates"
@@ -262,7 +273,7 @@ export default function StudentLessonPage() {
           ),
         });
       }
-      if (completed && user.organizationId) {
+      if (completed && user.organizationId && !completedCourse) {
         // Enable navigation immediately after completion; refine the route in
         // the background when the next-content lookup finishes.
         setNextContentUrl(null);
@@ -378,27 +389,38 @@ export default function StudentLessonPage() {
                   {markError && (
                     <span className="text-sm text-error-600">{markError}</span>
                   )}
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    onClick={() => router.back()}
-                  >
-                    Previous
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="primary"
-                    disabled={marking}
-                    onClick={() => {
-                      if (isCompleted) {
-                        void goToNextContent();
-                      } else {
-                        void markComplete(true);
-                      }
-                    }}
-                  >
-                    {marking ? 'Saving...' : isCompleted ? 'Next' : 'Complete'}
-                  </Button>
+                  {hasPreviousLesson && (
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => router.back()}
+                    >
+                      Previous
+                    </Button>
+                  )}
+                  {isCourseComplete ? (
+                    <Link
+                      href="/dashboard/student/certificates"
+                      className="inline-flex items-center rounded-lg bg-[#5A321F] px-3 py-2 text-sm font-semibold text-white hover:bg-[#472719]"
+                    >
+                      Go to Certificate
+                    </Link>
+                  ) : (
+                    <Button
+                      size="sm"
+                      variant="primary"
+                      disabled={marking}
+                      onClick={() => {
+                        if (isCompleted) {
+                          void goToNextContent();
+                        } else {
+                          void markComplete(true);
+                        }
+                      }}
+                    >
+                      {marking ? 'Saving...' : isCompleted ? 'Next' : 'Complete'}
+                    </Button>
+                  )}
                 </div>
               </div>
             </div>

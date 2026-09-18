@@ -79,7 +79,7 @@ export function CategorySelect({
         value={value}
         onChange={onChange}
         disabled={disabled || loading || failed}
-        buttonClassName="rounded-xl border border-[#d8c0aa] bg-[#fffdf9] px-4 py-3 text-base text-[#17212b] shadow-none focus:border-[#7a4a2e] focus:ring-2 focus:ring-[#a8784f]/20"
+        buttonClassName="rounded-xl border border-[#e5d5c4] bg-[#fffdf9] px-4 py-3 text-base text-[#17212b] shadow-none transition-all focus:border-[#7a4a2e] focus:ring-2 focus:ring-[#a8784f]/20 disabled:border-[#ead8c6]"
         menuClassName="rounded-xl border border-[#ead8c6] bg-[#fffdf9] shadow-lg"
         options={[
           { value: '', label: loading ? 'Loading categories...' : failed ? 'Unable to load categories' : categories.length ? 'Select category' : 'No categories available' },

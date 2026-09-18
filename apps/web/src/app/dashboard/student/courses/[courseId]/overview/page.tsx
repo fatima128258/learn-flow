@@ -5,8 +5,8 @@ import { useParams, useRouter } from 'next/navigation';
 import { createPortal } from 'react-dom';
 import {
   Button,
-  DashboardSkeleton,
   ErrorState,
+  PageLoading,
   Spinner,
 } from '@/components/ui';
 import { useToast } from '@/components/ui/ToastProvider';
@@ -186,9 +186,7 @@ export default function StudentCourseOverviewPage() {
   }
 
   if (loading) {
-    return (
-      <DashboardSkeleton cards={3} />
-    );
+    return <PageLoading label="Loading course..." />;
   }
 
   return (

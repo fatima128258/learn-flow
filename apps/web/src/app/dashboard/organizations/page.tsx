@@ -739,7 +739,7 @@ export default function OrganizationsPage() {
 
   if (loading && organizations === null && !error) {
     return (
-      <div className="mx-auto flex max-w-5xl items-center gap-3 text-neutral-700">
+      <div className="mx-auto w-full max-w-5xl text-neutral-700">
         <DashboardSkeleton cards={3} />
       </div>
     );

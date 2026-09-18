@@ -250,10 +250,10 @@ export default function CourseDetailPage() {
                   menuClassName="bottom-full mb-1 mt-0"
                   options={STATUS_OPTIONS.map((opt) => ({ value: opt.value, label: opt.label }))}
                   buttonClassName={
-                    course.status === 'PUBLISHED'
+                    course.status.toUpperCase() === 'PUBLISHED'
                       ? 'border-0 bg-[#d8b58e] text-[#5a321f] shadow-sm aria-expanded:bg-[#c99f74] focus:border-0'
-                      : course.status === 'DRAFT'
-                        ? 'border-[#ead8c6] bg-[#f5ebdd] text-[#5a321f]'
+                      : course.status.toUpperCase() === 'DRAFT'
+                        ? 'border-[#d9b995] bg-[#f3e4d2] text-[#5a321f]'
                         : ''
                   }
                 />
