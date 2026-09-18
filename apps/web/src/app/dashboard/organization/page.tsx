@@ -23,7 +23,7 @@ import {
   LineChart,
 } from '../../../components/dashboard';
 import { useCurrentUser } from '../../../features/auth/useCurrentUser';
-import { DashboardSkeleton } from '../../../components/ui/Skeleton';
+import { PageLoader } from '../../../components/ui/Spinner';
 
 type OrganizationInfo = {
   id: string;
@@ -313,7 +313,7 @@ export default function OrganizationDashboardPage() {
   }
 
   if (loading && summary === null && !error) {
-    return <DashboardSkeleton cards={4} />;
+    return <PageLoader label="Loading organization dashboard..." />;
   }
 
   return (
