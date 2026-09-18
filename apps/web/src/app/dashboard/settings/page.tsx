@@ -57,10 +57,13 @@ export default function SettingsPage() {
 
     setEmailSubmitting(true);
     try {
-      await patchJson('/api/v1/auth/me', { email: trimmedEmail });
+      const response = await patchJson<{ user?: { emailVerified?: boolean } }>('/api/v1/auth/me', { email: trimmedEmail });
       setEmail('');
+      const requiresVerification = response.user?.emailVerified !== true;
       toast.success(
-        'Your email address was updated and a verification link was sent to your new address.',
+        requiresVerification
+          ? 'Your email address was updated and a verification link was sent to your new address.'
+          : 'Your email address was updated successfully.',
         'Email updated',
       );
       await logout();

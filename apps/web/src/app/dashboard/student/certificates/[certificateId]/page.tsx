@@ -8,8 +8,8 @@ import {
   EmptyState,
   EmptyStateIcons,
   ErrorState,
-  Spinner,
 } from '@/components/ui';
+import { PageLoader } from '@/components/ui/Spinner';
 import { useCurrentUser } from '@/features/auth/useCurrentUser';
 
 type Certificate = {
@@ -149,14 +149,7 @@ export default function StudentCertificateViewPage() {
   }
 
   if (loading) {
-    return (
-      <div className="mx-auto max-w-6xl">
-        <div className="flex items-center gap-3 rounded-2xl border border-neutral-200 bg-white p-8 shadow-sm">
-          <Spinner size="lg" label={retrying ? "Generating certificate..." : "Loading certificate..."} />
-          <span className="text-neutral-700">{retrying ? "Generating certificate..." : "Loading certificate..."}</span>
-        </div>
-      </div>
-    );
+    return <PageLoader label={retrying ? 'Generating certificate...' : 'Loading certificate...'} />;
   }
 
   return (
@@ -235,28 +228,44 @@ export default function StudentCertificateViewPage() {
                 </div>
               </div> */}
 
-              <div className="mt-4 flex flex-wrap gap-3">
+              <div className="mt-4 flex flex-wrap justify-end gap-3">
                 {certificate.pdfUrl && certificate.pdfDownloadUrl ? (
                   <a
                     href={`/api/v1/organizations/${certificate.organizationId}/certificates/${certificate.certificateId}/download`}
+                    aria-label="Download PDF"
+                    title="Download PDF"
                     className="inline-flex items-center gap-2 rounded-lg border-2 border-neutral-900 bg-neutral-900 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-neutral-800"
                   >
-                    Download PDF
+                    <svg className="h-4 w-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M12 3v12m0 0 4-4m-4 4-4-4M5 21h14" />
+                    </svg>
+                    <span className="hidden sm:inline">Download PDF</span>
                   </a>
                 ) : null}
                 <a
                   href={`/verify/${certificate.verificationToken}`}
                   target="_blank"
                   rel="noopener noreferrer"
+                  aria-label="Verify Publicly"
+                  title="Verify Publicly"
                   className="inline-flex items-center gap-2 rounded-lg bg-primary-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-primary-700"
                 >
-                  Verify Publicly
+                  <svg className="h-4 w-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m5.6-3.5A9 9 0 1 1 3.4 8.5" />
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M20 4v5h-5" />
+                  </svg>
+                  <span className="hidden sm:inline">Verify Publicly</span>
                 </a>
                 <Link
                   href={`/dashboard/student/courses/${certificate.courseId}`}
-                  className="inline-flex items-center gap-2 rounded-lg border-2 border-primary-600 px-4 py-2 text-sm font-medium text-primary-600 transition-colors hover:bg-primary-50"
+                  aria-label="Back to Course"
+                  title="Back to Course"
+                  className="inline-flex items-center gap-2 rounded-lg border-2 border-primary-600 bg-primary-50 px-4 py-2 text-sm font-medium text-primary-700 transition-colors hover:bg-primary-100"
                 >
-                  Back to Course
+                  <svg className="h-4 w-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M19 12H5m7-7-7 7 7 7" />
+                  </svg>
+                  <span className="hidden sm:inline">Back to Course</span>
                 </Link>
               </div>
             </div>

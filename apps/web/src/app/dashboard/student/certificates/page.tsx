@@ -10,6 +10,7 @@ import {
   ErrorState,
   Spinner,
 } from '@/components/ui';
+import { PageLoader } from '@/components/ui/Spinner';
 import { useCurrentUser } from '@/features/auth/useCurrentUser';
 import { useMyCourses } from '@/features/student/useMyCourses';
 
@@ -318,14 +319,7 @@ export default function StudentCertificatesPage() {
   }, [user, userLoading]);
 
   if (loading || coursesLoading) {
-    return (
-      <div className="mx-auto max-w-6xl">
-        <div className="flex items-center gap-3 rounded-2xl border border-neutral-200 bg-white p-8 shadow-sm">
-          <Spinner size="lg" label="Loading certificates..." />
-          <span className="text-neutral-700">Loading certificates...</span>
-        </div>
-      </div>
-    );
+    return <PageLoader label="Loading certificates..." />;
   }
 
   return (

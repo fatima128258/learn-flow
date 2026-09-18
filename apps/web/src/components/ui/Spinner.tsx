@@ -81,9 +81,9 @@ export const PageLoader: React.FC<{ label?: string; className?: string; compact?
   className = '',
   compact = false,
 }) => (
-  <div className={`flex w-full items-center justify-center py-16 ${compact ? 'min-h-0' : 'min-h-[50vh]'} ${className}`.trim()} role="status">
+  <div className={`flex min-h-[calc(100vh-4rem)] w-full items-center justify-center ${compact ? 'min-h-0 py-16' : 'py-16'} ${className}`.trim()} role="status">
     <div className="flex flex-col items-center gap-3">
-      <Spinner size="lg" label={label} />
+    <Spinner size="lg" label={label} />
       <span className="text-sm font-medium text-neutral-500">{label}</span>
     </div>
   </div>

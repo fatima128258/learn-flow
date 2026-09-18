@@ -516,27 +516,35 @@ export async function updateUserEmail({ userId, email, ip = '127.0.0.1' }: { use
   await repo.updateUserEmail(userId, normalizedEmail);
 
   await repo.deleteEmailVerificationTokensByUserId(userId);
-  const verificationToken = generateToken();
-  const verificationTokenHash = hashToken(verificationToken);
-  const verificationExpiresAt = new Date(Date.now() + EMAIL_VERIFICATION_TTL * 1000);
-  await repo.createEmailVerificationToken({ userId, tokenHash: verificationTokenHash, expiresAt: verificationExpiresAt });
-  
-  // OPTIMIZATION: Queue email sending to background job (fire-and-forget)
-  if (isEmailQueueEnabled()) {
-    getEmailQueue()
-      .add('send-verification-email', {
-        type: 'verification',
-        email: normalizedEmail,
-        token: verificationToken,
-      })
-      .catch((err) => {
-        console.error('Failed to queue verification email:', err);
+  const requiresVerification =
+    process.env.NODE_ENV === 'production'
+    || process.env.AUTH_EMAIL_CHANGE_REQUIRES_VERIFICATION !== 'false';
+
+  if (requiresVerification) {
+    const verificationToken = generateToken();
+    const verificationTokenHash = hashToken(verificationToken);
+    const verificationExpiresAt = new Date(Date.now() + EMAIL_VERIFICATION_TTL * 1000);
+    await repo.createEmailVerificationToken({ userId, tokenHash: verificationTokenHash, expiresAt: verificationExpiresAt });
+
+    // OPTIMIZATION: Queue email sending to background job (fire-and-forget)
+    if (isEmailQueueEnabled()) {
+      getEmailQueue()
+        .add('send-verification-email', {
+          type: 'verification',
+          email: normalizedEmail,
+          token: verificationToken,
+        })
+        .catch((err) => {
+          console.error('Failed to queue verification email:', err);
+        });
+    } else {
+      // Fallback: send without blocking
+      sendVerificationEmail(normalizedEmail, verificationToken).catch((err) => {
+        console.error('Failed to send verification email:', err);
       });
+    }
   } else {
-    // Fallback: send without blocking
-    sendVerificationEmail(normalizedEmail, verificationToken).catch((err) => {
-      console.error('Failed to send verification email:', err);
-    });
+    await repo.markUserEmailAsVerified(userId);
   }
 
   const primaryOrganizationId = await getPrimaryOrganizationId(userId);

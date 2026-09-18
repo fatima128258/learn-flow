@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { EmptyState, EmptyStateIcons, ErrorState, Spinner } from '@/components/ui';
+import { PageLoader } from '@/components/ui/Spinner';
 import { useCurrentUser } from '@/features/auth/useCurrentUser';
 import { useStudentProgress, type CourseProgress } from '@/features/student/useProgress';
 
@@ -111,7 +112,7 @@ export default function StudentProgressPage() {
   }, [user, userLoading]);
 
   if (userLoading || isLoading) {
-    return <div className="flex min-h-[50vh] items-center justify-center gap-3 text-neutral-700"><Spinner size="lg" label="Loading your progress..." /><span>Loading your progress...</span></div>;
+    return <PageLoader label="Loading your progress..." />;
   }
 
   return (

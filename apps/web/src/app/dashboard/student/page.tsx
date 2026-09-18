@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { EmptyState, EmptyStateIcons, ErrorState, Spinner } from '@/components/ui';
+import { PageLoader } from '@/components/ui/Spinner';
 import { useCurrentUser } from '@/features/auth/useCurrentUser';
 import { useMyCourses, useMyStats } from '@/features/student/useMyCourses';
 
@@ -100,26 +101,14 @@ export default function StudentDashboardPage() {
 
   // Show loading only if user data is still loading
   if (userLoading) {
-    return (
-      <div className="flex min-h-[50vh] items-center justify-center">
-        <div className="flex items-center gap-3 text-neutral-700">
-          <Spinner size="lg" label="Loading dashboard..." />
-          <span>Loading dashboard...</span>
-        </div>
-      </div>
-    );
+    return <PageLoader label="Loading dashboard..." />;
   }
 
   return (
     <div className="mx-auto max-w-6xl">
 
       {coursesLoading ? (
-        <div className="flex min-h-[50vh] items-center justify-center">
-          <div className="flex items-center gap-3 text-neutral-700">
-            <Spinner size="lg" label="Loading courses..." />
-            <span>Loading courses...</span>
-          </div>
-        </div>
+        <PageLoader label="Loading courses..." />
       ) : coursesError ? (
         <div className="rounded-2xl border border-neutral-200 bg-white shadow-sm">
           <ErrorState

@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { Badge, EmptyState, EmptyStateIcons, ErrorState, Spinner } from '@/components/ui';
+import { PageLoader } from '@/components/ui/Spinner';
 import { useCurrentUser } from '@/features/auth/useCurrentUser';
 
 type NotificationDto = {
@@ -231,12 +232,7 @@ export default function StudentNotificationsPage() {
   }
 
   if (userLoading || notificationsLoading) {
-    return (
-      <div className="mx-auto flex max-w-3xl items-center gap-3 text-neutral-700">
-        <Spinner size="lg" label="Loading notifications..." />
-        <span>Loading notifications...</span>
-      </div>
-    );
+    return <PageLoader label="Loading notifications..." />;
   }
 
   const hasUnread = notifications?.some((n) => !n.read) ?? false;

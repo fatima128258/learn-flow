@@ -10,6 +10,7 @@ import {
   ErrorState,
   Spinner,
 } from '@/components/ui';
+import { PageLoader } from '@/components/ui/Spinner';
 import { PageHeader } from '@/components/dashboard';
 import { useCurrentUser } from '@/features/auth/useCurrentUser';
 import { useProgress } from '@/features/student/useProgress';
@@ -112,12 +113,7 @@ export default function StudentCourseProgressPage() {
       : null;
 
   if (isLoading) {
-    return (
-      <div className="mx-auto flex max-w-5xl items-center gap-3 text-neutral-700">
-        <Spinner size="lg" label="Loading progress..." />
-        <span>Loading progress...</span>
-      </div>
-    );
+    return <PageLoader label="Loading progress..." />;
   }
 
   return (
