@@ -2,8 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { EmptyState, EmptyStateIcons, ErrorState } from '@/components/ui';
-import { PageLoader } from '@/components/ui/Spinner';
+import { CourseCardSkeleton, EmptyState, EmptyStateIcons, ErrorState } from '@/components/ui';
 import { useCurrentUser } from '@/features/auth/useCurrentUser';
 import { useMyCourses, useMyStats } from '@/features/student/useMyCourses';
 
@@ -101,14 +100,28 @@ export default function StudentDashboardPage() {
 
   // Show loading only if user data is still loading
   if (userLoading) {
-    return <PageLoader label="Loading dashboard..." />;
+    return (
+      <div className="mx-auto max-w-6xl" role="status" aria-label="Loading dashboard">
+        <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-3">
+          {Array.from({ length: 6 }).map((_, index) => (
+            <CourseCardSkeleton key={index} />
+          ))}
+        </div>
+      </div>
+    );
   }
 
   return (
     <div className="mx-auto max-w-6xl">
 
       {coursesLoading ? (
-        <PageLoader label="Loading available courses..." />
+        <div role="status" aria-label="Loading available courses">
+          <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-3">
+            {Array.from({ length: 6 }).map((_, index) => (
+              <CourseCardSkeleton key={index} />
+            ))}
+          </div>
+        </div>
       ) : coursesError ? (
         <div className="rounded-2xl border border-neutral-200 bg-white shadow-sm">
           <ErrorState

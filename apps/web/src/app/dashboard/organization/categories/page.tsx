@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useSearchParams } from 'next/navigation';
-import { Badge, Button, Drawer, EmptyState, EmptyStateIcons, ErrorState, Input, Modal, Select, Spinner, ViewToggle, useToast } from '@/components/ui';
+import { Badge, Button, Drawer, EmptyState, EmptyStateIcons, ErrorState, Input, Modal, Select, TableSkeleton, ViewToggle, useToast } from '@/components/ui';
 import { Textarea } from '@/components/forms/Textarea';
 import { ApiError, apiRequest } from '@/lib/api';
 import { TableCard, tableActionClass, tableCellClass, tableHeadClass, tableRowHoverClass, tableStatusClass } from '@/components/dashboard';
@@ -102,7 +102,7 @@ export default function CategoriesPage() {
         </div>
       </div>
       <TableCard>
-        {loading ? <div className="flex items-center gap-3 p-5 text-neutral-700"><Spinner size="lg" label="Loading categories..." /><span>Loading categories...</span></div>
+        {loading ? <TableSkeleton rows={6} columns={5} />
           : error ? <ErrorState title="Unable to load categories" action={{ label: 'Try again', onClick: () => void load() }} />
           : !hasCategories ? <EmptyState icon={search ? EmptyStateIcons.NoResults : EmptyStateIcons.NoData} title={search ? 'No matching categories' : 'No categories yet'} description={search ? 'Try a different search.' : 'Create your first category to organize courses.'} action={!search ? emptyAction : undefined} />
           : viewMode === 'cards' ? (
@@ -233,5 +233,5 @@ function CategoryModal({ category, organizationId, onClose, onSaved }: { categor
       toast.success(category ? 'Category updated successfully.' : 'Category created successfully.'); onSaved();
     } catch (err) { toast.error(errorMessage(err)); } finally { setSaving(false); }
   }
-  return <Modal isOpen onClose={onClose} title={category ? 'Edit category' : 'Create category'} footer={<><Button variant="ghost" onClick={onClose} disabled={saving} aria-label="Cancel"><span className="hidden sm:inline">Cancel</span><svg className="h-5 w-5 sm:hidden" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true"><path strokeLinecap="round" d="M6 6l12 12M18 6L6 18" /></svg></Button><Button onClick={() => void save()} loading={saving} aria-label={category ? 'Save changes' : 'Create category'}><span className="hidden sm:inline">{category ? 'Save changes' : 'Create category'}</span><svg className="h-5 w-5 sm:hidden" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true"><path strokeLinecap="round" d="M5 12h14M12 5v14" /></svg></Button></>}><div className="space-y-4"><Input label="Name" value={name} maxLength={100} onChange={(event) => setName(event.target.value)} required /><Textarea label="Description" value={description} maxLength={1000} rows={4} onChange={(event) => setDescription(event.target.value)} /><Select label="Status" value={status} onChange={(value) => setStatus(value as 'ACTIVE' | 'INACTIVE')} options={[{ value: 'ACTIVE', label: 'Active' }, { value: 'INACTIVE', label: 'Inactive' }]} /></div></Modal>;
+  return <Modal isOpen onClose={onClose} title={category ? 'Edit category' : 'Create category'} footer={<><Button variant="ghost" onClick={onClose} disabled={saving} aria-label="Cancel"><span className="hidden sm:inline">Cancel</span><svg className="h-5 w-5 sm:hidden" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true"><path strokeLinecap="round" d="M6 6l12 12M18 6L6 18" /></svg></Button><Button onClick={() => void save()} loading={saving} aria-label={category ? 'Save changes' : 'Create category'}><span className="hidden sm:inline">{category ? 'Save changes' : 'Create category'}</span><svg className="h-5 w-5 sm:hidden" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true"><path strokeLinecap="round" d="M5 12h14M12 5v14" /></svg></Button></>}><div className="space-y-4"><Input label="Name" value={name} maxLength={100} onChange={(event) => setName(event.target.value)} required /><Textarea label="Description" value={description} maxLength={1000} rows={4} onChange={(event) => setDescription(event.target.value)} /><Select label="Status" value={status} onChange={(value) => setStatus(value as 'ACTIVE' | 'INACTIVE')} options={[{ value: 'ACTIVE', label: 'Active' }, { value: 'INACTIVE', label: 'Inactive' }]} buttonClassName="border-2 border-[#ead8c6] focus:border-[#7a4a2e]" /></div></Modal>;
 }

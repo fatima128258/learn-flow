@@ -237,14 +237,14 @@ export default function InstructorCoursesPage() {
       )}
 
       <div className="mx-auto max-w-6xl">
-        <PageHeader
-          title="My Courses"
-          actions={
+        <div className="mb-8 flex justify-end px-1 py-2">
+          <div className="flex flex-wrap items-center gap-3">
+            <ViewToggle value={viewMode} onChange={setViewMode} storageKey="learnhub-instructor-courses-view" />
             <LinkButton href="/dashboard/instructor/courses/new">
               Create Course
             </LinkButton>
-          }
-        />
+          </div>
+        </div>
 
         {isLoading ? (
           <div className="rounded-2xl border border-neutral-200 bg-white shadow-sm">
@@ -266,9 +266,7 @@ export default function InstructorCoursesPage() {
             />
           </div>
         ) : (
-          <TableCard
-            action={<ViewToggle value={viewMode} onChange={setViewMode} storageKey="learnhub-instructor-courses-view" />}
-          >
+          <TableCard>
             {viewMode === 'table' ? (
               <>
             <div className="block">

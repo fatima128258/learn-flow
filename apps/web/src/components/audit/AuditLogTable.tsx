@@ -8,9 +8,9 @@ import {
   EmptyStateIcons,
   ErrorState,
   Input,
-  Spinner,
   ViewToggle,
 } from '@/components/ui';
+import { TableSkeleton } from '@/components/ui/Skeleton';
 import { tableCellClass, tableHeadClass, tableRowHoverClass } from '@/components/dashboard';
 
 export type AuditLogItem = {
@@ -121,17 +121,8 @@ export const AuditLogTable: React.FC<AuditLogTableProps> = ({
       </div>
 
       <div className="overflow-hidden rounded-2xl border border-neutral-200 bg-white shadow-sm">
-        {loading && logs !== null && (
-          <div className="flex items-center gap-2 border-b border-neutral-100 bg-neutral-50 px-6 py-2 text-sm text-neutral-600">
-            <Spinner size="sm" label="Searching audit logs..." />
-            <span>Searching...</span>
-          </div>
-        )}
-        {loading && logs === null ? (
-          <div className="flex items-center gap-3 p-8 text-neutral-700">
-            <Spinner size="lg" label="Loading audit logs..." />
-            <span>Loading audit logs...</span>
-          </div>
+        {loading ? (
+          <TableSkeleton rows={8} columns={showOrganization ? 5 : 4} className="rounded-none border-0 shadow-none" />
         ) : error ? (
           <ErrorState
             title="Unable to load audit logs"

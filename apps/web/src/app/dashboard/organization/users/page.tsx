@@ -326,7 +326,7 @@ export default function OrgUsersPage() {
         </div>
 
         {loading && members === null ? (
-          <div className="mx-auto flex max-w-5xl items-center gap-3 text-neutral-700">
+          <div className="w-full">
             <TableSkeleton rows={6} columns={4} />
           </div>
         ) : error ? (

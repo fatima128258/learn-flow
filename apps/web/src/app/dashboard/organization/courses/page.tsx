@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useSearchParams } from 'next/navigation';
-import { Badge, Drawer, EmptyState, EmptyStateIcons, Spinner, ViewToggle } from '../../../../components/ui';
+import { Badge, DashboardSkeleton, Drawer, EmptyState, EmptyStateIcons, Spinner, ViewToggle } from '../../../../components/ui';
 import { LinkButton } from '../../../../components/ui/LinkButton';
 import { getListCoursesErrorMessage } from '../../../../features/course/listCoursesErrors';
 import { getCourseStatusErrorMessage } from '../../../../features/course/courseStatusErrors';
@@ -369,12 +369,7 @@ export default function MyCoursesPage() {
   });
 
   if (userLoading) {
-    return (
-      <div className="mx-auto flex max-w-3xl items-center gap-3 text-neutral-700">
-        <Spinner size="lg" label="Loading..." />
-        <span>Loading...</span>
-      </div>
-    );
+    return <DashboardSkeleton cards={4} />;
   }
 
   return (
@@ -412,10 +407,7 @@ export default function MyCoursesPage() {
           </div>
 
           {coursesLoading ? (
-            <div className="flex items-center gap-3 text-neutral-700">
-              <Spinner size="md" label="Loading courses..." />
-              <span>Loading courses...</span>
-            </div>
+            <DashboardSkeleton cards={4} />
           ) : courses !== null && courses.length === 0 ? (
             <TableCard>
               <EmptyState

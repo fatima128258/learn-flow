@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   Button,
-  DashboardSkeleton,
+  CourseCardSkeleton,
   EmptyState,
   EmptyStateIcons,
   ErrorState,
@@ -187,10 +187,10 @@ export default function StudentSearchPage() {
             <ErrorState title="Unable to load courses" message={searchError} />
           </div>
         ) : results === null ? (
-          <div className="rounded-2xl border border-neutral-200 bg-white p-12 shadow-sm">
-            <div className="flex items-center justify-center gap-3 text-neutral-700">
-              <DashboardSkeleton cards={3} />
-            </div>
+          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3" role="status" aria-label="Loading available courses">
+            {Array.from({ length: 6 }).map((_, index) => (
+              <CourseCardSkeleton key={index} />
+            ))}
           </div>
         ) : results.length === 0 ? (
           <div className="rounded-2xl border border-neutral-200 bg-white shadow-sm">
