@@ -1,6 +1,7 @@
 import { Response } from 'express';
 import { AuthenticatedRequest } from '../middleware/auth';
 import * as service from '../services/progressService';
+import * as certificateService from '../services/certificateService';
 
 function fail(res: Response, status: number, error: string) {
   return res.status(status).json({ success: false, error });
@@ -78,6 +79,19 @@ export async function recordLessonProgress(req: AuthenticatedRequest, res: Respo
       req.params.lessonId,
       req.body,
     );
+    if (data.courseProgress.successfulCompletion === true) {
+      try {
+        await certificateService.generateCertificate(
+          tenantOrganizationId(req),
+          req.user.id,
+          req.params.courseId,
+        );
+      } catch (error) {
+        if (!(error instanceof Error) || error.message !== 'CERTIFICATE_EXISTS') {
+          console.error('[PROGRESS] Certificate generation after course completion failed:', error);
+        }
+      }
+    }
     return res.status(200).json({ success: true, data });
   } catch (err) {
     return handleError(res, err);

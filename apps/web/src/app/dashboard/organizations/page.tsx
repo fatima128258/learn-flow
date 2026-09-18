@@ -7,13 +7,13 @@ import {
   Badge,
   Button,
   ConfirmModal,
-  DashboardSkeleton,
   EmptyState,
   EmptyStateIcons,
   ErrorState,
   Input,
   Modal,
   Spinner,
+  TableSkeleton,
   ViewToggle,
 } from '../../../components/ui';
 import { getCreateOrganizationErrorMessage } from '../../../features/admin/createOrganizationError';
@@ -740,7 +740,7 @@ export default function OrganizationsPage() {
   if (loading && organizations === null && !error) {
     return (
       <div className="mx-auto w-full max-w-5xl text-neutral-700">
-        <DashboardSkeleton cards={3} />
+        <TableSkeleton rows={8} columns={6} />
       </div>
     );
   }
