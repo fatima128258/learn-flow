@@ -13,6 +13,7 @@ import {
   Input,
   Modal,
   ConfirmModal,
+  TableSkeleton,
   Spinner,
   ViewToggle,
 } from '@/components/ui';
@@ -326,8 +327,7 @@ export default function OrgUsersPage() {
 
         {loading && members === null ? (
           <div className="mx-auto flex max-w-5xl items-center gap-3 text-neutral-700">
-            <Spinner size="lg" label="Loading members..." />
-            <span>Loading members...</span>
+            <TableSkeleton rows={6} columns={4} />
           </div>
         ) : error ? (
           <div className="rounded-2xl border border-neutral-200 bg-white shadow-sm">

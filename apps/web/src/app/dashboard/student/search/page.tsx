@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   Button,
+  DashboardSkeleton,
   EmptyState,
   EmptyStateIcons,
   ErrorState,
@@ -188,8 +189,7 @@ export default function StudentSearchPage() {
         ) : results === null ? (
           <div className="rounded-2xl border border-neutral-200 bg-white p-12 shadow-sm">
             <div className="flex items-center justify-center gap-3 text-neutral-700">
-              <div className="h-6 w-6 animate-spin rounded-full border-2 border-neutral-200 border-t-primary-600"></div>
-              <span>Loading available courses...</span>
+              <DashboardSkeleton cards={3} />
             </div>
           </div>
         ) : results.length === 0 ? (

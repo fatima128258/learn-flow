@@ -1,7 +1,7 @@
 'use client';
 
 import { useCurrentUser } from '@/features/auth/useCurrentUser';
-import { Badge, Button, Card, CardSkeleton, ErrorState } from '@/components/ui';
+import { Badge, Button, Card, DashboardSkeleton, ErrorState } from '@/components/ui';
 import { getPostLoginRedirect } from '@/features/auth/postLoginRedirect';
 import { PageHeader, UserAvatar } from '@/components/dashboard';
 
@@ -17,13 +17,7 @@ export default function ProfilePage() {
   const { data: user, isLoading, error } = useCurrentUser();
 
   if (isLoading) {
-    return (
-      <div>
-        <div className="mx-auto max-w-2xl">
-          <CardSkeleton />
-        </div>
-      </div>
-    );
+    return <DashboardSkeleton cards={2} />;
   }
 
   if (error && !user) {

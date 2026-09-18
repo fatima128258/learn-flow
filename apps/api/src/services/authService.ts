@@ -328,11 +328,17 @@ export async function requestPasswordReset(input: string | { email: string; ip?:
         });
       });
   } else {
-    try {
-      await sendPasswordResetCodeEmail(normalizedEmail, code);
-    } catch (err) {
-      await repo.deletePasswordResetTokenById(resetRecord.id);
-      throw err;
+    if (process.env.EMAIL_ASYNC_DELIVERY === 'true') {
+      void sendPasswordResetCodeEmail(normalizedEmail, code).catch((err) => {
+        console.error('Failed to send password reset code email:', err);
+      });
+    } else {
+      try {
+        await sendPasswordResetCodeEmail(normalizedEmail, code);
+      } catch (err) {
+        await repo.deletePasswordResetTokenById(resetRecord.id);
+        throw err;
+      }
     }
   }
 

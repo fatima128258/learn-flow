@@ -162,7 +162,7 @@ function ChangeStatusModal({ course, organizationId, onClose, onSuccess }: Chang
             return (
               <label
                 key={opt.value}
-                className={`flex cursor-pointer items-start gap-4 rounded-xl border px-4 py-4 transition-colors ${
+                className={`flex cursor-pointer items-start gap-4 rounded-xl border px-4 py-3 transition-colors ${
                   isSelected
                     ? 'border-[#c8a98f] bg-[#fffaf3]'
                     : 'border-[#dbe3ed] bg-white hover:border-[#c8a98f] hover:bg-[#fffaf3]'
@@ -197,7 +197,7 @@ function ChangeStatusModal({ course, organizationId, onClose, onSuccess }: Chang
             type="button"
             onClick={onClose}
             disabled={saving}
-            className="rounded-lg border-0 bg-transparent px-4 py-2 text-base font-medium text-[#475569] hover:bg-neutral-50 disabled:opacity-50"
+            className="rounded-lg border border-[#ead8c6] bg-[#f5ebdd] px-4 py-2 text-base font-medium text-[#5a321f] hover:bg-[#eadcc9] disabled:opacity-50"
           >
             Cancel
           </button>

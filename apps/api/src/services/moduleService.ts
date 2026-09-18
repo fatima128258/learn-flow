@@ -116,12 +116,14 @@ export async function createModule(
   const order = requireOrder(input.order);
   const initialContent = (input.initialContent ?? {}) as Record<string, unknown>;
   const contentType = initialContent.type;
-  if (!contentType || !initialContent.title) {
-    throw new Error('CONTENT_REQUIRED');
-  }
-  const contentTitle = requireTitle(initialContent.title);
-  if (contentType !== 'LESSON' && contentType !== 'QUIZ') {
+  if (contentType && contentType !== 'LESSON' && contentType !== 'QUIZ') {
     throw new Error('INVALID_CONTENT_TYPE');
+  }
+  const contentTitle = contentType && initialContent.title
+    ? requireTitle(initialContent.title)
+    : null;
+  if (contentType && !contentTitle) {
+    throw new Error('CONTENT_REQUIRED');
   }
 
   try {
@@ -130,14 +132,14 @@ export async function createModule(
       const createdModule = await tx.module.create({
         data: { courseId, title, description: optionalString(input.description), order },
       });
-      if (contentType === 'LESSON') {
+      if (contentType === 'LESSON' && contentTitle) {
         const lesson = await tx.lesson.create({
           data: { moduleId: createdModule.id, title: contentTitle, order: 0 },
         });
         await tx.moduleContentItem.create({
           data: { moduleId: createdModule.id, type: 'LESSON', lessonId: lesson.id, position: 0 },
         });
-      } else {
+      } else if (contentType === 'QUIZ' && contentTitle) {
         const quiz = await tx.quiz.create({
           data: {
             moduleId: createdModule.id,

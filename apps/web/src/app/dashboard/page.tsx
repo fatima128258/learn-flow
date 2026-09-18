@@ -7,10 +7,10 @@ import { LinkButton } from '../../components/ui/LinkButton';
 import { useCurrentUser } from '../../features/auth/useCurrentUser';
 import { getJson } from '../../lib/api';
 import { ErrorState } from '../../components/ui';
+import { DashboardSkeleton } from '../../components/ui';
 import {
   PageHeader,
   StatCard,
-  StatCardSkeleton,
   Calendar,
   ChartCard,
   LineChart,
@@ -77,15 +77,7 @@ export default function DashboardPage() {
 
   // Don't render dashboard content until we confirm user is PLATFORM_ADMIN
   if (userLoading) {
-    return (
-      <div className="mx-auto max-w-6xl">
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          <StatCardSkeleton />
-          <StatCardSkeleton />
-          <StatCardSkeleton />
-        </div>
-      </div>
-    );
+    return <DashboardSkeleton cards={4} />;
   }
 
   // If auth resolved but user is not PLATFORM_ADMIN, show nothing (redirect will happen in useEffect)
@@ -113,11 +105,7 @@ export default function DashboardPage() {
         />
 
         {busy ? (
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            <StatCardSkeleton />
-            <StatCardSkeleton />
-            <StatCardSkeleton />
-          </div>
+          <DashboardSkeleton cards={4} />
         ) : error || !summary ? (
           <div className="rounded-2xl border border-neutral-200 bg-white shadow-sm">
             <ErrorState

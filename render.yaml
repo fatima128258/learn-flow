@@ -16,5 +16,7 @@ services:
       # existing inline fallbacks when these features are disabled.
       - key: EMAIL_QUEUE_ENABLED
         value: "false"
+      - key: EMAIL_ASYNC_DELIVERY
+        value: "true"
       - key: NOTIFICATIONS_QUEUE_ENABLED
         value: "false"

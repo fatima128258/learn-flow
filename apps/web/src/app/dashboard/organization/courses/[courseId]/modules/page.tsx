@@ -275,10 +275,8 @@ export default function CourseModulesPage() {
   const [description, setDescription] = useState('');
   const [order, setOrder] = useState('');
   const [contentType, setContentType] = useState<'LESSON' | 'QUIZ'>('LESSON');
-  const [contentTitle, setContentTitle] = useState('');
   const [titleError, setTitleError] = useState('');
   const [orderError, setOrderError] = useState('');
-  const [contentTitleError, setContentTitleError] = useState('');
 
   // Check auth and set organizationId
   useEffect(() => {
@@ -386,10 +384,8 @@ export default function CourseModulesPage() {
     setDescription('');
     setOrder('');
     setContentType('LESSON');
-    setContentTitle('');
     setTitleError('');
     setOrderError('');
-    setContentTitleError('');
   }
 
   function closeEditModal() {
@@ -401,7 +397,6 @@ export default function CourseModulesPage() {
     setOrder('');
     setTitleError('');
     setOrderError('');
-    setContentTitleError('');
   }
 
   function validateForm(): string | null {
@@ -411,11 +406,6 @@ export default function CourseModulesPage() {
     if (!title.trim()) {
       setTitleError('Title is required');
       return 'Title is required';
-    }
-
-    if (!contentTitle.trim()) {
-      setContentTitleError(`${contentType === 'LESSON' ? 'Lesson' : 'Quiz'} title is required`);
-      return `${contentType === 'LESSON' ? 'Lesson' : 'Quiz'} title is required`;
     }
 
     const parsedOrder = parseInt(order, 10);
@@ -448,10 +438,6 @@ export default function CourseModulesPage() {
             title: title.trim(),
             description: description.trim() || undefined,
             order: parseInt(order, 10),
-            initialContent: {
-              type: contentType,
-              title: contentTitle.trim(),
-            },
           }),
         }
       );
@@ -478,7 +464,17 @@ export default function CourseModulesPage() {
 
       toast.success('Module created.');
       closeCreateModal();
-      router.refresh();
+      if (body.data?.id) {
+        const modulePath = `${dashboardPrefix}/courses/${courseId}/modules/${body.data.id}`;
+        const query = organizationId ? `?organization=${organizationId}` : '';
+        router.push(
+          contentType === 'LESSON'
+            ? `${modulePath}/lessons${query}`
+            : `${modulePath}/quizzes/new${query}`,
+        );
+      } else {
+        router.refresh();
+      }
     } catch {
       toast.error(getModuleErrorMessage(null));
     } finally {
@@ -757,15 +753,6 @@ export default function CourseModulesPage() {
                 </label>
               ))}
             </div>
-            <Input
-              label={`${contentType === 'LESSON' ? 'Lesson' : 'Quiz'} title`}
-              value={contentTitle}
-              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setContentTitle(e.target.value)}
-              error={contentTitleError}
-              placeholder={`e.g. ${contentType === 'LESSON' ? 'Introduction' : 'Module quiz'}`}
-              disabled={creating}
-              required
-            />
           </div>
 
           <div className="flex items-center justify-end gap-3 pt-2">

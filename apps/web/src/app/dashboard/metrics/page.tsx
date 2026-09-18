@@ -7,11 +7,11 @@ import { getJson } from '@/lib/api';
 import {
   PageHeader,
   StatCard,
-  StatCardSkeleton,
   ChartCard,
   BarList,
   type BarDatum,
 } from '@/components/dashboard';
+import { DashboardSkeleton } from '@/components/ui';
 
 type PlatformMetrics = {
   organizations: { total: number; active: number; suspended: number };
@@ -77,13 +77,7 @@ export default function PlatformMetricsPage() {
         </div>
 
         {isLoading ? (
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
-            <StatCardSkeleton />
-            <StatCardSkeleton />
-            <StatCardSkeleton />
-            <StatCardSkeleton />
-            <StatCardSkeleton />
-          </div>
+          <DashboardSkeleton cards={4} />
         ) : error || !metrics ? (
           <div className="rounded-2xl border border-neutral-200 bg-white shadow-sm">
             <ErrorState

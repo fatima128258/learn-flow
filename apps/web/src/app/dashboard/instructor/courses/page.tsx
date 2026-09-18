@@ -5,6 +5,7 @@ import { createPortal } from 'react-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   Badge,
+  DashboardSkeleton,
   EmptyState,
   EmptyStateIcons,
   ErrorState,
@@ -248,8 +249,7 @@ export default function InstructorCoursesPage() {
         {isLoading ? (
           <div className="rounded-2xl border border-neutral-200 bg-white shadow-sm">
             <div className="flex items-center gap-3 p-6 text-neutral-700">
-              <Spinner size="lg" label="Loading your courses..." />
-              <span>Loading your courses...</span>
+              <DashboardSkeleton cards={3} />
             </div>
           </div>
         ) : isError ? (

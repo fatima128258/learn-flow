@@ -6,6 +6,7 @@ import Link from 'next/link';
 import {
   Badge,
   Button,
+  DashboardSkeleton,
   EmptyState,
   EmptyStateIcons,
   ErrorState,
@@ -315,40 +316,11 @@ export default function StudentModuleLessonsPage() {
   const isLoading = userLoading || lessonsLoading;
 
   if (isLoading) {
-    return (
-      <div className="mx-auto max-w-6xl">
-        <PageHeader
-          subtitle="Student"
-          title="Module Lessons"
-          breadcrumbs={
-            <div className="flex items-center gap-2 text-sm">
-              <Link href="/dashboard/student" className="text-primary-600 hover:text-primary-700">My Courses</Link>
-              <span className="text-neutral-400">/</span>
-              <span className="text-neutral-600">Module</span>
-            </div>
-          }
-        />
-        <div className="flex items-center gap-3 rounded-2xl border border-neutral-200 bg-white p-8 shadow-sm">
-          <Spinner size="lg" label="Loading lessons..." />
-          <span className="text-neutral-700">Loading lessons...</span>
-        </div>
-      </div>
-    );
+    return <DashboardSkeleton cards={3} />;
   }
 
   if (isLoading) {
-    return (
-      <div className="mx-auto max-w-6xl">
-        <PageHeader
-          subtitle="Student"
-          title="Module Lessons"
-        />
-        <div className="flex items-center justify-center gap-3 rounded-2xl border border-neutral-200 bg-white p-12 shadow-sm text-neutral-700">
-          <Spinner size="lg" label="Loading lessons..." />
-          <span className="text-lg font-medium">Loading lessons...</span>
-        </div>
-      </div>
-    );
+    return <DashboardSkeleton cards={3} />;
   }
 
   return (
