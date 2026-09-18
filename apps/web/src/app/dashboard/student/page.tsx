@@ -2,8 +2,8 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { EmptyState, EmptyStateIcons, ErrorState, Spinner } from '@/components/ui';
-import { PageLoader } from '@/components/ui/Spinner';
+import { EmptyState, EmptyStateIcons, ErrorState } from '@/components/ui';
+import { DashboardSkeleton } from '@/components/ui/Skeleton';
 import { useCurrentUser } from '@/features/auth/useCurrentUser';
 import { useMyCourses, useMyStats } from '@/features/student/useMyCourses';
 
@@ -101,14 +101,14 @@ export default function StudentDashboardPage() {
 
   // Show loading only if user data is still loading
   if (userLoading) {
-    return <PageLoader label="Loading dashboard..." />;
+    return <DashboardSkeleton cards={4} />;
   }
 
   return (
     <div className="mx-auto max-w-6xl">
 
       {coursesLoading ? (
-        <PageLoader label="Loading courses..." />
+        <DashboardSkeleton cards={4} />
       ) : coursesError ? (
         <div className="rounded-2xl border border-neutral-200 bg-white shadow-sm">
           <ErrorState

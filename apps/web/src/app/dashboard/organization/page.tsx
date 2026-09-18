@@ -9,7 +9,6 @@ import {
   ErrorState,
   Input,
   Modal,
-  Spinner,
 } from '../../../components/ui';
 import { PasswordInput } from '../../../components/forms/PasswordInput';
 import { getOrgAdminErrorMessage } from '../../../features/orgAdmin/orgAdminErrors';
@@ -24,6 +23,7 @@ import {
   LineChart,
 } from '../../../components/dashboard';
 import { useCurrentUser } from '../../../features/auth/useCurrentUser';
+import { DashboardSkeleton } from '../../../components/ui/Skeleton';
 
 type OrganizationInfo = {
   id: string;
@@ -313,12 +313,7 @@ export default function OrganizationDashboardPage() {
   }
 
   if (loading && summary === null && !error) {
-    return (
-      <div className="mx-auto flex max-w-5xl items-center gap-3 text-neutral-700">
-        <Spinner size="lg" label="Loading organization dashboard..." />
-        <span>Loading organization dashboard...</span>
-      </div>
-    );
+    return <DashboardSkeleton cards={4} />;
   }
 
   return (

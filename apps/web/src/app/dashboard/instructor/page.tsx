@@ -2,10 +2,11 @@
 
 import { useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { ErrorState, Spinner } from '@/components/ui';
+import { ErrorState } from '@/components/ui';
 import { useCurrentUser } from '@/features/auth/useCurrentUser';
 import { ApiError, getJson } from '@/lib/api';
-import { Calendar, ChartCard, LineChart, PageHeader, StatCard, StatCardSkeleton } from '@/components/dashboard';
+import { Calendar, ChartCard, LineChart, PageHeader, StatCard } from '@/components/dashboard';
+import { DashboardSkeleton } from '@/components/ui/Skeleton';
 
 type InstructorDashboard = {
   totalCourses: number;
@@ -57,10 +58,7 @@ export default function InstructorDashboardPage() {
       />
 
       {isLoading || userLoading ? (
-        <>
-          <div className="mb-8 grid grid-cols-1 gap-4 sm:grid-cols-3"><StatCardSkeleton /><StatCardSkeleton /><StatCardSkeleton /></div>
-          <div className="flex items-center gap-3 text-neutral-700"><Spinner size="lg" label="Loading instructor dashboard..." /><span>Loading instructor dashboard...</span></div>
-        </>
+        <DashboardSkeleton cards={3} />
       ) : isError && error instanceof ApiError && error.code === 'EMAIL_NOT_VERIFIED' ? (
         <ErrorState
           title="Verify your email address"
