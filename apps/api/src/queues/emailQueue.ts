@@ -13,9 +13,12 @@ export interface EmailJobData {
 }
 
 export function isEmailQueueEnabled() {
-  // Enable email queue by default (except in test environment)
-  // Can be explicitly disabled with EMAIL_QUEUE_ENABLED=false
+  // Production deployments must opt in because BullMQ workers continuously
+  // poll Redis and can exhaust request-based Redis plans.
   if (process.env.NODE_ENV === 'test') return false;
+  if (process.env.NODE_ENV === 'production') {
+    return process.env.EMAIL_QUEUE_ENABLED === 'true';
+  }
   return process.env.EMAIL_QUEUE_ENABLED !== 'false';
 }
 

@@ -165,6 +165,12 @@ LearnFlow follows a **multi-tier, multi-tenant architecture** designed for scala
 #### BullMQ (Redis-backed)
 - Asynchronous job processing
 - Email sending queue
+
+BullMQ workers are opt-in in production (`EMAIL_QUEUE_ENABLED=true` and
+`NOTIFICATIONS_QUEUE_ENABLED=true`). This avoids continuous worker polling
+exhausting request-limited Redis plans such as Upstash Free. When disabled,
+email and notification producers use their existing synchronous or best-effort
+fallback paths.
 - Certificate generation
 - Notification dispatch
 - Retry logic with exponential backoff

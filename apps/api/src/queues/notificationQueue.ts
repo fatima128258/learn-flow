@@ -6,7 +6,11 @@ export const NOTIFICATION_QUEUE_NAME = 'notifications';
 let queue: Queue | null = null;
 
 export function isNotificationQueueEnabled() {
-  return process.env.NODE_ENV !== 'test' && process.env.NOTIFICATIONS_QUEUE_ENABLED !== 'false';
+  if (process.env.NODE_ENV === 'test') return false;
+  if (process.env.NODE_ENV === 'production') {
+    return process.env.NOTIFICATIONS_QUEUE_ENABLED === 'true';
+  }
+  return process.env.NOTIFICATIONS_QUEUE_ENABLED !== 'false';
 }
 
 export function getNotificationQueue() {
