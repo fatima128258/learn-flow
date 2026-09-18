@@ -500,7 +500,7 @@ model Payment {
   amount         Decimal       @db.Decimal(10, 2)
   currency       String        @default("USD")
   status         PaymentStatus @default(PENDING)
-  paymentMethod  PaymentMethod? @default(COD)
+  paymentMethod  PaymentMethod?
   transactionId  String?
   reviewedById   String?
   reviewedAt     DateTime?
