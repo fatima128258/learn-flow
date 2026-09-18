@@ -237,8 +237,7 @@ export async function loginUser({ email, password, ip = '127.0.0.1', perf }: { e
     console.warn(`[loginUser] Unable to clear login rate limit: ${err instanceof Error ? err.message : err}`);
   }
 
-  const auditStart = now();
-  await recordAudit({
+  void recordAudit({
     action: 'LOGIN',
     organizationId: primaryMembership?.organizationId ?? null,
     actorUserId: user.id,
@@ -248,12 +247,9 @@ export async function loginUser({ email, password, ip = '127.0.0.1', perf }: { e
     resourceType: 'SESSION',
     resourceId: session?.id ?? null,
     ipAddress: ip,
+  }).catch((err: unknown) => {
+    console.error('[auth.login] Audit logging failed after successful login:', err instanceof Error ? err.message : 'Unknown error');
   });
-  const auditLogMs = durationMs(auditStart);
-  if (perf) {
-    perf.auditLogMs = auditLogMs;
-    logAuthPerf(perf.requestId, 'db_audit_log_insert', auditLogMs);
-  }
 
   return {
     user: {

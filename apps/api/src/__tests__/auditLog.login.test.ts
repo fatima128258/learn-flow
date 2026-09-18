@@ -121,4 +121,57 @@ describe('login audit recording', () => {
       }),
     );
   });
+
+  it('returns login success without waiting for a slow audit write', async () => {
+    authRepoMock.findUserByEmail.mockResolvedValue(userRecord());
+    authRepoMock.createSession.mockResolvedValue({
+      id: 'session-slow-audit',
+      userId: 'user-1',
+      tokenHash: 'hash',
+      expiresAt: new Date(Date.now() + 3600000),
+      revoked: false,
+      createdAt: now,
+      updatedAt: now,
+    });
+    authRepoMock.findUserOrganizationsByUserId.mockResolvedValue([]);
+
+    let resolveAudit: (() => void) | undefined;
+    recordMock.create.mockImplementationOnce(() => new Promise((resolve) => {
+      resolveAudit = () => resolve({ id: 'log-slow' });
+    }));
+
+    const result = await authService.loginUser({
+      email: 'user@example.com',
+      password: 'correct-password',
+    });
+
+    expect(result.user.id).toBe('user-1');
+    expect(recordMock.create).toHaveBeenCalledTimes(1);
+    resolveAudit?.();
+    await Promise.resolve();
+  });
+
+  it('does not fail login when asynchronous audit persistence fails', async () => {
+    authRepoMock.findUserByEmail.mockResolvedValue(userRecord());
+    authRepoMock.createSession.mockResolvedValue({
+      id: 'session-failed-audit',
+      userId: 'user-1',
+      tokenHash: 'hash',
+      expiresAt: new Date(Date.now() + 3600000),
+      revoked: false,
+      createdAt: now,
+      updatedAt: now,
+    });
+    authRepoMock.findUserOrganizationsByUserId.mockResolvedValue([]);
+    recordMock.create.mockRejectedValueOnce(new Error('audit database unavailable'));
+
+    await expect(authService.loginUser({
+      email: 'user@example.com',
+      password: 'correct-password',
+    })).resolves.toMatchObject({
+      user: { id: 'user-1' },
+    });
+
+    expect(recordMock.create).toHaveBeenCalledTimes(1);
+  });
 });

@@ -1,5 +1,5 @@
-import { RouteLoader } from '@/components/ui/RouteLoader';
+import { PageLoader } from '@/components/ui/Spinner';
 
 export default function Loading() {
-  return <RouteLoader />;
+  return <PageLoader label="Loading course..." />;
 }
