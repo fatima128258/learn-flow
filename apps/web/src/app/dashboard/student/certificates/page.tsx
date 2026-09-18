@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import {
   Badge,
@@ -60,6 +60,7 @@ function CompletedCoursesSection({
 }) {
   const [completedCourses, setCompletedCourses] = useState<Array<{ courseId: string; title: string; percentage: number }>>([]);
   const [loadingProgress, setLoadingProgress] = useState(false);
+  const autoGenerationStarted = useRef(new Set<string>());
 
   // Fetch progress for each course to check completion
   useEffect(() => {
@@ -87,6 +88,25 @@ function CompletedCoursesSection({
               // Check if certificate already exists
               const hasCertificate = certificates.some(cert => cert.courseId === course.courseId);
               if (!hasCertificate) {
+                if (!autoGenerationStarted.current.has(course.courseId)) {
+                  autoGenerationStarted.current.add(course.courseId);
+                  const certificateResponse = await fetch(
+                    `/api/v1/organizations/${organizationId}/student/courses/${course.courseId}/certificate`,
+                    {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      credentials: 'include',
+                      body: JSON.stringify({}),
+                    },
+                  );
+                  const certificateBody = certificateResponse.ok
+                    ? null
+                    : await certificateResponse.json().catch(() => ({})) as { error?: string };
+                  if (certificateResponse.ok || certificateBody?.error === 'CERTIFICATE_EXISTS') {
+                    onCertificateGenerated();
+                    continue;
+                  }
+                }
                 completed.push({
                   courseId: course.courseId,
                   title: course.title,
