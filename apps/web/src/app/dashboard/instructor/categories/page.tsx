@@ -155,7 +155,24 @@ export default function InstructorCategoriesPage() {
                     {category.description || 'No description provided.'}
                   </p>
                   <div className="mt-5 border-t border-[#ead8c6] pt-3 text-xs font-medium uppercase tracking-wide text-[#9b765c]">
-                    {category.status === 'INACTIVE' ? 'Inactive' : 'Active'}
+                    <div className="flex items-center justify-between gap-3">
+                      <span>{category.status === 'INACTIVE' ? 'Inactive' : 'Active'}</span>
+                      {category.ownerUserId === user?.id && (
+                        <button
+                          type="button"
+                          className="rounded-lg border border-[#ead8c6] bg-[#f5ebdd] px-3 py-1.5 text-xs font-semibold normal-case tracking-normal text-[#5a321f] hover:bg-[#eadcc9]"
+                          onClick={() => {
+                            setEditingCategory(category);
+                            setPrivateName(category.name);
+                            setPrivateDescription(category.description ?? '');
+                            setPrivateStatus(category.status ?? 'ACTIVE');
+                            setShowPrivateModal(true);
+                          }}
+                        >
+                          Edit
+                        </button>
+                      )}
+                    </div>
                   </div>
                 </article>
               ))}
@@ -172,7 +189,7 @@ export default function InstructorCategoriesPage() {
           <Input label="Description" value={privateDescription} onChange={(event) => setPrivateDescription(event.target.value)} maxLength={1000} disabled={creating} />
           <label className="block text-sm font-medium text-neutral-700">
             Status
-            <Select className="mt-1.5" value={privateStatus} onChange={(value) => setPrivateStatus(value as 'ACTIVE' | 'INACTIVE')} disabled={creating} options={[{ value: 'ACTIVE', label: 'Active' }, { value: 'INACTIVE', label: 'Inactive' }]} />
+            <Select className="mt-1.5" buttonClassName="rounded-xl border border-[#d8c0aa] bg-[#fffdf9] px-4 py-3 text-base text-[#17212b] shadow-none focus:border-[#7a4a2e] focus:ring-2 focus:ring-[#a8784f]/20" value={privateStatus} onChange={(value) => setPrivateStatus(value as 'ACTIVE' | 'INACTIVE')} disabled={creating} options={[{ value: 'ACTIVE', label: 'Active' }, { value: 'INACTIVE', label: 'Inactive' }]} />
           </label>
         </div>
       </Modal>

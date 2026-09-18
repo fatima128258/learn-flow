@@ -91,26 +91,27 @@ export function StudentProgressView({ apiPath }: Props) {
   }
 
   return (
-    <div className="mx-auto max-w-6xl space-y-5">
+    <div className="min-h-[calc(100vh-4rem)] bg-[#2b1a14] px-6 py-6 text-[#fff7ed]">
+      <div className="mx-auto max-w-6xl space-y-5">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
         <input
           value={query}
           onChange={(event) => { setPage(1); setQuery(event.target.value); }}
           placeholder="Search students or courses..."
           aria-label="Search students or courses"
-          className="min-w-0 flex-1 rounded-xl border border-[#e5d5c4] bg-[#fffdf9] px-4 py-3 text-sm outline-none focus:border-[#7a4a2e] focus:ring-2 focus:ring-[#a8784f]/20 sm:max-w-2xl"
+          className="min-w-0 flex-1 rounded-xl border border-[#8b5e45] bg-[#3a241b] px-4 py-3 text-sm text-[#fff7ed] outline-none placeholder:text-[#c9a995] focus:border-transparent focus:ring-0 sm:max-w-2xl"
         />
         <Select
           value={progressFilter}
           onChange={(value) => { setPage(1); setProgressFilter(value); }}
           options={[{ value: 'ALL', label: 'All progress' }, { value: 'NOT_STARTED', label: 'Not started' }, { value: 'IN_PROGRESS', label: 'In progress' }, { value: 'COMPLETED', label: 'Completed' }]}
           className="sm:w-44"
-          buttonClassName="rounded-xl border-[#d9dee7] bg-white px-4 py-3 text-base shadow-sm focus:border-[#7a4a2e] focus:ring-2 focus:ring-[#a8784f]/20"
+          buttonClassName="rounded-xl border-[#8b5e45] bg-[#3a241b] px-4 py-3 text-base text-[#fff7ed] shadow-sm focus:border-transparent focus:ring-0"
         />
         <ViewToggle value={view} onChange={(value) => setView(value as 'table' | 'cards')} storageKey={`student-progress-${apiPath}`} />
       </div>
       {loading ? (
-        <div className="flex items-center gap-3 text-neutral-700"><Spinner size="md" label="Loading student progress..." /><span>Loading student progress...</span></div>
+        <div className="flex items-center gap-3 text-[#f3d8c2]"><Spinner size="md" label="Loading student progress..." /><span>Loading student progress...</span></div>
       ) : items.length === 0 ? (
         <TableCard><EmptyState icon={EmptyStateIcons.NoCourses} title={query ? 'No students found' : 'No students enrolled yet'} description={query ? 'Try a different student or course name.' : 'Students enrolled in your courses will appear here.'} /></TableCard>
       ) : view === 'table' ? (
@@ -137,7 +138,8 @@ export function StudentProgressView({ apiPath }: Props) {
         </div>
       )}
       {meta.totalPages > 1 && <div className="flex items-center justify-between text-sm text-neutral-600"><span>{meta.total} enrollments</span><div className="flex gap-2"><button type="button" disabled={page === 1} onClick={() => setPage((value) => value - 1)} className="rounded-lg border px-3 py-2 disabled:opacity-40">Previous</button><span className="px-2 py-2">{page} / {meta.totalPages}</span><button type="button" disabled={page >= meta.totalPages} onClick={() => setPage((value) => value + 1)} className="rounded-lg border px-3 py-2 disabled:opacity-40">Next</button></div></div>}
-      {selected && <div className="fixed inset-0 z-50 flex justify-end bg-black/30" onClick={() => setSelected(null)}><aside className="h-full w-full max-w-xl overflow-y-auto bg-white p-6 shadow-xl" onClick={(event) => event.stopPropagation()}><button type="button" onClick={() => setSelected(null)} className="float-right text-2xl text-neutral-400" aria-label="Close">x</button><h2 className="text-xl font-semibold text-neutral-900">{selected.studentName || 'Unnamed student'}</h2><p className="mt-1 text-sm text-neutral-500">{selected.studentEmail}</p><h3 className="mt-6 font-semibold">{selected.courseName}</h3><ProgressCell item={selected} />{detailLoading ? <div className="mt-6"><Spinner size="md" label="Loading progress details..." /></div> : <><div className="mt-6 space-y-3"><h3 className="font-semibold">Module progress</h3>{selected.modules.map((module) => <div key={module.id} className="flex items-center justify-between rounded-lg bg-neutral-50 px-3 py-2 text-sm"><span>{module.title}</span><span className="font-medium">{module.percentage}% {module.complete ? '✓' : ''}</span></div>)}</div><div className="mt-6 space-y-2"><h3 className="font-semibold">Quiz status</h3>{selected.quizzes.map((quiz) => <div key={quiz.quizId} className="flex justify-between text-sm"><span>{quiz.attempted ? (quiz.passed ? 'Passed' : 'Failed') : 'Not attempted'}</span><span>{quiz.attemptsUsed} used, {quiz.attemptsRemaining ?? 'unlimited'} remaining</span></div>)}</div></>}</aside></div>}
+      {selected && <div className="fixed inset-0 z-50 flex justify-end bg-black/50" onClick={() => setSelected(null)}><aside className="h-full w-full max-w-xl overflow-y-auto bg-[#3a241b] p-6 text-[#fff7ed] shadow-xl" onClick={(event) => event.stopPropagation()}><button type="button" onClick={() => setSelected(null)} className="float-right text-2xl text-[#d6a77a]" aria-label="Close">x</button><h2 className="text-xl font-semibold">{selected.studentName || 'Unnamed student'}</h2><p className="mt-1 text-sm text-[#d8b9a5]">{selected.studentEmail}</p><h3 className="mt-6 font-semibold">{selected.courseName}</h3><ProgressCell item={selected} />{detailLoading ? <div className="mt-6"><Spinner size="md" label="Loading progress details..." /></div> : <><div className="mt-6 space-y-3"><h3 className="font-semibold">Module progress</h3>{selected.modules.map((module) => <div key={module.id} className="flex items-center justify-between rounded-lg bg-[#4b2d20] px-3 py-2 text-sm"><span>{module.title}</span><span className="font-medium">{module.percentage}% {module.complete ? '✓' : ''}</span></div>)}</div><div className="mt-6 space-y-2"><h3 className="font-semibold">Quiz status</h3>{selected.quizzes.map((quiz) => <div key={quiz.quizId} className="flex justify-between text-sm"><span>{quiz.attempted ? (quiz.passed ? 'Passed' : 'Failed') : 'Not attempted'}</span><span>{quiz.attemptsUsed} used, {quiz.attemptsRemaining ?? 'unlimited'} remaining</span></div>)}</div></>}</aside></div>}
+      </div>
     </div>
   );
 }
