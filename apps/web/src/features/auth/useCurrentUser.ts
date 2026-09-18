@@ -30,7 +30,9 @@ export function cacheUser(user: CurrentUser | null) {
   }
 }
 
-export function useCurrentUser() {
+export function useCurrentUser(options?: { initialUser?: CurrentUser | null }) {
+  const hasInitialUser = options?.initialUser !== undefined;
+
   return useQuery({
     queryKey: meKey,
     queryFn: async ({ signal }) => {
@@ -67,8 +69,8 @@ export function useCurrentUser() {
     // OPTIMIZATION: Configure caching to reduce duplicate /auth/me calls
     // staleTime: data is fresh for 5 minutes, won't trigger re-fetch on re-mount/re-renders
     // gcTime: keep data in cache for 10 minutes after last subscriber leaves
-    initialData: readCachedUser,
-    initialDataUpdatedAt: 0,
+    initialData: hasInitialUser ? options.initialUser : readCachedUser,
+    initialDataUpdatedAt: hasInitialUser ? undefined : 0,
     staleTime: 5 * 60 * 1000, // 5 minutes
     gcTime: 10 * 60 * 1000,   // 10 minutes (formerly cacheTime)
     retry: (failureCount, error) => {

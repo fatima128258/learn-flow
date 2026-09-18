@@ -1,7 +1,12 @@
 import { DashboardShell } from '@/components/layout/DashboardShell';
+import { redirect } from 'next/navigation';
+import { getServerCurrentUser } from '@/features/auth/serverAuth';
 
-export default function DashboardNavLayout({
+export default async function DashboardNavLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
-  return <DashboardShell>{children}</DashboardShell>;
+  const currentUser = await getServerCurrentUser();
+  if (!currentUser) redirect('/login');
+
+  return <DashboardShell initialUser={currentUser}>{children}</DashboardShell>;
 }

@@ -8,6 +8,7 @@ import { orgAdminNav } from '@/features/organizationAdmin/nav';
 import { instructorNav } from '@/features/instructor/nav';
 import { studentNav } from '@/features/student/nav';
 import { useCurrentUser } from '@/features/auth/useCurrentUser';
+import type { CurrentUser } from '@/lib/types';
 // Temporarily disabled while the real-time chat service is stabilized.
 // import { useChatUnread } from '@/features/chat/useChatUnread';
 
@@ -57,11 +58,11 @@ function resolveNav(
   return { navLabel: 'Platform Admin', items: platformAdminNav };
 }
 
-function DashboardShellInner({ children }: DashboardShellProps) {
+function DashboardShellInner({ children, initialUser }: DashboardShellProps & { initialUser: CurrentUser }) {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const orgId = searchParams.get('organization');
-  const { data: currentUser } = useCurrentUser();
+  const { data: currentUser } = useCurrentUser({ initialUser });
   // Temporarily disabled with the Chat navigation entries.
   // const unreadChatCount = useChatUnread(currentUser?.organizationId ?? undefined, currentUser?.id);
 
@@ -92,10 +93,10 @@ function DashboardShellInner({ children }: DashboardShellProps) {
   );
 }
 
-export const DashboardShell: React.FC<DashboardShellProps> = ({ children }) => {
+export const DashboardShell: React.FC<DashboardShellProps & { initialUser: CurrentUser }> = ({ children, initialUser }) => {
   return (
     <Suspense>
-      <DashboardShellInner>{children}</DashboardShellInner>
+      <DashboardShellInner initialUser={initialUser}>{children}</DashboardShellInner>
     </Suspense>
   );
 };
