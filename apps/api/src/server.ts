@@ -35,6 +35,7 @@ import chatRouter from './routes/chatRoutes';
 import studentTaskRouter from './routes/studentTaskRoutes';
 import { randomUUID } from 'crypto';
 import { logAuthPerfSummary, type AuthPerfContext, durationMs, now } from './utils/authPerf';
+import diagnosticsRouter from './routes/diagnosticsRoutes';
 
 export const app = express();
 
@@ -166,6 +167,7 @@ app.use('/api/v1/org', orgAdminRouter);
 app.use('/api/v1/org/categories', categoryRouter);
 app.use('/api/v1/admin/audit-logs', platformAuditLogRouter);
 app.use('/api/v1/org/audit-logs', orgAuditLogRouter);
+app.use('/api/v1/diagnostics', diagnosticsRouter);
 
 // JSON 404 responses for unknown API routes
 app.use('/api/v1', (req, res) => {
