@@ -6,7 +6,7 @@ import { createPortal } from 'react-dom';
 import {
   Button,
   ErrorState,
-  PageLoading,
+  PageLoader,
   Spinner,
 } from '@/components/ui';
 import { useToast } from '@/components/ui/ToastProvider';
@@ -186,7 +186,7 @@ export default function StudentCourseOverviewPage() {
   }
 
   if (loading) {
-    return <PageLoading label="Loading course..." />;
+    return <PageLoader label="Loading course..." />;
   }
 
   return (
