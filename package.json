@@ -23,20 +23,25 @@
   "devDependencies": {
     "@eslint/js": "^9.39.5",
     "@tailwindcss/postcss": "^4.3.3",
-    "@vitest/coverage-v8": "^1.6.1",
+    "@vitest/coverage-v8": "^5.0.1",
     "eslint": "^9",
-    "next": "16.3.1",
+    "next": "16.3.5",
     "react": "19.2.8",
     "react-dom": "19.2.8",
     "tailwindcss": "^4.3.3",
     "typescript": "^5",
     "typescript-eslint": "^8.68.0",
-    "vitest": "^1.0.0"
+    "vitest": "^5.0.1"
   },
   "allowScripts": {
     "@embedded-postgres/windows-x64@18.4.0-beta.17": true
   },
   "dependencies": {
-    "nodemailer": "^9.1.1"
+    "nodemailer": "^10.0.10"
+  },
+  "overrides": {
+    "body-parser": "1.20.8",
+    "qs": "6.16.0",
+    "tar": "7.5.22"
   }
 }

@@ -876,8 +876,8 @@ export default function QuizQuestionsPage() {
   }
 
   return (
-    <div className="quiz-theme relative top-[-20px] mx-auto max-w-7xl px-3 pb-8 pt-0 sm:px-4 lg:px-6">
-      <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+    <div className="quiz-theme relative mx-auto max-w-7xl px-3 pb-8 pt-3 sm:px-4 sm:pt-0 lg:px-6">
+      <div className="mb-5 flex items-center justify-between gap-2 sm:flex-row sm:gap-3">
         <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-[0.22em] text-[#2e7a74]">
           <span className="inline-flex h-2 w-2 rounded-full bg-[#2e7a74]" />
           Quizzes
@@ -886,13 +886,14 @@ export default function QuizQuestionsPage() {
           href={`${dashboardPrefix}/courses/${courseId}/modules${organizationId ? `?organization=${organizationId}` : ''}`}
           variant="ghost"
           size="sm"
+          className="shrink-0 whitespace-nowrap px-2.5 py-2 text-xs sm:px-3 sm:text-sm"
         >
           Back to Course Builder
         </LinkButton>
       </div>
 
       <div className="grid gap-6 xl:grid-cols-[minmax(0,1.7fr)_360px]">
-        <div className="min-w-0 self-start">
+        <div className="order-2 min-w-0 self-start xl:order-1">
           {loading ? (
             <div className="mt-8 flex items-center gap-3 text-neutral-700">
               <Spinner size="md" label="Loading questions..." />
@@ -1098,7 +1099,7 @@ export default function QuizQuestionsPage() {
           ) : null}
         </div>
 
-        <aside className="h-fit self-start rounded-[26px] border border-[#e3e6e3] bg-[#fcfdfd] p-4 shadow-[0_6px_24px_rgba(19,33,28,0.04)] sm:p-5">
+        <aside className="order-1 h-fit self-start rounded-[26px] border border-[#e3e6e3] bg-[#fcfdfd] p-4 shadow-[0_6px_24px_rgba(19,33,28,0.04)] sm:p-5 xl:order-2">
           <div className="flex items-center justify-between gap-2 border-b border-[#edf1ef] pb-3">
             <div>
               <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-neutral-500">Quiz Summary</p>

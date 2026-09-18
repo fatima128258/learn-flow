@@ -1,4 +1,5 @@
 import nodemailer from 'nodemailer';
+import type { Transporter } from 'nodemailer';
 import { NotificationType } from '@prisma/client';
 
 interface MailOptions {
@@ -104,7 +105,7 @@ export async function sendNotificationEmail(type: NotificationType, ctx: Notific
   return sendMail({ to: ctx.to, subject, html });
 }
 
-let transporter: nodemailer.Transporter | null = null;
+let transporter: Transporter | null = null;
 
 export function getTransporter() {
   if (!transporter) {

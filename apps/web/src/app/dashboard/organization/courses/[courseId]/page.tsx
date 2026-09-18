@@ -247,7 +247,7 @@ export default function CourseDetailPage() {
                   onChange={handleStatusChange}
                   disabled={updatingStatus}
                   aria-label="Course status"
-                  mobileIcon={<svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true"><path strokeLinecap="round" strokeLinejoin="round" d="M5 12h14M12 5v14" /></svg>}
+                  className="w-32"
                   menuClassName="bottom-full mb-1 mt-0"
                   options={STATUS_OPTIONS.map((opt) => ({ value: opt.value, label: opt.label }))}
                   buttonClassName={
