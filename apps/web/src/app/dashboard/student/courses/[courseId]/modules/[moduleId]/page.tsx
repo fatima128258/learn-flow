@@ -9,12 +9,12 @@ import {
   EmptyState,
   EmptyStateIcons,
   ErrorState,
-  PageLoading,
-  Spinner,
+  Skeleton,
 } from '@/components/ui';
 import { PageHeader } from '@/components/dashboard';
 import { useCurrentUser } from '@/features/auth/useCurrentUser';
 import { useProgress, useRecordProgress, useModuleLessons } from '@/features/student/useProgress';
+import { ApiError } from '@/lib/api';
 
 type LessonItem = {
   id: string;
@@ -256,12 +256,16 @@ export default function StudentModuleLessonsPage() {
   // Handle API errors from React Query
   useEffect(() => {
     if (lessonsApiError) {
-      const error = lessonsApiError as any;
-      if (error?.message?.includes('STUDENT_NOT_ENROLLED')) {
+      const errorCode = lessonsApiError instanceof ApiError
+        ? lessonsApiError.code
+        : lessonsApiError instanceof Error
+          ? lessonsApiError.message
+          : '';
+      if (errorCode === 'STUDENT_NOT_ENROLLED') {
         setLessonError('You are not enrolled in this course.');
-      } else if (error?.message?.includes('MODULE_NOT_FOUND')) {
+      } else if (errorCode === 'MODULE_NOT_FOUND') {
         setLessonError('Module not found.');
-      } else if (error?.message?.includes('CONTENT_LOCKED')) {
+      } else if (errorCode === 'CONTENT_LOCKED' || errorCode === 'CONTENT_SEQUENCE_MISSING') {
         setLessonError('This module is locked. Complete the previous module to continue.');
       } else {
         setLessonError('Could not load lessons. Please try again.');
@@ -316,7 +320,31 @@ export default function StudentModuleLessonsPage() {
   const isLoading = userLoading || lessonsLoading;
 
   if (isLoading) {
-    return <PageLoading />;
+    return (
+      <div className="mx-auto max-w-6xl" role="status" aria-label="Loading module">
+        <div className="mb-6">
+          <Skeleton variant="text" height={16} width={180} className="mb-3" />
+          <Skeleton variant="text" height={32} width={260} className="mb-2" />
+          <Skeleton variant="text" height={16} width={340} />
+        </div>
+        <div className="rounded-2xl border border-neutral-200 bg-white p-6 shadow-sm">
+          <Skeleton variant="text" height={28} width={260} className="mb-3" />
+          <Skeleton variant="text" height={16} width={220} className="mb-6" />
+          <div className="space-y-4">
+            {Array.from({ length: 4 }).map((_, index) => (
+              <div key={index} className="flex items-center gap-4 rounded-2xl border border-neutral-200 p-4">
+                <Skeleton variant="circular" height={40} width={40} />
+                <div className="min-w-0 flex-1">
+                  <Skeleton variant="text" height={18} className="mb-2 w-2/3" />
+                  <Skeleton variant="text" height={14} className="w-1/2" />
+                </div>
+                <Skeleton variant="rectangular" height={28} width={72} />
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
   }
 
   return (

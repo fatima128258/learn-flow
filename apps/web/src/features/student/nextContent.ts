@@ -5,12 +5,6 @@ type SequenceItem = {
   unlocked?: boolean;
 };
 
-type ModuleSummary = {
-  id: string;
-  order: number;
-  complete?: boolean;
-};
-
 type CourseModuleSummary = {
   id: string;
   order: number;
@@ -36,36 +30,18 @@ export async function getNextContentUrl({
   contentType: 'LESSON' | 'QUIZ';
   contentId: string;
 }): Promise<string | null> {
-  const progressResponse = await fetch(
-    `/api/v1/organizations/${organizationId}/student/courses/${courseId}/progress`,
+  const currentModuleResponse = await fetch(
+    `/api/v1/organizations/${organizationId}/student/courses/${courseId}/modules/${moduleId}/lessons`,
     { credentials: 'include', cache: 'no-store' },
   );
-  const progressBody = progressResponse.ok ? await progressResponse.json() : null;
-  const modules = (progressBody?.data?.modules ?? []) as ModuleSummary[];
-  const orderedModules = [...modules].sort((a, b) => a.order - b.order);
-  const sequence: Array<SequenceItem & { moduleId: string }> = [];
-
-  const moduleResponses = await Promise.all(
-    orderedModules.map(async (courseModule) => {
-      const response = await fetch(
-        `/api/v1/organizations/${organizationId}/student/courses/${courseId}/modules/${courseModule.id}/lessons`,
-        { credentials: 'include', cache: 'no-store' },
-      );
-      if (!response.ok) return null;
-      return { courseModule, body: await response.json() };
-    }),
-  );
-
-  for (const moduleResponse of moduleResponses) {
-    if (!moduleResponse) continue;
-    const { courseModule, body } = moduleResponse;
-    const items = Array.isArray(body.data?.items) ? body.data.items : [];
-    for (const item of items) {
-      if (item?.type && item?.id) {
-        sequence.push({ type: item.type, id: item.id, state: item.state, unlocked: item.unlocked, moduleId: courseModule.id });
-      }
-    }
-  }
+  if (!currentModuleResponse.ok) return null;
+  const currentModuleBody = await currentModuleResponse.json();
+  const currentItems: SequenceItem[] = Array.isArray(currentModuleBody.data?.items)
+    ? currentModuleBody.data.items as SequenceItem[]
+    : [];
+  const sequence = currentItems
+    .filter((item: SequenceItem) => item?.type && item.id)
+    .map((item: SequenceItem) => ({ ...item, moduleId }));
 
   const currentIndex = sequence.findIndex(
     (item) => item.moduleId === moduleId && item.type === contentType && item.id === contentId,
@@ -78,15 +54,6 @@ export async function getNextContentUrl({
   // Legacy modules may not have ModuleContentItem rows, so their endpoint
   // returns lessons but no `items` sequence. Resolve the next lesson directly.
   if (currentIndex < 0) {
-    const currentModuleResponse = await fetch(
-      `/api/v1/organizations/${organizationId}/student/courses/${courseId}/modules/${moduleId}/lessons`,
-      { credentials: 'include', cache: 'no-store' },
-    );
-    if (currentModuleResponse.ok) {
-      const currentModuleBody = await currentModuleResponse.json();
-      const currentItems = Array.isArray(currentModuleBody.data?.items)
-        ? currentModuleBody.data.items
-        : [];
       const currentItemIndex = currentItems.findIndex(
         (item: SequenceItem) => item?.type === contentType && item.id === contentId,
       );
@@ -105,7 +72,6 @@ export async function getNextContentUrl({
       if (nextLesson?.id) {
         return contentUrl(courseId, moduleId, { type: 'LESSON', id: nextLesson.id });
       }
-    }
   }
 
   // Locked modules do not expose their content endpoint. Use the enrolled
@@ -118,8 +84,7 @@ export async function getNextContentUrl({
   const courseBody = await courseResponse.json();
   const moduleSummaries = (courseBody.data?.modules ?? []) as CourseModuleSummary[];
   const orderedCourseModules = [...moduleSummaries].sort((a, b) => a.order - b.order);
-  const currentModuleOrder = orderedModules.find(module => module.id === moduleId)?.order
-    ?? orderedCourseModules.find(module => module.id === moduleId)?.order;
+  const currentModuleOrder = orderedCourseModules.find(module => module.id === moduleId)?.order;
   // Skip modules that do not contain any lessons or quizzes.
   const laterModules = orderedCourseModules.filter(
     module => currentModuleOrder != null && module.order > currentModuleOrder,

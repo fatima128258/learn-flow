@@ -274,7 +274,12 @@ export default function StudentLessonPage() {
           contentType: 'LESSON',
           contentId: lessonId,
         }).then((nextUrl) => {
-          if (nextUrl) setNextContentUrl(nextUrl);
+          if (!nextUrl) return;
+          setNextContentUrl(nextUrl);
+          const currentModulePath = `/modules/${moduleId}/`;
+          if (!nextUrl.includes(currentModulePath)) {
+            router.push(nextUrl);
+          }
         }).catch(() => {
           // Next navigation can resolve again when the student clicks it.
         }).finally(() => {
@@ -292,7 +297,17 @@ export default function StudentLessonPage() {
     if (!organizationId || !courseId || !moduleId || !lessonId || !isCompleted) return;
     setNextResolving(true);
     try {
-      const url = nextContentUrl ?? await getNextContentUrl({
+      const localItems = Array.isArray(moduleLessons?.items) ? moduleLessons.items : [];
+      const localIndex = localItems.findIndex(
+        (item: { type?: string; id?: string }) =>
+          item.type === 'LESSON' && item.id === lessonId,
+      );
+      const localNext = localIndex >= 0 ? localItems[localIndex + 1] : undefined;
+      const immediateUrl = localNext?.type && localNext.id &&
+        localNext.state !== 'locked' && localNext.unlocked !== false
+        ? `/dashboard/student/courses/${courseId}/modules/${moduleId}/${localNext.type === 'LESSON' ? 'lessons' : 'quizzes'}/${localNext.id}`
+        : null;
+      const url = nextContentUrl ?? immediateUrl ?? await getNextContentUrl({
         organizationId,
         courseId,
         moduleId,
@@ -365,8 +380,15 @@ export default function StudentLessonPage() {
                   )}
                   <Button
                     size="sm"
+                    variant="ghost"
+                    onClick={() => router.back()}
+                  >
+                    Previous
+                  </Button>
+                  <Button
+                    size="sm"
                     variant="primary"
-                    disabled={marking || (isCompleted && nextResolving)}
+                    disabled={marking}
                     onClick={() => {
                       if (isCompleted) {
                         void goToNextContent();
@@ -375,7 +397,7 @@ export default function StudentLessonPage() {
                       }
                     }}
                   >
-                    {marking ? 'Saving...' : isCompleted ? (nextResolving ? 'Loading next...' : 'Next') : 'Complete'}
+                    {marking ? 'Saving...' : isCompleted ? 'Next' : 'Complete'}
                   </Button>
                 </div>
               </div>

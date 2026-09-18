@@ -72,27 +72,15 @@ html,
 body {
   max-width: 100%;
   overflow-x: hidden;
-  scrollbar-width: thin;
-  scrollbar-color: #9b765c transparent;
+  scrollbar-width: none;
 }
 
 * {
-  scrollbar-width: thin;
-  scrollbar-color: #9b765c transparent;
+  scrollbar-width: none;
 }
 
 *::-webkit-scrollbar {
-  width: 5px;
-  height: 5px;
-}
-
-*::-webkit-scrollbar-thumb {
-  border-radius: 9999px;
-  background-color: #9b765c;
-}
-
-*::-webkit-scrollbar-track {
-  background: transparent;
+  display: none;
 }
 
 .modal-scrollbar {
