@@ -394,6 +394,11 @@ export async function createManagedUser(organizationId: string, input: {
     throw new Error('USER_ALREADY_IN_ORGANIZATION');
   }
 
+  const memberships = await authRepo.findUserOrganizationsByUserId(user.id);
+  if (memberships.some((membership) => membership.organizationId !== organizationId)) {
+    throw new Error('USER_ALREADY_IN_ANOTHER_ORGANIZATION');
+  }
+
   const membership = await orgAdminRepo.createOrganizationMembership({
     userId: user.id,
     organizationId,

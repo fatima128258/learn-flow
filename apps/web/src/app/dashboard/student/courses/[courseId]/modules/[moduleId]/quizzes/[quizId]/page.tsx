@@ -6,7 +6,7 @@ import Link from 'next/link';
 import {
   Button,
   ErrorState,
-  DashboardSkeleton,
+  PageLoading,
   Spinner,
 } from '@/components/ui';
 import { getQuizErrorMessage } from '@/features/course/quizErrors';
@@ -319,11 +319,7 @@ export default function StudentQuizTakingPage() {
   }
 
   if (loading) {
-    return (
-      <div className="mx-auto flex max-w-5xl items-center gap-3 text-neutral-700">
-        <DashboardSkeleton cards={3} />
-      </div>
-    );
+    return <PageLoading />;
   }
 
   const attemptsRemaining = quiz?.attempts.remaining ?? null;

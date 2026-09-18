@@ -5,6 +5,7 @@ const ERROR_MESSAGES: Record<string, string> = {
   ROLE_NOT_ALLOWED: 'Only instructors can be created from this page.',
   ORGANIZATION_ACCESS_DENIED: 'You do not have access to this organization.',
   USER_ALREADY_IN_ORGANIZATION: 'This user is already a member of your organization.',
+  USER_ALREADY_IN_ANOTHER_ORGANIZATION: 'This email is already assigned to another organization.',
   ORGANIZATION_NOT_FOUND: 'Your organization no longer exists.',
   USER_NOT_FOUND: 'User not found.',
 };

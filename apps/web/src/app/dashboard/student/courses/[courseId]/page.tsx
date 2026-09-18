@@ -4,10 +4,10 @@ import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import {
-  DashboardSkeleton,
   EmptyState,
   EmptyStateIcons,
   ErrorState,
+  PageLoading,
 } from '@/components/ui';
 import { useCurrentUser } from '@/features/auth/useCurrentUser';
 import { useProgress } from '@/features/student/useProgress';
@@ -137,9 +137,7 @@ export default function StudentCoursePage() {
   }, [organizationId, courseId, router]);
 
   if (loading) {
-    return (
-      <DashboardSkeleton cards={3} />
-    );
+    return <PageLoading />;
   }
 
   return (

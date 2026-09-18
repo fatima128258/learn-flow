@@ -6,10 +6,10 @@ import Link from 'next/link';
 import {
   Badge,
   Button,
-  DashboardSkeleton,
   EmptyState,
   EmptyStateIcons,
   ErrorState,
+  PageLoading,
   Spinner,
 } from '@/components/ui';
 import { PageHeader } from '@/components/dashboard';
@@ -316,11 +316,7 @@ export default function StudentModuleLessonsPage() {
   const isLoading = userLoading || lessonsLoading;
 
   if (isLoading) {
-    return <DashboardSkeleton cards={3} />;
-  }
-
-  if (isLoading) {
-    return <DashboardSkeleton cards={3} />;
+    return <PageLoading />;
   }
 
   return (

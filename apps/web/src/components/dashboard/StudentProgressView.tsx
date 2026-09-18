@@ -24,14 +24,14 @@ type Props = { apiPath: string };
 
 function StudentProgressSkeleton() {
   return (
-    <div className="rounded-2xl border border-[#5c3829] bg-[#3a241b] p-5" role="status" aria-label="Loading student progress">
+    <div className="rounded-2xl border border-neutral-200 bg-white p-5" role="status" aria-label="Loading student progress">
       <div className="space-y-4">
         {Array.from({ length: 6 }).map((_, index) => (
-          <div key={index} className="grid grid-cols-4 gap-4 border-b border-[#5c3829] pb-4 last:border-0 last:pb-0">
-            <Skeleton variant="text" height={18} className="bg-[#6b4634]" />
-            <Skeleton variant="text" height={18} className="bg-[#6b4634]" />
-            <Skeleton variant="text" height={18} className="bg-[#6b4634]" />
-            <Skeleton variant="text" height={18} className="bg-[#6b4634]" />
+          <div key={index} className="grid grid-cols-4 gap-4 border-b border-neutral-100 pb-4 last:border-0 last:pb-0">
+            <Skeleton variant="text" height={18} className="bg-[#f5eadc]" />
+            <Skeleton variant="text" height={18} className="bg-[#f5eadc]" />
+            <Skeleton variant="text" height={18} className="bg-[#f5eadc]" />
+            <Skeleton variant="text" height={18} className="bg-[#f5eadc]" />
           </div>
         ))}
       </div>

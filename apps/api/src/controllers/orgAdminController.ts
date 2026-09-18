@@ -32,6 +32,8 @@ function handleError(res: Response, err: unknown) {
       return fail(res, 403, 'ORGANIZATION_ACCESS_DENIED');
     case 'USER_ALREADY_IN_ORGANIZATION':
       return fail(res, 409, 'USER_ALREADY_IN_ORGANIZATION');
+    case 'USER_ALREADY_IN_ANOTHER_ORGANIZATION':
+      return fail(res, 409, 'USER_ALREADY_IN_ANOTHER_ORGANIZATION');
     case 'ORGANIZATION_NOT_FOUND':
       return fail(res, 404, 'ORGANIZATION_NOT_FOUND');
     case 'USER_NOT_FOUND':
