@@ -4,14 +4,21 @@ import { useState } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import { useCurrentUser } from '@/features/auth/useCurrentUser';
-import { useCheckoutOrder, useCourseOverview, usePayOrder } from '@/features/student/useCourseStore';
+import { type PaymentMethod, useCheckoutOrder, useCourseOverview, usePayOrder, useSubmitManualPayment } from '@/features/student/useCourseStore';
 import { getPurchaseErrorMessage } from '@/features/student/courseErrors';
 import { currency } from '@/lib/types';
-import { Badge, Button, Card, EmptyState, LinkButton, PageLoading } from '@/components/ui';
+import { Badge, Button, Card, EmptyState, Input, LinkButton, PageLoading } from '@/components/ui';
 import { Footer } from '@/components/layout/Footer';
 import { useToast } from '@/components/ui/ToastProvider';
 import { ApiError } from '@/lib/api';
 import { getCoursePricing } from '@/lib/coursePricing';
+
+const paymentMethodMeta: Record<PaymentMethod, { label: string; description: string }> = {
+  MOCK: { label: 'Mock payment', description: 'Legacy checkout flow for existing mock success flow.' },
+  COD: { label: 'Cash on Delivery', description: 'Pay on delivery and wait for owner confirmation.' },
+  BANK_TRANSFER: { label: 'Bank Transfer', description: 'Transfer to the course owner and share the transaction ID.' },
+  STRIPE: { label: 'Stripe', description: 'Coming Soon' },
+};
 
 export default function CheckoutPage() {
   const params = useParams<{ courseId: string }>();
@@ -23,16 +30,34 @@ export default function CheckoutPage() {
   const organizationId = user?.organizationId ?? '';
   const { data: course, isLoading: courseLoading } = useCourseOverview(organizationId, courseId);
 
-  const checkout = useCheckoutOrder(organizationId, courseId);
-  const [order, setOrder] = useState<{ id: string; status: string; totalAmount: number } | null>(null);
+  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<PaymentMethod>('MOCK');
+  const [transactionId, setTransactionId] = useState('');
+  const [manualPaymentError, setManualPaymentError] = useState('');
+  const [manualPaymentSubmitted, setManualPaymentSubmitted] = useState(false);
+  const [order, setOrder] = useState<{ id: string; status: string; totalAmount: number; paymentMethod?: PaymentMethod } | null>(null);
   const [paymentFailed, setPaymentFailed] = useState(false);
+
+  const checkout = useCheckoutOrder(organizationId, courseId, selectedPaymentMethod);
   const payment = usePayOrder(organizationId, courseId, order?.id ?? null);
+  const submitManualPayment = useSubmitManualPayment(organizationId, order?.id ?? null);
 
   function handleCheckout() {
+    if (selectedPaymentMethod === 'STRIPE') {
+      toast.info('Stripe is coming soon. Please select a different payment method.');
+      return;
+    }
+
     checkout.mutate(undefined, {
       onSuccess: (data) => {
         if (data) {
-          setOrder({ id: data.id, status: data.status, totalAmount: data.totalAmount });
+          setOrder({ id: data.id, status: data.status, totalAmount: data.totalAmount, paymentMethod: selectedPaymentMethod });
+          setPaymentFailed(false);
+          setManualPaymentSubmitted(false);
+          setTransactionId('');
+          setManualPaymentError('');
+          if (selectedPaymentMethod === 'MOCK') {
+            toast.info('Order created. Complete the mock payment to unlock this course.');
+          }
         }
       },
       onError: (err) => {
@@ -47,7 +72,7 @@ export default function CheckoutPage() {
       onSuccess: (data) => {
         if (data) {
           setPaymentFailed(false);
-          setOrder({ id: data.id, status: data.status, totalAmount: data.totalAmount });
+          setOrder({ id: data.id, status: data.status, totalAmount: data.totalAmount, paymentMethod: 'MOCK' });
           toast.success('Payment successful. Your course is unlocked.');
         }
       },
@@ -57,6 +82,37 @@ export default function CheckoutPage() {
         toast.error(getPurchaseErrorMessage(code));
       },
     });
+  }
+
+  function handleManualSubmit() {
+    const normalized = transactionId.trim();
+    if (selectedPaymentMethod === 'BANK_TRANSFER' && !normalized) {
+      setManualPaymentError('Transaction ID is required before submitting a bank transfer payment.');
+      return;
+    }
+
+    setManualPaymentError('');
+    submitManualPayment.mutate(
+      {
+        paymentMethod: selectedPaymentMethod === 'BANK_TRANSFER' ? 'BANK_TRANSFER' : 'COD',
+        transactionId: normalized || undefined,
+      },
+      {
+        onSuccess: (data) => {
+          setManualPaymentSubmitted(true);
+          setOrder((current) => (current ? { ...current, status: data?.status ?? current.status } : current));
+          toast.success('Payment submitted. The course owner must verify it before access is unlocked.');
+        },
+        onError: (err) => {
+          const code = err instanceof ApiError ? err.code : null;
+          if (code === 'INVALID_TRANSACTION_ID') {
+            setManualPaymentError('Transaction ID is required for bank transfer submissions.');
+            return;
+          }
+          toast.error(code === 'PAYMENT_NOT_PENDING' ? 'This payment can no longer be submitted.' : 'We could not submit your payment. Please try again.');
+        },
+      },
+    );
   }
 
   if (userLoading || courseLoading) {
@@ -123,6 +179,9 @@ export default function CheckoutPage() {
     );
   }
 
+  const isManualPending = Boolean(order && order.status === 'PENDING' && order.paymentMethod && order.paymentMethod !== 'MOCK');
+  const pendingOrder = isManualPending ? order : null;
+
   return (
     <main className="min-h-screen bg-neutral-50 p-8">
       <div className="mx-auto max-w-2xl">
@@ -146,6 +205,74 @@ export default function CheckoutPage() {
               action={{ label: 'Continue learning', onClick: () => { window.location.href = `/dashboard/student/courses/${course.id}`; } }}
             />
           </Card>
+        ) : pendingOrder ? (
+          <div className="rounded-2xl border border-neutral-200 bg-white shadow-sm">
+            <div className="border-b border-neutral-200 p-6">
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <p className="text-sm font-medium uppercase tracking-wide text-primary-600">Payment pending</p>
+                  <h1 className="mt-1 text-2xl font-bold text-neutral-900">Awaiting verification</h1>
+                </div>
+                <Badge variant="warning">Pending</Badge>
+              </div>
+            </div>
+
+            <div className="space-y-6 p-6">
+              <dl className="space-y-3">
+                <div className="flex items-start justify-between gap-4">
+                  <dt className="text-neutral-600">Course</dt>
+                  <dd className="text-right font-medium text-neutral-900">{course.title}</dd>
+                </div>
+                <div className="flex items-start justify-between gap-4">
+                  <dt className="text-neutral-600">Amount</dt>
+                  <dd className="text-right font-semibold text-neutral-900">{currency(finalAmount)}</dd>
+                </div>
+                <div className="flex items-start justify-between gap-4">
+                  <dt className="text-neutral-600">Payment method</dt>
+                  <dd className="text-right font-medium text-neutral-900">{paymentMethodMeta[pendingOrder.paymentMethod ?? 'COD'].label}</dd>
+                </div>
+                {pendingOrder.paymentMethod === 'BANK_TRANSFER' && (
+                  <div className="flex items-start justify-between gap-4">
+                    <dt className="text-neutral-600">Transaction ID</dt>
+                    <dd className="text-right font-medium text-neutral-900">{transactionId || 'Not submitted yet'}</dd>
+                  </div>
+                )}
+                <div className="flex items-start justify-between gap-4">
+                  <dt className="text-neutral-600">Order</dt>
+                  <dd className="text-right font-medium text-neutral-900">{pendingOrder.id}</dd>
+                </div>
+              </dl>
+
+              {pendingOrder.paymentMethod === 'BANK_TRANSFER' && !manualPaymentSubmitted && (
+                <div className="rounded-xl border border-neutral-200 bg-neutral-50 p-4">
+                  <p className="text-sm font-medium text-neutral-900">Add your transfer reference</p>
+                  <p className="mt-1 text-sm text-neutral-600">Please enter the transaction ID you used when you sent the bank transfer. The course remains locked until the owner approves the payment.</p>
+                  <div className="mt-4 space-y-3">
+                    <Input
+                      label="Transaction ID"
+                      value={transactionId}
+                      onChange={(event) => setTransactionId(event.target.value)}
+                      placeholder="e.g. TXN-123456"
+                      error={manualPaymentError}
+                    />
+                    <Button onClick={handleManualSubmit} loading={submitManualPayment.isPending} fullWidth>
+                      Submit payment details
+                    </Button>
+                  </div>
+                </div>
+              )}
+
+              {manualPaymentSubmitted && (
+                <div className="rounded-xl border border-success-200 bg-success-50 p-4 text-sm text-success-700">
+                  Payment submitted successfully. Your order is pending review and access will be granted only after approval.
+                </div>
+              )}
+
+              <div className="flex flex-col gap-3 sm:flex-row-reverse">
+                <LinkButton href="/dashboard/student" variant="outline">Back to dashboard</LinkButton>
+              </div>
+            </div>
+          </div>
         ) : (
           <div className="rounded-2xl border border-neutral-200 bg-white shadow-sm">
             <div className="border-b border-neutral-200 p-6">
@@ -160,6 +287,7 @@ export default function CheckoutPage() {
                   <p className="mt-1">Your course has not been unlocked.</p>
                 </div>
               )}
+
               <dl className="space-y-3">
                 <div className="flex items-start justify-between gap-4">
                   <dt className="text-neutral-600">Course</dt>
@@ -199,20 +327,97 @@ export default function CheckoutPage() {
                 </div>
               </dl>
 
+              <div className="mt-6 space-y-3">
+                {(['MOCK', 'COD', 'BANK_TRANSFER', 'STRIPE'] as PaymentMethod[]).map((method) => {
+                  const meta = paymentMethodMeta[method];
+                  const isSelected = selectedPaymentMethod === method;
+                  const isDisabled = method === 'STRIPE';
+
+                  return (
+                    <button
+                      key={method}
+                      type="button"
+                      onClick={() => {
+                        if (!isDisabled) {
+                          setSelectedPaymentMethod(method);
+                        }
+                      }}
+                      disabled={isDisabled}
+                      className={`flex w-full items-start justify-between gap-4 rounded-xl border p-4 text-left transition ${
+                        isDisabled ? 'cursor-not-allowed border-neutral-200 bg-neutral-100 opacity-70' : isSelected ? 'border-primary-600 bg-primary-50' : 'border-neutral-200 bg-white hover:border-neutral-300'
+                      }`}
+                    >
+                      <div>
+                        <p className="text-base font-semibold text-neutral-900">{meta.label}</p>
+                        <p className="mt-1 text-sm text-neutral-600">{meta.description}</p>
+                        {method === 'BANK_TRANSFER' && (
+                          <p className="mt-2 text-xs font-medium uppercase tracking-wide text-warning-700">Pending review required</p>
+                        )}
+                        {method === 'COD' && (
+                          <p className="mt-2 text-xs font-medium uppercase tracking-wide text-warning-700">Pending review required</p>
+                        )}
+                        {method === 'MOCK' && (
+                          <p className="mt-2 text-xs font-medium uppercase tracking-wide text-success-700">Immediate approval</p>
+                        )}
+                        {method === 'STRIPE' && (
+                          <p className="mt-2 text-xs font-medium uppercase tracking-wide text-neutral-500">Coming Soon</p>
+                        )}
+                      </div>
+                      <span className={`mt-1 h-5 w-5 rounded-full border-2 ${isSelected ? 'border-primary-600 bg-primary-600' : isDisabled ? 'border-neutral-300 bg-neutral-200' : 'border-neutral-300 bg-white'}`} />
+                    </button>
+                  );
+                })}
+              </div>
+
+              {selectedPaymentMethod === 'BANK_TRANSFER' && (
+                <div className="mt-6 rounded-xl border border-neutral-200 bg-neutral-50 p-4 text-sm text-neutral-700">
+                  <p className="font-medium text-neutral-900">Bank transfer instructions</p>
+                  <p className="mt-1">Use the course owner’s bank details to complete the transfer, then enter the transaction ID before submitting. Access stays pending until the owner verifies the payment.</p>
+                </div>
+              )}
+
+              {selectedPaymentMethod === 'COD' && (
+                <div className="mt-6 rounded-xl border border-neutral-200 bg-neutral-50 p-4 text-sm text-neutral-700">
+                  <p className="font-medium text-neutral-900">Cash on delivery</p>
+                  <p className="mt-1">Your payment will remain pending until the course owner confirms the order.</p>
+                </div>
+              )}
+
+              {selectedPaymentMethod === 'STRIPE' && (
+                <div className="mt-6 rounded-xl border border-neutral-200 bg-neutral-50 p-4 text-sm text-neutral-700">
+                  <p className="font-medium text-neutral-900">Stripe</p>
+                  <p className="mt-1">Coming soon. Please select another payment method.</p>
+                </div>
+              )}
+
               <div className="mt-6 flex flex-col gap-3 sm:flex-row-reverse">
-                <Button
-                  size="lg"
-                loading={order ? payment.isPending : checkout.isPending}
-                onClick={order ? handlePayment : handleCheckout}
-                disabled={order ? payment.isPending : checkout.isPending}
-                >
-                {order
-                  ? (payment.isPending ? 'Processing mock payment...' : 'Complete Mock Payment')
-                  : (checkout.isPending ? 'Creating order...' : 'Continue to checkout')}
-                </Button>
-                <LinkButton href={`/courses/${courseId}`} variant="outline" size="lg">
-                  Cancel
-                </LinkButton>
+                {selectedPaymentMethod === 'STRIPE' ? (
+                  <>
+                    <Button size="lg" disabled>
+                      Stripe coming soon
+                    </Button>
+                    <LinkButton href={`/courses/${courseId}`} variant="outline" size="lg">Cancel</LinkButton>
+                  </>
+                ) : selectedPaymentMethod === 'MOCK' ? (
+                  <>
+                    <Button
+                      size="lg"
+                      loading={order ? payment.isPending : checkout.isPending}
+                      onClick={order ? handlePayment : handleCheckout}
+                      disabled={order ? payment.isPending : checkout.isPending}
+                    >
+                      {order ? (payment.isPending ? 'Processing mock payment...' : 'Complete Mock Payment') : (checkout.isPending ? 'Creating order...' : 'Continue to checkout')}
+                    </Button>
+                    <LinkButton href={`/courses/${courseId}`} variant="outline" size="lg">Cancel</LinkButton>
+                  </>
+                ) : (
+                  <>
+                    <Button size="lg" loading={checkout.isPending} onClick={handleCheckout} disabled={checkout.isPending}>
+                      {checkout.isPending ? 'Creating order...' : 'Continue with selected payment'}
+                    </Button>
+                    <LinkButton href={`/courses/${courseId}`} variant="outline" size="lg">Cancel</LinkButton>
+                  </>
+                )}
               </div>
             </div>
           </div>

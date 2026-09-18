@@ -23,6 +23,7 @@ export interface PendingOrderData {
   unitPrice: number;
   totalAmount: number;
   currency: string;
+  paymentMethod?: 'COD' | 'BANK_TRANSFER' | 'MOCK' | null;
 }
 
 export async function createPendingOrder(data: PendingOrderData) {
@@ -62,15 +63,19 @@ export async function createPendingOrder(data: PendingOrderData) {
       },
     });
 
+    const paymentMethod = data.paymentMethod && data.paymentMethod !== 'MOCK' ? data.paymentMethod : null;
+
     await tx.payment.create({
       data: {
         orderId: order.id,
         userId: data.userId,
         organizationId: data.organizationId,
-        provider: 'MOCK',
+        provider: paymentMethod ?? 'MOCK',
         amount: data.totalAmount,
         currency: data.currency,
         status: 'PENDING',
+        paymentMethod: paymentMethod ?? undefined,
+        transactionId: null,
       },
     });
 
@@ -97,11 +102,185 @@ export async function findPendingOrderForCourse(userId: string, organizationId: 
   });
 }
 
+export async function findPendingManualPaymentById(paymentId: string, organizationId: string) {
+  return prisma().payment.findFirst({
+    where: {
+      id: paymentId,
+      organizationId,
+      status: 'PENDING',
+      paymentMethod: { in: ['COD', 'BANK_TRANSFER'] },
+    },
+    include: {
+      order: {
+        include: { items: true },
+      },
+    },
+  });
+}
+
+export async function listPendingManualPayments(organizationId: string) {
+  return prisma().payment.findMany({
+    where: {
+      organizationId,
+      status: 'PENDING',
+      paymentMethod: { in: ['COD', 'BANK_TRANSFER'] },
+    },
+    include: {
+      order: {
+        include: { items: true },
+      },
+      user: {
+        select: { id: true, name: true, email: true },
+      },
+    },
+    orderBy: { createdAt: 'asc' },
+  });
+}
+
+export async function submitManualPayment(data: {
+  orderId: string;
+  userId: string;
+  organizationId: string;
+  paymentMethod: 'COD' | 'BANK_TRANSFER';
+  transactionId?: string | null;
+}) {
+  return prisma().$transaction(async (tx) => {
+    const order = await tx.order.findFirst({
+      where: { id: data.orderId, userId: data.userId, organizationId: data.organizationId, status: 'PENDING' },
+      include: { payments: true },
+    });
+    if (!order) throw new Error('ORDER_NOT_FOUND');
+
+    const payment = order.payments[0];
+    if (!payment) throw new Error('PAYMENT_NOT_FOUND');
+    if (payment.status !== 'PENDING') throw new Error('PAYMENT_NOT_PENDING');
+    if (payment.paymentMethod && payment.paymentMethod !== data.paymentMethod) {
+      throw new Error('PAYMENT_METHOD_MISMATCH');
+    }
+
+    const nextTxId = data.paymentMethod === 'BANK_TRANSFER' ? (data.transactionId ?? '').trim() : (data.transactionId ?? '').trim() || null;
+    if (data.paymentMethod === 'BANK_TRANSFER' && !nextTxId) {
+      throw new Error('INVALID_TRANSACTION_ID');
+    }
+
+    await tx.payment.updateMany({
+      where: { id: payment.id, orderId: order.id, userId: data.userId, status: 'PENDING' },
+      data: {
+        paymentMethod: data.paymentMethod,
+        transactionId: nextTxId,
+        provider: 'MANUAL',
+      },
+    });
+
+    const updated = await tx.payment.findUnique({ where: { id: payment.id } });
+    return updated;
+  });
+}
+
+export async function approveManualPayment(data: {
+  paymentId: string;
+  organizationId: string;
+  reviewerUserId: string;
+}) {
+  return prisma().$transaction(async (tx) => {
+    const payment = await tx.payment.findFirst({
+      where: {
+        id: data.paymentId,
+        organizationId: data.organizationId,
+        status: 'PENDING',
+        paymentMethod: { in: ['COD', 'BANK_TRANSFER'] },
+      },
+      include: { order: { include: { items: true } } },
+    });
+    if (!payment) throw new Error('PAYMENT_NOT_FOUND');
+    if (!payment.order) throw new Error('ORDER_NOT_FOUND');
+
+    const item = payment.order.items[0];
+    if (!item) throw new Error('ORDER_ITEM_NOT_FOUND');
+
+    const existingEnrollment = await tx.enrollment.findUnique({
+      where: { userId_courseId: { userId: payment.userId, courseId: item.courseId } },
+    });
+    if (existingEnrollment) throw new Error('ALREADY_ENROLLED');
+
+    const paymentUpdate = await tx.payment.updateMany({
+      where: { id: payment.id, status: 'PENDING' },
+      data: {
+        status: 'SUCCEEDED',
+        reviewedById: data.reviewerUserId,
+        reviewedAt: new Date(),
+        rejectionReason: null,
+        paidAt: new Date(),
+        providerRef: `manual_approval_${Date.now()}`,
+      },
+    });
+    if (paymentUpdate.count !== 1) throw new Error('PAYMENT_NOT_PENDING');
+
+    const orderUpdate = await tx.order.updateMany({
+      where: { id: payment.orderId, status: 'PENDING' },
+      data: { status: 'PAID' },
+    });
+    if (orderUpdate.count !== 1) throw new Error('ORDER_NOT_PENDING');
+
+    const enrollment = await tx.enrollment.create({
+      data: {
+        userId: payment.userId,
+        courseId: item.courseId,
+        organizationId: payment.organizationId,
+      },
+    });
+
+    const updatedPayment = await tx.payment.findUniqueOrThrow({ where: { id: payment.id } });
+    return { payment: updatedPayment, enrollment };
+  });
+}
+
+export async function rejectManualPayment(data: {
+  paymentId: string;
+  organizationId: string;
+  reviewerUserId: string;
+  reason?: string | null;
+}) {
+  return prisma().$transaction(async (tx) => {
+    const payment = await tx.payment.findFirst({
+      where: {
+        id: data.paymentId,
+        organizationId: data.organizationId,
+        status: 'PENDING',
+        paymentMethod: { in: ['COD', 'BANK_TRANSFER'] },
+      },
+      include: { order: true },
+    });
+    if (!payment) throw new Error('PAYMENT_NOT_FOUND');
+
+    const paymentUpdate = await tx.payment.updateMany({
+      where: { id: payment.id, status: 'PENDING' },
+      data: {
+        status: 'FAILED',
+        reviewedById: data.reviewerUserId,
+        reviewedAt: new Date(),
+        rejectionReason: data.reason?.trim() || 'Rejected by owner',
+      },
+    });
+    if (paymentUpdate.count !== 1) throw new Error('PAYMENT_NOT_PENDING');
+
+    const orderUpdate = await tx.order.updateMany({
+      where: { id: payment.orderId, status: 'PENDING' },
+      data: { status: 'FAILED' },
+    });
+    if (orderUpdate.count !== 1) throw new Error('ORDER_NOT_PENDING');
+
+    const updatedPayment = await tx.payment.findUniqueOrThrow({ where: { id: payment.id } });
+    return updatedPayment;
+  });
+}
+
 export async function completeOrderWithPurchase(data: {
   orderId: string;
   userId: string;
   organizationId: string;
   providerRef: string;
+  paymentMethod?: 'COD' | 'BANK_TRANSFER' | 'MOCK';
 }) {
   return prisma().$transaction(async (tx) => {
     const order = await tx.order.findFirst({
@@ -129,9 +308,20 @@ export async function completeOrderWithPurchase(data: {
     if (payment.status !== 'PENDING') throw new Error('PAYMENT_NOT_PENDING');
 
     const paidAt = new Date();
+    const paymentMethod = data.paymentMethod === 'COD' || data.paymentMethod === 'BANK_TRANSFER'
+      ? data.paymentMethod
+      : payment.paymentMethod ?? undefined;
+
     const paymentClaim = await tx.payment.updateMany({
       where: { id: payment.id, orderId: order.id, userId: data.userId, status: 'PENDING' },
-      data: { status: 'SUCCEEDED', providerRef: data.providerRef, paidAt },
+      data: {
+        status: 'SUCCEEDED',
+        providerRef: data.providerRef,
+        paidAt,
+        reviewedAt: paidAt,
+        reviewedById: data.userId,
+        ...(paymentMethod ? { paymentMethod } : {}),
+      },
     });
     if (paymentClaim.count !== 1) throw new Error('PAYMENT_NOT_PENDING');
 

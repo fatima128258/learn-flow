@@ -1,15 +1,15 @@
 import request from 'supertest';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-const txMock = {
+const txMock = vi.hoisted(() => ({
   order: { create: vi.fn(), findFirst: vi.fn(), updateMany: vi.fn(), findUnique: vi.fn(), findUniqueOrThrow: vi.fn() },
   orderItem: { create: vi.fn() },
   payment: { create: vi.fn(), updateMany: vi.fn() },
   enrollment: { findUnique: vi.fn(), create: vi.fn() },
   $executeRaw: vi.fn(),
-};
+}));
 
-const prismaMock = {
+const prismaMock = vi.hoisted(() => ({
   userOrganization: {
     findMany: vi.fn(),
     findFirst: vi.fn(),
@@ -32,7 +32,7 @@ const prismaMock = {
   quiz: { count: vi.fn() },
   notification: { create: vi.fn() },
   $transaction: vi.fn(async (callback: (tx: typeof txMock) => Promise<unknown>) => callback(txMock)),
-};
+}));
 
 vi.mock('../services/authService', () => ({
   registerUser: vi.fn(),

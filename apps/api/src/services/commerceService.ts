@@ -1,6 +1,7 @@
 import * as courseRepo from '../repositories/courseRepository';
 import * as enrollmentRepo from '../repositories/enrollmentRepository';
 import * as orderRepo from '../repositories/orderRepository';
+import getPrisma from '../prisma';
 import { processMockPayment } from './paymentService';
 import { getActiveCoursePrice } from '../utils/coursePricing';
 
@@ -48,7 +49,12 @@ function toOrderDto(order: {
   };
 }
 
-export async function createCheckoutOrder(organizationId: string, userId: string, courseId: string) {
+export async function createCheckoutOrder(
+  organizationId: string,
+  userId: string,
+  courseId: string,
+  paymentMethod?: 'COD' | 'BANK_TRANSFER' | 'MOCK',
+) {
   const [course, existingEnrollment, existingOrder] = await Promise.all([
     courseRepo.getById(organizationId, courseId),
     enrollmentRepo.findByUserAndCourse(userId, courseId),
@@ -80,18 +86,133 @@ export async function createCheckoutOrder(organizationId: string, userId: string
     unitPrice,
     totalAmount: round2(unitPrice),
     currency: 'USD',
+    paymentMethod,
   });
   return { ...toOrderDto({ ...order, items: [] }), courseId: course.id, courseTitle: course.title };
+}
+
+export async function submitManualPayment(
+  organizationId: string,
+  userId: string,
+  orderId: string,
+  paymentMethod: 'COD' | 'BANK_TRANSFER',
+  transactionId?: string | null,
+) {
+  const order = await orderRepo.findPendingOrderForUser(orderId, userId, organizationId);
+  if (!order) throw new Error('ORDER_NOT_FOUND');
+
+  const payment = order.payments[0];
+  if (!payment) throw new Error('PAYMENT_NOT_FOUND');
+  if (payment.status !== 'PENDING') throw new Error('PAYMENT_NOT_PENDING');
+
+  const normalizedTxId = (transactionId ?? '').trim();
+  if (!normalizedTxId && paymentMethod === 'BANK_TRANSFER') {
+    throw new Error('INVALID_TRANSACTION_ID');
+  }
+
+  return orderRepo.submitManualPayment({
+    orderId,
+    userId,
+    organizationId,
+    paymentMethod,
+    transactionId: normalizedTxId || null,
+  });
+}
+
+export async function listPendingManualPayments(organizationId: string, reviewerUserId: string) {
+  const payments = await orderRepo.listPendingManualPayments(organizationId);
+  const prisma = getPrisma();
+
+  const reviewerIsOrgAdmin = await prisma.userOrganization.findFirst({
+    where: { userId: reviewerUserId, organizationId, role: 'ORG_ADMIN' },
+  });
+  const reviewerIsPlatformAdmin = await prisma.userOrganization.findFirst({
+    where: { userId: reviewerUserId, organizationId, role: 'PLATFORM_ADMIN' },
+  });
+
+  const visible = await Promise.all(payments.map(async (payment) => {
+    const courseId = payment.order.items[0]?.courseId;
+    if (!courseId) return null;
+
+    const course = await courseRepo.getById(organizationId, courseId);
+    if (!course) return null;
+
+    const canReview = reviewerIsOrgAdmin || reviewerIsPlatformAdmin || course.instructorUserId === reviewerUserId;
+    return canReview ? payment : null;
+  }));
+
+  return visible.filter((payment): payment is NonNullable<typeof payment> => Boolean(payment));
+}
+
+async function assertReviewAuthorization(
+  organizationId: string,
+  reviewerUserId: string,
+  paymentId: string,
+) {
+  const prisma = getPrisma();
+  const payment = await orderRepo.findPendingManualPaymentById(paymentId, organizationId);
+  if (!payment) throw new Error('PAYMENT_NOT_FOUND');
+
+  const courseId = payment.order.items[0]?.courseId;
+  if (!courseId) throw new Error('ORDER_ITEM_NOT_FOUND');
+
+  const course = await courseRepo.getById(organizationId, courseId);
+  if (!course) throw new Error('COURSE_NOT_FOUND');
+
+  const hasOrgAdmin = await prisma.userOrganization.findFirst({
+    where: { userId: reviewerUserId, organizationId, role: 'ORG_ADMIN' },
+  });
+  const hasPlatformAdmin = await prisma.userOrganization.findFirst({
+    where: { userId: reviewerUserId, organizationId, role: 'PLATFORM_ADMIN' },
+  });
+
+  if (hasOrgAdmin || hasPlatformAdmin || course.instructorUserId === reviewerUserId) {
+    return payment;
+  }
+
+  throw new Error('FORBIDDEN');
+}
+
+export async function approveManualPayment(organizationId: string, reviewerUserId: string, paymentId: string) {
+  await assertReviewAuthorization(organizationId, reviewerUserId, paymentId);
+  return orderRepo.approveManualPayment({
+    paymentId,
+    organizationId,
+    reviewerUserId,
+  });
+}
+
+export async function rejectManualPayment(
+  organizationId: string,
+  reviewerUserId: string,
+  paymentId: string,
+  reason?: string | null,
+) {
+  await assertReviewAuthorization(organizationId, reviewerUserId, paymentId);
+  return orderRepo.rejectManualPayment({
+    paymentId,
+    organizationId,
+    reviewerUserId,
+    reason,
+  });
 }
 
 export async function payOrder(organizationId: string, userId: string, orderId: string) {
   const order = await orderRepo.findPendingOrderForUser(orderId, userId, organizationId);
   if (!order) throw new Error('ORDER_NOT_FOUND');
-  const payment = await processMockPayment({
+
+  const payment = order.payments[0];
+  const method = payment?.paymentMethod ?? 'MOCK';
+
+  if (method === 'COD' || method === 'BANK_TRANSFER') {
+    throw new Error('MANUAL_PAYMENT_PENDING_REVIEW');
+  }
+
+  const mockPayment = await processMockPayment({
     amount: Number(order.totalAmount),
     currency: order.currency,
   });
-  if (!payment.success) {
+  if (!mockPayment.success) {
     await orderRepo.failOrder(orderId, userId, organizationId);
     throw new Error('PAYMENT_FAILED');
   }
@@ -99,7 +220,8 @@ export async function payOrder(organizationId: string, userId: string, orderId: 
     orderId,
     userId,
     organizationId,
-    providerRef: payment.providerRef,
+    providerRef: mockPayment.providerRef,
+    paymentMethod: 'MOCK',
   });
   return toPurchaseDto(result.order, result.enrollment, {
     id: order.items[0].courseId,

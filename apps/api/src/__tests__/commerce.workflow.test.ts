@@ -1,5 +1,15 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+const mockUserOrganizationFindFirst = vi.fn();
+
+vi.mock('../prisma', () => ({
+  default: () => ({
+    userOrganization: {
+      findFirst: mockUserOrganizationFindFirst,
+    },
+  }),
+}));
+
 vi.mock('../repositories/courseRepository', () => ({
   getById: vi.fn(),
 }));
@@ -13,6 +23,11 @@ vi.mock('../repositories/orderRepository', () => ({
   findPendingOrderForUser: vi.fn(),
   failOrder: vi.fn(),
   completeOrderWithPurchase: vi.fn(),
+  submitManualPayment: vi.fn(),
+  findPendingManualPaymentById: vi.fn(),
+  listPendingManualPayments: vi.fn(),
+  approveManualPayment: vi.fn(),
+  rejectManualPayment: vi.fn(),
 }));
 vi.mock('../services/paymentService', () => ({
   processMockPayment: vi.fn(),
@@ -22,7 +37,13 @@ import * as courseRepo from '../repositories/courseRepository';
 import * as enrollmentRepo from '../repositories/enrollmentRepository';
 import * as orderRepo from '../repositories/orderRepository';
 import { processMockPayment } from '../services/paymentService';
-import { createCheckoutOrder, payOrder } from '../services/commerceService';
+import {
+  createCheckoutOrder,
+  payOrder,
+  submitManualPayment,
+  approveManualPayment,
+  rejectManualPayment,
+} from '../services/commerceService';
 
 const course = {
   id: 'course-1',
@@ -43,6 +64,7 @@ const pendingOrder = {
 
 beforeEach(() => {
   vi.clearAllMocks();
+  mockUserOrganizationFindFirst.mockResolvedValue(null);
   vi.mocked(courseRepo.getById).mockResolvedValue(course as never);
   vi.mocked(enrollmentRepo.findByUserAndCourse).mockResolvedValue(null);
   vi.mocked(orderRepo.findPaidOrderForCourse).mockResolvedValue(null);
@@ -95,6 +117,7 @@ describe('mock checkout workflow', () => {
       userId: 'student-a',
       organizationId: 'org-a',
       providerRef: 'mock-ref',
+      paymentMethod: 'MOCK',
     });
   });
 
@@ -122,5 +145,132 @@ describe('mock checkout workflow', () => {
       .rejects.toThrow('ALREADY_ENROLLED');
 
     expect(orderRepo.createPendingOrder).not.toHaveBeenCalled();
+  });
+
+  it('supports bank transfer checkout as a pending manual payment', async () => {
+    vi.mocked(orderRepo.createPendingOrder).mockResolvedValue(pendingOrder as never);
+
+    const result = await createCheckoutOrder('org-a', 'student-a', 'course-1', 'BANK_TRANSFER');
+
+    expect(result).toMatchObject({ id: 'order-1', status: 'PENDING' });
+    expect(orderRepo.createPendingOrder).toHaveBeenCalledWith(expect.objectContaining({
+      paymentMethod: 'BANK_TRANSFER',
+    }));
+  });
+
+  it('keeps manual payment pending until owner approval', async () => {
+    vi.mocked(orderRepo.findPendingOrderForUser).mockResolvedValue({
+      id: 'order-1',
+      status: 'PENDING',
+      totalAmount: 75,
+      currency: 'USD',
+      items: [{ id: 'item-1', courseId: 'course-1', courseTitle: course.title, unitPrice: 75, quantity: 1, lineTotal: 75 }],
+      payments: [{ id: 'payment-1', status: 'PENDING', paymentMethod: 'BANK_TRANSFER', transactionId: 'TX-123' }],
+    } as never);
+
+    await expect(payOrder('org-a', 'student-a', 'order-1')).rejects.toThrow('MANUAL_PAYMENT_PENDING_REVIEW');
+    expect(orderRepo.completeOrderWithPurchase).not.toHaveBeenCalled();
+  });
+
+  it('stores transaction ID for manual payment submission without creating an enrollment', async () => {
+    const result = { id: 'payment-1', status: 'PENDING', paymentMethod: 'BANK_TRANSFER', transactionId: 'TX-123' };
+    vi.mocked(orderRepo.findPendingOrderForUser).mockResolvedValue({
+      id: 'order-1',
+      status: 'PENDING',
+      totalAmount: 75,
+      currency: 'USD',
+      items: [{ courseId: 'course-1', courseTitle: course.title }],
+      payments: [{ id: 'payment-1', status: 'PENDING', paymentMethod: 'BANK_TRANSFER' }],
+    } as never);
+    vi.mocked(orderRepo.submitManualPayment).mockResolvedValue(result as never);
+
+    await expect(submitManualPayment('org-a', 'student-a', 'order-1', 'BANK_TRANSFER', ' TX-123 ')).resolves.toEqual(result);
+    expect(orderRepo.submitManualPayment).toHaveBeenCalledWith(expect.objectContaining({
+      transactionId: 'TX-123',
+      paymentMethod: 'BANK_TRANSFER',
+    }));
+  });
+
+  it('approves manual payment when reviewer is the course instructor', async () => {
+    vi.mocked(orderRepo.findPendingManualPaymentById).mockResolvedValue({
+      id: 'payment-1',
+      organizationId: 'org-a',
+      userId: 'student-a',
+      status: 'PENDING',
+      paymentMethod: 'BANK_TRANSFER',
+      transactionId: 'TX-123',
+      order: {
+        id: 'order-1',
+        status: 'PENDING',
+        items: [{ id: 'item-1', courseId: 'course-1', courseTitle: course.title }],
+      },
+    } as never);
+    vi.mocked(courseRepo.getById).mockResolvedValue({
+      id: 'course-1',
+      organizationId: 'org-a',
+      instructorUserId: 'instructor-a',
+      title: course.title,
+      status: 'PUBLISHED',
+    } as never);
+    vi.mocked(orderRepo.approveManualPayment).mockResolvedValue({ payment: { id: 'payment-1', status: 'SUCCEEDED' }, enrollment: { id: 'enrollment-1', status: 'ACTIVE' } } as never);
+
+    await expect(approveManualPayment('org-a', 'instructor-a', 'payment-1')).resolves.toMatchObject({
+      payment: { id: 'payment-1', status: 'SUCCEEDED' },
+    });
+  });
+
+  it('rejects approval by unauthorized reviewer', async () => {
+    vi.mocked(orderRepo.findPendingManualPaymentById).mockResolvedValue({
+      id: 'payment-1',
+      organizationId: 'org-a',
+      userId: 'student-a',
+      status: 'PENDING',
+      paymentMethod: 'BANK_TRANSFER',
+      transactionId: 'TX-123',
+      order: {
+        id: 'order-1',
+        status: 'PENDING',
+        items: [{ id: 'item-1', courseId: 'course-1', courseTitle: course.title }],
+      },
+    } as never);
+    vi.mocked(courseRepo.getById).mockResolvedValue({
+      id: 'course-1',
+      organizationId: 'org-a',
+      instructorUserId: 'other-instructor',
+      title: course.title,
+      status: 'PUBLISHED',
+    } as never);
+
+    await expect(approveManualPayment('org-a', 'student-a', 'payment-1')).rejects.toThrow('FORBIDDEN');
+    expect(orderRepo.approveManualPayment).not.toHaveBeenCalled();
+  });
+
+  it('rejects manual payment without creating an enrollment', async () => {
+    vi.mocked(orderRepo.findPendingManualPaymentById).mockResolvedValue({
+      id: 'payment-1',
+      organizationId: 'org-a',
+      userId: 'student-a',
+      status: 'PENDING',
+      paymentMethod: 'COD',
+      transactionId: 'TX-123',
+      order: {
+        id: 'order-1',
+        status: 'PENDING',
+        items: [{ id: 'item-1', courseId: 'course-1', courseTitle: course.title }],
+      },
+    } as never);
+    vi.mocked(courseRepo.getById).mockResolvedValue({
+      id: 'course-1',
+      organizationId: 'org-a',
+      instructorUserId: 'instructor-a',
+      title: course.title,
+      status: 'PUBLISHED',
+    } as never);
+    vi.mocked(orderRepo.rejectManualPayment).mockResolvedValue({ id: 'payment-1', status: 'FAILED' } as never);
+
+    await expect(rejectManualPayment('org-a', 'instructor-a', 'payment-1', 'Incorrect transfer')).resolves.toMatchObject({
+      id: 'payment-1',
+      status: 'FAILED',
+    });
   });
 });

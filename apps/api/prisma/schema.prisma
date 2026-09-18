@@ -24,6 +24,7 @@ model Organization {
   carts         Cart[]
   conversations Conversation[]
   users         UserOrganization[]
+  ownerPaymentDetails OwnerPaymentDetail[]
 
   @@index([status])
 }
@@ -49,10 +50,12 @@ model User {
   tasks          Task[]
   passwordResets PasswordResetToken[]
   payments       Payment[]
+  reviewedPayments Payment[] @relation("PaymentReviewer")
   quizAttempts   QuizAttempt[]
   sessions       Session[]
   organizations  UserOrganization[]
   privateCategories Category[] @relation("PrivateCategoryOwner")
+  ownerPaymentDetails OwnerPaymentDetail[]
   studentConversations Conversation[] @relation("ConversationStudent")
   instructorConversations Conversation[] @relation("ConversationInstructor")
   sentMessages Message[] @relation("MessageSender")
@@ -200,6 +203,7 @@ model Course {
   modules            Module[]
   orderItems         OrderItem[]
   conversations      Conversation[]
+  ownerPaymentDetails OwnerPaymentDetail[]
 
   @@unique([organizationId, slug])
   @@index([organizationId])
@@ -496,15 +500,45 @@ model Payment {
   amount         Decimal       @db.Decimal(10, 2)
   currency       String        @default("USD")
   status         PaymentStatus @default(PENDING)
+  paymentMethod  PaymentMethod? @default(COD)
+  transactionId  String?
+  reviewedById   String?
+  reviewedAt     DateTime?
+  rejectionReason String?
   paidAt         DateTime?
   createdAt      DateTime      @default(now())
   updatedAt      DateTime      @updatedAt
   order          Order         @relation(fields: [orderId], references: [id], onDelete: Cascade)
   user           User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  reviewedBy     User?         @relation("PaymentReviewer", fields: [reviewedById], references: [id], onDelete: SetNull)
 
   @@index([orderId])
   @@index([userId])
   @@index([organizationId])
+  @@index([status])
+  @@index([paymentMethod])
+}
+
+model OwnerPaymentDetail {
+  id             String       @id @default(cuid())
+  organizationId String
+  instructorUserId String?
+  courseId       String?
+  bankName       String?
+  accountTitle   String?
+  accountNumber  String?
+  iban           String?
+  isActive       Boolean      @default(true)
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  instructorUser User?        @relation(fields: [instructorUserId], references: [id], onDelete: SetNull)
+  course         Course?      @relation(fields: [courseId], references: [id], onDelete: SetNull)
+
+  @@index([organizationId])
+  @@index([instructorUserId])
+  @@index([courseId])
+  @@index([isActive])
 }
 
 model LessonProgress {
@@ -660,6 +694,11 @@ enum PaymentStatus {
   PENDING
   SUCCEEDED
   FAILED
+}
+
+enum PaymentMethod {
+  COD
+  BANK_TRANSFER
 }
 
 enum NotificationType {

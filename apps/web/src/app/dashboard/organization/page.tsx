@@ -24,6 +24,7 @@ import {
 } from '../../../components/dashboard';
 import { useCurrentUser } from '../../../features/auth/useCurrentUser';
 import { DashboardSkeleton } from '@/components/ui';
+import { PendingPaymentReview } from '@/components/dashboard/PendingPaymentReview';
 
 type OrganizationInfo = {
   id: string;
@@ -330,6 +331,7 @@ export default function OrganizationDashboardPage() {
           </div>
         ) : summary ? (
           <>
+            {effectiveOrgId ? <PendingPaymentReview organizationId={effectiveOrgId} /> : null}
             <div className="mb-8 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
               <StatCard
                 label="Total members"
