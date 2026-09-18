@@ -5,6 +5,7 @@ import { useParams, useRouter } from 'next/navigation';
 import { createPortal } from 'react-dom';
 import {
   Button,
+  DashboardSkeleton,
   ErrorState,
   Spinner,
 } from '@/components/ui';
@@ -186,10 +187,7 @@ export default function StudentCourseOverviewPage() {
 
   if (loading) {
     return (
-      <div className="mx-auto flex max-w-5xl items-center gap-3 text-neutral-700">
-        <Spinner size="lg" label="Loading course..." />
-        <span>Loading course...</span>
-      </div>
+      <DashboardSkeleton cards={3} />
     );
   }
 

@@ -6,6 +6,7 @@ import Link from 'next/link';
 import {
   Button,
   ErrorState,
+  DashboardSkeleton,
   Spinner,
 } from '@/components/ui';
 import { getQuizErrorMessage } from '@/features/course/quizErrors';
@@ -320,8 +321,7 @@ export default function StudentQuizTakingPage() {
   if (loading) {
     return (
       <div className="mx-auto flex max-w-5xl items-center gap-3 text-neutral-700">
-        <Spinner size="lg" label="Loading quiz..." />
-        <span>Loading quiz...</span>
+        <DashboardSkeleton cards={3} />
       </div>
     );
   }

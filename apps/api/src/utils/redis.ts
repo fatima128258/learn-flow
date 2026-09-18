@@ -18,4 +18,34 @@ export function getRedis() {
   return redis;
 }
 
+export function waitForRedisReady(client: Redis, timeoutMs = 5000): Promise<void> {
+  if (client.status === 'ready') return Promise.resolve();
+
+  return new Promise((resolve, reject) => {
+    const timeout = setTimeout(() => {
+      cleanup();
+      reject(new Error(`Redis did not become ready within ${timeoutMs}ms`));
+    }, timeoutMs);
+
+    const onReady = () => {
+      cleanup();
+      resolve();
+    };
+
+    const onEnd = () => {
+      cleanup();
+      reject(new Error('Redis connection ended before it became ready'));
+    };
+
+    const cleanup = () => {
+      clearTimeout(timeout);
+      client.removeListener('ready', onReady);
+      client.removeListener('end', onEnd);
+    };
+
+    client.once('ready', onReady);
+    client.once('end', onEnd);
+  });
+}
+
 export default getRedis;

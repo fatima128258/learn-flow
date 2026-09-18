@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
+import { PageLoading } from '@/components/ui/Spinner';
 
 type Certificate = {
   certificateId: string;
@@ -60,11 +61,7 @@ export default function PublicCertificateVerificationPage({
   }
 
   if (!certificate) {
-    return (
-      <main className="mx-auto max-w-3xl px-6 py-16">
-        <p className="text-center text-neutral-600">Verifying certificate...</p>
-      </main>
-    );
+    return <PageLoading />;
   }
 
   return (

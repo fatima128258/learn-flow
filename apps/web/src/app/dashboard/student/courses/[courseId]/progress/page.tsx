@@ -5,12 +5,12 @@ import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import {
   Badge,
+  DashboardSkeleton,
   EmptyState,
   EmptyStateIcons,
   ErrorState,
   Spinner,
 } from '@/components/ui';
-import { PageLoader } from '@/components/ui/Spinner';
 import { PageHeader } from '@/components/dashboard';
 import { useCurrentUser } from '@/features/auth/useCurrentUser';
 import { useProgress } from '@/features/student/useProgress';
@@ -113,7 +113,7 @@ export default function StudentCourseProgressPage() {
       : null;
 
   if (isLoading) {
-    return <PageLoader label="Loading progress..." />;
+   return <DashboardSkeleton cards={3} />;
   }
 
   return (

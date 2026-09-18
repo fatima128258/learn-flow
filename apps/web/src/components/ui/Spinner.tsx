@@ -91,6 +91,17 @@ export const PageLoader: React.FC<{ label?: string; className?: string; compact?
 
 PageLoader.displayName = 'PageLoader';
 
+export const PageLoading: React.FC = () => (
+  <div className="flex min-h-[calc(100vh-4rem)] w-full items-center justify-center py-16" role="status" aria-label="Loading">
+    <div className="flex flex-col items-center gap-3">
+      <Spinner size="lg" label="Loading..." />
+      <span className="text-sm font-medium text-neutral-500">Loading...</span>
+    </div>
+  </div>
+);
+
+PageLoading.displayName = 'PageLoading';
+
 /** Inline spinner + text for small async regions. */
 export const InlineLoader: React.FC<{ label?: string; size?: SpinnerSize; className?: string }> = ({
   label = 'Loading...',

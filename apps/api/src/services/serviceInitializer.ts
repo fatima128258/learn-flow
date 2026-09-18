@@ -6,7 +6,7 @@
 
 import { getNotificationQueue, isNotificationQueueEnabled } from '../queues/notificationQueue';
 import * as storage from '../storage';
-import { getRedis } from '../utils/redis';
+import { getRedis, waitForRedisReady } from '../utils/redis';
 
 let initialized = false;
 let initializationPromise: Promise<void> | null = null;
@@ -35,6 +35,7 @@ async function performInitialization(): Promise<void> {
     console.log('[SERVICE-INIT] Warming up Redis connection...');
     try {
       const redis = getRedis();
+      await waitForRedisReady(redis);
       await redis.ping();
       console.log('[SERVICE-INIT] ✓ Redis connection ready');
     } catch (redisError) {

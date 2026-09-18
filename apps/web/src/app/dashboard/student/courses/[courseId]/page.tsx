@@ -4,10 +4,10 @@ import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import {
+  DashboardSkeleton,
   EmptyState,
   EmptyStateIcons,
   ErrorState,
-  Spinner,
 } from '@/components/ui';
 import { useCurrentUser } from '@/features/auth/useCurrentUser';
 import { useProgress } from '@/features/student/useProgress';
@@ -138,10 +138,7 @@ export default function StudentCoursePage() {
 
   if (loading) {
     return (
-      <div className="mx-auto flex max-w-5xl items-center gap-3 text-neutral-700">
-        <Spinner size="lg" label="Loading course..." />
-        <span>Loading course...</span>
-      </div>
+      <DashboardSkeleton cards={3} />
     );
   }
 

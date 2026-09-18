@@ -7,6 +7,7 @@ import {
   Badge,
   Button,
   ConfirmModal,
+  DashboardSkeleton,
   EmptyState,
   EmptyStateIcons,
   ErrorState,
@@ -739,8 +740,7 @@ export default function OrganizationsPage() {
   if (loading && organizations === null && !error) {
     return (
       <div className="mx-auto flex max-w-5xl items-center gap-3 text-neutral-700">
-        <Spinner size="lg" label="Loading organizations..." />
-        <span>Loading organizations...</span>
+        <DashboardSkeleton cards={3} />
       </div>
     );
   }

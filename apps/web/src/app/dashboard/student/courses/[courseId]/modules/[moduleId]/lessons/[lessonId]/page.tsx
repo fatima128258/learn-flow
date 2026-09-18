@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { Badge, Button, ErrorState, Spinner } from '@/components/ui';
+import { Badge, Button, DashboardSkeleton, ErrorState, Spinner } from '@/components/ui';
 import { useCurrentUser } from '@/features/auth/useCurrentUser';
 import { useModuleLessons, useProgress } from '@/features/student/useProgress';
 import { useToast } from '@/components/ui/ToastProvider';
@@ -311,8 +311,7 @@ export default function StudentLessonPage() {
   if (loading) {
     return (
       <div className="mx-auto flex max-w-5xl items-center gap-3 text-neutral-700">
-        <Spinner size="lg" label="Loading lesson..." />
-        <span>Loading lesson...</span>
+        <DashboardSkeleton cards={3} />
       </div>
     );
   }

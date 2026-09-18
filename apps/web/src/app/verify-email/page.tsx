@@ -7,7 +7,7 @@ import { AuthCard } from '../../components/auth/AuthCard';
 import { Alert } from '../../components/ui/Alert';
 import { Stack } from '../../components/ui/layout/Stack';
 import { SubmitButton } from '../../components/forms/SubmitButton';
-import { PageLoader } from '../../components/ui/Spinner';
+import { PageLoading } from '../../components/ui/Spinner';
 import { cacheUser, meKey } from '../../features/auth/useCurrentUser';
 
 function VerifyEmailForm() {
@@ -80,7 +80,7 @@ function VerifyEmailForm() {
         }}
       >
         <Stack spacing="md">
-          {loading && <PageLoader label="Verifying your email address..." compact />}
+          {loading && <PageLoading />}
 
           {success && (
             <Alert variant="success" title="Email verified successfully!">
@@ -107,7 +107,7 @@ function VerifyEmailForm() {
 
 export default function VerifyEmailPage() {
   return (
-    <Suspense fallback={<AuthLayout><AuthCard title="Verifying email" description="Loading..."><PageLoader label="Loading verification..." compact /></AuthCard></AuthLayout>}>
+    <Suspense fallback={<AuthLayout><AuthCard title="Verifying email" description="Loading..."><PageLoading /></AuthCard></AuthLayout>}>
       <VerifyEmailForm />
     </Suspense>
   );

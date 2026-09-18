@@ -1,5 +1,5 @@
-import { RouteLoader } from '@/components/ui/RouteLoader';
+import { DashboardSkeleton } from '@/components/ui/Skeleton';
 
 export default function Loading() {
-  return <RouteLoader />;
+  return <DashboardSkeleton cards={2} />;
 }

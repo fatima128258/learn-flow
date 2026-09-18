@@ -9,7 +9,7 @@ import {
   EmptyStateIcons,
   ErrorState,
 } from '@/components/ui';
-import { PageLoader } from '@/components/ui/Spinner';
+import { DashboardSkeleton } from '@/components/ui';
 import { useCurrentUser } from '@/features/auth/useCurrentUser';
 
 type Certificate = {
@@ -149,7 +149,7 @@ export default function StudentCertificateViewPage() {
   }
 
   if (loading) {
-    return <PageLoader label={retrying ? 'Generating certificate...' : 'Loading certificate...'} />;
+    return <DashboardSkeleton cards={2} />;
   }
 
   return (

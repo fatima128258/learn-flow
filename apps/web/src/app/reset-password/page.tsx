@@ -4,7 +4,7 @@ import { AuthLayout } from '../../components/layout/AuthLayout';
 import { AuthCard } from '../../components/auth/AuthCard';
 import { PasswordInput } from '../../components/forms/PasswordInput';
 import { SubmitButton } from '../../components/forms/SubmitButton';
-import { PageLoader } from '../../components/ui/Spinner';
+import { PageLoading } from '../../components/ui/Spinner';
 import { Stack } from '../../components/ui/layout/Stack';
 import { useSubmitState } from '../../lib/useSubmitState';
 import { useToast } from '../../components/ui/ToastProvider';
@@ -135,7 +135,7 @@ function ResetPasswordForm() {
 
 export default function ResetPasswordPage() {
   return (
-    <Suspense fallback={<AuthLayout hideChrome><AuthCard title="Set new password" description="Loading..."><PageLoader label="Loading reset form..." compact /></AuthCard></AuthLayout>}>
+    <Suspense fallback={<AuthLayout hideChrome><AuthCard title="Set new password" description="Loading..."><PageLoading /></AuthCard></AuthLayout>}>
       <ResetPasswordForm />
     </Suspense>
   );

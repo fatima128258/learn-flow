@@ -1,5 +1,5 @@
-import { PageLoader } from '@/components/ui/Spinner';
+import { PageLoading } from '@/components/ui/Spinner';
 
 export default function Loading() {
-  return <PageLoader label="Loading checkout..." />;
+  return <PageLoading />;
 }

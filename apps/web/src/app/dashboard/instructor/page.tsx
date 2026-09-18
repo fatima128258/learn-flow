@@ -6,7 +6,7 @@ import { ErrorState } from '@/components/ui';
 import { useCurrentUser } from '@/features/auth/useCurrentUser';
 import { ApiError, getJson } from '@/lib/api';
 import { Calendar, ChartCard, LineChart, PageHeader, StatCard } from '@/components/dashboard';
-import { PageLoader } from '@/components/ui/Spinner';
+import { DashboardSkeleton } from '@/components/ui';
 
 type InstructorDashboard = {
   totalCourses: number;
@@ -58,7 +58,7 @@ export default function InstructorDashboardPage() {
       />
 
       {isLoading || userLoading ? (
-        <PageLoader label="Loading instructor dashboard..." />
+        <DashboardSkeleton cards={3} />
       ) : isError && error instanceof ApiError && error.code === 'EMAIL_NOT_VERIFIED' ? (
         <ErrorState
           title="Verify your email address"

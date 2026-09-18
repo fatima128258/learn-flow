@@ -7,7 +7,7 @@ import { Alert } from '../../components/ui/Alert';
 import { Stack } from '../../components/ui/layout/Stack';
 import { SubmitButton } from '../../components/forms/SubmitButton';
 import { Button } from '../../components/ui/Button';
-import { PageLoader } from '../../components/ui/Spinner';
+import { PageLoading } from '../../components/ui/Spinner';
 import { useCurrentUser } from '../../features/auth/useCurrentUser';
 import { getPostLoginRedirect } from '../../features/auth/postLoginRedirect';
 
@@ -81,7 +81,7 @@ function WelcomeContent() {
     return (
       <AuthLayout hideChrome>
         <AuthCard title="Welcome" description="Loading your account details...">
-          <PageLoader label="Loading..." compact />
+          <PageLoading />
         </AuthCard>
       </AuthLayout>
     );
@@ -272,7 +272,7 @@ export default function WelcomePage() {
       fallback={
         <AuthLayout hideChrome>
           <AuthCard title="Welcome" description="Loading...">
-            <PageLoader label="Loading..." compact />
+            <PageLoading />
           </AuthCard>
         </AuthLayout>
       }

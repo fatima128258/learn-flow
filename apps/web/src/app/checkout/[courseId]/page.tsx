@@ -7,7 +7,7 @@ import { useCurrentUser } from '@/features/auth/useCurrentUser';
 import { useCheckoutOrder, useCourseOverview, usePayOrder } from '@/features/student/useCourseStore';
 import { getPurchaseErrorMessage } from '@/features/student/courseErrors';
 import { currency } from '@/lib/types';
-import { Badge, Button, Card, CardSkeleton, EmptyState, LinkButton, Skeleton } from '@/components/ui';
+import { Badge, Button, Card, EmptyState, LinkButton, PageLoading } from '@/components/ui';
 import { Footer } from '@/components/layout/Footer';
 import { useToast } from '@/components/ui/ToastProvider';
 import { ApiError } from '@/lib/api';
@@ -60,14 +60,7 @@ export default function CheckoutPage() {
   }
 
   if (userLoading || courseLoading) {
-    return (
-      <main className="min-h-screen bg-neutral-50 p-8">
-        <div className="mx-auto max-w-2xl">
-          <Skeleton variant="text" height={28} width={240} className="mb-4" />
-          <CardSkeleton />
-        </div>
-      </main>
-    );
+    return <PageLoading />;
   }
 
   if (!user || user.role !== 'STUDENT' || !organizationId || !course) {

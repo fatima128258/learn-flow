@@ -1,8 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Badge, EmptyState, EmptyStateIcons, ErrorState, Spinner } from '@/components/ui';
-import { PageLoader } from '@/components/ui/Spinner';
+import { Badge, DashboardSkeleton, EmptyState, EmptyStateIcons, ErrorState, Spinner } from '@/components/ui';
 import { useCurrentUser } from '@/features/auth/useCurrentUser';
 
 type NotificationDto = {
@@ -232,7 +231,7 @@ export default function StudentNotificationsPage() {
   }
 
   if (userLoading || notificationsLoading) {
-    return <PageLoader label="Loading notifications..." />;
+    return <DashboardSkeleton cards={2} />;
   }
 
   const hasUnread = notifications?.some((n) => !n.read) ?? false;

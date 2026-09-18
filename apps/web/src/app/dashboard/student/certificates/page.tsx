@@ -10,7 +10,7 @@ import {
   ErrorState,
   Spinner,
 } from '@/components/ui';
-import { PageLoader } from '@/components/ui/Spinner';
+import { DashboardSkeleton } from '@/components/ui';
 import { useCurrentUser } from '@/features/auth/useCurrentUser';
 import { useMyCourses } from '@/features/student/useMyCourses';
 
@@ -319,7 +319,7 @@ export default function StudentCertificatesPage() {
   }, [user, userLoading]);
 
   if (loading || coursesLoading) {
-    return <PageLoader label="Loading certificates..." />;
+    return <DashboardSkeleton cards={3} />;
   }
 
   return (

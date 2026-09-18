@@ -1,5 +1,5 @@
-import { RouteLoader } from '@/components/ui/RouteLoader';
+import { TableSkeleton } from '@/components/ui/Skeleton';
 
 export default function Loading() {
-  return <RouteLoader />;
+  return <TableSkeleton rows={8} columns={5} />;
 }

@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useParams, usePathname } from 'next/navigation';
-import { Alert, Select, Spinner } from '../../../../../components/ui';
+import { Alert, DashboardSkeleton, Select, Spinner } from '../../../../../components/ui';
 import { LinkButton } from '../../../../../components/ui/LinkButton';
 import { getCreateCourseErrorMessage } from '../../../../../features/course/createCourseErrors';
 import { useToast } from '../../../../../components/ui/ToastProvider';
@@ -161,8 +161,7 @@ export default function CourseDetailPage() {
     return (
       <div>
         <div className="mx-auto flex max-w-3xl items-center gap-3 text-neutral-700">
-          <Spinner size="lg" label="Loading..." />
-          <span>Loading...</span>
+          <DashboardSkeleton cards={3} />
         </div>
       </div>
     );
