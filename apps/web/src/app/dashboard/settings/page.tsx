@@ -47,6 +47,7 @@ export default function SettingsPage() {
   const [email, setEmail] = useState('');
   const [emailFieldError, setEmailFieldError] = useState('');
   const [emailSubmitting, setEmailSubmitting] = useState(false);
+  const [emailEditing, setEmailEditing] = useState(false);
 
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
@@ -151,6 +152,7 @@ export default function SettingsPage() {
     try {
       const response = await patchJson<{ user?: { emailVerified?: boolean } }>('/api/v1/auth/me', { email: trimmedEmail });
       setEmail('');
+      setEmailEditing(false);
       const emailVerified = response.user?.emailVerified === true;
       toast.success(
         emailVerified
@@ -251,27 +253,58 @@ export default function SettingsPage() {
             description={`You are signed in as ${user.email}.`}
           />
         </div>
-        <form onSubmit={handleEmailSubmit} noValidate className="space-y-4 p-6" aria-busy={emailSubmitting}>
-          <Input
-            label="New email address"
-            type="email"
-            value={email}
-            onChange={(e) => {
-              setEmail(e.target.value);
-              if (emailFieldError) setEmailFieldError('');
-            }}
-            error={emailFieldError}
-            placeholder="name@example.com"
-            autoComplete="email"
-            disabled={emailSubmitting}
-          />
-
-          <div className="flex items-center justify-end gap-3 pt-2">
-            <Button type="submit" loading={emailSubmitting} disabled={emailSubmitting}>
-              {emailSubmitting ? 'Saving...' : 'Save changes'}
+        {!emailEditing ? (
+          <div className="flex items-end justify-between gap-4 p-6">
+            <div>
+              <p className="text-sm font-medium text-neutral-700">Current email address</p>
+              <p className="mt-2 text-sm text-neutral-900">{user.email}</p>
+            </div>
+            <Button
+              type="button"
+              onClick={() => {
+                setEmail(user.email);
+                setEmailFieldError('');
+                setEmailEditing(true);
+              }}
+            >
+              Edit
             </Button>
           </div>
-        </form>
+        ) : (
+          <form onSubmit={handleEmailSubmit} noValidate className="space-y-4 p-6" aria-busy={emailSubmitting}>
+            <Input
+              label="New email address"
+              type="email"
+              value={email}
+              onChange={(e) => {
+                setEmail(e.target.value);
+                if (emailFieldError) setEmailFieldError('');
+              }}
+              error={emailFieldError}
+              placeholder="name@example.com"
+              autoComplete="email"
+              disabled={emailSubmitting}
+            />
+
+            <div className="flex items-center justify-end gap-3 pt-2">
+              <Button
+                type="button"
+                variant="ghost"
+                onClick={() => {
+                  setEmail('');
+                  setEmailFieldError('');
+                  setEmailEditing(false);
+                }}
+                disabled={emailSubmitting}
+              >
+                Cancel
+              </Button>
+              <Button type="submit" loading={emailSubmitting} disabled={emailSubmitting}>
+                {emailSubmitting ? 'Saving...' : 'Save changes'}
+              </Button>
+            </div>
+          </form>
+        )}
       </div>
 
       {/* ── Password ─────────────────────────────────────────────────── */}

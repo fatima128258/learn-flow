@@ -64,25 +64,29 @@ describe('updateUserEmail verification policy', () => {
     else process.env.NODE_ENV = originalNodeEnv;
   });
 
-  it('immediately activates the email without sending verification', async () => {
+  it('requires verification for the new email address', async () => {
     const result = await updateUserEmail({ userId: 'user-1', email: 'new@example.com' });
 
     expect(result.success).toBe(true);
     expect(mocks.authRepo.updateUserEmail).toHaveBeenCalledWith('user-1', 'new@example.com');
-    expect(mocks.authRepo.markUserEmailAsVerified).toHaveBeenCalledWith('user-1');
+    expect(mocks.authRepo.markUserEmailAsVerified).not.toHaveBeenCalled();
     expect(mocks.authRepo.deleteEmailVerificationTokensByUserId).toHaveBeenCalledWith('user-1');
-    expect(mocks.authRepo.createEmailVerificationToken).not.toHaveBeenCalled();
-    expect(mocks.email.sendVerificationEmail).not.toHaveBeenCalled();
+    expect(mocks.authRepo.createEmailVerificationToken).toHaveBeenCalledWith(expect.objectContaining({
+      userId: 'user-1',
+      tokenHash: expect.any(String),
+      expiresAt: expect.any(Date),
+    }));
+    expect(mocks.email.sendVerificationEmail).toHaveBeenCalledWith('new@example.com', expect.any(String));
     expect(mocks.audit.record).toHaveBeenCalledWith(expect.objectContaining({ action: 'EMAIL_UPDATED' }));
   });
 
-  it('does not send verification in production either', async () => {
+  it('sends verification in production too', async () => {
     process.env.NODE_ENV = 'production';
 
     await updateUserEmail({ userId: 'user-1', email: 'new@example.com' });
 
-    expect(mocks.authRepo.markUserEmailAsVerified).toHaveBeenCalledWith('user-1');
-    expect(mocks.authRepo.createEmailVerificationToken).not.toHaveBeenCalled();
-    expect(mocks.email.sendVerificationEmail).not.toHaveBeenCalled();
+    expect(mocks.authRepo.markUserEmailAsVerified).not.toHaveBeenCalled();
+    expect(mocks.authRepo.createEmailVerificationToken).toHaveBeenCalled();
+    expect(mocks.email.sendVerificationEmail).toHaveBeenCalled();
   });
 });

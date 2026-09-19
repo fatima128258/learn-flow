@@ -145,7 +145,7 @@ beforeAll(async () => {
 });
 
 describe('Settings: change email', () => {
-  it('changes email end-to-end without requiring verification', async () => {
+  it('changes email end-to-end and requires verification for the new address', async () => {
     const { email: oldEmail, password, userId, cookie } = await registerVerifiedUser('email-ok');
 
     expect((await prisma.user.findUnique({ where: { id: userId } }))?.emailVerified).toBe(true);
@@ -160,13 +160,13 @@ describe('Settings: change email', () => {
       .send({ email: newEmail });
     expect(patch.status).toBe(200);
     expect(patch.body.user.email).toBe(newEmail);
-    expect(patch.body.user.emailVerified).toBe(true);
+    expect(patch.body.user.emailVerified).toBe(false);
     expect(patch.body.user.password).toBeUndefined();
     expect(patch.body.user.passwordHash).toBeUndefined();
 
     const stored = await prisma.user.findUnique({ where: { id: userId } });
     expect(stored?.email).toBe(newEmail);
-    expect(stored?.emailVerified).toBe(true);
+    expect(stored?.emailVerified).toBe(false);
 
     // Old email must no longer authenticate.
     const oldLogin = await request(app)
@@ -176,18 +176,19 @@ describe('Settings: change email', () => {
     expect(oldLogin.status).toBe(401);
     expect(oldLogin.body.error).toBe('INVALID_CREDENTIALS');
 
-    // New email authenticates with the SAME password (only the email changed).
+    // The new email can sign in, but remains unverified until the link is used.
     const newLogin = await request(app)
       .post('/api/v1/auth/login')
       .set('X-Forwarded-For', uniqueIp())
       .send({ email: newEmail, password });
     expect(newLogin.status).toBe(200);
+    expect(newLogin.body.user.emailVerified).toBe(false);
 
     // The existing session survives an email change and reflects the new email.
     const me = await request(app).get('/api/v1/auth/me').set('Cookie', [`${COOKIE_NAME}=${cookie}`]);
     expect(me.status).toBe(200);
     expect(me.body.user.email).toBe(newEmail);
-    expect(me.body.user.emailVerified).toBe(true);
+    expect(me.body.user.emailVerified).toBe(false);
 
     // A fresh verification email is sent to the new address; verifying works.
     const newVerifyToken = await waitForEmail('verify', newEmail, '/verify-email');
@@ -211,7 +212,7 @@ describe('Settings: change email', () => {
       .send({ email: email.toUpperCase() });
     expect(patch.status).toBe(200);
     expect(patch.body.user.email).toBe(email);
-    expect(patch.body.user.emailVerified).toBe(true);
+    expect(patch.body.user.emailVerified).toBe(false);
   }, 30_000);
 
   it('rejects a missing or malformed email with 400 MISSING_EMAIL / INVALID_EMAIL', async () => {
