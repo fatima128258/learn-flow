@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { Button, Card, ErrorState, Input, Skeleton } from '@/components/ui';
+import { Button, Card, ErrorState, Input, Spinner } from '@/components/ui';
 import { PasswordInput } from '@/components/forms/PasswordInput';
 import { SectionHeader } from '@/components/dashboard';
 import { useCurrentUser } from '@/features/auth/useCurrentUser';
@@ -115,14 +115,8 @@ export default function SettingsPage() {
 
   if (isLoading && !user) {
     return (
-      <div className="mx-auto max-w-3xl">
-        <Card>
-          <div className="space-y-4">
-            <Skeleton variant="text" height={24} width={180} />
-            <Skeleton variant="text" height={24} width={320} />
-            <Skeleton variant="text" height={24} width={280} />
-          </div>
-        </Card>
+      <div className="flex min-h-64 items-center justify-center" role="status" aria-label="Loading settings">
+        <Spinner size="md" label="Loading..." />
       </div>
     );
   }

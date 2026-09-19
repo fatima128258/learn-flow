@@ -9,7 +9,7 @@ import {
   EmptyState,
   EmptyStateIcons,
   ErrorState,
-  Skeleton,
+  Spinner,
 } from '@/components/ui';
 import { PageHeader } from '@/components/dashboard';
 import { useCurrentUser } from '@/features/auth/useCurrentUser';
@@ -321,28 +321,8 @@ export default function StudentModuleLessonsPage() {
 
   if (isLoading) {
     return (
-      <div className="mx-auto max-w-6xl" role="status" aria-label="Loading module">
-        <div className="mb-6">
-          <Skeleton variant="text" height={16} width={180} className="mb-3" />
-          <Skeleton variant="text" height={32} width={260} className="mb-2" />
-          <Skeleton variant="text" height={16} width={340} />
-        </div>
-        <div className="rounded-2xl border border-neutral-200 bg-white p-6 shadow-sm">
-          <Skeleton variant="text" height={28} width={260} className="mb-3" />
-          <Skeleton variant="text" height={16} width={220} className="mb-6" />
-          <div className="space-y-4">
-            {Array.from({ length: 4 }).map((_, index) => (
-              <div key={index} className="flex items-center gap-4 rounded-2xl border border-neutral-200 p-4">
-                <Skeleton variant="circular" height={40} width={40} />
-                <div className="min-w-0 flex-1">
-                  <Skeleton variant="text" height={18} className="mb-2 w-2/3" />
-                  <Skeleton variant="text" height={14} className="w-1/2" />
-                </div>
-                <Skeleton variant="rectangular" height={28} width={72} />
-              </div>
-            ))}
-          </div>
-        </div>
+      <div className="flex min-h-64 items-center justify-center" role="status" aria-label="Loading module">
+        <Spinner size="md" label="Loading..." />
       </div>
     );
   }

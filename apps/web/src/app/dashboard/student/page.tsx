@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { EmptyState, EmptyStateIcons, ErrorState, Spinner } from '@/components/ui';
+import { EmptyState, EmptyStateIcons, ErrorState, Input, Spinner } from '@/components/ui';
 import { useCurrentUser } from '@/features/auth/useCurrentUser';
 import { useMyCourses } from '@/features/student/useMyCourses';
 
@@ -82,6 +82,15 @@ export default function StudentDashboardPage() {
     error: errorMessage,
     refetch: refetchCourses
   } = useMyCourses(organizationId || '');
+  const [searchQuery, setSearchQuery] = useState('');
+
+  const filteredCourses = courses.filter((course) => {
+    const query = searchQuery.trim().toLowerCase();
+    if (!query) return true;
+    return [course.title, course.description, course.instructorName]
+      .filter(Boolean)
+      .some((value) => value!.toLowerCase().includes(query));
+  });
 
   const categoryCount = new Set(courses.map((c) => c.category).filter(Boolean)).size;
   const totalMinutes = courses.reduce<number>(
@@ -134,8 +143,25 @@ export default function StudentDashboardPage() {
         </div>
       ) : (
         <>
+          <Input
+            variant="line"
+            placeholder="Search your courses"
+            value={searchQuery}
+            onChange={(event) => setSearchQuery(event.target.value)}
+            className="mb-6 max-w-xl"
+            aria-label="Search your courses"
+          />
+          {filteredCourses.length === 0 ? (
+            <div className="rounded-2xl border border-neutral-200 bg-white shadow-sm">
+              <EmptyState
+                icon={EmptyStateIcons.NoData}
+                title="No matching courses"
+                description="Try a different course name, description, or instructor."
+              />
+            </div>
+          ) : (
           <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-3">
-            {courses.map((course) => (
+            {filteredCourses.map((course) => (
               <Link key={course.courseId} href={`/dashboard/student/courses/${course.courseId}`}>
                 <div className="group h-full overflow-hidden rounded-2xl border border-neutral-200 bg-white shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-primary-200 hover:shadow-md">
                   {course.thumbnailUrl ? (
@@ -167,6 +193,7 @@ export default function StudentDashboardPage() {
               </Link>
             ))}
           </div>
+          )}
         </>
       )}
     </div>

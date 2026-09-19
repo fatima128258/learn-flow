@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Badge, Card, EmptyState, ErrorState, DashboardSkeleton, Input, ViewToggle } from '@/components/ui';
+import { Badge, Card, EmptyState, ErrorState, Input, Spinner, ViewToggle } from '@/components/ui';
 import { useCurrentUser } from '@/features/auth/useCurrentUser';
 import { getJson } from '@/lib/api';
 import { currency } from '@/lib/types';
@@ -75,7 +75,11 @@ export default function StudentPaymentsPage() {
   }, [payments, searchInput]);
 
   if (userLoading || (isLoading && !user)) {
-    return <DashboardSkeleton cards={1} />;
+    return (
+      <div className="flex min-h-64 items-center justify-center" role="status" aria-label="Loading payments">
+        <Spinner size="md" label="Loading..." />
+      </div>
+    );
   }
 
   if (!user || user.role !== 'STUDENT') return null;
@@ -156,7 +160,7 @@ export default function StudentPaymentsPage() {
               </tbody>
             </table>
           </div>
-          <div className={viewMode === 'cards' ? 'grid gap-4 p-4' : 'grid gap-4 p-4 sm:hidden'}>
+          <div className={viewMode === 'cards' ? 'grid gap-4 p-4 md:grid-cols-3' : 'grid gap-4 p-4 sm:hidden'}>
             {filteredPayments.map((payment) => {
               const status = paymentStatus(payment);
               const courseTitle = firstThreeWords(payment.order.items[0]?.courseTitle ?? 'Course');

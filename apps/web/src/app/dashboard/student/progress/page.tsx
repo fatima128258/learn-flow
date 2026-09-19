@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { DashboardSkeleton, EmptyState, EmptyStateIcons, ErrorState, Spinner } from '@/components/ui';
+import { EmptyState, EmptyStateIcons, ErrorState, Input, Spinner } from '@/components/ui';
 import { useCurrentUser } from '@/features/auth/useCurrentUser';
 import { useStudentProgress, type CourseProgress } from '@/features/student/useProgress';
 import { Drawer } from '@/components/ui';
@@ -33,8 +33,10 @@ function CourseCard({ course }: { course: CourseProgress }) {
       )}
       <div className="p-4">
         <div className="flex flex-wrap items-start justify-between gap-3">
-          <div>
-            <h2 className="text-xl font-semibold text-neutral-900">{course.courseTitle}</h2>
+          <div className="min-w-0">
+            <h2 className="truncate text-lg font-semibold text-neutral-900" title={course.courseTitle}>
+              {course.courseTitle}
+            </h2>
           </div>
           <span className="text-xl font-semibold text-[#5a321f]">{course.coursePercentage}%</span>
         </div>
@@ -163,7 +165,11 @@ function CourseCard({ course }: { course: CourseProgress }) {
 export default function StudentProgressPage() {
   const { data: user, isLoading: userLoading } = useCurrentUser();
   const [organizationId, setOrganizationId] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
   const { data: courses = [], isLoading, isError, error, refetch } = useStudentProgress(organizationId ?? '');
+  const filteredCourses = courses.filter((course) => (
+    !searchQuery.trim() || course.courseTitle.toLowerCase().includes(searchQuery.trim().toLowerCase())
+  ));
 
   useEffect(() => {
     if (userLoading) return;
@@ -175,7 +181,11 @@ export default function StudentProgressPage() {
   }, [user, userLoading]);
 
   if (userLoading || isLoading) {
-    return <DashboardSkeleton cards={3} />;
+    return (
+      <div className="flex min-h-64 items-center justify-center" role="status" aria-label="Loading progress">
+        <Spinner size="md" label="Loading..." />
+      </div>
+    );
   }
 
   return (
@@ -189,7 +199,29 @@ export default function StudentProgressPage() {
           <EmptyState icon={EmptyStateIcons.NoCourses} title="No courses yet" description="You haven't enrolled in any courses yet." action={{ label: 'Explore Courses', onClick: () => { window.location.href = '/dashboard/student/search'; } }} />
         </div>
       ) : (
-        <div className="grid gap-4 lg:grid-cols-3">{courses.map((course) => <CourseCard key={course.courseId} course={course} />)}</div>
+        <>
+          <Input
+            variant="line"
+            placeholder="Search your progress"
+            value={searchQuery}
+            onChange={(event) => setSearchQuery(event.target.value)}
+            className="mb-6 max-w-xl"
+            aria-label="Search your progress"
+          />
+          {filteredCourses.length === 0 ? (
+            <div className="rounded-2xl border border-neutral-200 bg-white shadow-sm">
+              <EmptyState
+                icon={EmptyStateIcons.NoData}
+                title="No matching courses"
+                description="Try a different course name."
+              />
+            </div>
+          ) : (
+            <div className="grid gap-4 lg:grid-cols-3">
+              {filteredCourses.map((course) => <CourseCard key={course.courseId} course={course} />)}
+            </div>
+          )}
+        </>
       )}
     </div>
   );

@@ -213,7 +213,9 @@ async function computeCourseProgress(
         completed: item.type === 'LESSON'
           ? completedLessonIds.has(item.lessonId ?? '')
           : completedQuizIds.has(item.quizId ?? ''),
-        failed: item.type === 'QUIZ' && failedQuizIds.has(item.quizId ?? ''),
+        failed: item.type === 'QUIZ'
+          && !passedQuizIds.has(item.quizId ?? '')
+          && failedQuizIds.has(item.quizId ?? ''),
       })),
     };
   });

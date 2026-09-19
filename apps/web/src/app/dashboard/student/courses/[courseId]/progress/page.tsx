@@ -5,7 +5,6 @@ import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import {
   Badge,
-  DashboardSkeleton,
   EmptyState,
   EmptyStateIcons,
   ErrorState,
@@ -113,7 +112,11 @@ export default function StudentCourseProgressPage() {
       : null;
 
   if (isLoading) {
-   return <DashboardSkeleton cards={3} />;
+    return (
+      <div className="flex min-h-64 items-center justify-center" role="status" aria-label="Loading course progress">
+        <Spinner size="md" label="Loading..." />
+      </div>
+    );
   }
 
   return (

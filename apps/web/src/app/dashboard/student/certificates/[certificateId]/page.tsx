@@ -8,8 +8,8 @@ import {
   EmptyState,
   EmptyStateIcons,
   ErrorState,
+  Spinner,
 } from '@/components/ui';
-import { DashboardSkeleton } from '@/components/ui';
 import { useCurrentUser } from '@/features/auth/useCurrentUser';
 
 type Certificate = {
@@ -149,7 +149,11 @@ export default function StudentCertificateViewPage() {
   }
 
   if (loading) {
-    return <DashboardSkeleton cards={2} />;
+    return (
+      <div className="flex min-h-64 items-center justify-center" role="status" aria-label="Loading certificate">
+        <Spinner size="md" label="Loading..." />
+      </div>
+    );
   }
 
   return (
