@@ -7,7 +7,6 @@ import { useCurrentUser } from '@/features/auth/useCurrentUser';
 import { ApiError, getJson } from '@/lib/api';
 import { Calendar, ChartCard, LineChart, PageHeader, StatCard } from '@/components/dashboard';
 import { DashboardSkeleton } from '@/components/ui';
-import { PendingPaymentReview } from '@/components/dashboard/PendingPaymentReview';
 
 type InstructorDashboard = {
   totalCourses: number;
@@ -70,7 +69,6 @@ export default function InstructorDashboardPage() {
         <ErrorState title="Unable to load your dashboard" message="Your course and enrollment data could not be loaded." action={{ label: 'Retry', onClick: () => void refetch() }} />
       ) : data ? (
         <>
-          {user?.organizationId ? <PendingPaymentReview organizationId={user.organizationId} /> : null}
           <div className="mb-8 grid grid-cols-1 gap-4 sm:grid-cols-3">
             <StatCard label="Total Courses" value={data.totalCourses.toLocaleString()} tone="primary" hint="Courses you created" />
             <StatCard label="Published Courses" value={data.publishedCourses.toLocaleString()} tone="success" hint="Live courses available to students" />

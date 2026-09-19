@@ -109,6 +109,13 @@ const SettingsIcon: React.FC = () => (
   </svg>
 );
 
+const PaymentsIcon: React.FC = () => (
+  <svg className="h-5 w-5 flex-shrink-0" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M3 7a2 2 0 012-2h14a2 2 0 012 2v10a2 2 0 01-2 2H5a2 2 0 01-2-2V7z" />
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M3 9h18M7 15h3" />
+  </svg>
+);
+
 const CategoriesIcon: React.FC = () => (
   <svg className="h-5 w-5 flex-shrink-0" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M4 6h16M4 12h16M4 18h16M7 6v.01M7 12v.01M7 18v.01" />
@@ -177,6 +184,7 @@ export const NavIcons = {
   chat: <ChatIcon />,
   tasks: <TasksIcon />,
   certificates: <CertificateIcon />,
+  payments: <PaymentsIcon />,
   settings: <SettingsIcon />,
   profile: <ProfileIcon />,
 };

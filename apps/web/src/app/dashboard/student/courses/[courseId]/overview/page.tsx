@@ -135,9 +135,7 @@ export default function StudentCourseOverviewPage() {
 
   async function handlePurchase() {
     if (!organizationId || !courseId) return;
-    setPaymentFailed(false);
-    setOrder(null);
-    setShowCheckout(true);
+    router.push(`/checkout/${courseId}`);
   }
 
   function handleCheckout() {
