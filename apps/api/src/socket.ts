@@ -105,11 +105,13 @@ export function initializeChatSocket(httpServer: HttpServer) {
   chatEvents.on('conversation:change', async (change: ConversationChange) => {
     io.to(`conversation:${change.conversationId}`).emit(`conversation:${change.type}`, {
       conversationId: change.conversationId,
+      ...(change.blockedById ? { blockedById: change.blockedById } : {}),
     });
     const recipientIds = [change.studentId, change.instructorId];
     for (const userId of recipientIds) {
       io.to(`user:${userId}`).emit(`conversation:${change.type}`, {
         conversationId: change.conversationId,
+        ...(change.blockedById ? { blockedById: change.blockedById } : {}),
       });
       const unreadCount = change.type === 'deleted'
         ? 0

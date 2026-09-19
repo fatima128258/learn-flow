@@ -48,6 +48,7 @@ export async function block(req: AuthenticatedRequest, res: Response) {
       type: 'blocked',
       conversationId: req.params.conversationId,
       organizationId: req.params.organizationId,
+      blockedById: req.user!.id,
       ...participants,
     });
     return res.json({ success: true, data });

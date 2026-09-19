@@ -6,6 +6,7 @@ export type ConversationChange = {
   organizationId: string;
   studentId: string;
   instructorId: string;
+  blockedById?: string;
 };
 
 export type MessageChange =

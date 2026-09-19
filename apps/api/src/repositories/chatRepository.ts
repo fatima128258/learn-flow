@@ -97,7 +97,7 @@ export async function markRead(conversationId: string, userId: string) {
 export const blockConversation = (id: string, organizationId: string, userId: string) =>
   db().conversation.updateMany({ where: { id, organizationId, deletedAt: null, OR: [{ studentId: userId }, { instructorId: userId }] }, data: { blockedAt: new Date(), blockedById: userId } });
 export const unblockConversation = (id: string, organizationId: string, userId: string) =>
-  db().conversation.updateMany({ where: { id, organizationId, deletedAt: null, OR: [{ studentId: userId }, { instructorId: userId }] }, data: { blockedAt: null, blockedById: null } });
+  db().conversation.updateMany({ where: { id, organizationId, deletedAt: null, blockedById: userId }, data: { blockedAt: null, blockedById: null } });
 export const deleteConversation = (id: string, organizationId: string, userId: string) =>
   db().conversation.updateMany({ where: { id, organizationId, deletedAt: null, OR: [{ studentId: userId }, { instructorId: userId }] }, data: { deletedAt: new Date() } });
 export const deleteMessage = (id: string, organizationId: string, conversationId: string, senderId: string) =>
