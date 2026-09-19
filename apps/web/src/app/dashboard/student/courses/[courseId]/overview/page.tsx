@@ -133,9 +133,9 @@ export default function StudentCourseOverviewPage() {
     }
   }
 
-  async function handlePurchase() {
+  function handlePurchase() {
     if (!organizationId || !courseId) return;
-    router.push(`/checkout/${courseId}`);
+    setShowCheckout(true);
   }
 
   function handleCheckout() {
