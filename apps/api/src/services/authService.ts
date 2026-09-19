@@ -522,30 +522,7 @@ export async function updateUserEmail({ userId, email, ip = '127.0.0.1' }: { use
   await repo.updateUserEmail(userId, normalizedEmail);
 
   await repo.deleteEmailVerificationTokensByUserId(userId);
-  const verificationToken = generateToken();
-  const verificationTokenHash = hashToken(verificationToken);
-  const verificationExpiresAt = new Date(Date.now() + EMAIL_VERIFICATION_TTL * 1000);
-  await repo.createEmailVerificationToken({
-    userId,
-    tokenHash: verificationTokenHash,
-    expiresAt: verificationExpiresAt,
-  });
-
-  if (isEmailQueueEnabled()) {
-    getEmailQueue()
-      .add('send-verification-email', {
-        type: 'verification',
-        email: normalizedEmail,
-        token: verificationToken,
-      })
-      .catch((err) => {
-        console.error('Failed to queue email-change verification email:', err);
-      });
-  } else {
-    sendVerificationEmail(normalizedEmail, verificationToken).catch((err) => {
-      console.error('Failed to send email-change verification email:', err);
-    });
-  }
+  await repo.markUserEmailAsVerified(userId);
 
   const primaryOrganizationId = await getPrimaryOrganizationId(userId);
   await recordAudit({
