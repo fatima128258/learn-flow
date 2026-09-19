@@ -11,6 +11,7 @@ import {
   payOrder,
   submitManualPayment,
   listPendingManualPayments,
+  listOrganizationPayments,
   approveManualPayment,
   rejectManualPayment,
   listStudentPayments,
@@ -100,6 +101,15 @@ commerceRouter.get(
   requireOrganizationContext,
   requireOwnerReviewAccess,
   listPendingManualPayments,
+);
+
+commerceRouter.get(
+  '/:organizationId/payments',
+  requireAuth,
+  requireVerifiedEmail,
+  requireOrganizationContext,
+  requireOwnerReviewAccess,
+  listOrganizationPayments,
 );
 
 commerceRouter.post(

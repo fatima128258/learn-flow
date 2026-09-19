@@ -4,11 +4,11 @@ import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   Button,
-  CourseCardSkeleton,
   EmptyState,
   EmptyStateIcons,
   ErrorState,
   Input,
+  Spinner,
 } from '@/components/ui';
 import { useCurrentUser } from '@/features/auth/useCurrentUser';
 
@@ -187,10 +187,8 @@ export default function StudentSearchPage() {
             <ErrorState title="Unable to load courses" message={searchError} />
           </div>
         ) : results === null ? (
-          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3" role="status" aria-label="Loading available courses">
-            {Array.from({ length: 6 }).map((_, index) => (
-              <CourseCardSkeleton key={index} />
-            ))}
+          <div className="flex min-h-64 items-center justify-center" role="status" aria-label="Loading available courses">
+            <Spinner size="md" label="Loading..." />
           </div>
         ) : results.length === 0 ? (
           <div className="rounded-2xl border border-neutral-200 bg-white shadow-sm">

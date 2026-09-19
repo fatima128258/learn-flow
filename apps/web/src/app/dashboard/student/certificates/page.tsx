@@ -10,7 +10,6 @@ import {
   ErrorState,
   Spinner,
 } from '@/components/ui';
-import { DashboardSkeleton } from '@/components/ui';
 import { useCurrentUser } from '@/features/auth/useCurrentUser';
 import { useMyCourses } from '@/features/student/useMyCourses';
 
@@ -338,8 +337,14 @@ export default function StudentCertificatesPage() {
     };
   }, [user, userLoading]);
 
-  if (loading || coursesLoading) {
-    return <DashboardSkeleton cards={3} />;
+  // Certificate history can render as soon as it loads; completed-course
+  // progress checks are supplementary and should not blank the page.
+  if (loading) {
+    return (
+      <div className="flex min-h-64 items-center justify-center" role="status" aria-label="Loading certificates">
+        <Spinner size="md" label="Loading..." />
+      </div>
+    );
   }
 
   return (

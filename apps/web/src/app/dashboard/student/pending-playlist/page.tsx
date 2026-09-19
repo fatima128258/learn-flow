@@ -3,7 +3,7 @@
 import { useEffect } from 'react';
 import Link from 'next/link';
 import { useQuery } from '@tanstack/react-query';
-import { Badge, Card, EmptyState, ErrorState, DashboardSkeleton } from '@/components/ui';
+import { Badge, Card, EmptyState, ErrorState, Spinner } from '@/components/ui';
 import { useCurrentUser } from '@/features/auth/useCurrentUser';
 import { getJson } from '@/lib/api';
 import { currency } from '@/lib/types';
@@ -48,7 +48,11 @@ export default function PendingPlaylistPage() {
   });
 
   if (userLoading || isLoading) {
-    return <DashboardSkeleton cards={3} />;
+    return (
+      <div className="flex min-h-64 items-center justify-center" role="status" aria-label="Loading pending playlist">
+        <Spinner size="md" label="Loading..." />
+      </div>
+    );
   }
 
   if (!user || user.role !== 'STUDENT') return null;

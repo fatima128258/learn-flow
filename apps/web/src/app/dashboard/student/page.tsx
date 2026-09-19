@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { CourseCardSkeleton, EmptyState, EmptyStateIcons, ErrorState } from '@/components/ui';
+import { EmptyState, EmptyStateIcons, ErrorState, Spinner } from '@/components/ui';
 import { useCurrentUser } from '@/features/auth/useCurrentUser';
 import { useMyCourses } from '@/features/student/useMyCourses';
 
@@ -99,12 +99,8 @@ export default function StudentDashboardPage() {
   // Show loading only if user data is still loading
   if (userLoading) {
     return (
-      <div className="mx-auto max-w-6xl" role="status" aria-label="Loading dashboard">
-        <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-3">
-          {Array.from({ length: 6 }).map((_, index) => (
-            <CourseCardSkeleton key={index} />
-          ))}
-        </div>
+      <div className="flex min-h-64 items-center justify-center" role="status" aria-label="Loading dashboard">
+        <Spinner size="md" label="Loading..." />
       </div>
     );
   }
@@ -113,12 +109,8 @@ export default function StudentDashboardPage() {
     <div className="mx-auto max-w-6xl">
 
       {coursesLoading ? (
-        <div role="status" aria-label="Loading available courses">
-          <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-3">
-            {Array.from({ length: 6 }).map((_, index) => (
-              <CourseCardSkeleton key={index} />
-            ))}
-          </div>
+        <div className="flex min-h-64 items-center justify-center" role="status" aria-label="Loading available courses">
+          <Spinner size="md" label="Loading..." />
         </div>
       ) : coursesError ? (
         <div className="rounded-2xl border border-neutral-200 bg-white shadow-sm">

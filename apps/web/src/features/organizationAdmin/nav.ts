@@ -8,8 +8,7 @@ export const orgAdminNav: NavItem[] = [
   { href: '/dashboard/organization/payments', label: 'Payments', icon: NavIcons.payments },
   { href: '/dashboard/organization/analytics', label: 'Enrollment', icon: NavIcons.enrollment },
   { href: '/dashboard/organization/student-progress', label: 'Student Progress', icon: NavIcons.progress },
-  // Temporarily disabled while the real-time chat service is stabilized.
-  // { href: '/dashboard/organization/chat', label: 'Chat', icon: NavIcons.chat },
+  { href: '/dashboard/organization/chat', label: 'Chat', icon: NavIcons.chat },
   { href: '/dashboard/organization/audit-logs', label: 'Audit Logs', icon: NavIcons.audit },
   { href: '/dashboard/settings', label: 'Settings', icon: NavIcons.settings },
 ];

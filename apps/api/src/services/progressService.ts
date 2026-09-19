@@ -243,6 +243,13 @@ async function computeCourseProgress(
     latest: number | null;
     passed: boolean;
     maxAttempts: number | null;
+    results: Array<{
+      attemptNumber: number;
+      score: number | null;
+      percentage: number | null;
+      passed: boolean | null;
+      submittedAt: Date | null;
+    }>;
   }>();
   for (const attempt of attempts) {
     const entry = attemptsByQuiz.get(attempt.quizId);
@@ -253,6 +260,13 @@ async function computeCourseProgress(
         latest: attempt.percentage ?? 0,
         passed: attempt.passed === true,
         maxAttempts: attempt.quiz?.maxAttempts ?? null,
+        results: [{
+          attemptNumber: attempt.attemptNumber,
+          score: attempt.score,
+          percentage: attempt.percentage,
+          passed: attempt.passed,
+          submittedAt: attempt.submittedAt,
+        }],
       });
     } else {
       entry.attempts += 1;
@@ -262,6 +276,13 @@ async function computeCourseProgress(
       if (entry.maxAttempts == null && attempt.quiz?.maxAttempts != null) {
         entry.maxAttempts = attempt.quiz.maxAttempts;
       }
+      entry.results.push({
+        attemptNumber: attempt.attemptNumber,
+        score: attempt.score,
+        percentage: attempt.percentage,
+        passed: attempt.passed,
+        submittedAt: attempt.submittedAt,
+      });
     }
   }
 
@@ -277,6 +298,7 @@ async function computeCourseProgress(
     const maxAttempts = stat?.maxAttempts ?? quiz?.maxAttempts ?? null;
     return {
         quizId,
+        title: quiz?.title ?? 'Quiz',
         attempts: attemptsUsed,
         bestPercentage: stat?.best ?? null,
         latestPercentage: stat?.latest ?? null,
@@ -288,6 +310,7 @@ async function computeCourseProgress(
         attemptsRemaining: maxAttempts == null
           ? null
           : Math.max(0, maxAttempts - attemptsUsed),
+        results: stat?.results ?? [],
       };
   });
   const allQuizzesPassed = Array.from(quizIds).every(quizId => passedQuizIds.has(quizId));

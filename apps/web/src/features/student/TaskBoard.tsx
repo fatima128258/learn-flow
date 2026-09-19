@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type React from 'react';
 import { ApiError, deleteJson, getJson, patchJson, postJson } from '@/lib/api';
-import { Button, ConfirmModal, Drawer, Input, Select, Skeleton } from '@/components/ui';
+import { Button, ConfirmModal, Drawer, Input, Select, Spinner } from '@/components/ui';
 import { useToast } from '@/components/ui/ToastProvider';
 
 type TaskStatus = 'PENDING' | 'IN_PROGRESS' | 'COMPLETED';
@@ -154,33 +154,8 @@ export default function TaskBoard() {
 
   if (loading) {
     return (
-      <div className="mx-auto max-w-7xl" role="status" aria-label="Loading tasks">
-        <div className="mb-6 flex items-center justify-between gap-4">
-          <div className="min-w-0">
-            <Skeleton variant="text" height={30} width={150} className="mb-2" />
-            <Skeleton variant="text" height={16} width={280} />
-          </div>
-          <Skeleton variant="rectangular" height={40} width={100} />
-        </div>
-        <div className="grid gap-5 lg:grid-cols-3">
-          {columns.map((column) => (
-            <section key={column.status} className={`min-h-[18rem] rounded-2xl border-2 ${column.color} bg-[#fffdf9] p-4`}>
-              <div className="mb-4 flex items-center justify-between">
-                <Skeleton variant="text" height={20} width={100} />
-                <Skeleton variant="circular" height={24} width={24} />
-              </div>
-              <div className="space-y-3">
-                {Array.from({ length: 3 }).map((_, index) => (
-                  <div key={index} className="rounded-xl border border-neutral-200 bg-white p-4 shadow-sm">
-                    <Skeleton variant="text" height={20} className="mb-3 w-4/5" />
-                    <Skeleton variant="text" height={14} className="mb-2 w-full" />
-                    <Skeleton variant="text" height={14} className="w-3/5" />
-                  </div>
-                ))}
-              </div>
-            </section>
-          ))}
-        </div>
+      <div className="flex min-h-64 items-center justify-center" role="status" aria-label="Loading tasks">
+        <Spinner size="md" label="Loading..." />
       </div>
     );
   }

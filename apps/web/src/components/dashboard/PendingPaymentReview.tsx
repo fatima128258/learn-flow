@@ -9,7 +9,7 @@ import { getJson, postJson } from '@/lib/api';
 
 export type PendingPaymentListItem = {
   id: string;
-  status: string;
+  status: 'PENDING' | 'SUCCEEDED' | 'FAILED';
   paymentMethod: 'COD' | 'BANK_TRANSFER';
   transactionId?: string | null;
   amount: number;
@@ -30,6 +30,12 @@ export type PendingPaymentListItem = {
 
 function firstThreeWords(value: string) {
   return value.trim().split(/\s+/).slice(0, 3).join(' ') || 'Course';
+}
+
+function paymentStatus(status: PendingPaymentListItem['status']) {
+  if (status === 'SUCCEEDED') return { label: 'Completed', variant: 'success' as const };
+  if (status === 'FAILED') return { label: 'Rejected', variant: 'error' as const };
+  return { label: 'Pending', variant: 'warning' as const };
 }
 
 function PaymentActionsMenu({
@@ -121,7 +127,7 @@ export function PendingPaymentReview({ organizationId }: { organizationId: strin
     queryKey: ['payments', 'pending', organizationId],
     queryFn: async () => {
       const response = await getJson<{ data?: PendingPaymentListItem[] }>(
-        `/api/v1/organizations/${organizationId}/payments/pending`,
+        `/api/v1/organizations/${organizationId}/payments`,
       );
       return response.data ?? [];
     },
@@ -186,7 +192,7 @@ export function PendingPaymentReview({ organizationId }: { organizationId: strin
           storageKey="learnhub-organization-payments-view"
         />
       </div>
-      <TableCard>
+      <TableCard className={viewMode === 'cards' ? 'border-transparent bg-transparent shadow-none' : ''}>
         {isLoading ? (
           <div className="p-6 text-sm text-neutral-600">Loading pending payments…</div>
         ) : payments.length === 0 ? (
@@ -205,6 +211,7 @@ export function PendingPaymentReview({ organizationId }: { organizationId: strin
                 <tr>
                   <th className={tableHeadClass}>Student</th>
                   <th className={tableHeadClass}>Course</th>
+                  <th className={tableHeadClass}>Status</th>
                   <th className={tableHeadClass}>Method</th>
                   <th className={tableHeadClass}>Amount</th>
                   <th className={tableHeadClass}>Submitted</th>
@@ -224,6 +231,11 @@ export function PendingPaymentReview({ organizationId }: { organizationId: strin
                       </td>
                       <td className={`${tableCellClass} text-neutral-700`}>{courseTitle}</td>
                       <td className={tableCellClass}>
+                        <Badge variant={paymentStatus(payment.status).variant} size="sm">
+                          {paymentStatus(payment.status).label}
+                        </Badge>
+                      </td>
+                      <td className={tableCellClass}>
                         <Badge variant={payment.paymentMethod === 'BANK_TRANSFER' ? 'info' : 'warning'} size="sm">
                           {payment.paymentMethod === 'BANK_TRANSFER' ? 'Bank Transfer' : 'COD'}
                         </Badge>
@@ -234,11 +246,17 @@ export function PendingPaymentReview({ organizationId }: { organizationId: strin
                       <td className={`${tableCellClass} text-neutral-700`}>{submittedAt}</td>
                       <td className={`${tableCellClass} text-center`}>
                         <div className="flex items-center justify-center gap-2">
-                          <PaymentActionsMenu
-                            onView={() => setSelectedPayment(payment)}
-                            onApprove={() => void handleApprove(payment.id)}
-                            onReject={() => setRejectingId(payment.id)}
-                          />
+                          {payment.status === 'PENDING' ? (
+                            <PaymentActionsMenu
+                              onView={() => setSelectedPayment(payment)}
+                              onApprove={() => void handleApprove(payment.id)}
+                              onReject={() => setRejectingId(payment.id)}
+                            />
+                          ) : (
+                            <button type="button" className="text-sm font-medium text-neutral-700 underline" onClick={() => setSelectedPayment(payment)}>
+                              View
+                            </button>
+                          )}
                         </div>
                       </td>
                     </tr>
@@ -260,9 +278,12 @@ export function PendingPaymentReview({ organizationId }: { organizationId: strin
                       <p className="font-semibold text-neutral-900">{payment.user.name ?? 'Student'}</p>
                       <p className="mt-1 text-xs text-neutral-500">{payment.user.email}</p>
                     </div>
-                    <Badge variant={payment.paymentMethod === 'BANK_TRANSFER' ? 'info' : 'warning'} size="sm">
-                      {payment.paymentMethod === 'BANK_TRANSFER' ? 'Bank Transfer' : 'COD'}
-                    </Badge>
+                    <div className="flex items-center gap-2">
+                      <Badge variant={paymentStatus(payment.status).variant} size="sm">{paymentStatus(payment.status).label}</Badge>
+                      <Badge variant={payment.paymentMethod === 'BANK_TRANSFER' ? 'info' : 'warning'} size="sm">
+                        {payment.paymentMethod === 'BANK_TRANSFER' ? 'Bank Transfer' : 'COD'}
+                      </Badge>
+                    </div>
                   </div>
                   <dl className="mt-4 space-y-2 text-sm">
                     <div className="flex justify-between gap-3">
@@ -280,14 +301,16 @@ export function PendingPaymentReview({ organizationId }: { organizationId: strin
                       <dd className="text-neutral-700">{submittedAt}</dd>
                     </div>
                   </dl>
-                  <div className="mt-4 flex gap-2">
-                    <Button size="sm" variant="primary" fullWidth loading={workingId === payment.id} onClick={() => void handleApprove(payment.id)}>
-                      Approve
-                    </Button>
-                    <Button size="sm" variant="cream" fullWidth loading={workingId === payment.id} onClick={() => setRejectingId(payment.id)}>
-                      Reject
-                    </Button>
-                  </div>
+                  {payment.status === 'PENDING' && (
+                    <div className="mt-4 flex gap-2">
+                      <Button size="sm" variant="primary" fullWidth loading={workingId === payment.id} onClick={() => void handleApprove(payment.id)}>
+                        Approve
+                      </Button>
+                      <Button size="sm" variant="cream" fullWidth loading={workingId === payment.id} onClick={() => setRejectingId(payment.id)}>
+                        Reject
+                      </Button>
+                    </div>
+                  )}
                 </div>
               );
             })}
@@ -305,7 +328,9 @@ export function PendingPaymentReview({ organizationId }: { organizationId: strin
           <div className="space-y-6">
             <div className="flex items-center justify-between gap-3">
               <p className="text-sm text-neutral-500">Payment status</p>
-              <Badge variant="warning" size="sm">Pending approval</Badge>
+              <Badge variant={paymentStatus(selectedPayment.status).variant} size="sm">
+                {paymentStatus(selectedPayment.status).label}
+              </Badge>
             </div>
 
             <section className="space-y-3">
@@ -349,14 +374,16 @@ export function PendingPaymentReview({ organizationId }: { organizationId: strin
               </div>
             </section>
 
-            <div className="flex gap-3 border-t border-neutral-200 pt-5">
-              <Button fullWidth variant="primary" loading={workingId === selectedPayment.id} onClick={() => { setSelectedPayment(null); void handleApprove(selectedPayment.id); }}>
-                Approve
-              </Button>
-              <Button fullWidth variant="cream" loading={workingId === selectedPayment.id} onClick={() => { setSelectedPayment(null); setRejectingId(selectedPayment.id); }}>
-                Reject
-              </Button>
-            </div>
+            {selectedPayment.status === 'PENDING' && (
+              <div className="flex gap-3 border-t border-neutral-200 pt-5">
+                <Button fullWidth variant="primary" loading={workingId === selectedPayment.id} onClick={() => { setSelectedPayment(null); void handleApprove(selectedPayment.id); }}>
+                  Approve
+                </Button>
+                <Button fullWidth variant="cream" loading={workingId === selectedPayment.id} onClick={() => { setSelectedPayment(null); setRejectingId(selectedPayment.id); }}>
+                  Reject
+                </Button>
+              </div>
+            )}
           </div>
         ) : null}
       </Drawer>

@@ -137,6 +137,17 @@ export async function listPendingManualPayments(organizationId: string) {
   });
 }
 
+export async function listOrganizationPayments(organizationId: string) {
+  return prisma().payment.findMany({
+    where: { organizationId },
+    include: {
+      order: { include: { items: true } },
+      user: { select: { id: true, name: true, email: true } },
+    },
+    orderBy: { createdAt: 'desc' },
+  });
+}
+
 export async function listPaymentsForUser(userId: string, organizationId: string) {
   return prisma().payment.findMany({
     where: { userId, organizationId },

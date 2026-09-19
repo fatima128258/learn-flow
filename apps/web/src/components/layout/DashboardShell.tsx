@@ -8,9 +8,8 @@ import { orgAdminNav } from '@/features/organizationAdmin/nav';
 import { instructorNav } from '@/features/instructor/nav';
 import { studentNav } from '@/features/student/nav';
 import { useCurrentUser } from '@/features/auth/useCurrentUser';
+import { useChatUnread } from '@/features/chat/useChatUnread';
 import type { CurrentUser } from '@/lib/types';
-// Temporarily disabled while the real-time chat service is stabilized.
-// import { useChatUnread } from '@/features/chat/useChatUnread';
 
 export interface DashboardShellProps {
   children: React.ReactNode;
@@ -63,8 +62,7 @@ function DashboardShellInner({ children, initialUser }: DashboardShellProps & { 
   const searchParams = useSearchParams();
   const orgId = searchParams.get('organization');
   const { data: currentUser } = useCurrentUser({ initialUser });
-  // Temporarily disabled with the Chat navigation entries.
-  // const unreadChatCount = useChatUnread(currentUser?.organizationId ?? undefined, currentUser?.id);
+  const unreadChatCount = useChatUnread(currentUser?.organizationId ?? undefined, currentUser?.id);
 
   useEffect(() => {
     if (!currentUser) return;
@@ -82,8 +80,10 @@ function DashboardShellInner({ children, initialUser }: DashboardShellProps & { 
     [pathname, currentUser?.role, orgId],
   );
   const items = useMemo(
-    () => baseItems,
-    [baseItems],
+    () => baseItems.map((item) => (
+      item.label === 'Chat' ? { ...item, badge: unreadChatCount } : item
+    )),
+    [baseItems, unreadChatCount],
   );
 
   return (

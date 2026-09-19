@@ -144,6 +144,28 @@ export async function listPendingManualPayments(organizationId: string, reviewer
   return visible.filter((payment): payment is NonNullable<typeof payment> => Boolean(payment));
 }
 
+export async function listOrganizationPayments(organizationId: string, reviewerUserId: string) {
+  const payments = await orderRepo.listOrganizationPayments(organizationId);
+  const prisma = getPrisma();
+  const reviewerIsOrgAdmin = await prisma.userOrganization.findFirst({
+    where: { userId: reviewerUserId, organizationId, role: 'ORG_ADMIN' },
+  });
+  const reviewerIsPlatformAdmin = await prisma.userOrganization.findFirst({
+    where: { userId: reviewerUserId, organizationId, role: 'PLATFORM_ADMIN' },
+  });
+
+  const visible = await Promise.all(payments.map(async (payment) => {
+    const courseId = payment.order.items[0]?.courseId;
+    if (!courseId) return null;
+    const course = await courseRepo.getById(organizationId, courseId);
+    if (!course) return null;
+    const canReview = reviewerIsOrgAdmin || reviewerIsPlatformAdmin || course.instructorUserId === reviewerUserId;
+    return canReview ? payment : null;
+  }));
+
+  return visible.filter((payment): payment is NonNullable<typeof payment> => Boolean(payment));
+}
+
 export async function listPaymentsForStudent(organizationId: string, userId: string) {
   const payments = await orderRepo.listPaymentsForUser(userId, organizationId);
   return payments.map((payment) => ({

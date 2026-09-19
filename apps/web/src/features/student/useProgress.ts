@@ -42,12 +42,20 @@ export type ProgressItem = {
 
 export type ProgressQuiz = {
   quizId: string;
+  title: string;
   attempts: number;
   bestPercentage: number | null;
   latestPercentage: number | null;
   passed: boolean;
   failed?: boolean;
   attemptsRemaining?: number | null;
+  results: Array<{
+    attemptNumber: number;
+    score: number | null;
+    percentage: number | null;
+    passed: boolean | null;
+    submittedAt: string | null;
+  }>;
 };
 
 export type CourseProgress = {

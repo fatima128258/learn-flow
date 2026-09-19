@@ -249,28 +249,14 @@ export default function StudentLessonPage() {
             ? 'Congratulations! You completed the course.'
             : 'Congratulations! You completed this lesson.',
           duration: 5000,
-          action: (
-            <>
-              {!completedCourse && (
-                <button
-                  type="button"
-                  onClick={() => void goToNextContent()}
-                  disabled={nextResolving}
-                  className="rounded-md bg-[#5A321F] px-3 py-1.5 text-xs font-semibold text-white hover:bg-[#472719] disabled:cursor-not-allowed disabled:opacity-60"
-                >
-                  {nextResolving ? 'Loading next...' : 'Next'}
-                </button>
-              )}
-              {completedCourse && (
-                <Link
-                  href="/dashboard/student/certificates"
-                  className="rounded-md border border-[#5A321F] px-3 py-1.5 text-xs font-semibold text-[#5A321F] hover:bg-[#f7eee8]"
-                >
-                  Go to Certificate
-                </Link>
-              )}
-            </>
-          ),
+          action: completedCourse ? (
+            <Link
+              href="/dashboard/student/certificates"
+              className="rounded-md border border-[#5A321F] px-3 py-1.5 text-xs font-semibold text-[#5A321F] hover:bg-[#f7eee8]"
+            >
+              Go to Certificate
+            </Link>
+          ) : undefined,
         });
       }
       if (completed && user.organizationId && !completedCourse) {

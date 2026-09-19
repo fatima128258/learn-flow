@@ -367,14 +367,14 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
 
   // ── Sidebar footer ─────────────────────────────────────────────────────────
   const sidebarFooter = (isCollapsed: boolean) => (
-    <div className={`border-t border-neutral-200 py-3 ${isCollapsed ? 'px-2' : 'px-3'}`}>
+    <div className={`border-t border-neutral-200 py-2 ${isCollapsed ? 'px-2' : 'px-3'}`}>
       {/* Logout button */}
       <button
         onClick={handleLogout}
         disabled={loggingOut}
         aria-busy={loggingOut}
         title={isCollapsed ? (loggingOut ? 'Logging out…' : 'Log out') : undefined}
-        className={`group relative flex w-full items-center rounded-xl px-3 py-2.5 text-sm font-medium text-neutral-600 transition-colors hover:bg-neutral-100 hover:text-neutral-900 disabled:cursor-not-allowed disabled:opacity-60 ${
+        className={`group relative flex w-full items-center rounded-xl px-3 py-2 text-sm font-medium text-neutral-600 transition-colors hover:bg-neutral-100 hover:text-neutral-900 disabled:cursor-not-allowed disabled:opacity-60 ${
           isCollapsed ? 'justify-center' : 'gap-3'
         }`}
       >
@@ -462,12 +462,12 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
             </div>
             {mobileNav(() => setMobileOpen(false))}
             {/* Mobile footer — never collapsed */}
-            <div className="border-t border-neutral-200 px-3 py-4">
+            <div className="border-t border-neutral-200 px-3 py-2">
               <button
                 onClick={handleLogout}
                 disabled={loggingOut}
                 aria-busy={loggingOut}
-                className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-neutral-600 transition-colors hover:bg-neutral-100 hover:text-neutral-900 disabled:cursor-not-allowed disabled:opacity-60"
+                className="flex w-full items-center gap-3 rounded-xl px-3 py-2 text-sm font-medium text-neutral-600 transition-colors hover:bg-neutral-100 hover:text-neutral-900 disabled:cursor-not-allowed disabled:opacity-60"
               >
                 {loggingOut ? <ButtonSpinner /> : <LogoutIcon />}
                 <span>{loggingOut ? 'Logging out...' : 'Log out'}</span>
