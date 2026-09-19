@@ -305,7 +305,7 @@ export default function OrgUsersPage() {
 
   return (
     <>
-      <div className="mx-auto max-w-5xl">
+      <div className="w-full">
         <div className="mb-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
           <Input
             variant="line"
@@ -387,7 +387,7 @@ export default function OrgUsersPage() {
                     </table>
                   </div>
                   {/* Mobile cards */}
-                  <div className={viewMode === 'cards' ? 'grid gap-4 p-4 sm:grid-cols-2 lg:grid-cols-3' : 'hidden'}>
+                  <div className={viewMode === 'cards' ? 'grid gap-4 p-4 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-6' : 'hidden'}>
                     {(filteredMembers ?? []).map((member) => (
                       <div key={member.id} className="flex min-h-52 flex-col rounded-2xl border border-[#ead8c6] bg-[#fffdf9] p-5 shadow-sm transition-shadow hover:shadow-md">
                         <div className="flex items-start justify-between gap-3">
