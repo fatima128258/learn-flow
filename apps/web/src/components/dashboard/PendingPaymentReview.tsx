@@ -1,8 +1,10 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { useQuery } from '@tanstack/react-query';
-import { Badge, Button, Card, EmptyState, Modal } from '@/components/ui';
+import { Badge, Button, EmptyState, Input, Modal, ViewToggle } from '@/components/ui';
+import { TableCard, tableCellClass, tableHeadClass, tableRowHoverClass } from './TableCard';
 import { getJson, postJson } from '@/lib/api';
 
 export type PendingPaymentListItem = {
@@ -26,10 +28,87 @@ export type PendingPaymentListItem = {
   };
 };
 
+function firstThreeWords(value: string) {
+  return value.trim().split(/\s+/).slice(0, 3).join(' ') || 'Course';
+}
+
+function PaymentActionsMenu({
+  onApprove,
+  onReject,
+}: {
+  onApprove: () => void;
+  onReject: () => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const [position, setPosition] = useState({ top: 0, left: 0 });
+  const buttonRef = useRef<HTMLButtonElement>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const closeOnOutsideClick = (event: MouseEvent) => {
+      if (!menuRef.current?.contains(event.target as Node) && !buttonRef.current?.contains(event.target as Node)) {
+        setOpen(false);
+      }
+    };
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setOpen(false);
+    };
+    document.addEventListener('mousedown', closeOnOutsideClick);
+    document.addEventListener('keydown', closeOnEscape);
+    return () => {
+      document.removeEventListener('mousedown', closeOnOutsideClick);
+      document.removeEventListener('keydown', closeOnEscape);
+    };
+  }, [open]);
+
+  function toggleMenu() {
+    if (!open && buttonRef.current) {
+      const rect = buttonRef.current.getBoundingClientRect();
+      setPosition({ top: rect.bottom + 4, left: Math.max(8, rect.right - 144) });
+    }
+    setOpen((value) => !value);
+  }
+
+  const menu = open ? (
+    <div
+      ref={menuRef}
+      className="fixed z-[70] w-36 rounded-xl border border-neutral-200 bg-white py-1 shadow-xl"
+      style={{ top: position.top, left: position.left }}
+      onMouseDown={(event) => event.stopPropagation()}
+    >
+      <button type="button" className="block w-full px-3 py-2 text-left text-sm text-neutral-700 hover:bg-neutral-50" onClick={() => { setOpen(false); onApprove(); }}>
+        Approve
+      </button>
+      <button type="button" className="block w-full px-3 py-2 text-left text-sm text-error-600 hover:bg-error-50" onClick={() => { setOpen(false); onReject(); }}>
+        Reject
+      </button>
+    </div>
+  ) : null;
+
+  return (
+    <>
+      <button
+        ref={buttonRef}
+        type="button"
+        aria-label="Payment actions"
+        className="inline-flex items-center justify-center rounded-lg p-2 text-neutral-700 hover:bg-neutral-100"
+        onClick={toggleMenu}
+      >
+        <span className="sr-only">Payment actions</span>
+        <span aria-hidden="true" className="text-lg leading-none">⋮</span>
+      </button>
+      {typeof document !== 'undefined' && menu ? createPortal(menu, document.body) : null}
+    </>
+  );
+}
+
 export function PendingPaymentReview({ organizationId }: { organizationId: string }) {
   const [rejectingId, setRejectingId] = useState<string | null>(null);
   const [rejectReason, setRejectReason] = useState('');
   const [workingId, setWorkingId] = useState<string | null>(null);
+  const [searchInput, setSearchInput] = useState('');
+  const [viewMode, setViewMode] = useState<'table' | 'cards'>('table');
 
   const { data = [], refetch, isLoading } = useQuery({
     queryKey: ['payments', 'pending', organizationId],
@@ -43,6 +122,20 @@ export function PendingPaymentReview({ organizationId }: { organizationId: strin
   });
 
   const payments = useMemo(() => data ?? [], [data]);
+  const filteredPayments = useMemo(() => {
+    const query = searchInput.trim().toLowerCase();
+    if (!query) return payments;
+    return payments.filter((payment) => {
+      const courseTitle = payment.order.items[0]?.courseTitle ?? '';
+      return [
+        payment.user.name,
+        payment.user.email,
+        courseTitle,
+        payment.paymentMethod === 'BANK_TRANSFER' ? 'bank transfer' : 'cod',
+        payment.transactionId,
+      ].some((value) => value?.toLowerCase().includes(query));
+    });
+  }, [payments, searchInput]);
 
   async function handleApprove(paymentId: string) {
     setWorkingId(paymentId);
@@ -72,77 +165,74 @@ export function PendingPaymentReview({ organizationId }: { organizationId: strin
 
   return (
     <div className="mb-8">
-      <Card className="overflow-hidden">
-        <div className="border-b border-neutral-200 px-6 py-5">
-          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-            <div>
-              <p className="text-sm font-medium uppercase tracking-wide text-primary-600">Payments</p>
-              <h2 className="mt-1 text-xl font-semibold text-neutral-900">Pending manual payments</h2>
-            </div>
-            <Badge variant="warning" size="sm">{payments.length} pending</Badge>
-          </div>
-        </div>
-
+      <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <Input
+          variant="line"
+          placeholder="Search by student, course, email, or transaction ID"
+          value={searchInput}
+          onChange={(event) => setSearchInput(event.target.value)}
+          className="max-w-xl"
+        />
+        <ViewToggle
+          value={viewMode}
+          onChange={setViewMode}
+          storageKey="learnhub-organization-payments-view"
+        />
+      </div>
+      <TableCard>
         {isLoading ? (
           <div className="p-6 text-sm text-neutral-600">Loading pending payments…</div>
         ) : payments.length === 0 ? (
           <div className="p-6">
             <EmptyState title="No pending manual payments" description="Approved and rejected payments will disappear once reviewed." />
           </div>
+        ) : filteredPayments.length === 0 ? (
+          <div className="p-6">
+            <EmptyState title="No matching payments" description="Try a different student, course, email, or transaction ID." />
+          </div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="min-w-full border-separate border-spacing-0 text-left text-sm">
-              <thead className="bg-neutral-50 text-neutral-600">
+          <>
+          <div className={viewMode === 'table' ? 'hidden sm:block' : 'hidden'}>
+            <table className="min-w-full divide-y divide-neutral-200">
+              <thead className="bg-neutral-50">
                 <tr>
-                  <th className="px-6 py-3 font-medium">Student</th>
-                  <th className="px-6 py-3 font-medium">Course</th>
-                  <th className="px-6 py-3 font-medium">Method</th>
-                  <th className="px-6 py-3 font-medium">Transaction ID</th>
-                  <th className="px-6 py-3 font-medium">Amount</th>
-                  <th className="px-6 py-3 font-medium">Submitted</th>
-                  <th className="px-6 py-3 font-medium">Action</th>
+                  <th className={tableHeadClass}>Student</th>
+                  <th className={tableHeadClass}>Course</th>
+                  <th className={tableHeadClass}>Method</th>
+                  <th className={tableHeadClass}>Transaction ID</th>
+                  <th className={tableHeadClass}>Amount</th>
+                  <th className={tableHeadClass}>Submitted</th>
+                  <th className={`${tableHeadClass} text-center`}>Action</th>
                 </tr>
               </thead>
-              <tbody>
-                {payments.map((payment) => {
-                  const courseTitle = payment.order.items[0]?.courseTitle ?? 'Course';
+              <tbody className="divide-y divide-neutral-100">
+                {filteredPayments.map((payment) => {
+                  const courseTitle = firstThreeWords(payment.order.items[0]?.courseTitle ?? 'Course');
                   const submittedAt = payment.createdAt ? new Date(payment.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '—';
 
                   return (
-                    <tr key={payment.id} className="border-t border-neutral-200 align-top">
-                      <td className="px-6 py-4">
+                    <tr key={payment.id} className={tableRowHoverClass}>
+                      <td className={tableCellClass}>
                         <div className="font-medium text-neutral-900">{payment.user.name ?? 'Student'}</div>
                         <div className="text-xs text-neutral-500">{payment.user.email}</div>
                       </td>
-                      <td className="px-6 py-4 text-neutral-700">{courseTitle}</td>
-                      <td className="px-6 py-4">
+                      <td className={`${tableCellClass} text-neutral-700`}>{courseTitle}</td>
+                      <td className={tableCellClass}>
                         <Badge variant={payment.paymentMethod === 'BANK_TRANSFER' ? 'info' : 'warning'} size="sm">
                           {payment.paymentMethod === 'BANK_TRANSFER' ? 'Bank Transfer' : 'COD'}
                         </Badge>
                       </td>
-                      <td className="px-6 py-4 text-neutral-700">{payment.transactionId || '—'}</td>
-                      <td className="px-6 py-4 font-medium text-neutral-900">
+                      <td className={`${tableCellClass} text-neutral-700`}>{payment.transactionId || '—'}</td>
+                      <td className={`${tableCellClass} font-medium text-neutral-900`}>
                         {new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(payment.amount || payment.order.totalAmount || 0)}
                       </td>
-                      <td className="px-6 py-4 text-neutral-700">{submittedAt}</td>
-                      <td className="px-6 py-4">
-                        <div className="flex flex-col gap-2 sm:flex-row">
-                          <Button
-                            size="sm"
-                            variant="primary"
-                            loading={workingId === payment.id}
-                            onClick={() => void handleApprove(payment.id)}
-                          >
-                            Approve
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            loading={workingId === payment.id}
-                            onClick={() => setRejectingId(payment.id)}
-                          >
-                            Reject
-                          </Button>
+                      <td className={`${tableCellClass} text-neutral-700`}>{submittedAt}</td>
+                      <td className={`${tableCellClass} text-center`}>
+                        <div className="flex items-center justify-center gap-2">
+                          <PaymentActionsMenu
+                            onApprove={() => void handleApprove(payment.id)}
+                            onReject={() => setRejectingId(payment.id)}
+                          />
                         </div>
                       </td>
                     </tr>
@@ -151,8 +241,58 @@ export function PendingPaymentReview({ organizationId }: { organizationId: strin
               </tbody>
             </table>
           </div>
+          <div className={viewMode === 'cards' ? 'grid gap-4 p-4 sm:hidden' : 'grid gap-4 p-4 sm:hidden'}>
+            {filteredPayments.map((payment) => {
+              const courseTitle = firstThreeWords(payment.order.items[0]?.courseTitle ?? 'Course');
+              const submittedAt = payment.createdAt
+                ? new Date(payment.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+                : '—';
+              return (
+                <div key={payment.id} className="rounded-2xl border border-[#ead8c6] bg-[#fffdf9] p-5 shadow-sm">
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <p className="font-semibold text-neutral-900">{payment.user.name ?? 'Student'}</p>
+                      <p className="mt-1 text-xs text-neutral-500">{payment.user.email}</p>
+                    </div>
+                    <Badge variant={payment.paymentMethod === 'BANK_TRANSFER' ? 'info' : 'warning'} size="sm">
+                      {payment.paymentMethod === 'BANK_TRANSFER' ? 'Bank Transfer' : 'COD'}
+                    </Badge>
+                  </div>
+                  <dl className="mt-4 space-y-2 text-sm">
+                    <div className="flex justify-between gap-3">
+                      <dt className="text-neutral-500">Course</dt>
+                      <dd className="text-right font-medium text-neutral-900">{courseTitle}</dd>
+                    </div>
+                    <div className="flex justify-between gap-3">
+                      <dt className="text-neutral-500">Transaction ID</dt>
+                      <dd className="text-right text-neutral-700">{payment.transactionId || '—'}</dd>
+                    </div>
+                    <div className="flex justify-between gap-3">
+                      <dt className="text-neutral-500">Amount</dt>
+                      <dd className="font-medium text-neutral-900">
+                        {new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(payment.amount || payment.order.totalAmount || 0)}
+                      </dd>
+                    </div>
+                    <div className="flex justify-between gap-3">
+                      <dt className="text-neutral-500">Submitted</dt>
+                      <dd className="text-neutral-700">{submittedAt}</dd>
+                    </div>
+                  </dl>
+                  <div className="mt-4 flex gap-2">
+                    <Button size="sm" variant="primary" fullWidth loading={workingId === payment.id} onClick={() => void handleApprove(payment.id)}>
+                      Approve
+                    </Button>
+                    <Button size="sm" variant="outline" fullWidth loading={workingId === payment.id} onClick={() => setRejectingId(payment.id)}>
+                      Reject
+                    </Button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+          </>
         )}
-      </Card>
+      </TableCard>
 
       <Modal
         isOpen={Boolean(rejectingId)}
