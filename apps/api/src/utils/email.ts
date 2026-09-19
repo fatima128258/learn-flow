@@ -116,7 +116,7 @@ export function getTransporter() {
       ? configuredTimeout
       : 10000;
     const configuredFamily = Number(process.env.MAIL_SMTP_IP_FAMILY || '4');
-    const family = configuredFamily === 4 || configuredFamily === 6 ? configuredFamily : 4;
+    const family: 4 | 6 = configuredFamily === 6 ? 6 : 4;
     const user = process.env.MAIL_SMTP_USER;
     const pass = process.env.MAIL_SMTP_PASS;
 
@@ -128,7 +128,7 @@ export function getTransporter() {
     const requiresTLS = isImplicitTLS || isExplicitTLS;
     const isLocalMailpit = port === 1025 || host === 'localhost' || host === 'mailpit';
 
-    transporter = nodemailer.createTransport({
+    const transportOptions: Parameters<typeof nodemailer.createTransport>[0] & { family: 4 | 6 } = {
       host,
       port,
       secure: isImplicitTLS,
@@ -141,7 +141,8 @@ export function getTransporter() {
       family,
       // Only provide auth if BOTH username and password are set
       auth: user && pass ? { user, pass } : undefined,
-    });
+    };
+    transporter = nodemailer.createTransport(transportOptions);
   }
   return transporter;
 }
