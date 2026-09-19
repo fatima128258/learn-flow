@@ -28,7 +28,7 @@ export function useCheckoutOrder(organizationId: string, courseId: string, payme
       const body = await postJsonWithTimeout<{ data?: Order & { stripeCheckoutUrl?: string } }>(
         `/api/v1/organizations/${organizationId}/student/courses/${courseId}/checkout`,
         { paymentMethod },
-        30000,
+        paymentMethod === 'STRIPE' ? 15000 : 30000,
       );
       return body.data ?? null;
     },

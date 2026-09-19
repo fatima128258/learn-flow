@@ -2,9 +2,11 @@
 
 import { Suspense, useEffect, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { Badge, Card, ErrorState, OrganizationPageLoader } from '@/components/ui';
+import { Badge, Button, Card, ErrorState, Input, OrganizationPageLoader, Spinner } from '@/components/ui';
 import { useCurrentUser } from '@/features/auth/useCurrentUser';
 import { PageHeader, SectionHeader } from '@/components/dashboard';
+import { apiRequest } from '@/lib/api';
+import { useToast } from '@/components/ui/ToastProvider';
 
 export const dynamic = 'force-dynamic';
 
@@ -17,15 +19,27 @@ type OrganizationInfo = {
   updatedAt: string;
 };
 
+type BankDetails = {
+  bankName: string;
+  accountNumber: string;
+};
+
 const API_BASE = '';
 
 function OrgSettingsContent() {
   const { data: user, isLoading: userLoading } = useCurrentUser();
+  const toast = useToast();
   const searchParams = useSearchParams();
-  const orgId = searchParams.get('organization');
+  const orgId = searchParams.get('organization') || user?.organizationId || '';
   const [organization, setOrganization] = useState<OrganizationInfo | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [bankDetails, setBankDetails] = useState<BankDetails | null>(null);
+  const [bankForm, setBankForm] = useState<BankDetails>({ bankName: '', accountNumber: '' });
+  const [bankEditing, setBankEditing] = useState(false);
+  const [bankLoading, setBankLoading] = useState(false);
+  const [bankSubmitting, setBankSubmitting] = useState(false);
+  const [bankError, setBankError] = useState<string | null>(null);
 
   useEffect(() => {
     if (userLoading) return;
@@ -55,6 +69,55 @@ function OrgSettingsContent() {
 
     void load();
   }, [user, userLoading, orgId]);
+
+  useEffect(() => {
+    if (userLoading || !user || !orgId) return;
+    let active = true;
+    setBankLoading(true);
+    apiRequest<{ data: BankDetails | null }>('/api/v1/organizations/org/payment-details', {
+      headers: { 'X-Organization-Id': orgId },
+    })
+      .then((response) => {
+        if (!active) return;
+        setBankDetails(response.data);
+        if (response.data) setBankForm({ bankName: response.data.bankName, accountNumber: '' });
+      })
+      .catch(() => {
+        if (active) setBankError('Could not load bank settings.');
+      })
+      .finally(() => {
+        if (active) setBankLoading(false);
+      });
+    return () => {
+      active = false;
+    };
+  }, [user, userLoading, orgId]);
+
+  async function saveBankDetails() {
+    const bankName = bankForm.bankName.trim();
+    const accountNumber = bankForm.accountNumber.trim();
+    if (!bankName || !accountNumber) {
+      setBankError('Please enter the bank name and account number.');
+      return;
+    }
+    setBankSubmitting(true);
+    setBankError(null);
+    try {
+      const response = await apiRequest<{ data: BankDetails }>('/api/v1/organizations/org/payment-details', {
+        method: 'PATCH',
+        headers: { 'X-Organization-Id': orgId },
+        body: JSON.stringify({ bankName, accountNumber }),
+      });
+      setBankDetails(response.data);
+      setBankForm({ bankName: response.data.bankName, accountNumber: '' });
+      setBankEditing(false);
+      toast.success('Bank settings saved.', 'Bank settings updated');
+    } catch {
+      setBankError('Could not save bank settings. Please try again.');
+    } finally {
+      setBankSubmitting(false);
+    }
+  }
 
   return (
     <div className="mx-auto max-w-4xl">
@@ -95,6 +158,76 @@ function OrgSettingsContent() {
                   </dd>
                 </div>
               </dl>
+            </div>
+
+            <div className="mb-8 rounded-2xl border border-neutral-200 bg-white shadow-sm">
+              <div className="flex items-center justify-between border-b border-neutral-200 px-6 py-4">
+                <SectionHeader title="Bank Settings" description="Add the bank name and account number for organization payments." />
+                {bankDetails && !bankEditing && (
+                  <Button variant="ghost" onClick={() => setBankEditing(true)}>
+                    Edit
+                  </Button>
+                )}
+              </div>
+              <div className="p-6">
+                {bankLoading ? (
+                  <div className="flex min-h-24 items-center justify-center" role="status" aria-label="Loading bank settings">
+                    <Spinner size="md" label="Loading..." />
+                  </div>
+                ) : bankError && !bankEditing ? (
+                  <ErrorState title="Unable to load bank settings" message={bankError} />
+                ) : !bankDetails && !bankEditing ? (
+                  <div className="rounded-xl border border-dashed border-neutral-300 bg-neutral-50 p-6 text-center">
+                    <p className="text-sm text-neutral-600">No bank details have been added yet.</p>
+                    <Button className="mt-4" onClick={() => setBankEditing(true)}>
+                      Add Bank Details
+                    </Button>
+                  </div>
+                ) : bankEditing ? (
+                  <div className="space-y-4">
+                    <Input
+                      label="Bank Name"
+                      value={bankForm.bankName}
+                      onChange={(event) => setBankForm((current) => ({ ...current, bankName: event.target.value }))}
+                      autoComplete="off"
+                      disabled={bankSubmitting}
+                    />
+                    <Input
+                      label="Account Number"
+                      value={bankForm.accountNumber}
+                      onChange={(event) => setBankForm((current) => ({ ...current, accountNumber: event.target.value }))}
+                      autoComplete="off"
+                      disabled={bankSubmitting}
+                    />
+                    {bankError && <p className="text-sm text-error-700">{bankError}</p>}
+                    <div className="flex justify-end gap-3 pt-2">
+                      {bankDetails && (
+                        <Button variant="ghost" onClick={() => setBankEditing(false)} disabled={bankSubmitting}>
+                          Cancel
+                        </Button>
+                      )}
+                      <Button onClick={() => void saveBankDetails()} loading={bankSubmitting} loadingText="Saving...">
+                        Save Bank Settings
+                      </Button>
+                    </div>
+                  </div>
+                ) : bankDetails ? (
+                  <dl className="grid gap-4 sm:grid-cols-2">
+                    <div>
+                      <dt className="text-sm text-neutral-500">Bank Name</dt>
+                      <dd className="mt-1 font-medium text-neutral-900">{bankDetails.bankName}</dd>
+                    </div>
+                    <div>
+                      <dt className="text-sm text-neutral-500">Account Number</dt>
+                      <dd className="mt-1 font-medium text-neutral-900">
+                        {bankDetails.accountNumber.length <= 4
+                          ? '****'
+                          : `${'*'.repeat(Math.max(4, bankDetails.accountNumber.length - 4))}${bankDetails.accountNumber.slice(-4)}`}
+                      </dd>
+                    </div>
+                  </dl>
+                ) : null}
+              </div>
             </div>
 
             <div className="rounded-2xl border border-neutral-200 bg-white shadow-sm">

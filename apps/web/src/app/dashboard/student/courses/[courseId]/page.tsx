@@ -45,12 +45,17 @@ export default function StudentCoursePage() {
   const courseId = typeof params.courseId === 'string' ? params.courseId : null;
   const { data: user, isLoading: userLoading } = useCurrentUser();
 
+  const [mounted, setMounted] = useState(false);
   const [course, setCourse] = useState<CourseDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [organizationId, setOrganizationId] = useState<string | null>(null);
   const [expandedModuleId, setExpandedModuleId] = useState<string | null>(null);
   const { data: progress, isLoading: progressLoading } = useProgress(organizationId ?? '', courseId ?? '');
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   // Check auth and set organizationId
   useEffect(() => {
@@ -136,7 +141,7 @@ export default function StudentCoursePage() {
     };
   }, [organizationId, courseId, router]);
 
-  if (loading) {
+  if (!mounted || loading || userLoading) {
     return <PageLoading />;
   }
 
@@ -201,44 +206,53 @@ export default function StudentCoursePage() {
                     : `/dashboard/student/courses/${courseId}/modules/${module.id}`;
                   const moduleCard = (
                     <>
-                      <div className="group flex items-center justify-between p-5 transition-all">
-                        <div className="flex items-center gap-4">
-                          <div className={`flex h-10 w-10 items-center justify-center rounded-lg text-sm font-bold ${isLocked ? 'bg-neutral-100 text-neutral-400' : isExpanded ? 'bg-primary-100 text-primary-800' : 'bg-primary-50 text-primary-700'}`}>
-                            {isLocked ? '🔒' : index + 1}
-                          </div>
-                          <div className="min-w-0">
-                            <div className="flex flex-wrap items-center gap-2">
-                              <h3 className={`font-semibold ${isLocked ? 'text-neutral-500' : 'text-neutral-900 group-hover:text-primary-600'} transition-colors`}>
-                                {module.title}
-                              </h3>
-                              {isComplete && (
-                                <span className="inline-flex items-center gap-1 rounded-full bg-[#e9f7ef] px-2.5 py-1 text-xs font-semibold text-[#16834b]">
-                                  <span aria-hidden="true">✓</span>
-                                  Module Complete
-                                </span>
-                              )}
-                              {isLocked && (
-                                <span className="rounded-full bg-neutral-100 px-2.5 py-1 text-xs font-semibold text-neutral-500">
-                                  Locked
-                                </span>
-                              )}
+                      <div className="group p-5 transition-all">
+                        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                          <div className="flex items-start sm:items-center gap-4 min-w-0">
+                            <div className={`flex h-10 w-10 items-center justify-center rounded-lg text-sm font-bold ${isLocked ? 'bg-neutral-100 text-neutral-400' : isExpanded ? 'bg-primary-100 text-primary-800' : 'bg-primary-50 text-primary-700'}`}>
+                              {isLocked ? '🔒' : index + 1}
                             </div>
-                            {module.description && (
-                              <p className="mt-1 max-w-2xl text-sm leading-5 text-neutral-600">{module.description}</p>
+                            <div className="min-w-0">
+                              <div className="flex items-center gap-2">
+                                <h3 className={`font-semibold ${isLocked ? 'text-neutral-500' : 'text-neutral-900 group-hover:text-primary-600'} transition-colors`}>
+                                  {module.title}
+                                </h3>
+                                {isComplete && (
+                                  <span className="inline-flex items-center gap-1 rounded-full bg-[#e9f7ef] px-2.5 py-1 text-xs font-semibold text-[#16834b]">
+                                    <span aria-hidden="true">✓</span>
+                                    Module Complete
+                                  </span>
+                                )}
+                                {isLocked && (
+                                  <span className="rounded-full bg-neutral-100 px-2.5 py-1 text-xs font-semibold text-neutral-500">
+                                    Locked
+                                  </span>
+                                )}
+                              </div>
+                              {module.description && (
+                                <p className="mt-2 max-w-2xl text-sm leading-5 text-neutral-600">{module.description}</p>
+                              )}
+                              {/* Mobile: show counts under description */}
+                              <div className="mt-2 text-sm text-neutral-500 sm:hidden">
+                                {module.lessonCount} lesson{module.lessonCount !== 1 ? 's' : ''}
+                                <span className="mx-1 text-neutral-300">·</span>
+                                {module.quizCount} quiz{module.quizCount !== 1 ? 'zes' : ''}
+                              </div>
+                            </div>
+                          </div>
+                          {/* Desktop: counts + arrow on right */}
+                          <div className="hidden sm:flex items-center gap-2 text-sm text-neutral-500">
+                            <span>
+                              {module.lessonCount} lesson{module.lessonCount !== 1 ? 's' : ''}
+                              <span className="mx-1 text-neutral-300">·</span>
+                              {module.quizCount} quiz{module.quizCount !== 1 ? 'zes' : ''}
+                            </span>
+                            {!isLocked && (
+                              <svg className="h-5 w-5 text-neutral-400 group-hover:text-primary-500 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                              </svg>
                             )}
                           </div>
-                        </div>
-                        <div className="flex items-center gap-2 text-sm text-neutral-500">
-                          <span>
-                            {module.lessonCount} lesson{module.lessonCount !== 1 ? 's' : ''}
-                            <span className="mx-1 text-neutral-300">·</span>
-                            {module.quizCount} quiz{module.quizCount !== 1 ? 'zes' : ''}
-                          </span>
-                          {!isLocked && (
-                            <svg className="h-5 w-5 text-neutral-400 group-hover:text-primary-500 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                            </svg>
-                          )}
                         </div>
                       </div>
                       {isExpanded && !isLocked && (

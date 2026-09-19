@@ -406,7 +406,7 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
 
       {/* Desktop sidebar */}
       <aside
-        className={`fixed inset-y-0 left-0 z-40 hidden flex-col bg-[#fffdf9] transition-all duration-200 overflow-hidden lg:flex ${sidebarW}`}
+        className={`fixed inset-y-0 left-0 z-40 hidden flex-col bg-white transition-all duration-200 overflow-hidden lg:flex ${sidebarW}`}
       >
         {/* Header */}
         <div
@@ -436,7 +436,7 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
             aria-label="Close navigation overlay"
             tabIndex={-1}
           />
-          <div className="absolute inset-y-0 left-0 flex w-64 flex-col bg-[#fffdf9] shadow-xl">
+          <div className="absolute inset-y-0 left-0 flex w-64 flex-col bg-white shadow-xl">
             <div className="flex h-16 items-center justify-between border-b border-[#ead8c6] px-6">
               {brand}
               <button
@@ -478,7 +478,7 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
       )}
 
       {/* Mobile top bar */}
-      <header className="sticky top-0 z-30 flex h-16 items-center justify-between border-b border-[#ead8c6] bg-[#fffaf5]/95 px-4 backdrop-blur lg:hidden">
+      <header className="sticky top-0 z-30 flex h-16 items-center justify-between border-b border-[#ead8c6] bg-white/90 px-4 backdrop-blur lg:hidden">
         <button
           type="button"
           onClick={() => setMobileOpen(true)}
@@ -496,7 +496,7 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
       {/* Content column — shifts with sidebar */}
       <div className={`transition-all duration-200 ${contentPl}`}>
         {/* Desktop page header strip */}
-        <header className="sticky top-0 z-30 hidden h-16 items-center justify-between border-b border-[#ead8c6] bg-[#fffaf5]/95 px-6 backdrop-blur lg:flex">
+        <header className="sticky top-0 z-30 hidden h-16 items-center justify-between border-b border-[#ead8c6] bg-white/80 px-6 backdrop-blur lg:flex">
           <div className="flex items-center gap-3">
             {/* Panel collapse toggle — [«] / [»] icon, matches screenshot */}
             <button

@@ -248,7 +248,7 @@ export default function StudentCourseOverviewPage() {
         <>
           <div className="mb-8 overflow-hidden rounded-2xl border border-neutral-200 bg-white shadow-sm">
             <div className="p-6">
-              <h1 className="text-3xl font-semibold text-neutral-900">Playlist: {course.title}</h1>
+              <h1 className="text-2xl font-medium tracking-tight text-neutral-900 sm:text-[1.7rem]">Playlist: {course.title}</h1>
 
               <div className="mt-6">
                 <h2 className="text-sm font-bold uppercase tracking-wide text-neutral-900">Description</h2>
@@ -290,7 +290,8 @@ export default function StudentCourseOverviewPage() {
                   </Button>
                 ) : course.price !== null && course.price > 0 ? (
                   <Button
-                    size="lg"
+                    size="md"
+                    className="text-sm"
                     onClick={handlePurchase}
                   >
                     Buy Now - {formatPrice(getCoursePricing(course.price, course.discountPrice).currentPrice)}
@@ -321,7 +322,7 @@ export default function StudentCourseOverviewPage() {
           }}
         >
           <div
-            className="w-full max-w-2xl rounded-2xl border border-neutral-200 bg-white shadow-2xl"
+            className="w-full max-w-xl rounded-2xl border border-neutral-200 bg-white shadow-2xl"
             onClick={(event) => event.stopPropagation()}
           >
             <div className="flex items-start justify-between border-b border-neutral-200 p-6">
@@ -346,7 +347,7 @@ export default function StudentCourseOverviewPage() {
                     <span className="text-right font-medium text-neutral-900">{course.instructor.name}</span>
                   </div>
                 )}
-                <div className="flex justify-between border-t border-neutral-200 pt-3"><span className="font-semibold text-neutral-900">Total</span><span className="text-xl font-bold text-neutral-900">{currency(order?.totalAmount ?? getCoursePricing(course.price, course.discountPrice).currentPrice ?? 0)}</span></div>
+                <div className="flex justify-between pt-3"><span className="font-semibold text-neutral-900">Total</span><span className="text-xl font-bold text-neutral-900">{currency(order?.totalAmount ?? getCoursePricing(course.price, course.discountPrice).currentPrice ?? 0)}</span></div>
               </div>
 
               {!order ? (
@@ -359,7 +360,7 @@ export default function StudentCourseOverviewPage() {
                           key={method}
                           type="button"
                           onClick={() => setSelectedPaymentMethod(method)}
-                          className={`flex w-full items-start justify-between gap-4 rounded-xl border-2 p-3 text-left transition-colors ${
+                          className={`flex w-full items-start justify-between gap-4 rounded-lg border-2 p-3 text-left transition-colors ${
                             selected ? 'border-primary-600 bg-primary-50' : 'border-[#d9b894] bg-[#fffaf5] hover:border-primary-400'
                           }`}
                         >
@@ -375,7 +376,7 @@ export default function StudentCourseOverviewPage() {
                                   : 'Pay securely with Stripe Checkout in test mode.'}
                             </p>
                           </div>
-                          <span className={`mt-0.5 h-5 w-5 rounded-full border-2 ${
+                          <span className={`mt-0.5 self-center h-5 w-5 shrink-0 rounded-full border-2 ${
                             selected ? 'border-primary-600 bg-primary-600' : 'border-[#d9b894] bg-white'
                           }`} />
                         </button>
@@ -391,7 +392,11 @@ export default function StudentCourseOverviewPage() {
                     >
                       Cancel
                     </Button>
-                    <Button onClick={handleCheckout} loading={checkoutMutation.isPending} loadingText="Creating order...">
+                    <Button
+                      onClick={handleCheckout}
+                      loading={checkoutMutation.isPending}
+                      loadingText={selectedPaymentMethod === 'STRIPE' ? 'Opening Stripe...' : 'Creating order...'}
+                    >
                       Continue with {selectedPaymentMethod === 'COD' ? 'COD' : selectedPaymentMethod === 'BANK_TRANSFER' ? 'Bank Transfer' : 'Stripe'}
                     </Button>
                   </div>

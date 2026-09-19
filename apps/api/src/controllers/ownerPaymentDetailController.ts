@@ -31,3 +31,23 @@ export async function savePaymentDetails(req: AuthenticatedRequest, res: Respons
     return handleError(res, error);
   }
 }
+
+export async function getOrganizationPaymentDetails(req: AuthenticatedRequest, res: Response) {
+  try {
+    if (!req.organizationId) return fail(res, 401, 'NOT_AUTHENTICATED');
+    const data = await service.getOrganizationPaymentDetails(req.organizationId);
+    return res.json({ success: true, data });
+  } catch (error) {
+    return handleError(res, error);
+  }
+}
+
+export async function saveOrganizationPaymentDetails(req: AuthenticatedRequest, res: Response) {
+  try {
+    if (!req.organizationId) return fail(res, 401, 'NOT_AUTHENTICATED');
+    const data = await service.saveOrganizationPaymentDetails(req.organizationId, req.body || {});
+    return res.status(200).json({ success: true, data });
+  } catch (error) {
+    return handleError(res, error);
+  }
+}

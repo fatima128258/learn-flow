@@ -8,9 +8,29 @@ import {
 import {
   getPaymentDetails,
   savePaymentDetails,
+  getOrganizationPaymentDetails,
+  saveOrganizationPaymentDetails,
 } from '../controllers/ownerPaymentDetailController';
 
 const ownerPaymentDetailRouter = Router();
+
+ownerPaymentDetailRouter.get(
+  '/org/payment-details',
+  requireAuth,
+  requireVerifiedEmail,
+  requireOrganizationContext,
+  requireRole('ORG_ADMIN', 'PLATFORM_ADMIN'),
+  getOrganizationPaymentDetails,
+);
+
+ownerPaymentDetailRouter.patch(
+  '/org/payment-details',
+  requireAuth,
+  requireVerifiedEmail,
+  requireOrganizationContext,
+  requireRole('ORG_ADMIN', 'PLATFORM_ADMIN'),
+  saveOrganizationPaymentDetails,
+);
 
 ownerPaymentDetailRouter.get(
   '/:organizationId/instructor/payment-details',

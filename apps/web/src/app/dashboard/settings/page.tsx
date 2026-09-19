@@ -1,7 +1,6 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Button, Card, ErrorState, Input, Spinner } from '@/components/ui';
 import { PasswordInput } from '@/components/forms/PasswordInput';
@@ -74,7 +73,7 @@ export default function SettingsPage() {
         if (response.data) {
           setPaymentForm({
             bankName: response.data.bankName,
-            accountTitle: response.data.accountTitle,
+            accountTitle: '',
             accountNumber: '',
             iban: '',
           });
@@ -96,7 +95,7 @@ export default function SettingsPage() {
     const values = Object.fromEntries(
       Object.entries(paymentForm).map(([key, value]) => [key, value.trim()]),
     ) as PaymentDetailsForm;
-    if (!values.bankName || !values.accountTitle || (paymentDetails === null && (!values.accountNumber || !values.iban))) {
+    if (!values.bankName || (paymentDetails === null && !values.accountNumber)) {
       setPaymentError('Please complete all payment detail fields.');
       return;
     }
@@ -105,12 +104,15 @@ export default function SettingsPage() {
     try {
       const response = await patchJson<{ data: PaymentDetails }>(
         `/api/v1/organizations/${user.organizationId}/instructor/payment-details`,
-        values,
+        {
+          bankName: values.bankName,
+          ...(values.accountNumber ? { accountNumber: values.accountNumber } : {}),
+        },
       );
       setPaymentDetails(response.data);
       setPaymentForm({
         bankName: response.data.bankName,
-        accountTitle: response.data.accountTitle,
+        accountTitle: '',
         accountNumber: '',
         iban: '',
       });
@@ -342,8 +344,8 @@ export default function SettingsPage() {
         <div className="mt-6 rounded-2xl border border-neutral-200 bg-white shadow-sm">
           <div className="flex items-center justify-between border-b border-neutral-200 px-6 py-4">
             <SectionHeader
-              title="Payment Details"
-              description="Add the bank details where your course payments should be settled."
+              title="Bank Settings"
+              description="Add the bank name and account number where your course payments should be settled."
             />
             {paymentDetails && !paymentEditing && (
               <Button variant="ghost" onClick={() => setPaymentEditing(true)}>
@@ -369,9 +371,7 @@ export default function SettingsPage() {
               <div className="space-y-4">
                 {([
                   ['bankName', 'Bank Name'],
-                  ['accountTitle', 'Account Title'],
                   ['accountNumber', 'Account Number'],
-                  ['iban', 'IBAN'],
                 ] as const).map(([field, label]) => (
                   <Input
                     key={field}
@@ -397,28 +397,13 @@ export default function SettingsPage() {
             ) : paymentDetails ? (
               <dl className="grid gap-4 sm:grid-cols-2">
                 <div><dt className="text-sm text-neutral-500">Bank Name</dt><dd className="mt-1 font-medium text-neutral-900">{paymentDetails.bankName}</dd></div>
-                <div><dt className="text-sm text-neutral-500">Account Title</dt><dd className="mt-1 font-medium text-neutral-900">{paymentDetails.accountTitle}</dd></div>
                 <div><dt className="text-sm text-neutral-500">Account Number</dt><dd className="mt-1 font-medium text-neutral-900">{maskSensitive(paymentDetails.accountNumber)}</dd></div>
-                <div><dt className="text-sm text-neutral-500">IBAN</dt><dd className="mt-1 font-medium text-neutral-900">{maskSensitive(paymentDetails.iban)}</dd></div>
               </dl>
             ) : null}
           </div>
         </div>
       )}
 
-      {user.role === 'ORG_ADMIN' && (
-        <div className="mt-6">
-          <p className="text-sm text-neutral-500">
-            Organization profile and preferences are managed separately.{' '}
-            <Link
-              href="/dashboard/organization/settings"
-              className="font-medium text-primary-600 hover:text-primary-700"
-            >
-              Manage organization settings
-            </Link>
-          </p>
-        </div>
-      )}
     </div>
   );
 }

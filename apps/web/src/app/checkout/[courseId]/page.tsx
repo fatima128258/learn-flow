@@ -389,7 +389,7 @@ export default function CheckoutPage() {
                       }}
                       disabled={isDisabled}
                       className={`flex w-full items-start justify-between gap-4 rounded-xl border-2 p-4 text-left transition ${
-                        isDisabled ? 'cursor-not-allowed border-neutral-200 bg-neutral-100 opacity-70' : isSelected ? 'border-primary-600 bg-primary-50' : 'border-[#d9b894] bg-white hover:border-primary-400'
+                        isDisabled ? 'cursor-not-allowed border-neutral-200 bg-neutral-100 opacity-70' : isSelected ? 'border-primary-600 bg-primary-50' : 'border-[#d8b28f] bg-white hover:border-primary-400'
                       }`}
                     >
                       <div>
@@ -402,7 +402,7 @@ export default function CheckoutPage() {
                           <p className="mt-2 text-xs font-medium uppercase tracking-wide text-warning-700">Pending review required</p>
                         )}
                       </div>
-                      <span className={`mt-1 h-5 w-5 rounded-full border-2 ${isSelected ? 'border-primary-600 bg-primary-600' : isDisabled ? 'border-neutral-300 bg-neutral-200' : 'border-neutral-300 bg-white'}`} />
+                      <span className={`mt-1 h-5 w-5 rounded-full border-2 ${isSelected ? 'border-primary-600 bg-primary-600' : isDisabled ? 'border-neutral-300 bg-neutral-200' : 'border-[#d8b28f] bg-white'}`} />
                     </button>
                   );
                 })}

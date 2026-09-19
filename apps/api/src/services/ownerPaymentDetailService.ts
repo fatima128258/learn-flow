@@ -2,7 +2,7 @@ import * as repository from '../repositories/ownerPaymentDetailRepository';
 
 type PaymentDetailsInput = {
   bankName: unknown;
-  accountTitle: unknown;
+  accountTitle?: unknown;
   accountNumber?: unknown;
   iban?: unknown;
 };
@@ -39,12 +39,12 @@ function toSafeResponse(details: Awaited<ReturnType<typeof repository.findActive
 function normalizeInput(input: PaymentDetailsInput, requireSensitiveFields: boolean) {
   const accountNumber = optionalText(input.accountNumber, 'ACCOUNT_NUMBER');
   const iban = optionalText(input.iban, 'IBAN');
-  if (requireSensitiveFields && (!accountNumber || !iban)) {
+  if (requireSensitiveFields && !accountNumber) {
     throw new Error('INVALID_PAYMENT_DETAILS');
   }
   return {
     bankName: requiredText(input.bankName, 'BANK_NAME'),
-    accountTitle: requiredText(input.accountTitle, 'ACCOUNT_TITLE'),
+    ...(input.accountTitle !== undefined ? { accountTitle: requiredText(input.accountTitle, 'ACCOUNT_TITLE') } : {}),
     ...(accountNumber ? { accountNumber } : {}),
     ...(iban ? { iban } : {}),
   };
@@ -69,5 +69,22 @@ export async function savePaymentDetails(
         accountNumber: data.accountNumber!,
         iban: data.iban!,
       });
+  return toSafeResponse(saved);
+}
+
+export async function getOrganizationPaymentDetails(organizationId: string) {
+  return toSafeResponse(await repository.findActiveForOrganization(organizationId));
+}
+
+export async function saveOrganizationPaymentDetails(
+  organizationId: string,
+  input: Pick<PaymentDetailsInput, 'bankName' | 'accountNumber'>,
+) {
+  const bankName = requiredText(input.bankName, 'BANK_NAME');
+  const accountNumber = requiredText(input.accountNumber, 'ACCOUNT_NUMBER');
+  const existing = await repository.findActiveForOrganization(organizationId);
+  const saved = existing
+    ? await repository.updateExisting(existing.id, { bankName, accountNumber })
+    : await repository.saveForOrganization(organizationId, { bankName, accountNumber });
   return toSafeResponse(saved);
 }

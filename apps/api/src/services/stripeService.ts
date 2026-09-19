@@ -6,7 +6,12 @@ function getStripeClient() {
   const secretKey = process.env.STRIPE_SECRET_KEY;
   if (!secretKey) throw new Error('STRIPE_NOT_CONFIGURED');
   if (!secretKey.startsWith('sk_test_')) throw new Error('STRIPE_TEST_MODE_REQUIRED');
-  if (!stripeClient) stripeClient = new Stripe(secretKey);
+  if (!stripeClient) {
+    stripeClient = new Stripe(secretKey, {
+      maxNetworkRetries: 1,
+      timeout: 10000,
+    });
+  }
   return stripeClient;
 }
 

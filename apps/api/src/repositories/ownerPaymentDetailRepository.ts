@@ -26,11 +26,19 @@ export function findActiveForInstructor(organizationId: string, instructorUserId
   });
 }
 
+export function findActiveForOrganization(organizationId: string) {
+  return prisma().ownerPaymentDetail.findFirst({
+    where: { organizationId, instructorUserId: null, courseId: null, isActive: true },
+    orderBy: { updatedAt: 'desc' },
+    select: selectFields,
+  });
+}
+
 export function updateExisting(
   id: string,
   data: {
     bankName: string;
-    accountTitle: string;
+    accountTitle?: string;
     accountNumber?: string;
     iban?: string;
   },
@@ -42,14 +50,33 @@ export function updateExisting(
   });
 }
 
+export function saveForOrganization(
+  organizationId: string,
+  data: {
+    bankName: string;
+    accountNumber: string;
+  },
+) {
+  return prisma().ownerPaymentDetail.create({
+    data: {
+      organizationId,
+      bankName: data.bankName,
+      accountNumber: data.accountNumber,
+      accountTitle: '',
+      iban: '',
+    },
+    select: selectFields,
+  });
+}
+
 export async function saveForInstructor(
   organizationId: string,
   instructorUserId: string,
   data: {
     bankName: string;
-    accountTitle: string;
+    accountTitle?: string;
     accountNumber: string;
-    iban: string;
+    iban?: string;
   },
 ) {
   const existing = await findActiveForInstructor(organizationId, instructorUserId);
