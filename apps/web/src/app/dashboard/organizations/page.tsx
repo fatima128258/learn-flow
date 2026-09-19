@@ -13,7 +13,6 @@ import {
   Input,
   Modal,
   Spinner,
-  TableSkeleton,
   ViewToggle,
 } from '../../../components/ui';
 import { getCreateOrganizationErrorMessage } from '../../../features/admin/createOrganizationError';
@@ -739,8 +738,8 @@ export default function OrganizationsPage() {
 
   if (loading && organizations === null && !error) {
     return (
-      <div className="mx-auto w-full max-w-5xl text-neutral-700">
-        <TableSkeleton rows={8} columns={6} />
+      <div className="flex min-h-[calc(100vh-4rem)] w-full items-center justify-center" role="status" aria-label="Loading organizations">
+        <Spinner size="lg" label="Loading organizations..." />
       </div>
     );
   }

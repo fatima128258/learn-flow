@@ -349,6 +349,13 @@ button:focus-visible {
   .dashboard-skeleton {
     animation: none !important;
   }
+}
+
+@media (min-width: 1536px) {
+  .dashboard-content-in > .mx-auto[class*='max-w-'] {
+    width: 100%;
+    max-width: none;
+  }
 
   .dashboard-chart-line {
     animation: none !important;

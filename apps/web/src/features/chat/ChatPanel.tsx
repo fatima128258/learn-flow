@@ -502,7 +502,17 @@ export function ChatPanel({ organizationId, userId, initialConversationId, cours
                               <p className="truncate">{message.replyTo.deletedAt ? 'This message was deleted' : message.replyTo.content}</p>
                             </div>
                           )}
-                          <p className={`${message.deletedAt ? 'italic opacity-70' : ''} ${!message.deletedAt ? 'pr-5' : ''}`}>{message.deletedAt ? 'This message was deleted' : message.content}</p>
+                          {message.deletedAt ? (
+                            <div className="flex items-center gap-2 italic opacity-70">
+                              <svg aria-hidden="true" viewBox="0 0 24 24" className="h-5 w-5 shrink-0 text-[#789084]">
+                                <circle cx="12" cy="12" r="9.5" fill="none" stroke="currentColor" strokeWidth="1.8" />
+                                <path d="m6.5 6.5 11 11" fill="none" stroke="currentColor" strokeLinecap="round" strokeWidth="1.8" />
+                              </svg>
+                              <span>{isOutgoing ? 'You deleted this message' : 'This message was deleted'}</span>
+                            </div>
+                          ) : (
+                            <p className="pr-5">{message.content}</p>
+                          )}
                           <div className={`mt-0.5 flex items-center gap-0.5 text-[10px] text-neutral-500 ${isOutgoing ? 'justify-end' : 'justify-start'}`}>
                             <span>{formatMessageTime(message.createdAt)}</span>
                             {isOutgoing && !message.deletedAt && (
@@ -608,7 +618,19 @@ export function ChatPanel({ organizationId, userId, initialConversationId, cours
                   >
                     🙂
                   </button>
-                  <input value={text} onChange={(event) => setText(event.target.value)} placeholder="Type a message..." className="min-w-0 flex-1 border-0 bg-transparent px-2 py-3 text-sm text-neutral-700 placeholder:text-neutral-400 focus:outline-none" maxLength={5000} />
+                  <input
+                    value={text}
+                    onChange={(event) => setText(event.target.value)}
+                    onKeyDown={(event) => {
+                      if (event.key === 'Enter' && !event.nativeEvent.isComposing) {
+                        event.preventDefault();
+                        void sendMessage();
+                      }
+                    }}
+                    placeholder="Type a message..."
+                    className="min-w-0 flex-1 border-0 bg-transparent px-2 py-3 text-sm text-neutral-700 placeholder:text-neutral-400 focus:outline-none"
+                    maxLength={5000}
+                  />
                 </div>
               </div>
               <button type="submit" disabled={sending || !text.trim()} className="flex items-center justify-center rounded-full bg-[#593421] px-5 py-3 text-sm font-semibold text-white shadow-sm transition-opacity disabled:opacity-50">

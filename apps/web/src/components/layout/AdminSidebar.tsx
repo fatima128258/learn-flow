@@ -83,7 +83,7 @@ export const AdminSidebar: React.FC = () => {
   }
 
   return (
-    <aside className="fixed inset-y-0 left-0 z-40 hidden w-64 flex-col border-r border-neutral-200 bg-white lg:flex">
+    <aside className="fixed inset-y-0 left-0 z-40 hidden w-64 flex-col bg-white lg:flex">
       <div className="flex h-16 items-center border-b border-neutral-200 px-6">
         <LearnFlowLogo href="/" />
       </div>

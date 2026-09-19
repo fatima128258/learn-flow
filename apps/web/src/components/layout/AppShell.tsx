@@ -23,7 +23,7 @@ export const AppShell: React.FC<AppShellProps> = ({ children, sidebar, header })
       {/* Sidebar */}
       {sidebar && (
         <aside
-          className={`fixed inset-y-0 left-0 z-50 w-64 bg-white border-r border-neutral-200 transform transition-transform duration-300 ease-out lg:translate-x-0 lg:static lg:z-auto ${
+          className={`fixed inset-y-0 left-0 z-50 w-64 bg-white transform transition-transform duration-300 ease-out lg:translate-x-0 lg:static lg:z-auto ${
             sidebarOpen ? 'translate-x-0' : '-translate-x-full'
           }`}
         >
