@@ -4,7 +4,6 @@ import { useEffect } from 'react';
 import Link from 'next/link';
 import { useQuery } from '@tanstack/react-query';
 import { Badge, Card, EmptyState, ErrorState, DashboardSkeleton } from '@/components/ui';
-import { PageHeader } from '@/components/dashboard';
 import { useCurrentUser } from '@/features/auth/useCurrentUser';
 import { getJson } from '@/lib/api';
 import { currency } from '@/lib/types';
@@ -18,7 +17,7 @@ type PendingPayment = {
   createdAt: string;
   order: {
     id: string;
-    items: Array<{ courseId: string; courseTitle: string }>;
+    items: Array<{ courseId: string; courseTitle: string; thumbnailUrl: string | null }>;
   };
 };
 
@@ -56,12 +55,6 @@ export default function PendingPlaylistPage() {
 
   return (
     <div className="mx-auto max-w-6xl">
-      <PageHeader
-        title="Pending Playlist"
-        description="Courses waiting for payment approval. Access will unlock after the owner approves your payment."
-        className="-mt-4 mb-0 !py-1"
-      />
-
       {isError ? (
         <Card>
           <ErrorState
@@ -85,7 +78,14 @@ export default function PendingPlaylistPage() {
 
             return (
               <Card key={payment.id} padding="none" className="overflow-hidden">
-                <div className="relative flex h-36 items-end bg-gradient-to-br from-primary-700 to-primary-900 p-4">
+                <div
+                  className="relative flex h-36 items-end overflow-hidden bg-primary-900 p-4"
+                  style={item.thumbnailUrl ? {
+                    backgroundImage: `linear-gradient(to top, rgba(58, 32, 19, 0.9), rgba(58, 32, 19, 0.35)), url("${item.thumbnailUrl}")`,
+                    backgroundPosition: 'center',
+                    backgroundSize: 'cover',
+                  } : undefined}
+                >
                   <Badge
                     variant="warning"
                     size="sm"
@@ -93,10 +93,10 @@ export default function PendingPlaylistPage() {
                   >
                     Pending Approval
                   </Badge>
-                  <span className="text-sm font-medium text-white/80">Payment awaiting review</span>
+                  <span className="relative text-sm font-medium text-white/80">Payment awaiting review</span>
                 </div>
                 <div className="p-5">
-                  <h2 className="line-clamp-2 text-lg font-semibold text-neutral-900">
+                  <h2 className="truncate text-base font-semibold text-neutral-900" title={item.courseTitle}>
                     {item.courseTitle}
                   </h2>
                   <div className="mt-3 space-y-1 text-sm text-neutral-600">

@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useQuery } from '@tanstack/react-query';
-import { Badge, Button, EmptyState, Input, Modal, ViewToggle } from '@/components/ui';
+import { Badge, Button, Drawer, EmptyState, Input, Modal, ViewToggle } from '@/components/ui';
 import { TableCard, tableCellClass, tableHeadClass, tableRowHoverClass } from './TableCard';
 import { getJson, postJson } from '@/lib/api';
 
@@ -33,9 +33,11 @@ function firstThreeWords(value: string) {
 }
 
 function PaymentActionsMenu({
+  onView,
   onApprove,
   onReject,
 }: {
+  onView: () => void;
   onApprove: () => void;
   onReject: () => void;
 }) {
@@ -77,6 +79,10 @@ function PaymentActionsMenu({
       style={{ top: position.top, left: position.left }}
       onMouseDown={(event) => event.stopPropagation()}
     >
+      <button type="button" className="block w-full px-3 py-2 text-left text-sm text-neutral-700 hover:bg-neutral-50" onClick={() => { setOpen(false); onView(); }}>
+        View
+      </button>
+      <div className="mx-3 border-t border-neutral-100" />
       <button type="button" className="block w-full px-3 py-2 text-left text-sm text-neutral-700 hover:bg-neutral-50" onClick={() => { setOpen(false); onApprove(); }}>
         Approve
       </button>
@@ -109,6 +115,7 @@ export function PendingPaymentReview({ organizationId }: { organizationId: strin
   const [workingId, setWorkingId] = useState<string | null>(null);
   const [searchInput, setSearchInput] = useState('');
   const [viewMode, setViewMode] = useState<'table' | 'cards'>('table');
+  const [selectedPayment, setSelectedPayment] = useState<PendingPaymentListItem | null>(null);
 
   const { data = [], refetch, isLoading } = useQuery({
     queryKey: ['payments', 'pending', organizationId],
@@ -199,7 +206,6 @@ export function PendingPaymentReview({ organizationId }: { organizationId: strin
                   <th className={tableHeadClass}>Student</th>
                   <th className={tableHeadClass}>Course</th>
                   <th className={tableHeadClass}>Method</th>
-                  <th className={tableHeadClass}>Transaction ID</th>
                   <th className={tableHeadClass}>Amount</th>
                   <th className={tableHeadClass}>Submitted</th>
                   <th className={`${tableHeadClass} text-center`}>Action</th>
@@ -222,7 +228,6 @@ export function PendingPaymentReview({ organizationId }: { organizationId: strin
                           {payment.paymentMethod === 'BANK_TRANSFER' ? 'Bank Transfer' : 'COD'}
                         </Badge>
                       </td>
-                      <td className={`${tableCellClass} text-neutral-700`}>{payment.transactionId || '—'}</td>
                       <td className={`${tableCellClass} font-medium text-neutral-900`}>
                         {new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(payment.amount || payment.order.totalAmount || 0)}
                       </td>
@@ -230,6 +235,7 @@ export function PendingPaymentReview({ organizationId }: { organizationId: strin
                       <td className={`${tableCellClass} text-center`}>
                         <div className="flex items-center justify-center gap-2">
                           <PaymentActionsMenu
+                            onView={() => setSelectedPayment(payment)}
                             onApprove={() => void handleApprove(payment.id)}
                             onReject={() => setRejectingId(payment.id)}
                           />
@@ -241,7 +247,7 @@ export function PendingPaymentReview({ organizationId }: { organizationId: strin
               </tbody>
             </table>
           </div>
-          <div className={viewMode === 'cards' ? 'grid gap-4 p-4 sm:hidden' : 'grid gap-4 p-4 sm:hidden'}>
+          <div className={viewMode === 'cards' ? 'grid gap-4 p-4' : 'grid gap-4 p-4 sm:hidden'}>
             {filteredPayments.map((payment) => {
               const courseTitle = firstThreeWords(payment.order.items[0]?.courseTitle ?? 'Course');
               const submittedAt = payment.createdAt
@@ -262,10 +268,6 @@ export function PendingPaymentReview({ organizationId }: { organizationId: strin
                     <div className="flex justify-between gap-3">
                       <dt className="text-neutral-500">Course</dt>
                       <dd className="text-right font-medium text-neutral-900">{courseTitle}</dd>
-                    </div>
-                    <div className="flex justify-between gap-3">
-                      <dt className="text-neutral-500">Transaction ID</dt>
-                      <dd className="text-right text-neutral-700">{payment.transactionId || '—'}</dd>
                     </div>
                     <div className="flex justify-between gap-3">
                       <dt className="text-neutral-500">Amount</dt>
@@ -293,6 +295,71 @@ export function PendingPaymentReview({ organizationId }: { organizationId: strin
           </>
         )}
       </TableCard>
+
+      <Drawer
+        isOpen={Boolean(selectedPayment)}
+        onClose={() => setSelectedPayment(null)}
+        title={selectedPayment?.order.items[0]?.courseTitle ?? 'Payment details'}
+      >
+        {selectedPayment ? (
+          <div className="space-y-6">
+            <div className="flex items-center justify-between gap-3">
+              <p className="text-sm text-neutral-500">Payment status</p>
+              <Badge variant="warning" size="sm">Pending approval</Badge>
+            </div>
+
+            <section className="space-y-3">
+              <h3 className="text-xs font-semibold uppercase tracking-wide text-neutral-500">Student</h3>
+              <div className="rounded-xl border border-neutral-200 bg-neutral-50 p-4">
+                <p className="font-semibold text-neutral-900">{selectedPayment.user.name ?? 'Student'}</p>
+                <p className="mt-1 text-sm text-neutral-600">{selectedPayment.user.email}</p>
+                <p className="mt-2 break-all text-xs text-neutral-500">User ID: {selectedPayment.user.id}</p>
+              </div>
+            </section>
+
+            <section className="space-y-3">
+              <h3 className="text-xs font-semibold uppercase tracking-wide text-neutral-500">Payment</h3>
+              <dl className="divide-y divide-neutral-200 rounded-xl border border-neutral-200 bg-white">
+                <div className="flex justify-between gap-4 p-4 text-sm">
+                  <dt className="text-neutral-500">Method</dt>
+                  <dd className="font-medium text-neutral-900">{selectedPayment.paymentMethod === 'BANK_TRANSFER' ? 'Bank Transfer' : 'Cash on Delivery'}</dd>
+                </div>
+                <div className="flex justify-between gap-4 p-4 text-sm">
+                  <dt className="text-neutral-500">Amount</dt>
+                  <dd className="font-semibold text-neutral-900">{new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(selectedPayment.amount || selectedPayment.order.totalAmount || 0)}</dd>
+                </div>
+                <div className="flex justify-between gap-4 p-4 text-sm">
+                  <dt className="text-neutral-500">Transaction ID</dt>
+                  <dd className="max-w-[60%] break-all text-right font-medium text-neutral-900">{selectedPayment.transactionId || '—'}</dd>
+                </div>
+                <div className="flex justify-between gap-4 p-4 text-sm">
+                  <dt className="text-neutral-500">Submitted</dt>
+                  <dd className="text-right text-neutral-700">{new Date(selectedPayment.createdAt).toLocaleString('en-US')}</dd>
+                </div>
+              </dl>
+            </section>
+
+            <section className="space-y-3">
+              <h3 className="text-xs font-semibold uppercase tracking-wide text-neutral-500">Order</h3>
+              <div className="rounded-xl border border-neutral-200 bg-neutral-50 p-4 text-sm">
+                <p className="text-neutral-500">Order ID</p>
+                <p className="mt-1 break-all font-medium text-neutral-900">{selectedPayment.order.id}</p>
+                <p className="mt-3 text-neutral-500">Course</p>
+                <p className="mt-1 font-medium text-neutral-900">{selectedPayment.order.items[0]?.courseTitle ?? 'Course'}</p>
+              </div>
+            </section>
+
+            <div className="flex gap-3 border-t border-neutral-200 pt-5">
+              <Button fullWidth variant="primary" loading={workingId === selectedPayment.id} onClick={() => { setSelectedPayment(null); void handleApprove(selectedPayment.id); }}>
+                Approve
+              </Button>
+              <Button fullWidth variant="outline" loading={workingId === selectedPayment.id} onClick={() => { setSelectedPayment(null); setRejectingId(selectedPayment.id); }}>
+                Reject
+              </Button>
+            </div>
+          </div>
+        ) : null}
+      </Drawer>
 
       <Modal
         isOpen={Boolean(rejectingId)}

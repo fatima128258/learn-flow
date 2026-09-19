@@ -162,6 +162,7 @@ export async function listPaymentsForStudent(organizationId: string, userId: str
       items: payment.order.items.map((item) => ({
         courseId: item.courseId,
         courseTitle: item.courseTitle,
+        thumbnailUrl: item.course.thumbnailUrl,
       })),
     },
   }));

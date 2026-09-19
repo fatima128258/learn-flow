@@ -1,9 +1,8 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Badge, Card, EmptyState, ErrorState, DashboardSkeleton } from '@/components/ui';
-import { PageHeader } from '@/components/dashboard';
+import { Badge, Card, EmptyState, ErrorState, DashboardSkeleton, Input, ViewToggle } from '@/components/ui';
 import { useCurrentUser } from '@/features/auth/useCurrentUser';
 import { getJson } from '@/lib/api';
 import { currency } from '@/lib/types';
@@ -31,9 +30,15 @@ function paymentStatus(payment: StudentPayment) {
   return { label: 'Pending', variant: 'warning' as const };
 }
 
+function firstThreeWords(value: string) {
+  return value.trim().split(/\s+/).slice(0, 3).join(' ') || 'Course';
+}
+
 export default function StudentPaymentsPage() {
   const { data: user, isLoading: userLoading } = useCurrentUser();
   const organizationId = user?.organizationId ?? '';
+  const [searchInput, setSearchInput] = useState('');
+  const [viewMode, setViewMode] = useState<'table' | 'cards'>('table');
 
   useEffect(() => {
     if (userLoading) return;
@@ -57,6 +62,18 @@ export default function StudentPaymentsPage() {
     enabled: user?.role === 'STUDENT' && Boolean(organizationId),
   });
 
+  const filteredPayments = useMemo(() => {
+    const query = searchInput.trim().toLowerCase();
+    if (!query) return payments;
+    return payments.filter((payment) => {
+      const courseTitle = payment.order.items[0]?.courseTitle ?? '';
+      const status = paymentStatus(payment).label;
+      const method = payment.paymentMethod === 'BANK_TRANSFER' ? 'bank transfer' : payment.paymentMethod === 'COD' ? 'cash on delivery cod' : '';
+      return [courseTitle, payment.transactionId, status, method]
+        .some((value) => value?.toLowerCase().includes(query));
+    });
+  }, [payments, searchInput]);
+
   if (userLoading || (isLoading && !user)) {
     return <DashboardSkeleton cards={1} />;
   }
@@ -65,12 +82,20 @@ export default function StudentPaymentsPage() {
 
   return (
     <div className="mx-auto max-w-6xl">
-      <PageHeader
-        title="Payments"
-        description="Track your pending, approved, and rejected course payments."
-        className="-mt-4 mb-0 !py-1"
-      />
-
+      <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <Input
+          variant="line"
+          placeholder="Search by course, method, status, or transaction ID"
+          value={searchInput}
+          onChange={(event) => setSearchInput(event.target.value)}
+          className="max-w-xl"
+        />
+        <ViewToggle
+          value={viewMode}
+          onChange={setViewMode}
+          storageKey="learnhub-student-payments-view"
+        />
+      </div>
       {isError ? (
         <Card>
           <ErrorState
@@ -86,9 +111,13 @@ export default function StudentPaymentsPage() {
             description="Your course payment history will appear here after you place an order."
           />
         </Card>
+      ) : filteredPayments.length === 0 ? (
+        <Card>
+          <EmptyState title="No matching payments" description="Try a different course, method, status, or transaction ID." />
+        </Card>
       ) : (
         <Card padding="none" className="overflow-hidden">
-          <div className="overflow-x-auto">
+          <div className={viewMode === 'table' ? 'hidden sm:block' : 'hidden'}>
             <table className="min-w-full text-left text-sm">
               <thead className="bg-neutral-50 text-neutral-600">
                 <tr>
@@ -101,9 +130,9 @@ export default function StudentPaymentsPage() {
                 </tr>
               </thead>
               <tbody>
-                {payments.map((payment) => {
+                {filteredPayments.map((payment) => {
                   const status = paymentStatus(payment);
-                  const courseTitle = payment.order.items[0]?.courseTitle ?? 'Course';
+                  const courseTitle = firstThreeWords(payment.order.items[0]?.courseTitle ?? 'Course');
                   return (
                     <tr key={payment.id} className="border-t border-neutral-200">
                       <td className="px-6 py-4 font-medium text-neutral-900">{courseTitle}</td>
@@ -126,6 +155,39 @@ export default function StudentPaymentsPage() {
                 })}
               </tbody>
             </table>
+          </div>
+          <div className={viewMode === 'cards' ? 'grid gap-4 p-4' : 'grid gap-4 p-4 sm:hidden'}>
+            {filteredPayments.map((payment) => {
+              const status = paymentStatus(payment);
+              const courseTitle = firstThreeWords(payment.order.items[0]?.courseTitle ?? 'Course');
+              return (
+                <div key={payment.id} className="rounded-2xl border border-[#ead8c6] bg-[#fffdf9] p-5 shadow-sm">
+                  <div className="flex items-start justify-between gap-3">
+                    <h2 className="text-base font-semibold text-neutral-900">{courseTitle}</h2>
+                    <Badge variant={status.variant} size="sm">{status.label}</Badge>
+                  </div>
+                  <dl className="mt-4 space-y-2 text-sm">
+                    <div className="flex justify-between gap-3">
+                      <dt className="text-neutral-500">Method</dt>
+                      <dd className="text-right text-neutral-700">{payment.paymentMethod === 'BANK_TRANSFER' ? 'Bank Transfer' : payment.paymentMethod === 'COD' ? 'Cash on Delivery' : '—'}</dd>
+                    </div>
+                    <div className="flex justify-between gap-3">
+                      <dt className="text-neutral-500">Transaction ID</dt>
+                      <dd className="max-w-[60%] break-all text-right text-neutral-700">{payment.transactionId || '—'}</dd>
+                    </div>
+                    <div className="flex justify-between gap-3">
+                      <dt className="text-neutral-500">Amount</dt>
+                      <dd className="font-medium text-neutral-900">{currency(payment.amount)}</dd>
+                    </div>
+                    <div className="flex justify-between gap-3">
+                      <dt className="text-neutral-500">Date</dt>
+                      <dd className="text-right text-neutral-700">{new Date(payment.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</dd>
+                    </div>
+                  </dl>
+                  {payment.rejectionReason && <p className="mt-3 text-xs text-error-700">{payment.rejectionReason}</p>}
+                </div>
+              );
+            })}
           </div>
         </Card>
       )}

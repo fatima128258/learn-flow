@@ -142,7 +142,15 @@ export async function listPaymentsForUser(userId: string, organizationId: string
     where: { userId, organizationId },
     include: {
       order: {
-        include: { items: true },
+        include: {
+          items: {
+            include: {
+              course: {
+                select: { thumbnailUrl: true },
+              },
+            },
+          },
+        },
       },
     },
     orderBy: { createdAt: 'desc' },
