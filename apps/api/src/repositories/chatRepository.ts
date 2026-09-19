@@ -73,14 +73,13 @@ export const listMessages = (conversationId: string, take: number, cursor?: stri
   ...(cursor ? { skip: 1, cursor: { id: cursor } } : {}),
 });
 export const createMessage = (conversationId: string, senderId: string, content: string, replyToId?: string) =>
-  db().$transaction(async (tx) => {
-    const message = await tx.message.create({
+  db().$transaction([
+    db().message.create({
       data: { conversationId, senderId, content, ...(replyToId ? { replyToId } : {}) },
       include: { replyTo: { select: { id: true, senderId: true, content: true, deletedAt: true } } },
-    });
-    await tx.conversation.update({ where: { id: conversationId }, data: { updatedAt: new Date() } });
-    return message;
-  });
+    }),
+    db().conversation.update({ where: { id: conversationId }, data: { updatedAt: new Date() } }),
+  ]).then(([message]) => message);
 export async function markRead(conversationId: string, userId: string) {
   const unread = await db().message.findMany({
     where: { conversationId, senderId: { not: userId }, readAt: null, deletedAt: null },

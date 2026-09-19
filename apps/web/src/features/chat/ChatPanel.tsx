@@ -73,6 +73,7 @@ export function ChatPanel({ organizationId, userId, initialConversationId, cours
   const [error, setError] = useState<string | null>(null);
   const [actionLoading, setActionLoading] = useState(false);
   const [pendingConversationAction, setPendingConversationAction] = useState<'block' | 'delete' | null>(null);
+  const [showConversationMenu, setShowConversationMenu] = useState(false);
   const socketRef = useRef<Socket | null>(null);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
   const activeIdRef = useRef(activeId);
@@ -438,13 +439,26 @@ export function ChatPanel({ organizationId, userId, initialConversationId, cours
         {loading ? <div className="m-auto text-sm text-neutral-500">Loading chat...</div> : active ? <>
           <header className="flex items-center justify-between border-b border-[#e8dfd4] bg-[#f6f3f1] px-3 py-2.5">
             <div className="flex min-w-0 items-center gap-2.5">
-              <button type="button" onClick={() => setActiveId('')} className="mr-1 text-sm text-primary-700 md:hidden">←</button>
+              <button
+                type="button"
+                onClick={() => setActiveId('')}
+                className="mr-1 flex h-7 w-5 items-center justify-center text-primary-700 md:hidden"
+                aria-label="Back to conversations"
+              >
+                <svg aria-hidden="true" viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2">
+                  <path d="m15 18-6-6 6-6" />
+                </svg>
+              </button>
               <div className="flex h-9 w-9 items-center justify-center rounded-full bg-[#7a4a2e] text-sm font-semibold text-white">{participant(active, userId).charAt(0).toUpperCase()}</div>
               <div className="min-w-0">
-                <span className="block truncate text-[1.05rem] font-normal leading-tight text-neutral-900">{participant(active, userId)}</span>
+                <span className="block truncate text-[1.05rem] font-normal leading-tight text-neutral-900">
+                  <span className="md:hidden">{participant(active, userId).split('@')[0]}</span>
+                  <span className="hidden md:inline">{participant(active, userId)}</span>
+                </span>
               </div>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="relative flex items-center gap-2">
+              <div className="hidden items-center gap-2 md:flex">
               {active.blockedAt && active.blockedById !== userId ? (
                 <span className="rounded-md bg-[#f5e7e7] px-3 py-1.5 text-xs font-semibold text-[#a34f3d]">
                   Blocked by user
@@ -467,6 +481,46 @@ export function ChatPanel({ organizationId, userId, initialConversationId, cours
               >
                 Delete
               </button>
+              </div>
+              <button
+              type="button"
+              aria-label="Conversation actions"
+              aria-expanded={showConversationMenu}
+              onClick={() => setShowConversationMenu((current) => !current)}
+              className="inline-flex h-9 w-9 items-center justify-center rounded-full text-xl font-bold leading-none text-[#7a4a2e] hover:bg-[#f0e5dc] md:hidden"
+              >
+              ⋮
+              </button>
+              {showConversationMenu && (
+              <div className="absolute right-0 top-11 z-30 w-36 rounded-lg border border-[#ead8c6] bg-white p-1 shadow-lg md:hidden">
+                {active.blockedAt && active.blockedById !== userId ? (
+                  <p className="px-3 py-2 text-xs font-semibold text-[#a34f3d]">Blocked by user</p>
+                ) : (
+                  <button
+                    type="button"
+                    disabled={actionLoading}
+                    onClick={() => {
+                      setShowConversationMenu(false);
+                      void updateConversation(active.blockedAt ? 'unblock' : 'block');
+                    }}
+                    className="block w-full rounded px-3 py-2 text-left text-sm font-semibold text-[#5a321f] hover:bg-[#f5ebdd] disabled:opacity-50"
+                  >
+                    {active.blockedAt ? 'Unblock' : 'Block'}
+                  </button>
+                )}
+                <button
+                  type="button"
+                  disabled={actionLoading}
+                  onClick={() => {
+                    setShowConversationMenu(false);
+                    void updateConversation('delete');
+                  }}
+                  className="block w-full rounded px-3 py-2 text-left text-sm font-semibold text-[#7a4a2e] hover:bg-[#f5ebdd] disabled:opacity-50"
+                >
+                  Delete
+                </button>
+              </div>
+              )}
             </div>
           </header>
           <div ref={messagesContainerRef} className="flex-1 space-y-4 overflow-y-auto bg-[#f7f5f3] p-4">
