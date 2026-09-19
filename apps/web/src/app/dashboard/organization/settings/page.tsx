@@ -2,7 +2,7 @@
 
 import { Suspense, useEffect, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { Badge, Card, ErrorState, Skeleton } from '@/components/ui';
+import { Badge, Card, ErrorState, OrganizationPageLoader } from '@/components/ui';
 import { useCurrentUser } from '@/features/auth/useCurrentUser';
 import { PageHeader, SectionHeader } from '@/components/dashboard';
 
@@ -60,13 +60,7 @@ function OrgSettingsContent() {
     <div className="mx-auto max-w-4xl">
       <PageHeader title="Settings" />
         {loading ? (
-          <Card>
-            <div className="space-y-4">
-              <Skeleton variant="text" height={24} width={200} />
-              <Skeleton variant="text" height={24} width={320} />
-              <Skeleton variant="text" height={24} width={240} />
-            </div>
-          </Card>
+          <OrganizationPageLoader />
         ) : error ? (
           <Card>
             <ErrorState title="Unable to load settings" message={error} />
@@ -129,14 +123,7 @@ function OrgSettingsContent() {
 }
 
 function SettingsLoadingFallback() {
-  return (
-    <div className="mx-auto max-w-4xl">
-      <div className="space-y-4">
-        <Skeleton variant="text" height={24} width={200} />
-        <Skeleton variant="text" height={24} width={320} />
-      </div>
-    </div>
-  );
+  return <OrganizationPageLoader />;
 }
 
 export default function OrgSettingsPage() {

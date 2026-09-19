@@ -93,7 +93,7 @@ export default function CreateQuizPage() {
   }
 
   if (userLoading || !organizationId) {
-    return <div className="flex items-center gap-3 text-neutral-700"><Spinner size="md" label="Loading..." /><span>Loading...</span></div>;
+    return <div className="flex items-center justify-center py-16"><Spinner size="lg" label="Loading..." /></div>;
   }
 
   return (

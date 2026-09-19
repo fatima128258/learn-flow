@@ -102,6 +102,27 @@ export async function findPendingOrderForCourse(userId: string, organizationId: 
   });
 }
 
+export async function listPendingManualPaymentCourseIds(userId: string, organizationId: string) {
+  const payments = await prisma().payment.findMany({
+    where: {
+      userId,
+      organizationId,
+      status: 'PENDING',
+      paymentMethod: { in: ['COD', 'BANK_TRANSFER'] },
+      order: { status: 'PENDING' },
+    },
+    select: {
+      order: {
+        select: {
+          items: { select: { courseId: true } },
+        },
+      },
+    },
+  });
+
+  return new Set(payments.flatMap(payment => payment.order.items.map(item => item.courseId)));
+}
+
 export async function findPendingManualPaymentById(paymentId: string, organizationId: string) {
   return prisma().payment.findFirst({
     where: {

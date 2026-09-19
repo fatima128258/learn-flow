@@ -406,7 +406,7 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
 
       {/* Desktop sidebar */}
       <aside
-        className={`fixed inset-y-0 left-0 z-40 hidden flex-col border-r border-neutral-200 bg-white transition-all duration-200 overflow-hidden lg:flex ${sidebarW}`}
+        className={`fixed inset-y-0 left-0 z-40 hidden flex-col bg-white transition-all duration-200 overflow-hidden lg:flex ${sidebarW}`}
       >
         {/* Header */}
         <div

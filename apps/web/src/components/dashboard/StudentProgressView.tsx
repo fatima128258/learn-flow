@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { EmptyState, EmptyStateIcons, ErrorState, Select, Skeleton, Spinner, ViewToggle } from '@/components/ui';
+import { EmptyState, EmptyStateIcons, ErrorState, OrganizationPageLoader, Select, Spinner, ViewToggle } from '@/components/ui';
 import { TableCard, ProgressBar, tableCellClass, tableHeadClass, tableRowHoverClass } from '@/components/dashboard';
 
 type StudentProgressItem = {
@@ -21,23 +21,6 @@ type StudentProgressItem = {
 };
 
 type Props = { apiPath: string };
-
-function StudentProgressSkeleton() {
-  return (
-    <div className="rounded-2xl border border-neutral-200 bg-white p-5" role="status" aria-label="Loading student progress">
-      <div className="space-y-4">
-        {Array.from({ length: 6 }).map((_, index) => (
-          <div key={index} className="grid grid-cols-4 gap-4 border-b border-neutral-100 pb-4 last:border-0 last:pb-0">
-            <Skeleton variant="text" height={18} className="bg-[#f5eadc]" />
-            <Skeleton variant="text" height={18} className="bg-[#f5eadc]" />
-            <Skeleton variant="text" height={18} className="bg-[#f5eadc]" />
-            <Skeleton variant="text" height={18} className="bg-[#f5eadc]" />
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
 
 export function StudentProgressView({ apiPath }: Props) {
   const [items, setItems] = useState<StudentProgressItem[]>([]);
@@ -128,7 +111,7 @@ export function StudentProgressView({ apiPath }: Props) {
         <ViewToggle value={view} onChange={(value) => setView(value as 'table' | 'cards')} storageKey={`student-progress-${apiPath}`} />
       </div>
       {loading ? (
-        <StudentProgressSkeleton />
+        <OrganizationPageLoader />
       ) : items.length === 0 ? (
         <TableCard><EmptyState icon={EmptyStateIcons.NoCourses} title={query ? 'No students found' : 'No students enrolled yet'} description={query ? 'Try a different student or course name.' : 'Students enrolled in your courses will appear here.'} /></TableCard>
       ) : view === 'table' ? (

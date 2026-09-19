@@ -1,4 +1,5 @@
 import * as searchRepo from '../repositories/searchRepository';
+import * as orderRepo from '../repositories/orderRepository';
 import { categoryLabel } from '../utils/categoryLabel';
 import { parsePagination, parseSort, buildMeta } from '../utils/pagination';
 
@@ -87,13 +88,17 @@ export async function searchCourses(organizationId: string, userId: string, rawI
     { field: 'createdAt' },
   ]);
 
-  const [results, total] = await Promise.all([
+  const [results, total, pendingManualPaymentCourseIds] = await Promise.all([
     searchRepo.searchPublishedCourses(organizationId, filters, { skip, take, orderBy }, userId),
     searchRepo.countPublishedCourses(organizationId, filters),
+    orderRepo.listPendingManualPaymentCourseIds(userId, organizationId),
   ]);
 
   return {
-    items: results.map(course => toCourseSearchDto(course, (course.enrollments?.length ?? 0) > 0)),
+    items: results.map(course => ({
+      ...toCourseSearchDto(course, (course.enrollments?.length ?? 0) > 0),
+      hasPendingPayment: pendingManualPaymentCourseIds.has(course.id),
+    })),
     meta: buildMeta(page, limit, total),
   };
 }

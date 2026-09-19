@@ -1,5 +1,5 @@
-import { TableSkeleton } from '@/components/ui/Skeleton';
+import { OrganizationPageLoader } from '@/components/ui';
 
 export default function Loading() {
-  return <TableSkeleton rows={6} columns={4} />;
+  return <OrganizationPageLoader />;
 }

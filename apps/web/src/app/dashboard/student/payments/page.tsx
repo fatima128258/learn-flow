@@ -51,7 +51,7 @@ export default function StudentPaymentsPage() {
     }
   }, [user, userLoading]);
 
-  const { data: payments = [], isLoading, isError, refetch } = useQuery({
+  const { data: payments = [], isLoading, isFetching, isError, refetch } = useQuery({
     queryKey: ['student', 'payments', organizationId],
     queryFn: async () => {
       const response = await getJson<{ data?: StudentPayment[] }>(
@@ -74,7 +74,7 @@ export default function StudentPaymentsPage() {
     });
   }, [payments, searchInput]);
 
-  if (userLoading || (isLoading && !user)) {
+  if (userLoading || isLoading || isFetching) {
     return (
       <div className="flex min-h-64 items-center justify-center" role="status" aria-label="Loading payments">
         <Spinner size="md" label="Loading..." />
@@ -120,7 +120,7 @@ export default function StudentPaymentsPage() {
           <EmptyState title="No matching payments" description="Try a different course, method, status, or transaction ID." />
         </Card>
       ) : (
-        <Card padding="none" className="overflow-hidden">
+        <div className={viewMode === 'table' ? 'overflow-hidden rounded-2xl border border-neutral-200 bg-white shadow-sm' : ''}>
           <div className={viewMode === 'table' ? 'hidden sm:block' : 'hidden'}>
             <table className="min-w-full text-left text-sm">
               <thead className="bg-neutral-50 text-neutral-600">
@@ -193,7 +193,7 @@ export default function StudentPaymentsPage() {
               );
             })}
           </div>
-        </Card>
+        </div>
       )}
     </div>
   );

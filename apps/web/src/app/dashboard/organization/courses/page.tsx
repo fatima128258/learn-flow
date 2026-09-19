@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useSearchParams } from 'next/navigation';
-import { Badge, DashboardSkeleton, Drawer, EmptyState, EmptyStateIcons, Spinner, ViewToggle } from '../../../../components/ui';
+import { Badge, Drawer, EmptyState, EmptyStateIcons, OrganizationPageLoader, Spinner, ViewToggle } from '../../../../components/ui';
 import { LinkButton } from '../../../../components/ui/LinkButton';
 import { getListCoursesErrorMessage } from '../../../../features/course/listCoursesErrors';
 import { getCourseStatusErrorMessage } from '../../../../features/course/courseStatusErrors';
@@ -369,7 +369,7 @@ export default function MyCoursesPage() {
   });
 
   if (userLoading) {
-    return <DashboardSkeleton cards={4} />;
+    return <OrganizationPageLoader />;
   }
 
   return (
@@ -407,7 +407,7 @@ export default function MyCoursesPage() {
           </div>
 
           {coursesLoading ? (
-            <DashboardSkeleton cards={4} />
+            <OrganizationPageLoader />
           ) : courses !== null && courses.length === 0 ? (
             <TableCard>
               <EmptyState

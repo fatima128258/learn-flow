@@ -2,7 +2,7 @@
 
 import { useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { ErrorState, DashboardSkeleton } from '@/components/ui';
+import { ErrorState, OrganizationPageLoader } from '@/components/ui';
 import { PendingPaymentReview } from '@/components/dashboard/PendingPaymentReview';
 import { useCurrentUser } from '@/features/auth/useCurrentUser';
 
@@ -32,7 +32,7 @@ export default function OrganizationPaymentsPage() {
   }, [router, user, userError, userLoading]);
 
   if (userLoading) {
-    return <DashboardSkeleton cards={1} />;
+    return <OrganizationPageLoader />;
   }
 
   if (!user || userError || (user.role !== 'ORG_ADMIN' && user.role !== 'PLATFORM_ADMIN')) {

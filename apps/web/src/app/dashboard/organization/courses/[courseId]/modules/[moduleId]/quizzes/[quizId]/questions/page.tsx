@@ -869,7 +869,6 @@ export default function QuizQuestionsPage() {
       <div>
         <div className="mx-auto flex max-w-3xl items-center gap-3 text-neutral-700">
           <Spinner size="lg" label="Loading..." />
-          <span>Loading...</span>
         </div>
       </div>
     );

@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { useParams, useSearchParams } from 'next/navigation';
-import { Badge, EmptyState, EmptyStateIcons, ErrorState, Skeleton } from '@/components/ui';
+import { Badge, EmptyState, EmptyStateIcons, ErrorState, OrganizationPageLoader } from '@/components/ui';
 import { PageHeader, TableCard, tableActionClass, tableCellClass, tableHeadClass, tableRowHoverClass } from '@/components/dashboard';
 import { LinkButton } from '@/components/ui/LinkButton';
 import { ApiError, apiRequest } from '@/lib/api';
@@ -96,7 +96,7 @@ export default function CategoryDetailsPage() {
   }, [categoryId, headers, organizationId]);
 
   if (loading) {
-    return <div className="mx-auto max-w-6xl space-y-4"><Skeleton variant="text" height={36} /><Skeleton variant="rectangular" height={220} /></div>;
+    return <OrganizationPageLoader />;
   }
   if (error || !category) {
     return <div className="mx-auto max-w-6xl"><ErrorState title="Unable to load category" action={{ label: 'Try again', onClick: () => void load() }} /></div>;

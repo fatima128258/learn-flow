@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { DashboardSkeleton, EmptyState, EmptyStateIcons, ErrorState, Select, Spinner } from '@/components/ui';
+import { EmptyState, EmptyStateIcons, ErrorState, OrganizationPageLoader, Select, Spinner } from '@/components/ui';
 import { useCurrentUser } from '@/features/auth/useCurrentUser';
 import { getOrgAdminErrorMessage } from '@/features/orgAdmin/orgAdminErrors';
 import {
@@ -152,7 +152,7 @@ export default function OrgAnalyticsPage() {
   return (
     <div className="mx-auto max-w-5xl">
       {loading && summary === null ? (
-        <DashboardSkeleton cards={4} />
+        <OrganizationPageLoader />
       ) : error ? (
         <div className="rounded-2xl border border-neutral-200 bg-white shadow-sm">
           <ErrorState

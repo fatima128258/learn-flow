@@ -6,6 +6,7 @@ export * from './Card';
 export * from './Badge';
 export * from './Alert';
 export * from './Spinner';
+export * from './OrganizationPageLoader';
 export * from './Divider';
 export * from './Skeleton';
 export * from './EmptyState';

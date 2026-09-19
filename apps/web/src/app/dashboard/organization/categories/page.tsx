@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useSearchParams } from 'next/navigation';
-import { Badge, Button, Drawer, EmptyState, EmptyStateIcons, ErrorState, Input, Modal, Select, TableSkeleton, ViewToggle, useToast } from '@/components/ui';
+import { Badge, Button, Drawer, EmptyState, EmptyStateIcons, ErrorState, Input, Modal, OrganizationPageLoader, Select, ViewToggle, useToast } from '@/components/ui';
 import { Textarea } from '@/components/forms/Textarea';
 import { ApiError, apiRequest } from '@/lib/api';
 import { TableCard, tableActionClass, tableCellClass, tableHeadClass, tableRowHoverClass, tableStatusClass } from '@/components/dashboard';
@@ -102,7 +102,7 @@ export default function CategoriesPage() {
         </div>
       </div>
       <TableCard>
-        {loading ? <TableSkeleton rows={6} columns={5} />
+        {loading ? <OrganizationPageLoader />
           : error ? <ErrorState title="Unable to load categories" action={{ label: 'Try again', onClick: () => void load() }} />
           : !hasCategories ? <EmptyState icon={search ? EmptyStateIcons.NoResults : EmptyStateIcons.NoData} title={search ? 'No matching categories' : 'No categories yet'} description={search ? 'Try a different search.' : 'Create your first category to organize courses.'} action={!search ? emptyAction : undefined} />
           : viewMode === 'cards' ? (

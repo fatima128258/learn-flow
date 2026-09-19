@@ -13,7 +13,7 @@ import {
   Input,
   Modal,
   ConfirmModal,
-  TableSkeleton,
+  OrganizationPageLoader,
   Spinner,
   ViewToggle,
 } from '@/components/ui';
@@ -327,7 +327,7 @@ export default function OrgUsersPage() {
 
         {loading && members === null ? (
           <div className="w-full">
-            <TableSkeleton rows={6} columns={4} />
+            <OrganizationPageLoader />
           </div>
         ) : error ? (
           <div className="rounded-2xl border border-neutral-200 bg-white shadow-sm">

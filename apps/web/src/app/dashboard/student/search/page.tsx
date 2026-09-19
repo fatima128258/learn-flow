@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   Button,
+  Badge,
   EmptyState,
   EmptyStateIcons,
   ErrorState,
@@ -29,6 +30,7 @@ type CourseHit = {
   status: string;
   publishedAt: string | null;
   isEnrolled: boolean;
+  hasPendingPayment: boolean;
   enrollmentCount: number;
 };
 
@@ -232,6 +234,11 @@ export default function StudentSearchPage() {
                         Instructor: {course.instructor.name}
                       </p>
                     )}
+                    {course.hasPendingPayment && (
+                      <div className="mt-3">
+                        <Badge variant="warning" size="sm">Pending Approval</Badge>
+                      </div>
+                    )}
                     <div className="mt-4 flex items-center gap-4 text-sm text-neutral-500">
                       <span>{course.enrollmentCount.toLocaleString()} enrolled</span>
                     </div>
@@ -248,6 +255,10 @@ export default function StudentSearchPage() {
                           }}
                         >
                           Continue Learning
+                        </Button>
+                      ) : course.hasPendingPayment ? (
+                        <Button variant="secondary" size="sm" fullWidth disabled>
+                          Pending Approval
                         </Button>
                       ) : (
                         <Button

@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useQuery } from '@tanstack/react-query';
-import { Badge, Button, Drawer, EmptyState, Input, Modal, ViewToggle } from '@/components/ui';
+import { Badge, Button, Drawer, EmptyState, Input, Modal, Spinner, ViewToggle } from '@/components/ui';
 import { TableCard, tableCellClass, tableHeadClass, tableRowHoverClass } from './TableCard';
 import { getJson, postJson } from '@/lib/api';
 
@@ -44,8 +44,8 @@ function PaymentActionsMenu({
   onReject,
 }: {
   onView: () => void;
-  onApprove: () => void;
-  onReject: () => void;
+  onApprove?: () => void;
+  onReject?: () => void;
 }) {
   const [open, setOpen] = useState(false);
   const [position, setPosition] = useState({ top: 0, left: 0 });
@@ -88,13 +88,17 @@ function PaymentActionsMenu({
       <button type="button" className="block w-full px-3 py-2 text-left text-sm text-neutral-700 hover:bg-neutral-50" onClick={() => { setOpen(false); onView(); }}>
         View
       </button>
-      <div className="mx-3 border-t border-neutral-100" />
-      <button type="button" className="block w-full px-3 py-2 text-left text-sm text-neutral-700 hover:bg-neutral-50" onClick={() => { setOpen(false); onApprove(); }}>
-        Approve
-      </button>
-      <button type="button" className="block w-full px-3 py-2 text-left text-sm text-error-600 hover:bg-error-50" onClick={() => { setOpen(false); onReject(); }}>
-        Reject
-      </button>
+      {onApprove && onReject && (
+        <>
+          <div className="mx-3 border-t border-neutral-100" />
+          <button type="button" className="block w-full px-3 py-2 text-left text-sm text-neutral-700 hover:bg-neutral-50" onClick={() => { setOpen(false); onApprove(); }}>
+            Approve
+          </button>
+          <button type="button" className="block w-full px-3 py-2 text-left text-sm text-error-600 hover:bg-error-50" onClick={() => { setOpen(false); onReject(); }}>
+            Reject
+          </button>
+        </>
+      )}
     </div>
   ) : null;
 
@@ -154,7 +158,8 @@ export function PendingPaymentReview({ organizationId }: { organizationId: strin
     setWorkingId(paymentId);
     try {
       await postJson(`/api/v1/organizations/${organizationId}/payments/${paymentId}/approve`, {});
-      await refetch();
+      const refreshed = await refetch();
+      setSelectedPayment(refreshed.data?.find((payment) => payment.id === paymentId) ?? null);
     } finally {
       setWorkingId(null);
     }
@@ -170,7 +175,8 @@ export function PendingPaymentReview({ organizationId }: { organizationId: strin
       });
       setRejectingId(null);
       setRejectReason('');
-      await refetch();
+      const refreshed = await refetch();
+      setSelectedPayment(refreshed.data?.find((payment) => payment.id === paymentId) ?? null);
     } finally {
       setWorkingId(null);
     }
@@ -194,7 +200,9 @@ export function PendingPaymentReview({ organizationId }: { organizationId: strin
       </div>
       <TableCard className={viewMode === 'cards' ? 'border-transparent bg-transparent shadow-none' : ''}>
         {isLoading ? (
-          <div className="p-6 text-sm text-neutral-600">Loading pending payments…</div>
+          <div className="flex min-h-32 items-center justify-center p-6">
+            <Spinner size="lg" label="Loading pending payments" />
+          </div>
         ) : payments.length === 0 ? (
           <div className="p-6">
             <EmptyState title="No pending manual payments" description="Approved and rejected payments will disappear once reviewed." />
@@ -246,17 +254,11 @@ export function PendingPaymentReview({ organizationId }: { organizationId: strin
                       <td className={`${tableCellClass} text-neutral-700`}>{submittedAt}</td>
                       <td className={`${tableCellClass} text-center`}>
                         <div className="flex items-center justify-center gap-2">
-                          {payment.status === 'PENDING' ? (
-                            <PaymentActionsMenu
-                              onView={() => setSelectedPayment(payment)}
-                              onApprove={() => void handleApprove(payment.id)}
-                              onReject={() => setRejectingId(payment.id)}
-                            />
-                          ) : (
-                            <button type="button" className="text-sm font-medium text-neutral-700 underline" onClick={() => setSelectedPayment(payment)}>
-                              View
-                            </button>
-                          )}
+                          <PaymentActionsMenu
+                            onView={() => setSelectedPayment(payment)}
+                            onApprove={payment.status === 'PENDING' ? () => void handleApprove(payment.id) : undefined}
+                            onReject={payment.status === 'PENDING' ? () => setRejectingId(payment.id) : undefined}
+                          />
                         </div>
                       </td>
                     </tr>
@@ -376,10 +378,10 @@ export function PendingPaymentReview({ organizationId }: { organizationId: strin
 
             {selectedPayment.status === 'PENDING' && (
               <div className="flex gap-3 border-t border-neutral-200 pt-5">
-                <Button fullWidth variant="primary" loading={workingId === selectedPayment.id} onClick={() => { setSelectedPayment(null); void handleApprove(selectedPayment.id); }}>
+                <Button fullWidth variant="primary" loading={workingId === selectedPayment.id} onClick={() => void handleApprove(selectedPayment.id)}>
                   Approve
                 </Button>
-                <Button fullWidth variant="cream" loading={workingId === selectedPayment.id} onClick={() => { setSelectedPayment(null); setRejectingId(selectedPayment.id); }}>
+                <Button fullWidth variant="cream" disabled={workingId !== null} onClick={() => setRejectingId(selectedPayment.id)}>
                   Reject
                 </Button>
               </div>

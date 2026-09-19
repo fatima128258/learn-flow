@@ -1,5 +1,5 @@
-import { DashboardSkeleton } from '@/components/ui/Skeleton';
+import { OrganizationPageLoader } from '@/components/ui';
 
 export default function Loading() {
-  return <DashboardSkeleton cards={2} />;
+  return <OrganizationPageLoader />;
 }

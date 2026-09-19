@@ -355,7 +355,7 @@ export default function StudentCourseOverviewPage() {
                           type="button"
                           onClick={() => setSelectedPaymentMethod(method)}
                           className={`flex w-full items-start justify-between gap-4 rounded-xl border-2 p-4 text-left transition-colors ${
-                            selected ? 'border-primary-600 bg-primary-50' : 'border-[#d9b894] bg-white hover:border-primary-400'
+                            selected ? 'border-primary-600 bg-primary-50' : 'border-primary-200 bg-[#fffaf5] hover:border-primary-400'
                           }`}
                         >
                           <div>

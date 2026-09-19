@@ -362,21 +362,21 @@ export function ChatPanel({ organizationId, userId, initialConversationId, cours
         <div className="flex-1 space-y-3 overflow-y-auto px-3 pb-3">
           {loading ? <p className="p-6 text-sm text-neutral-500">Loading conversations...</p>
             : filtered.length === 0 ? <p className="p-6 text-sm text-[#8b6b55]">No conversations yet.</p> : filtered.map((conversation) => (
-            <button key={conversation.id} type="button" onClick={() => void selectConversation(conversation.id)} className={`flex w-full items-center gap-3 rounded-[18px] border px-4 py-3 text-left transition-colors ${conversation.id === activeId ? 'border-[#d69a5b] bg-[#f5ebdd] shadow-sm' : 'border-[#ead8c6] bg-[#fffaf5] hover:bg-[#f5ebdd]'}`}>
-              <div className="flex h-12 w-12 items-center justify-center rounded-full bg-[#d4b596] text-lg font-semibold text-[#fffaf5] shadow-sm">
+            <button key={conversation.id} type="button" onClick={() => void selectConversation(conversation.id)} className={`flex w-full items-center gap-2 rounded-[18px] border px-3 py-2.5 text-left transition-colors ${conversation.id === activeId ? 'border-[#d69a5b] bg-[#f5ebdd] shadow-sm' : 'border-[#ead8c6] bg-[#fffaf5] hover:bg-[#f5ebdd]'}`}>
+              <div className="flex h-11 w-11 items-center justify-center rounded-full bg-[#d4b596] text-lg font-semibold text-[#fffaf5] shadow-sm">
                 {participant(conversation, userId).charAt(0).toUpperCase()}
               </div>
               <div className="min-w-0 flex-1">
                 <div className="flex items-center justify-between gap-3">
-                  <p className="min-w-0 truncate text-[1.05rem] font-semibold text-neutral-900">{participant(conversation, userId)}</p>
+                  <p className="min-w-0 truncate text-[1.05rem] font-normal text-neutral-900">{participant(conversation, userId)}</p>
                   {conversation.messages?.[0] && (
                     <time className="shrink-0 text-[0.95rem] text-neutral-500" dateTime={conversation.messages[0].createdAt}>
                       {formatConversationTime(conversation.messages[0].createdAt)}
                     </time>
                   )}
                 </div>
-                <div className="mt-1 flex items-center gap-2">
-                  <p className="min-w-0 flex-1 truncate text-[1rem] text-neutral-700">{conversation.messages?.[0]?.content || 'No messages yet'}</p>
+                <div className="mt-0.5 flex items-center gap-2">
+                  <p className="min-w-0 flex-1 truncate text-[0.95rem] text-neutral-700">{conversation.messages?.[0]?.content || 'No messages yet'}</p>
                 </div>
               </div>
             </button>
