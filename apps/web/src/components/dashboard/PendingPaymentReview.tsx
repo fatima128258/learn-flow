@@ -247,14 +247,14 @@ export function PendingPaymentReview({ organizationId }: { organizationId: strin
               </tbody>
             </table>
           </div>
-          <div className={viewMode === 'cards' ? 'grid gap-4 p-4' : 'grid gap-4 p-4 sm:hidden'}>
+          <div className={viewMode === 'cards' ? 'grid grid-cols-1 gap-4 p-4 sm:grid-cols-2 xl:grid-cols-3' : 'grid gap-4 p-4 sm:hidden'}>
             {filteredPayments.map((payment) => {
               const courseTitle = firstThreeWords(payment.order.items[0]?.courseTitle ?? 'Course');
               const submittedAt = payment.createdAt
                 ? new Date(payment.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
                 : '—';
               return (
-                <div key={payment.id} className="rounded-2xl border border-[#ead8c6] bg-[#fffdf9] p-5 shadow-sm">
+                <div key={payment.id} className="w-full max-w-xl justify-self-start rounded-2xl border border-[#ead8c6] bg-[#fffdf9] p-5 shadow-sm">
                   <div className="flex items-start justify-between gap-3">
                     <div>
                       <p className="font-semibold text-neutral-900">{payment.user.name ?? 'Student'}</p>
@@ -267,7 +267,7 @@ export function PendingPaymentReview({ organizationId }: { organizationId: strin
                   <dl className="mt-4 space-y-2 text-sm">
                     <div className="flex justify-between gap-3">
                       <dt className="text-neutral-500">Course</dt>
-                      <dd className="text-right font-medium text-neutral-900">{courseTitle}</dd>
+                      <dd className="max-w-[70%] truncate text-right font-medium text-neutral-900">{courseTitle}</dd>
                     </div>
                     <div className="flex justify-between gap-3">
                       <dt className="text-neutral-500">Amount</dt>
@@ -284,7 +284,7 @@ export function PendingPaymentReview({ organizationId }: { organizationId: strin
                     <Button size="sm" variant="primary" fullWidth loading={workingId === payment.id} onClick={() => void handleApprove(payment.id)}>
                       Approve
                     </Button>
-                    <Button size="sm" variant="outline" fullWidth loading={workingId === payment.id} onClick={() => setRejectingId(payment.id)}>
+                    <Button size="sm" variant="cream" fullWidth loading={workingId === payment.id} onClick={() => setRejectingId(payment.id)}>
                       Reject
                     </Button>
                   </div>
@@ -353,7 +353,7 @@ export function PendingPaymentReview({ organizationId }: { organizationId: strin
               <Button fullWidth variant="primary" loading={workingId === selectedPayment.id} onClick={() => { setSelectedPayment(null); void handleApprove(selectedPayment.id); }}>
                 Approve
               </Button>
-              <Button fullWidth variant="outline" loading={workingId === selectedPayment.id} onClick={() => { setSelectedPayment(null); setRejectingId(selectedPayment.id); }}>
+              <Button fullWidth variant="cream" loading={workingId === selectedPayment.id} onClick={() => { setSelectedPayment(null); setRejectingId(selectedPayment.id); }}>
                 Reject
               </Button>
             </div>
@@ -371,7 +371,7 @@ export function PendingPaymentReview({ organizationId }: { organizationId: strin
             <Button variant="ghost" onClick={() => { setRejectingId(null); setRejectReason(''); }} disabled={workingId !== null}>
               Cancel
             </Button>
-            <Button variant="danger" loading={workingId !== null} onClick={() => { if (rejectingId) void handleReject(rejectingId); }}>
+            <Button variant="cream" loading={workingId !== null} onClick={() => { if (rejectingId) void handleReject(rejectingId); }}>
               Reject payment
             </Button>
           </>

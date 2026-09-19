@@ -116,7 +116,7 @@ export default function PendingPlaylistPage() {
                     )}
                   </div>
                   <Link
-                    href={`/checkout/${item.courseId}`}
+                    href="/dashboard/student/payments"
                     className="mt-5 block rounded-xl bg-primary-700 px-4 py-2.5 text-center text-sm font-semibold text-white transition-colors hover:bg-primary-800"
                   >
                     View payment details

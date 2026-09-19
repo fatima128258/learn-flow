@@ -54,22 +54,22 @@ export async function getOrganizationMemberCountByRole(organizationId: string) {
 }
 
 export async function getOrganizationMembershipHistory(organizationId: string) {
-  // Load membership dates for the current month so the service can fill
-  // zero-activity days and build a daily cumulative chart.
   const now = new Date();
   const monthStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
-  const memberships = (await prisma().userOrganization.findMany({
-    where: { organizationId },
-    select: { createdAt: true },
-    orderBy: { createdAt: 'asc' },
-  })) ?? [];
-  const initialCount = memberships.filter((membership) => membership.createdAt < monthStart).length;
+  const [initialCount, memberships] = await Promise.all([
+    prisma().userOrganization.count({
+      where: { organizationId, createdAt: { lt: monthStart } },
+    }),
+    prisma().userOrganization.findMany({
+      where: { organizationId, createdAt: { gte: monthStart } },
+      select: { createdAt: true },
+      orderBy: { createdAt: 'asc' },
+    }),
+  ]);
   const countsByDay = new Map<string, number>();
   for (const membership of memberships) {
-    if (membership.createdAt >= monthStart) {
-      const key = membership.createdAt.toISOString().slice(0, 10);
-      countsByDay.set(key, (countsByDay.get(key) ?? 0) + 1);
-    }
+    const key = membership.createdAt.toISOString().slice(0, 10);
+    countsByDay.set(key, (countsByDay.get(key) ?? 0) + 1);
   }
   return {
     initialCount,

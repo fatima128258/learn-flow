@@ -7,8 +7,7 @@ export const studentNav: NavItem[] = [
   { href: '/dashboard/student/tasks', label: 'Tasks', icon: NavIcons.tasks },
   { href: '/dashboard/student/payments', label: 'Payments', icon: NavIcons.payments },
   { href: '/dashboard/student/pending-playlist', label: 'Pending Playlist', icon: NavIcons.tasks },
-  // Temporarily disabled while the real-time chat service is stabilized.
-  // { href: '/dashboard/student/chat', label: 'Chat', icon: NavIcons.chat },
+  { href: '/dashboard/student/chat', label: 'Chat', icon: NavIcons.chat },
   { href: '/dashboard/student/notifications', label: 'Notifications', icon: NavIcons.notifications },
   { href: '/dashboard/student/certificates', label: 'Certificates', icon: NavIcons.certificates },
   { href: '/dashboard/settings', label: 'Settings', icon: NavIcons.settings },

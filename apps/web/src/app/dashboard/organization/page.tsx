@@ -108,7 +108,6 @@ export default function OrganizationDashboardPage() {
   const { data: user, isLoading: userLoading, isError: userError } = useCurrentUser();
 
   const [summary, setSummary] = useState<DashboardSummary | null>(null);
-  const [courseCount, setCourseCount] = useState<number | null>(null);
   const [members, setMembers] = useState<MemberItem[] | null>(null);
   const [membersTotal, setMembersTotal] = useState<number | null>(null);
   const [analyticsData, setAnalyticsData] = useState<OrgAnalytics | null>(null);
@@ -134,30 +133,14 @@ export default function OrganizationDashboardPage() {
     try {
       const apiBase = '';
 
-      // Start all four requests in parallel
-      const coursesPromise = effectiveOrgId
-        ? fetch(
-            `${apiBase}/api/v1/organizations/${effectiveOrgId}/courses`,
-            { credentials: 'include' }
-          )
-        : Promise.resolve(null);
-
-      const [dashRes, usersRes, analyticsRes, coursesRes] = await Promise.all([
+      const analyticsPromise = fetch(`${apiBase}/api/v1/org/analytics`, {
+        credentials: 'include',
+        headers: orgHeaders,
+      }).catch(() => null);
+      const [dashRes, usersRes] = await Promise.all([
         fetch(`${apiBase}/api/v1/org/dashboard`, { credentials: 'include', headers: orgHeaders }),
         fetch(`${apiBase}/api/v1/org/users?page=1&limit=20`, { credentials: 'include', headers: orgHeaders }),
-        fetch(`${apiBase}/api/v1/org/analytics`, { credentials: 'include', headers: orgHeaders }),
-        coursesPromise,
       ]);
-
-      let courseCountValue: number | null = null;
-      if (coursesRes && coursesRes.ok) {
-        try {
-          const coursesBody: { success?: boolean; data?: unknown[] } = await coursesRes.json();
-          courseCountValue = Array.isArray(coursesBody.data) ? coursesBody.data.length : null;
-        } catch {
-          courseCountValue = null;
-        }
-      }
 
       if (!dashRes.ok) {
         let code: unknown = null;
@@ -185,11 +168,13 @@ export default function OrganizationDashboardPage() {
       const usersData: UsersResponse = await usersRes.json();
 
       setSummary(dashData.data ?? null);
-      setCourseCount(courseCountValue);
       setMembers(Array.isArray(usersData.data) ? usersData.data : []);
       setMembersTotal(usersData.meta?.total ?? null);
+      setLoading(false);
 
-      if (analyticsRes.ok) {
+      const analyticsRes = await analyticsPromise;
+
+      if (analyticsRes?.ok) {
         const analyticsBody: { success?: boolean; data?: OrgAnalytics } = await analyticsRes.json();
         setAnalyticsData(analyticsBody.data ?? null);
         setAnalyticsError(false);

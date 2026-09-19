@@ -81,6 +81,8 @@ export default function Home() {
                     src="https://images.unsplash.com/photo-1522202176988-66273c2fd55f?auto=format&fit=crop&w=900&q=80"
                     alt="Student learning on a laptop"
                     className="h-[360px] w-full rounded-[22px] object-cover transition duration-700 hover:scale-[1.02] sm:h-[380px] lg:h-[370px]"
+                    fetchPriority="high"
+                    decoding="async"
                   />
                   <div className="absolute right-8 top-6 rounded-2xl border border-[#f7e7d8] bg-white/80 px-4 py-3 shadow-lg backdrop-blur-sm">
                     <div className="flex items-center gap-3">
@@ -192,6 +194,8 @@ export default function Home() {
                     src="https://images.unsplash.com/photo-1523240795612-9a054b0db644?auto=format&fit=crop&w=900&q=80"
                     alt="Student studying remotely"
                     className="h-48 w-full rounded-[20px] object-cover transition duration-700 hover:scale-[1.03]"
+                    loading="lazy"
+                    decoding="async"
                   />
 
                   <ul className="mt-6 flex flex-col gap-3 text-sm !text-[#f5e6d7] sm:flex-row sm:items-center sm:justify-between sm:gap-4">
@@ -240,7 +244,13 @@ export default function Home() {
           <Container size="xl">
             <Reveal>
             <div className="relative overflow-hidden rounded-[30px] border border-[#ead8c6] bg-[#d7c1a8] p-8 shadow-[0_30px_60px_rgba(60,37,27,0.18)]">
-              <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?auto=format&fit=crop&w=1400&q=80')] bg-cover bg-center opacity-70" />
+              <img
+                src="https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?auto=format&fit=crop&w=1400&q=80"
+                alt=""
+                loading="lazy"
+                decoding="async"
+                className="absolute inset-0 h-full w-full object-cover opacity-70"
+              />
               <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(25,18,15,0.66),rgba(51,35,28,0.2))]" />
 
               <div className="relative z-10 flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">

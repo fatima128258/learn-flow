@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { CourseCardSkeleton, EmptyState, EmptyStateIcons, ErrorState } from '@/components/ui';
 import { useCurrentUser } from '@/features/auth/useCurrentUser';
-import { useMyCourses, useMyStats } from '@/features/student/useMyCourses';
+import { useMyCourses } from '@/features/student/useMyCourses';
 
 const BookIcon = (
   <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
@@ -82,8 +82,6 @@ export default function StudentDashboardPage() {
     error: errorMessage,
     refetch: refetchCourses
   } = useMyCourses(organizationId || '');
-
-  const { data: stats } = useMyStats(organizationId || '');
 
   const categoryCount = new Set(courses.map((c) => c.category).filter(Boolean)).size;
   const totalMinutes = courses.reduce<number>(
