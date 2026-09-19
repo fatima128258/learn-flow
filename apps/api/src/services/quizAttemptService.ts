@@ -101,12 +101,15 @@ async function verifyQuizAttemptAccess(
   moduleId: string,
   quizId: string,
 ) {
-  const course = await courseRepo.getById(organizationId, courseId);
+  const [course, enrollment, module] = await Promise.all([
+    courseRepo.getById(organizationId, courseId),
+    enrollmentRepo.findByUserAndCourse(userId, courseId),
+    moduleRepo.getById(courseId, moduleId),
+  ]);
   if (!course) {
     throw new Error('COURSE_NOT_FOUND');
   }
 
-  const enrollment = await enrollmentRepo.findByUserAndCourse(userId, courseId);
   if (!enrollment) {
     throw new Error('STUDENT_NOT_ENROLLED');
   }
@@ -117,7 +120,6 @@ async function verifyQuizAttemptAccess(
     throw new Error('STUDENT_NOT_ENROLLED');
   }
 
-  const module = await moduleRepo.getById(courseId, moduleId);
   if (!module) {
     throw new Error('MODULE_NOT_FOUND');
   }
@@ -168,7 +170,10 @@ export async function startQuizAttempt(
     moduleId,
     quizId,
   );
-  const existing = await getValidInProgressAttempt(quizId, userId);
+  const [existing, attemptCount] = await Promise.all([
+    getValidInProgressAttempt(quizId, userId),
+    quizAttemptRepo.countByQuizAndUser(quizId, userId),
+  ]);
   if (existing) {
     return {
       attemptId: existing.id,
@@ -178,7 +183,6 @@ export async function startQuizAttempt(
     };
   }
 
-  const attemptCount = await quizAttemptRepo.countByQuizAndUser(quizId, userId);
   if (quiz.maxAttempts != null && attemptCount >= quiz.maxAttempts) {
     throw new Error('MAX_ATTEMPTS_REACHED');
   }

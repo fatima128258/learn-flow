@@ -22,12 +22,15 @@ async function verifyLessonAccess(
   moduleId: string,
   lessonId: string,
 ) {
-  const course = await courseRepo.getById(organizationId, courseId);
+  const [course, enrollment, module] = await Promise.all([
+    courseRepo.getById(organizationId, courseId),
+    enrollmentRepo.findByUserAndCourse(userId, courseId),
+    moduleRepo.getById(courseId, moduleId),
+  ]);
   if (!course) {
     throw new Error('COURSE_NOT_FOUND');
   }
 
-  const enrollment = await enrollmentRepo.findByUserAndCourse(userId, courseId);
   if (!enrollment || enrollment.organizationId !== organizationId) {
     throw new Error('STUDENT_NOT_ENROLLED');
   }
@@ -35,7 +38,6 @@ async function verifyLessonAccess(
     throw new Error('STUDENT_NOT_ENROLLED');
   }
 
-  const module = await moduleRepo.getById(courseId, moduleId);
   if (!module) {
     throw new Error('MODULE_NOT_FOUND');
   }
@@ -107,15 +109,17 @@ async function computeCourseProgress(
 
   // OPTIMIZATION: Batch query all lessons instead of N+1 loop
   const moduleIds = modules.map((m: { id: string }) => m.id);
-  const allLessons = await prisma.lesson.findMany({
-    where: { moduleId: { in: moduleIds } },
-    select: { id: true, title: true, order: true, moduleId: true },
-    orderBy: { order: 'asc' },
-  });
-  const allQuizzes = await prisma.quiz.findMany({
-    where: { moduleId: { in: moduleIds } },
-    select: { id: true, moduleId: true, title: true, maxAttempts: true },
-  });
+  const [allLessons, allQuizzes] = await Promise.all([
+    prisma.lesson.findMany({
+      where: { moduleId: { in: moduleIds } },
+      select: { id: true, title: true, order: true, moduleId: true },
+      orderBy: { order: 'asc' },
+    }),
+    prisma.quiz.findMany({
+      where: { moduleId: { in: moduleIds } },
+      select: { id: true, moduleId: true, title: true, maxAttempts: true },
+    }),
+  ]);
 
   const lessonsByModule = new Map<string, { id: string }[]>();
   const contentItemsByModule = new Map<string, any[]>();
@@ -392,7 +396,13 @@ export async function recordLessonProgress(
   lessonId: string,
   rawInput: unknown,
 ) {
-  await verifyLessonAccess(organizationId, userId, courseId, moduleId, lessonId);
+  const { course } = await verifyLessonAccess(
+    organizationId,
+    userId,
+    courseId,
+    moduleId,
+    lessonId,
+  );
 
   let completed = true;
   if (rawInput !== undefined && rawInput !== null) {
@@ -408,31 +418,31 @@ export async function recordLessonProgress(
     }
   }
 
-  await progressRepo.upsertLessonProgress({
-    userId,
-    lessonId,
-    moduleId,
-    courseId,
-    organizationId,
-    completed,
-  });
+  await Promise.all([
+    progressRepo.upsertLessonProgress({
+      userId,
+      lessonId,
+      moduleId,
+      courseId,
+      organizationId,
+      completed,
+    }),
+    progressRepo.upsertCourseProgressLastVisited({
+      userId,
+      courseId,
+      organizationId,
+      moduleId,
+      lessonId,
+    }),
+  ]);
 
-  await progressRepo.upsertCourseProgressLastVisited({
-    userId,
-    courseId,
-    organizationId,
-    moduleId,
-    lessonId,
-  });
-
-  const course = await courseRepo.getById(organizationId, courseId);
   const courseProgress = await progressRepo.getCourseProgress(userId, courseId, organizationId);
 
   const progress = await computeCourseProgress(
     userId,
     courseId,
     organizationId,
-    course ?? { id: courseId },
+    course,
     courseProgress,
   );
 

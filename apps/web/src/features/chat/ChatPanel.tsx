@@ -60,7 +60,7 @@ export function ChatPanel({ organizationId, userId, initialConversationId, cours
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [text, setText] = useState('');
   const [search, setSearch] = useState('');
-  const [tab, setTab] = useState<'active' | 'blocked'>('active');
+  const [tab, setTab] = useState<'all' | 'blocked'>('all');
   const [loading, setLoading] = useState(true);
   const [messagesLoading, setMessagesLoading] = useState(false);
   const [sending, setSending] = useState(false);
@@ -68,6 +68,7 @@ export function ChatPanel({ organizationId, userId, initialConversationId, cours
   const [deliveredMessageIds, setDeliveredMessageIds] = useState<Set<string>>(new Set());
   const [openMessageMenuId, setOpenMessageMenuId] = useState<string | null>(null);
   const [replyTo, setReplyTo] = useState<ChatMessage | null>(null);
+  const [deletingMessageId, setDeletingMessageId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [actionLoading, setActionLoading] = useState(false);
   const [pendingConversationAction, setPendingConversationAction] = useState<'block' | 'delete' | null>(null);
@@ -95,7 +96,7 @@ export function ChatPanel({ organizationId, userId, initialConversationId, cours
 
   const filtered = useMemo(() => {
     const base = conversations.filter((conversation) => {
-      const matchesTab = tab === 'blocked' ? Boolean(conversation.blockedAt) : !conversation.blockedAt;
+      const matchesTab = tab === 'blocked' ? Boolean(conversation.blockedAt) : true;
       if (!matchesTab) return false;
       const value = `${conversation.course?.title ?? ''} ${participant(conversation, userId)}`.toLowerCase();
       return value.includes(search.toLowerCase());
@@ -284,13 +285,16 @@ export function ChatPanel({ organizationId, userId, initialConversationId, cours
   }
 
   async function deleteMessage(messageId: string) {
-    if (!active) return;
+    if (!active || deletingMessageId) return;
+    setDeletingMessageId(messageId);
+    setError(null);
     try {
       await deleteJson(apiPath(organizationId, `/conversations/${active.id}/messages/${messageId}`));
       setMessages((current) => current.map((message) => message.id === messageId ? { ...message, content: '[deleted]', deletedAt: new Date().toISOString() } : message));
       setReplyTo((current) => current?.id === messageId ? null : current);
       setOpenMessageMenuId(null);
     } catch { setError('Message could not be deleted.'); }
+    finally { setDeletingMessageId(null); }
   }
 
   async function copyMessage(message: ChatMessage) {
@@ -331,31 +335,32 @@ export function ChatPanel({ organizationId, userId, initialConversationId, cours
     <div className="flex h-[calc(100dvh-8rem)] min-h-0 overflow-hidden rounded-[18px] border border-[#ead8c6] bg-[#fffaf5] shadow-sm">
       <aside className={`${active ? 'hidden md:flex' : 'flex'} min-h-0 w-full flex-col border-r border-[#ead8c6] bg-[#fffdf9] md:w-[420px]`}>
         <div className="border-b border-[#ead8c6] bg-[#fffaf5] px-4 py-3">
-          <div className="flex rounded-xl border border-[#dfcdbb] bg-[#f5ebdd] p-1">
+          <h2 className="mb-3 text-xl font-semibold text-neutral-900">Messages</h2>
+          <div className="flex rounded-full border border-[#dfcdbb] bg-[#f5ebdd] p-1">
           <button
             type="button"
-            onClick={() => setTab('active')}
-            className={`flex-1 rounded-lg px-3 py-2 text-center text-sm font-semibold transition-colors ${tab === 'active' ? 'bg-white text-[#5a321f] shadow-sm' : 'text-[#8b6b55] hover:text-[#7a4a2e]'}`}
+            onClick={() => setTab('all')}
+            className={`flex-1 rounded-full px-3 py-2 text-center text-sm font-semibold transition-colors ${tab === 'all' ? 'bg-[#7a4a2e] text-white shadow-sm' : 'text-[#8b6b55] hover:text-[#7a4a2e]'}`}
           >
-            Active
+            All
           </button>
           <button
             type="button"
             onClick={() => setTab('blocked')}
-            className={`flex-1 rounded-lg px-3 py-2 text-center text-sm font-semibold transition-colors ${tab === 'blocked' ? 'bg-white text-[#5a321f] shadow-sm' : 'text-[#8b6b55] hover:text-[#7a4a2e]'}`}
+            className={`flex-1 rounded-full px-3 py-2 text-center text-sm font-semibold transition-colors ${tab === 'blocked' ? 'bg-[#7a4a2e] text-white shadow-sm' : 'text-[#8b6b55] hover:text-[#7a4a2e]'}`}
           >
             Blocked
           </button>
           </div>
         </div>
 
-        <div className="p-4">
-          <div className="flex items-center gap-3 border-b border-[#ead8c6] pb-3">
+        <div className="px-4 py-3">
+          <div className="flex items-center gap-3 rounded-full border border-[#dfcdbb] bg-white px-3 py-2">
             <svg aria-hidden="true" viewBox="0 0 24 24" className="h-5 w-5 stroke-[1.8] text-[#7a4a2e]">
               <circle cx="11" cy="11" r="6.5" fill="none" stroke="currentColor" />
               <path d="M16 16L21 21" fill="none" stroke="currentColor" strokeLinecap="round" />
             </svg>
-            <input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search by name..." className="w-full border-0 bg-transparent text-[1.05rem] text-[#5a321f] placeholder:text-[#a78d79] focus:outline-none" />
+            <input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search by name or email..." className="w-full border-0 bg-transparent text-[0.95rem] text-[#5a321f] placeholder:text-[#a78d79] focus:outline-none" />
           </div>
         </div>
 
@@ -384,9 +389,6 @@ export function ChatPanel({ organizationId, userId, initialConversationId, cours
                       {formatConversationTime(conversation.messages[0].createdAt)}
                     </time>
                   )}
-                </div>
-                <div className="mt-0.5 flex items-center gap-2">
-                  <p className="min-w-0 flex-1 truncate text-[0.95rem] text-neutral-700">{conversation.messages?.[0]?.content || 'No messages yet'}</p>
                 </div>
               </div>
             </button>
@@ -476,7 +478,7 @@ export function ChatPanel({ organizationId, userId, initialConversationId, cours
                                 ▾
                               </button>
                               {openMessageMenuId === message.id && (
-                                <div className="absolute bottom-7 right-0 z-20 w-28 rounded-lg border border-[#e4ddd6] bg-white p-1 text-left text-xs shadow-lg">
+                                <div className={`absolute right-0 z-20 w-28 rounded-lg border border-[#e4ddd6] bg-white p-1 text-left text-xs shadow-lg ${index === 0 ? 'top-7' : 'bottom-7'}`}>
                                   <button
                                     type="button"
                                     onClick={() => { setReplyTo(message); setOpenMessageMenuId(null); }}
@@ -494,8 +496,9 @@ export function ChatPanel({ organizationId, userId, initialConversationId, cours
                                   {isOutgoing && (
                                     <button
                                       type="button"
+                                      disabled={deletingMessageId === message.id}
                                       onClick={() => void deleteMessage(message.id)}
-                                      className="block w-full rounded px-2 py-2 text-left text-[#a34f3d] hover:bg-[#fff0ed]"
+                                      className="block w-full rounded px-2 py-2 text-left text-[#a34f3d] hover:bg-[#fff0ed] disabled:cursor-not-allowed disabled:opacity-50"
                                     >
                                       Delete
                                     </button>

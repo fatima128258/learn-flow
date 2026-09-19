@@ -245,7 +245,7 @@ export function PendingPaymentReview({ organizationId }: { organizationId: strin
                       </td>
                       <td className={tableCellClass}>
                         <Badge variant={payment.paymentMethod === 'STRIPE' ? 'info' : payment.paymentMethod === 'BANK_TRANSFER' ? 'info' : 'warning'} size="sm">
-                          {payment.paymentMethod === 'STRIPE' ? 'Stripe' : payment.paymentMethod === 'BANK_TRANSFER' ? 'Bank Transfer' : 'COD'}
+                          {payment.paymentMethod === 'STRIPE' ? 'Stripe' : payment.paymentMethod === 'BANK_TRANSFER' ? 'Bank' : 'COD'}
                         </Badge>
                       </td>
                       <td className={`${tableCellClass} font-medium text-neutral-900`}>
@@ -283,7 +283,7 @@ export function PendingPaymentReview({ organizationId }: { organizationId: strin
                     <div className="flex items-center gap-2">
                       <Badge variant={paymentStatus(payment.status).variant} size="sm">{paymentStatus(payment.status).label}</Badge>
                       <Badge variant={payment.paymentMethod === 'STRIPE' ? 'info' : payment.paymentMethod === 'BANK_TRANSFER' ? 'info' : 'warning'} size="sm">
-                        {payment.paymentMethod === 'STRIPE' ? 'Stripe' : payment.paymentMethod === 'BANK_TRANSFER' ? 'Bank Transfer' : 'COD'}
+                        {payment.paymentMethod === 'STRIPE' ? 'Stripe' : payment.paymentMethod === 'BANK_TRANSFER' ? 'Bank' : 'COD'}
                       </Badge>
                     </div>
                   </div>
@@ -349,7 +349,7 @@ export function PendingPaymentReview({ organizationId }: { organizationId: strin
               <dl className="divide-y divide-neutral-200 rounded-xl border border-neutral-200 bg-white">
                 <div className="flex justify-between gap-4 p-4 text-sm">
                   <dt className="text-neutral-500">Method</dt>
-                  <dd className="font-medium text-neutral-900">{selectedPayment.paymentMethod === 'STRIPE' ? 'Stripe' : selectedPayment.paymentMethod === 'BANK_TRANSFER' ? 'Bank Transfer' : 'Cash on Delivery'}</dd>
+                  <dd className="font-medium text-neutral-900">{selectedPayment.paymentMethod === 'STRIPE' ? 'Stripe' : selectedPayment.paymentMethod === 'BANK_TRANSFER' ? 'Bank' : 'Cash on Delivery'}</dd>
                 </div>
                 <div className="flex justify-between gap-4 p-4 text-sm">
                   <dt className="text-neutral-500">Amount</dt>
