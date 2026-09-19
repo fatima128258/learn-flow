@@ -144,6 +144,29 @@ export async function listPendingManualPayments(organizationId: string, reviewer
   return visible.filter((payment): payment is NonNullable<typeof payment> => Boolean(payment));
 }
 
+export async function listPaymentsForStudent(organizationId: string, userId: string) {
+  const payments = await orderRepo.listPaymentsForUser(userId, organizationId);
+  return payments.map((payment) => ({
+    id: payment.id,
+    status: payment.status,
+    paymentMethod: payment.paymentMethod,
+    transactionId: payment.transactionId,
+    amount: Number(payment.amount),
+    currency: payment.currency,
+    createdAt: payment.createdAt,
+    reviewedAt: payment.reviewedAt,
+    rejectionReason: payment.rejectionReason,
+    order: {
+      id: payment.order.id,
+      status: payment.order.status,
+      items: payment.order.items.map((item) => ({
+        courseId: item.courseId,
+        courseTitle: item.courseTitle,
+      })),
+    },
+  }));
+}
+
 async function assertReviewAuthorization(
   organizationId: string,
   reviewerUserId: string,

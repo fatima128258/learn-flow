@@ -13,6 +13,7 @@ import {
   listPendingManualPayments,
   approveManualPayment,
   rejectManualPayment,
+  listStudentPayments,
 } from '../controllers/commerceController';
 import { addCartItem, getCart } from '../controllers/cartController';
 
@@ -81,6 +82,15 @@ commerceRouter.post(
   requireOrganizationContext,
   requireStudentOnly,
   submitManualPayment,
+);
+
+commerceRouter.get(
+  '/:organizationId/student/payments',
+  requireAuth,
+  requireVerifiedEmail,
+  requireOrganizationContext,
+  requireStudentOnly,
+  listStudentPayments,
 );
 
 commerceRouter.get(

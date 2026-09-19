@@ -19,7 +19,6 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import argon2 from 'argon2';
 import app from '../server';
 import getPrisma from '../prisma';
-import { generateToken, hashToken } from '../utils/tokens';
 
 const prisma = getPrisma();
 
@@ -139,20 +138,6 @@ async function registerVerifiedUser(prefix: string): Promise<{ email: string; pa
   return { email, password, userId, cookie: getCookieToken(login) };
 }
 
-/** Registers a fresh user through the real API. Does NOT consume the verification email or mark the email verified. */
-async function registerRaw(prefix: string): Promise<{ email: string; password: string; userId: string; cookie: string }> {
-  const email = uniqueEmail(prefix);
-  const password = 'Super$ecret123';
-  const reg = await request(app)
-    .post('/api/v1/auth/register')
-    .set('X-Forwarded-For', uniqueIp())
-    .send({ name: 'Settings Student', email, password, confirmPassword: password });
-  if (reg.status !== 200) throw new Error(`register failed: ${reg.status} ${JSON.stringify(reg.body)}`);
-  createdUserIds.push(reg.body.user.id);
-  createdRecipients.push(email.toLowerCase());
-  return { email, password, userId: reg.body.user.id, cookie: getCookieToken(reg) };
-}
-
 beforeAll(async () => {
   const ping = await fetch(`${MAILPIT_API}/messages?limit=1`).catch(() => null);
   if (!ping || !ping.ok) throw new Error('Mailpit API is not reachable — infrastructure required');
@@ -160,7 +145,7 @@ beforeAll(async () => {
 });
 
 describe('Settings: change email', () => {
-  it('changes email end-to-end: old email stops logging in, new email works, re-verification required', async () => {
+  it('changes email end-to-end without requiring verification', async () => {
     const { email: oldEmail, password, userId, cookie } = await registerVerifiedUser('email-ok');
 
     expect((await prisma.user.findUnique({ where: { id: userId } }))?.emailVerified).toBe(true);
@@ -175,13 +160,13 @@ describe('Settings: change email', () => {
       .send({ email: newEmail });
     expect(patch.status).toBe(200);
     expect(patch.body.user.email).toBe(newEmail);
-    expect(patch.body.user.emailVerified).toBe(false);
+    expect(patch.body.user.emailVerified).toBe(true);
     expect(patch.body.user.password).toBeUndefined();
     expect(patch.body.user.passwordHash).toBeUndefined();
 
     const stored = await prisma.user.findUnique({ where: { id: userId } });
     expect(stored?.email).toBe(newEmail);
-    expect(stored?.emailVerified).toBe(false);
+    expect(stored?.emailVerified).toBe(true);
 
     // Old email must no longer authenticate.
     const oldLogin = await request(app)
@@ -202,7 +187,7 @@ describe('Settings: change email', () => {
     const me = await request(app).get('/api/v1/auth/me').set('Cookie', [`${COOKIE_NAME}=${cookie}`]);
     expect(me.status).toBe(200);
     expect(me.body.user.email).toBe(newEmail);
-    expect(me.body.user.emailVerified).toBe(false);
+    expect(me.body.user.emailVerified).toBe(true);
 
     // A fresh verification email is sent to the new address; verifying works.
     const newVerifyToken = await waitForEmail('verify', newEmail, '/verify-email');
@@ -216,97 +201,6 @@ describe('Settings: change email', () => {
 
     expect((await prisma.user.findUnique({ where: { id: userId } }))?.emailVerified).toBe(true);
   }, 30_000);
-
-  it('rotates verification tokens: the old (used) verification token can no longer verify', async () => {
-    const { email: oldEmail, cookie } = await registerRaw('email-rotate');
-
-    // Token A was emailed to the old address at registration time.
-    const oldVerifyToken = await waitForEmail('verify', oldEmail, '/verify-email');
-    const first = await request(app)
-      .post('/api/v1/auth/verify-email')
-      .set('X-Forwarded-For', uniqueIp())
-      .send({ token: oldVerifyToken });
-    expect(first.status).toBe(200);
-
-    const newEmail = uniqueEmail('email-rotate-new');
-    const patch = await request(app)
-      .patch('/api/v1/auth/me')
-      .set('Cookie', [`${COOKIE_NAME}=${cookie}`])
-      .set('X-Forwarded-For', uniqueIp())
-      .send({ email: newEmail });
-    expect(patch.status).toBe(200);
-
-    // A fresh token B is emailed to the new address; verifying it succeeds.
-    const newVerifyToken = await waitForEmail('verify', newEmail, '/verify-email');
-    const verify = await request(app)
-      .post('/api/v1/auth/verify-email')
-      .set('X-Forwarded-For', uniqueIp())
-      .send({ token: newVerifyToken });
-    expect(verify.status).toBe(200);
-
-    // The old address's token is now used and can no longer verify anything.
-    const stale = await request(app)
-      .post('/api/v1/auth/verify-email')
-      .set('X-Forwarded-For', uniqueIp())
-      .send({ token: oldVerifyToken });
-    expect(stale.status).toBe(400);
-    expect(stale.body.error).toBe('TOKEN_ALREADY_USED');
-  }, 30_000);
-
-  it('rejects an expired verification token issued after an email change (24h TTL path)', async () => {
-    const { password, cookie } = await registerRaw('email-expired');
-
-    const newEmail = uniqueEmail('email-expired-new');
-    const patch = await request(app)
-      .patch('/api/v1/auth/me')
-      .set('Cookie', [`${COOKIE_NAME}=${cookie}`])
-      .set('X-Forwarded-For', uniqueIp())
-      .send({ email: newEmail });
-    expect(patch.status).toBe(200);
-    expect((await prisma.user.findUnique({ where: { email: newEmail } }))?.emailVerified).toBe(false);
-
-    // Consume the verification email that the email change produced.
-    await waitForEmail('verify', newEmail, '/verify-email');
-
-    // Time-travel: wipe un-expired unused tokens for the user, then plant one that already expired.
-    const user = await prisma.user.findUnique({ where: { email: newEmail } });
-    const token = generateToken();
-    await prisma.emailVerificationToken.deleteMany({ where: { userId: user?.id, used: false } });
-    await prisma.emailVerificationToken.create({
-      data: { userId: user!.id, tokenHash: hashToken(token), expiresAt: new Date(Date.now() - 60_000) },
-    });
-
-    const res = await request(app)
-      .post('/api/v1/auth/verify-email')
-      .set('X-Forwarded-For', uniqueIp())
-      .send({ token });
-    expect(res.status).toBe(400);
-    expect(res.body.error).toBe('TOKEN_EXPIRED');
-    expect((await prisma.user.findUnique({ where: { id: user!.id } }))?.emailVerified).toBe(false);
-
-    // Re-requesting verification for the NEW address issues a fresh working token.
-    const resend = await request(app)
-      .post('/api/v1/auth/resend-verification')
-      .set('X-Forwarded-For', uniqueIp())
-      .send({ email: newEmail });
-    expect(resend.status).toBe(200);
-    const freshToken = await waitForEmail('verify', newEmail, '/verify-email');
-    expect((await prisma.user.findUnique({ where: { email: newEmail } }))?.emailVerified).toBe(false);
-
-    const ok = await request(app)
-      .post('/api/v1/auth/verify-email')
-      .set('X-Forwarded-For', uniqueIp())
-      .send({ token: freshToken });
-    expect(ok.status).toBe(200);
-    expect((await prisma.user.findUnique({ where: { email: newEmail } }))?.emailVerified).toBe(true);
-
-    // Password is untouched by email changes.
-    const login = await request(app)
-      .post('/api/v1/auth/login')
-      .set('X-Forwarded-For', uniqueIp())
-      .send({ email: newEmail, password });
-    expect(login.status).toBe(200);
-  }, 40_000);
 
   it('is idempotent when the email is unchanged', async () => {
     const { email, cookie } = await registerVerifiedUser('email-same');

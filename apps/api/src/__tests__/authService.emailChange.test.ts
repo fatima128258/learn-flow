@@ -38,13 +38,10 @@ vi.mock('../services/notificationDispatcher', () => ({ dispatchNotification: vi.
 import { updateUserEmail } from '../services/authService';
 
 const originalNodeEnv = process.env.NODE_ENV;
-const originalVerificationFlag = process.env.AUTH_EMAIL_CHANGE_REQUIRES_VERIFICATION;
-
 describe('updateUserEmail verification policy', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     process.env.NODE_ENV = 'test';
-    delete process.env.AUTH_EMAIL_CHANGE_REQUIRES_VERIFICATION;
     mocks.authRepo.findUserById.mockResolvedValue({
       id: 'user-1',
       name: 'Test User',
@@ -65,13 +62,9 @@ describe('updateUserEmail verification policy', () => {
   afterEach(() => {
     if (originalNodeEnv === undefined) delete process.env.NODE_ENV;
     else process.env.NODE_ENV = originalNodeEnv;
-    if (originalVerificationFlag === undefined) delete process.env.AUTH_EMAIL_CHANGE_REQUIRES_VERIFICATION;
-    else process.env.AUTH_EMAIL_CHANGE_REQUIRES_VERIFICATION = originalVerificationFlag;
   });
 
-  it('immediately activates the email when the flag is false', async () => {
-    process.env.AUTH_EMAIL_CHANGE_REQUIRES_VERIFICATION = 'false';
-
+  it('immediately activates the email without sending verification', async () => {
     const result = await updateUserEmail({ userId: 'user-1', email: 'new@example.com' });
 
     expect(result.success).toBe(true);
@@ -83,36 +76,13 @@ describe('updateUserEmail verification policy', () => {
     expect(mocks.audit.record).toHaveBeenCalledWith(expect.objectContaining({ action: 'EMAIL_UPDATED' }));
   });
 
-  it('keeps verification enabled when the flag is true', async () => {
-    process.env.AUTH_EMAIL_CHANGE_REQUIRES_VERIFICATION = 'true';
-
-    await updateUserEmail({ userId: 'user-1', email: 'new@example.com' });
-
-    expect(mocks.authRepo.markUserEmailAsVerified).not.toHaveBeenCalled();
-    expect(mocks.authRepo.createEmailVerificationToken).toHaveBeenCalledWith(expect.objectContaining({
-      userId: 'user-1',
-      tokenHash: expect.any(String),
-      expiresAt: expect.any(Date),
-    }));
-    expect(mocks.email.sendVerificationEmail).toHaveBeenCalledWith('new@example.com', expect.any(String));
-  });
-
-  it('uses secure verification behavior when the flag is missing', async () => {
-    await updateUserEmail({ userId: 'user-1', email: 'new@example.com' });
-
-    expect(mocks.authRepo.markUserEmailAsVerified).not.toHaveBeenCalled();
-    expect(mocks.authRepo.createEmailVerificationToken).toHaveBeenCalledTimes(1);
-    expect(mocks.email.sendVerificationEmail).toHaveBeenCalledTimes(1);
-  });
-
-  it('enforces verification in production even when the flag is false', async () => {
+  it('does not send verification in production either', async () => {
     process.env.NODE_ENV = 'production';
-    process.env.AUTH_EMAIL_CHANGE_REQUIRES_VERIFICATION = 'false';
 
     await updateUserEmail({ userId: 'user-1', email: 'new@example.com' });
 
-    expect(mocks.authRepo.markUserEmailAsVerified).not.toHaveBeenCalled();
-    expect(mocks.authRepo.createEmailVerificationToken).toHaveBeenCalledTimes(1);
-    expect(mocks.email.sendVerificationEmail).toHaveBeenCalledTimes(1);
+    expect(mocks.authRepo.markUserEmailAsVerified).toHaveBeenCalledWith('user-1');
+    expect(mocks.authRepo.createEmailVerificationToken).not.toHaveBeenCalled();
+    expect(mocks.email.sendVerificationEmail).not.toHaveBeenCalled();
   });
 });

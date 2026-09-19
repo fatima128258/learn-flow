@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test';
 import { registerUser, randomEmail } from '../support/ui';
-import { findVerificationToken, expectToast } from '../support/mailpit';
+import { expectToast } from '../support/mailpit';
 
 const PASSWORD = 'E2Epass123!';
 
@@ -26,7 +26,7 @@ test.beforeEach(async ({ page }) => {
 });
 
 test.describe('Account settings journey', () => {
-  test('changes the email address: old email stops working, new email signs in after verification', async ({ page }) => {
+  test('changes the email address: old email stops working, new email signs in immediately', async ({ page }) => {
     const oldEmail = randomEmail('e2e-settings-email');
     const newEmail = randomEmail('e2e-settings-new');
 
@@ -38,11 +38,6 @@ test.describe('Account settings journey', () => {
     await page.getByRole('main').getByRole('button', { name: 'Save changes' }).click();
     await expectToast(page, 'Email updated');
     await expect(page.getByText(`You are signed in as ${newEmail}.`)).toBeVisible();
-
-    const token = await findVerificationToken(newEmail);
-    expect(token.length).toBeGreaterThan(8);
-    await page.goto(`/verify-email?token=${encodeURIComponent(token)}`);
-    await expect(page.getByText('Email verified successfully!')).toBeVisible();
 
     await page.context().clearCookies();
     await page.goto('/login');

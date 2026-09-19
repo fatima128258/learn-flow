@@ -98,6 +98,16 @@ export async function listPendingManualPayments(req: AuthenticatedRequest, res: 
   }
 }
 
+export async function listStudentPayments(req: AuthenticatedRequest, res: Response) {
+  try {
+    if (!req.user) return fail(res, 401, 'NOT_AUTHENTICATED');
+    const data = await service.listPaymentsForStudent(tenantOrganizationId(req), req.user.id);
+    return res.status(200).json({ success: true, data });
+  } catch (err) {
+    return handleError(res, err);
+  }
+}
+
 export async function approveManualPayment(req: AuthenticatedRequest, res: Response) {
   try {
     if (!req.user) return fail(res, 401, 'NOT_AUTHENTICATED');
