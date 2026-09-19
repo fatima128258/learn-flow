@@ -261,10 +261,12 @@ export default function SettingsPage() {
         </div>
         {!emailEditing ? (
           <div className="flex items-end justify-between gap-4 p-6">
-            <div>
-              <p className="text-sm font-medium text-neutral-700">Current email address</p>
-              <p className="mt-2 text-sm text-neutral-900">{user.email}</p>
-            </div>
+            <dl className="flex-1">
+              <div>
+                <dt className="text-sm font-medium text-neutral-700">Current email address</dt>
+                <dd className="mt-2 text-sm text-neutral-900">{user.email}</dd>
+              </div>
+            </dl>
             <Button
               type="button"
               onClick={() => {
@@ -381,16 +383,11 @@ export default function SettingsPage() {
 
       {(user.role === 'INSTRUCTOR' || user.role === 'ORG_ADMIN') && (
         <div className="mt-6 rounded-2xl border border-neutral-200 bg-white shadow-sm">
-          <div className="flex items-center justify-between border-b border-neutral-200 px-6 py-4">
+          <div className="border-b border-neutral-200 px-6 py-4">
             <SectionHeader
               title="Bank Settings"
               description="Add the bank name and account number where your course payments should be settled."
             />
-            {paymentDetails && !paymentEditing && (
-              <Button variant="ghost" onClick={() => setPaymentEditing(true)}>
-                Edit
-              </Button>
-            )}
           </div>
           <div className="p-6">
             {paymentLoading ? (
@@ -434,10 +431,21 @@ export default function SettingsPage() {
                 </div>
               </div>
             ) : paymentDetails ? (
-              <dl className="grid gap-4 sm:grid-cols-2">
-                <div><dt className="text-sm text-neutral-500">Bank Name</dt><dd className="mt-1 font-medium text-neutral-900">{paymentDetails.bankName}</dd></div>
-                <div><dt className="text-sm text-neutral-500">Account Number</dt><dd className="mt-1 font-medium text-neutral-900">{maskSensitive(paymentDetails.accountNumber)}</dd></div>
-              </dl>
+              <div className="flex items-end justify-between gap-4">
+                <dl className="grid flex-1 gap-4 sm:grid-cols-2">
+                  <div>
+                    <dt className="text-sm font-medium text-neutral-700">Bank Name</dt>
+                    <dd className="mt-2 text-sm text-neutral-900">{paymentDetails.bankName}</dd>
+                  </div>
+                  <div>
+                    <dt className="text-sm font-medium text-neutral-700">Account Number</dt>
+                    <dd className="mt-2 text-sm text-neutral-900">{maskSensitive(paymentDetails.accountNumber)}</dd>
+                  </div>
+                </dl>
+                <Button type="button" onClick={() => setPaymentEditing(true)}>
+                  Edit
+                </Button>
+              </div>
             ) : null}
           </div>
         </div>
