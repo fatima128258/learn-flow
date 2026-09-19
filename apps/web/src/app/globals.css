@@ -228,6 +228,11 @@ button:focus-visible {
   outline: none;
 }
 
+.dashboard-nav-link:focus-visible {
+  outline: none !important;
+  box-shadow: none !important;
+}
+
 /* Reduced Motion */
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {

@@ -557,7 +557,7 @@ export async function changePassword({ userId, currentPassword, newPassword, ses
 
   const primaryOrganizationId = await getPrimaryOrganizationId(userId);
   if (primaryOrganizationId) {
-    await dispatchNotification({
+    void dispatchNotification({
       type: 'PASSWORD_RESET',
       title: 'Password changed',
       body: 'Your LearnFlow password was changed successfully.',

@@ -226,23 +226,28 @@ export async function listPendingManualPayments(organizationId: string, reviewer
   const payments = await orderRepo.listPendingManualPayments(organizationId);
   const prisma = getPrisma();
 
-  const reviewerIsOrgAdmin = await prisma.userOrganization.findFirst({
-    where: { userId: reviewerUserId, organizationId, role: 'ORG_ADMIN' },
-  });
-  const reviewerIsPlatformAdmin = await prisma.userOrganization.findFirst({
-    where: { userId: reviewerUserId, organizationId, role: 'PLATFORM_ADMIN' },
-  });
+  const [reviewerIsOrgAdmin, reviewerIsPlatformAdmin] = await Promise.all([
+    prisma.userOrganization.findFirst({
+      where: { userId: reviewerUserId, organizationId, role: 'ORG_ADMIN' },
+    }),
+    prisma.userOrganization.findFirst({
+      where: { userId: reviewerUserId, organizationId, role: 'PLATFORM_ADMIN' },
+    }),
+  ]);
+  const courses = await courseRepo.getByIds(
+    organizationId,
+    [...new Set(payments.map((payment) => payment.order.items[0]?.courseId).filter(Boolean))],
+  );
+  const coursesById = new Map(courses.map((course) => [course.id, course]));
 
-  const visible = await Promise.all(payments.map(async (payment) => {
+  const visible = payments.map((payment) => {
     const courseId = payment.order.items[0]?.courseId;
     if (!courseId) return null;
 
-    const course = await courseRepo.getById(organizationId, courseId);
-    if (!course) return null;
-
-    const canReview = reviewerIsOrgAdmin || reviewerIsPlatformAdmin || course.instructorUserId === reviewerUserId;
+    const canReview = reviewerIsOrgAdmin || reviewerIsPlatformAdmin
+      || coursesById.get(courseId)?.instructorUserId === reviewerUserId;
     return canReview ? payment : null;
-  }));
+  });
 
   return visible.filter((payment): payment is NonNullable<typeof payment> => Boolean(payment));
 }
@@ -250,21 +255,27 @@ export async function listPendingManualPayments(organizationId: string, reviewer
 export async function listOrganizationPayments(organizationId: string, reviewerUserId: string) {
   const payments = await orderRepo.listOrganizationPayments(organizationId);
   const prisma = getPrisma();
-  const reviewerIsOrgAdmin = await prisma.userOrganization.findFirst({
-    where: { userId: reviewerUserId, organizationId, role: 'ORG_ADMIN' },
-  });
-  const reviewerIsPlatformAdmin = await prisma.userOrganization.findFirst({
-    where: { userId: reviewerUserId, organizationId, role: 'PLATFORM_ADMIN' },
-  });
+  const [reviewerIsOrgAdmin, reviewerIsPlatformAdmin] = await Promise.all([
+    prisma.userOrganization.findFirst({
+      where: { userId: reviewerUserId, organizationId, role: 'ORG_ADMIN' },
+    }),
+    prisma.userOrganization.findFirst({
+      where: { userId: reviewerUserId, organizationId, role: 'PLATFORM_ADMIN' },
+    }),
+  ]);
+  const courses = await courseRepo.getByIds(
+    organizationId,
+    [...new Set(payments.map((payment) => payment.order.items[0]?.courseId).filter(Boolean))],
+  );
+  const coursesById = new Map(courses.map((course) => [course.id, course]));
 
-  const visible = await Promise.all(payments.map(async (payment) => {
+  const visible = payments.map((payment) => {
     const courseId = payment.order.items[0]?.courseId;
     if (!courseId) return null;
-    const course = await courseRepo.getById(organizationId, courseId);
-    if (!course) return null;
-    const canReview = reviewerIsOrgAdmin || reviewerIsPlatformAdmin || course.instructorUserId === reviewerUserId;
+    const canReview = reviewerIsOrgAdmin || reviewerIsPlatformAdmin
+      || coursesById.get(courseId)?.instructorUserId === reviewerUserId;
     return canReview ? payment : null;
-  }));
+  });
 
   return visible.filter((payment): payment is NonNullable<typeof payment> => Boolean(payment));
 }
