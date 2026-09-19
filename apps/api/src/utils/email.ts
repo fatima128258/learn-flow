@@ -115,6 +115,8 @@ export function getTransporter() {
     const timeout = Number.isFinite(configuredTimeout) && configuredTimeout > 0
       ? configuredTimeout
       : 10000;
+    const configuredFamily = Number(process.env.MAIL_SMTP_IP_FAMILY || '4');
+    const family = configuredFamily === 4 || configuredFamily === 6 ? configuredFamily : 4;
     const user = process.env.MAIL_SMTP_USER;
     const pass = process.env.MAIL_SMTP_PASS;
 
@@ -135,6 +137,8 @@ export function getTransporter() {
       connectionTimeout: timeout,
       greetingTimeout: timeout,
       socketTimeout: timeout,
+      // Render instances may resolve SMTP hosts to IPv6 without an IPv6 route.
+      family,
       // Only provide auth if BOTH username and password are set
       auth: user && pass ? { user, pass } : undefined,
     });
