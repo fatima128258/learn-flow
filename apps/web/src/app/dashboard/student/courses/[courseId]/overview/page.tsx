@@ -1,17 +1,22 @@
 ﻿'use client';
 
 import { useEffect, useState } from 'react';
-import { useParams, useRouter } from 'next/navigation';
+import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { createPortal } from 'react-dom';
 import {
   Button,
   ErrorState,
+  Input,
   PageLoader,
   Spinner,
 } from '@/components/ui';
 import { useToast } from '@/components/ui/ToastProvider';
 import { useEnroll } from '@/features/student/useEnrollment';
-import { useCheckoutOrder, usePayOrder } from '@/features/student/useCourseStore';
+import {
+  type PaymentMethod,
+  useCheckoutOrder,
+  useSubmitManualPayment,
+} from '@/features/student/useCourseStore';
 import { getPurchaseErrorMessage } from '@/features/student/courseErrors';
 import { useCurrentUser } from '@/features/auth/useCurrentUser';
 import { getCoursePricing } from '@/lib/coursePricing';
@@ -61,6 +66,7 @@ export default function StudentCourseOverviewPage() {
   const params = useParams();
   const courseId = typeof params.courseId === 'string' ? params.courseId : null;
   const router = useRouter();
+  const searchParams = useSearchParams();
   const toast = useToast();
   const { data: user, isLoading: userLoading } = useCurrentUser();
 
@@ -69,13 +75,21 @@ export default function StudentCourseOverviewPage() {
   const [error, setError] = useState<string | null>(null);
   const [organizationId, setOrganizationId] = useState<string | null>(null);
   const [showCheckout, setShowCheckout] = useState(false);
-  const [order, setOrder] = useState<{ id: string; status: string; totalAmount: number } | null>(null);
-  const [paymentFailed, setPaymentFailed] = useState(false);
+  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<PaymentMethod>('COD');
+  const [transactionId, setTransactionId] = useState('');
+  const [manualPaymentError, setManualPaymentError] = useState('');
+  const [manualPaymentSubmitted, setManualPaymentSubmitted] = useState(false);
+  const [order, setOrder] = useState<{
+    id: string;
+    status: string;
+    totalAmount: number;
+    paymentMethod: PaymentMethod;
+  } | null>(null);
 
   // Use mutation hooks for enrollment operations
   const enrollMutation = useEnroll(organizationId || '', courseId || '');
-  const checkoutMutation = useCheckoutOrder(organizationId || '', courseId || '');
-  const paymentMutation = usePayOrder(organizationId || '', courseId || '', order?.id ?? null);
+  const checkoutMutation = useCheckoutOrder(organizationId || '', courseId || '', selectedPaymentMethod);
+  const submitManualPayment = useSubmitManualPayment(organizationId || '', order?.id ?? null);
 
   // Check auth and set organizationId
   useEffect(() => {
@@ -99,7 +113,8 @@ export default function StudentCourseOverviewPage() {
     
     setOrganizationId(orgId);
     if (courseId) loadCourse(orgId, courseId);
-  }, [user, userLoading, courseId]);
+    if (searchParams.get('checkout') === '1') setShowCheckout(true);
+  }, [user, userLoading, courseId, searchParams]);
 
   async function loadCourse(orgId: string, cid: string) {
     setLoading(true);
@@ -135,13 +150,24 @@ export default function StudentCourseOverviewPage() {
 
   function handlePurchase() {
     if (!organizationId || !courseId) return;
+    setOrder(null);
+    setTransactionId('');
+    setManualPaymentError('');
+    setManualPaymentSubmitted(false);
     setShowCheckout(true);
   }
 
   function handleCheckout() {
     checkoutMutation.mutate(undefined, {
       onSuccess: (data) => {
-        if (data) setOrder({ id: data.id, status: data.status, totalAmount: data.totalAmount });
+        if (data) {
+          setOrder({
+            id: data.id,
+            status: data.status,
+            totalAmount: data.totalAmount,
+            paymentMethod: selectedPaymentMethod,
+          });
+        }
       },
       onError: (error) => {
         const code = error instanceof Error ? error.message : null;
@@ -150,20 +176,29 @@ export default function StudentCourseOverviewPage() {
     });
   }
 
-  function handlePayment() {
-    paymentMutation.mutate(undefined, {
-      onSuccess: () => {
-        setPaymentFailed(false);
-        setShowCheckout(false);
-        setCourse((previous) => previous ? { ...previous, isEnrolled: true } : previous);
-        toast.success('Payment successful. Your course is unlocked.');
+  function handleManualSubmit() {
+    const normalized = transactionId.trim();
+    if (selectedPaymentMethod === 'BANK_TRANSFER' && !normalized) {
+      setManualPaymentError('Transaction ID is required before submitting a bank transfer payment.');
+      return;
+    }
+
+    setManualPaymentError('');
+    submitManualPayment.mutate(
+      {
+        paymentMethod: selectedPaymentMethod === 'BANK_TRANSFER' ? 'BANK_TRANSFER' : 'COD',
+        transactionId: normalized || undefined,
       },
-      onError: (error) => {
-        setPaymentFailed(true);
-        const code = error instanceof Error ? error.message : null;
-        toast.error(getPurchaseErrorMessage(code));
+      {
+        onSuccess: () => {
+          setManualPaymentSubmitted(true);
+          toast.success('Payment submitted. The course owner must verify it before access is unlocked.');
+        },
+        onError: () => {
+          toast.error('We could not submit your payment. Please try again.');
+        },
       },
-    });
+    );
   }
 
   async function handleEnroll() {
@@ -275,7 +310,7 @@ export default function StudentCourseOverviewPage() {
           aria-modal="true"
           aria-labelledby="checkout-title"
           onClick={() => {
-            if (!checkoutMutation.isPending && !paymentMutation.isPending) setShowCheckout(false);
+            if (!checkoutMutation.isPending && !submitManualPayment.isPending) setShowCheckout(false);
           }}
         >
           <div
@@ -291,19 +326,13 @@ export default function StudentCourseOverviewPage() {
                 type="button"
                 aria-label="Close checkout"
                 className="text-2xl text-neutral-400 hover:text-neutral-700"
-                disabled={checkoutMutation.isPending || paymentMutation.isPending}
+                disabled={checkoutMutation.isPending || submitManualPayment.isPending}
                 onClick={() => setShowCheckout(false)}
               >
                 x
               </button>
             </div>
             <div className="space-y-4 p-6">
-              {paymentFailed && (
-                <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
-                  <p className="font-semibold">Payment Failed</p>
-                  <p className="mt-1">Your course has not been unlocked. You can try again.</p>
-                </div>
-              )}
               <div className="space-y-3">
                 <div className="flex justify-between gap-4"><span className="text-neutral-600">Course</span><span className="text-right font-medium text-neutral-900">{course.title}</span></div>
                 {course.instructor?.name && (
@@ -314,25 +343,98 @@ export default function StudentCourseOverviewPage() {
                 )}
                 <div className="flex justify-between border-t border-neutral-200 pt-3"><span className="font-semibold text-neutral-900">Total</span><span className="text-xl font-bold text-neutral-900">{currency(order?.totalAmount ?? getCoursePricing(course.price, course.discountPrice).currentPrice ?? 0)}</span></div>
               </div>
-              <div className="flex justify-end gap-3 pt-2">
-                <Button
-                  variant="ghost"
-                  onClick={() => setShowCheckout(false)}
-                  disabled={checkoutMutation.isPending || paymentMutation.isPending}
-                  className="border border-[#ead8c6] bg-[#fffaf5] text-[#7a4a2e] hover:bg-[#f5ebdd]"
-                >
-                  Cancel
-                </Button>
-                {!order ? (
-                  <Button onClick={handleCheckout} loading={checkoutMutation.isPending} loadingText="Preparing checkout...">
-                    Continue to checkout
-                  </Button>
-                ) : (
-                  <Button onClick={handlePayment} loading={paymentMutation.isPending} loadingText="Processing payment...">
-                    Pay {currency(order.totalAmount)}
-                  </Button>
-                )}
-              </div>
+
+              {!order ? (
+                <>
+                  <div className="space-y-3">
+                    {(['COD', 'BANK_TRANSFER'] as PaymentMethod[]).map((method) => {
+                      const selected = selectedPaymentMethod === method;
+                      return (
+                        <button
+                          key={method}
+                          type="button"
+                          onClick={() => setSelectedPaymentMethod(method)}
+                          className={`flex w-full items-start justify-between gap-4 rounded-xl border p-4 text-left ${
+                            selected ? 'border-primary-600 bg-primary-50' : 'border-neutral-200 bg-white hover:border-neutral-300'
+                          }`}
+                        >
+                          <div>
+                            <p className="font-semibold text-neutral-900">
+                              {method === 'COD' ? 'Cash on Delivery' : 'Bank Transfer'}
+                            </p>
+                            <p className="mt-1 text-sm text-neutral-600">
+                              {method === 'COD'
+                                ? 'Pay on delivery and wait for owner confirmation.'
+                                : 'Transfer to the course owner and submit the transaction ID.'}
+                            </p>
+                          </div>
+                          <span className={`mt-1 h-5 w-5 rounded-full border-2 ${
+                            selected ? 'border-primary-600 bg-primary-600' : 'border-neutral-300 bg-white'
+                          }`} />
+                        </button>
+                      );
+                    })}
+                  </div>
+                  <div className="flex justify-end gap-3 pt-2">
+                    <Button
+                      variant="ghost"
+                      onClick={() => setShowCheckout(false)}
+                      disabled={checkoutMutation.isPending}
+                      className="border border-[#ead8c6] bg-[#fffaf5] text-[#7a4a2e] hover:bg-[#f5ebdd]"
+                    >
+                      Cancel
+                    </Button>
+                    <Button onClick={handleCheckout} loading={checkoutMutation.isPending} loadingText="Creating order...">
+                      Continue with {selectedPaymentMethod === 'COD' ? 'COD' : 'Bank Transfer'}
+                    </Button>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div className="rounded-xl border border-warning-200 bg-warning-50 p-4 text-sm text-warning-800">
+                    <p className="font-semibold">Payment pending review</p>
+                    <p className="mt-1">
+                      {selectedPaymentMethod === 'COD'
+                        ? 'Your COD order is waiting for the course owner to confirm it.'
+                        : 'Submit your transaction ID so the course owner can verify your bank transfer.'}
+                    </p>
+                  </div>
+                  {selectedPaymentMethod === 'BANK_TRANSFER' && !manualPaymentSubmitted && (
+                    <Input
+                      label="Transaction ID"
+                      value={transactionId}
+                      onChange={(event) => setTransactionId(event.target.value)}
+                      placeholder="e.g. TXN-123456"
+                      error={manualPaymentError}
+                    />
+                  )}
+                  {manualPaymentSubmitted && (
+                    <div className="rounded-xl border border-success-200 bg-success-50 p-4 text-sm text-success-700">
+                      Payment submitted successfully. Access will be granted after approval.
+                    </div>
+                  )}
+                  <div className="flex justify-end gap-3 pt-2">
+                    <Button
+                      variant="ghost"
+                      onClick={() => setShowCheckout(false)}
+                      disabled={submitManualPayment.isPending}
+                      className="border border-[#ead8c6] bg-[#fffaf5] text-[#7a4a2e] hover:bg-[#f5ebdd]"
+                    >
+                      Close
+                    </Button>
+                    {selectedPaymentMethod === 'BANK_TRANSFER' && !manualPaymentSubmitted && (
+                      <Button onClick={handleManualSubmit} loading={submitManualPayment.isPending} loadingText="Submitting...">
+                        Submit payment details
+                      </Button>
+                    )}
+                    {selectedPaymentMethod === 'COD' && !manualPaymentSubmitted && (
+                      <Button onClick={handleManualSubmit} loading={submitManualPayment.isPending} loadingText="Submitting...">
+                        Confirm COD
+                      </Button>
+                    )}
+                  </div>
+                </>
+              )}
             </div>
           </div>
         </div>,

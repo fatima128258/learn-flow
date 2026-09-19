@@ -145,7 +145,7 @@ export default function CourseDetailPage() {
     );
   }
 
-  const checkoutHref = `/checkout/${courseId}`;
+  const checkoutHref = `/dashboard/student/courses/${courseId}/overview?checkout=1`;
 
   if (courseLoading) {
     return (
