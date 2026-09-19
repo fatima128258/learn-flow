@@ -3,7 +3,6 @@
 import { useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { ErrorState, DashboardSkeleton } from '@/components/ui';
-import { PageHeader } from '@/components/dashboard';
 import { PendingPaymentReview } from '@/components/dashboard/PendingPaymentReview';
 import { useCurrentUser } from '@/features/auth/useCurrentUser';
 
@@ -53,11 +52,6 @@ export default function OrganizationPaymentsPage() {
 
   return (
     <div className="mx-auto max-w-6xl">
-      <PageHeader
-        title="Payments"
-        description="Review and manage manual payments submitted by students."
-        className="-mt-4 mb-0 !py-1"
-      />
       <PendingPaymentReview organizationId={organizationId} />
     </div>
   );

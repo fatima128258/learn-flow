@@ -14,7 +14,7 @@ import { ApiError } from '@/lib/api';
 import { getCoursePricing } from '@/lib/coursePricing';
 
 const paymentMethodMeta: Record<PaymentMethod, { label: string; description: string }> = {
-  MOCK: { label: 'Mock payment', description: 'Legacy checkout flow for existing mock success flow.' },
+  MOCK: { label: 'Mock payment', description: 'Legacy checkout flow.' },
   COD: { label: 'Cash on Delivery', description: 'Pay on delivery and wait for owner confirmation.' },
   BANK_TRANSFER: { label: 'Bank Transfer', description: 'Transfer to the course owner and share the transaction ID.' },
   STRIPE: { label: 'Stripe', description: 'Coming Soon' },
@@ -30,7 +30,7 @@ export default function CheckoutPage() {
   const organizationId = user?.organizationId ?? '';
   const { data: course, isLoading: courseLoading } = useCourseOverview(organizationId, courseId);
 
-  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<PaymentMethod>('MOCK');
+  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<PaymentMethod>('COD');
   const [transactionId, setTransactionId] = useState('');
   const [manualPaymentError, setManualPaymentError] = useState('');
   const [manualPaymentSubmitted, setManualPaymentSubmitted] = useState(false);
@@ -328,7 +328,7 @@ export default function CheckoutPage() {
               </dl>
 
               <div className="mt-6 space-y-3">
-                {(['MOCK', 'COD', 'BANK_TRANSFER', 'STRIPE'] as PaymentMethod[]).map((method) => {
+                {(['COD', 'BANK_TRANSFER', 'STRIPE'] as PaymentMethod[]).map((method) => {
                   const meta = paymentMethodMeta[method];
                   const isSelected = selectedPaymentMethod === method;
                   const isDisabled = method === 'STRIPE';
@@ -355,9 +355,6 @@ export default function CheckoutPage() {
                         )}
                         {method === 'COD' && (
                           <p className="mt-2 text-xs font-medium uppercase tracking-wide text-warning-700">Pending review required</p>
-                        )}
-                        {method === 'MOCK' && (
-                          <p className="mt-2 text-xs font-medium uppercase tracking-wide text-success-700">Immediate approval</p>
                         )}
                         {method === 'STRIPE' && (
                           <p className="mt-2 text-xs font-medium uppercase tracking-wide text-neutral-500">Coming Soon</p>
@@ -395,18 +392,6 @@ export default function CheckoutPage() {
                   <>
                     <Button size="lg" disabled>
                       Stripe coming soon
-                    </Button>
-                    <LinkButton href={`/courses/${courseId}`} variant="outline" size="lg">Cancel</LinkButton>
-                  </>
-                ) : selectedPaymentMethod === 'MOCK' ? (
-                  <>
-                    <Button
-                      size="lg"
-                      loading={order ? payment.isPending : checkout.isPending}
-                      onClick={order ? handlePayment : handleCheckout}
-                      disabled={order ? payment.isPending : checkout.isPending}
-                    >
-                      {order ? (payment.isPending ? 'Processing mock payment...' : 'Complete Mock Payment') : (checkout.isPending ? 'Creating order...' : 'Continue to checkout')}
                     </Button>
                     <LinkButton href={`/courses/${courseId}`} variant="outline" size="lg">Cancel</LinkButton>
                   </>
