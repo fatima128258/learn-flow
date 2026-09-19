@@ -228,8 +228,11 @@ button:focus-visible {
   outline: none;
 }
 
-.dashboard-nav-link:focus-visible {
+.dashboard-nav-link:focus,
+.dashboard-nav-link:focus-visible,
+.dashboard-nav-link:active {
   outline: none !important;
+  border: 0 !important;
   box-shadow: none !important;
 }
 

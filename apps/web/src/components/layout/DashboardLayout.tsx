@@ -220,7 +220,7 @@ function NavLink({
       aria-current={isActive ? 'page' : undefined}
       onClick={onClick}
       title={collapsed ? item.label : undefined}
-      className={`dashboard-nav-link group relative flex w-full items-center rounded-xl px-3 py-2.5 text-sm transition-all duration-200 focus:outline-none focus-visible:outline-none focus-visible:ring-0 ${
+      className={`dashboard-nav-link group relative flex w-full items-center rounded-xl border-0 px-3 py-2.5 text-sm transition-colors duration-200 focus:border-0 focus:outline-none focus-visible:border-0 focus-visible:outline-none focus-visible:ring-0 ${
         collapsed ? 'justify-center gap-0' : 'gap-3'
       } ${
         isActive
