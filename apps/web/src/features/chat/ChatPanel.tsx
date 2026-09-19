@@ -368,7 +368,17 @@ export function ChatPanel({ organizationId, userId, initialConversationId, cours
               </div>
               <div className="min-w-0 flex-1">
                 <div className="flex items-center justify-between gap-3">
-                  <p className="min-w-0 truncate text-[1.05rem] font-normal text-neutral-900">{participant(conversation, userId)}</p>
+                  <div className="flex min-w-0 items-center gap-2">
+                    <p className="min-w-0 truncate text-[1.05rem] font-normal text-neutral-900">{participant(conversation, userId)}</p>
+                    {(conversation.unreadCount ?? 0) > 0 && (
+                      <span
+                        aria-label={`${conversation.unreadCount} unread message${conversation.unreadCount === 1 ? '' : 's'}`}
+                        className="inline-flex h-5 min-w-5 shrink-0 items-center justify-center rounded-full bg-[#20b957] px-1.5 text-[11px] font-semibold leading-none text-white"
+                      >
+                        {(conversation.unreadCount ?? 0) > 99 ? '99+' : conversation.unreadCount}
+                      </span>
+                    )}
+                  </div>
                   {conversation.messages?.[0] && (
                     <time className="shrink-0 text-[0.95rem] text-neutral-500" dateTime={conversation.messages[0].createdAt}>
                       {formatConversationTime(conversation.messages[0].createdAt)}

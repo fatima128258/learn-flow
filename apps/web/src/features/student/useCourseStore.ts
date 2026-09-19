@@ -25,12 +25,37 @@ export function useCourseOverview(organizationId: string, courseId: string) {
 export function useCheckoutOrder(organizationId: string, courseId: string, paymentMethod: PaymentMethod = 'MOCK') {
   return useMutation({
     mutationFn: async () => {
-      const body = await postJsonWithTimeout<{ data?: Order }>(
+      const body = await postJsonWithTimeout<{ data?: Order & { stripeCheckoutUrl?: string } }>(
         `/api/v1/organizations/${organizationId}/student/courses/${courseId}/checkout`,
         { paymentMethod },
         30000,
       );
       return body.data ?? null;
+    },
+  });
+}
+
+export function useCompleteStripePayment(organizationId: string, courseId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (sessionId: string) => {
+      const body = await postJson<{
+        data?: {
+          orderId: string;
+          orderStatus: string;
+          totalAmount: number;
+          currency: string;
+        };
+      }>(
+        `/api/v1/organizations/${organizationId}/student/courses/${courseId}/stripe/complete`,
+        { sessionId },
+      );
+      return body.data ?? null;
+    },
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: courseOverviewKey(organizationId, courseId) });
+      void queryClient.invalidateQueries({ queryKey: ['student', 'courses', organizationId] });
+      void queryClient.invalidateQueries({ queryKey: ['enrollments', organizationId] });
     },
   });
 }

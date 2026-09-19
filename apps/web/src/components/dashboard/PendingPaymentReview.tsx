@@ -10,7 +10,7 @@ import { getJson, postJson } from '@/lib/api';
 export type PendingPaymentListItem = {
   id: string;
   status: 'PENDING' | 'SUCCEEDED' | 'FAILED';
-  paymentMethod: 'COD' | 'BANK_TRANSFER';
+  paymentMethod: 'COD' | 'BANK_TRANSFER' | 'STRIPE';
   transactionId?: string | null;
   amount: number;
   createdAt: string;
@@ -148,7 +148,7 @@ export function PendingPaymentReview({ organizationId }: { organizationId: strin
         payment.user.name,
         payment.user.email,
         courseTitle,
-        payment.paymentMethod === 'BANK_TRANSFER' ? 'bank transfer' : 'cod',
+        payment.paymentMethod === 'STRIPE' ? 'stripe' : payment.paymentMethod === 'BANK_TRANSFER' ? 'bank transfer' : 'cod',
         payment.transactionId,
       ].some((value) => value?.toLowerCase().includes(query));
     });
@@ -244,8 +244,8 @@ export function PendingPaymentReview({ organizationId }: { organizationId: strin
                         </Badge>
                       </td>
                       <td className={tableCellClass}>
-                        <Badge variant={payment.paymentMethod === 'BANK_TRANSFER' ? 'info' : 'warning'} size="sm">
-                          {payment.paymentMethod === 'BANK_TRANSFER' ? 'Bank Transfer' : 'COD'}
+                        <Badge variant={payment.paymentMethod === 'STRIPE' ? 'info' : payment.paymentMethod === 'BANK_TRANSFER' ? 'info' : 'warning'} size="sm">
+                          {payment.paymentMethod === 'STRIPE' ? 'Stripe' : payment.paymentMethod === 'BANK_TRANSFER' ? 'Bank Transfer' : 'COD'}
                         </Badge>
                       </td>
                       <td className={`${tableCellClass} font-medium text-neutral-900`}>
@@ -256,8 +256,8 @@ export function PendingPaymentReview({ organizationId }: { organizationId: strin
                         <div className="flex items-center justify-center gap-2">
                           <PaymentActionsMenu
                             onView={() => setSelectedPayment(payment)}
-                            onApprove={payment.status === 'PENDING' ? () => void handleApprove(payment.id) : undefined}
-                            onReject={payment.status === 'PENDING' ? () => setRejectingId(payment.id) : undefined}
+                            onApprove={payment.status === 'PENDING' && payment.paymentMethod !== 'STRIPE' ? () => void handleApprove(payment.id) : undefined}
+                            onReject={payment.status === 'PENDING' && payment.paymentMethod !== 'STRIPE' ? () => setRejectingId(payment.id) : undefined}
                           />
                         </div>
                       </td>
@@ -282,8 +282,8 @@ export function PendingPaymentReview({ organizationId }: { organizationId: strin
                     </div>
                     <div className="flex items-center gap-2">
                       <Badge variant={paymentStatus(payment.status).variant} size="sm">{paymentStatus(payment.status).label}</Badge>
-                      <Badge variant={payment.paymentMethod === 'BANK_TRANSFER' ? 'info' : 'warning'} size="sm">
-                        {payment.paymentMethod === 'BANK_TRANSFER' ? 'Bank Transfer' : 'COD'}
+                      <Badge variant={payment.paymentMethod === 'STRIPE' ? 'info' : payment.paymentMethod === 'BANK_TRANSFER' ? 'info' : 'warning'} size="sm">
+                        {payment.paymentMethod === 'STRIPE' ? 'Stripe' : payment.paymentMethod === 'BANK_TRANSFER' ? 'Bank Transfer' : 'COD'}
                       </Badge>
                     </div>
                   </div>
@@ -349,7 +349,7 @@ export function PendingPaymentReview({ organizationId }: { organizationId: strin
               <dl className="divide-y divide-neutral-200 rounded-xl border border-neutral-200 bg-white">
                 <div className="flex justify-between gap-4 p-4 text-sm">
                   <dt className="text-neutral-500">Method</dt>
-                  <dd className="font-medium text-neutral-900">{selectedPayment.paymentMethod === 'BANK_TRANSFER' ? 'Bank Transfer' : 'Cash on Delivery'}</dd>
+                  <dd className="font-medium text-neutral-900">{selectedPayment.paymentMethod === 'STRIPE' ? 'Stripe' : selectedPayment.paymentMethod === 'BANK_TRANSFER' ? 'Bank Transfer' : 'Cash on Delivery'}</dd>
                 </div>
                 <div className="flex justify-between gap-4 p-4 text-sm">
                   <dt className="text-neutral-500">Amount</dt>
@@ -376,7 +376,7 @@ export function PendingPaymentReview({ organizationId }: { organizationId: strin
               </div>
             </section>
 
-            {selectedPayment.status === 'PENDING' && (
+            {selectedPayment.status === 'PENDING' && selectedPayment.paymentMethod !== 'STRIPE' && (
               <div className="flex gap-3 border-t border-neutral-200 pt-5">
                 <Button fullWidth variant="primary" loading={workingId === selectedPayment.id} onClick={() => void handleApprove(selectedPayment.id)}>
                   Approve

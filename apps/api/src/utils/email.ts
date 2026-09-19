@@ -111,6 +111,10 @@ export function getTransporter() {
   if (!transporter) {
     const host = process.env.MAIL_SMTP_HOST || 'localhost';
     const port = Number(process.env.MAIL_SMTP_PORT || '1025');
+    const configuredTimeout = Number(process.env.MAIL_SMTP_TIMEOUT_MS || '10000');
+    const timeout = Number.isFinite(configuredTimeout) && configuredTimeout > 0
+      ? configuredTimeout
+      : 10000;
     const user = process.env.MAIL_SMTP_USER;
     const pass = process.env.MAIL_SMTP_PASS;
 
@@ -128,6 +132,9 @@ export function getTransporter() {
       secure: isImplicitTLS,
       requireTLS: requiresTLS && !isLocalMailpit,
       ignoreTLS: isLocalMailpit, // Mailpit doesn't require TLS
+      connectionTimeout: timeout,
+      greetingTimeout: timeout,
+      socketTimeout: timeout,
       // Only provide auth if BOTH username and password are set
       auth: user && pass ? { user, pass } : undefined,
     });

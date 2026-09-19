@@ -161,6 +161,14 @@ export default function StudentCourseOverviewPage() {
     checkoutMutation.mutate(undefined, {
       onSuccess: (data) => {
         if (data) {
+          if (selectedPaymentMethod === 'STRIPE') {
+            if (!data.stripeCheckoutUrl) {
+              toast.error('Stripe checkout is currently unavailable.');
+              return;
+            }
+            window.location.assign(data.stripeCheckoutUrl);
+            return;
+          }
           setOrder({
             id: data.id,
             status: data.status,
@@ -347,7 +355,7 @@ export default function StudentCourseOverviewPage() {
               {!order ? (
                 <>
                   <div className="space-y-3">
-                    {(['COD', 'BANK_TRANSFER'] as PaymentMethod[]).map((method) => {
+                    {(['COD', 'BANK_TRANSFER', 'STRIPE'] as PaymentMethod[]).map((method) => {
                       const selected = selectedPaymentMethod === method;
                       return (
                         <button
@@ -360,12 +368,14 @@ export default function StudentCourseOverviewPage() {
                         >
                           <div>
                             <p className="font-semibold text-neutral-900">
-                              {method === 'COD' ? 'Cash on Delivery' : 'Bank Transfer'}
+                              {method === 'COD' ? 'Cash on Delivery' : method === 'BANK_TRANSFER' ? 'Bank Transfer' : 'Stripe'}
                             </p>
                             <p className="mt-1 text-sm text-neutral-600">
                               {method === 'COD'
                                 ? 'Pay on delivery and wait for owner confirmation.'
-                                : 'Transfer to the course owner and submit the transaction ID.'}
+                                : method === 'BANK_TRANSFER'
+                                  ? 'Transfer to the course owner and submit the transaction ID.'
+                                  : 'Pay securely with Stripe Checkout in test mode.'}
                             </p>
                           </div>
                           <span className={`mt-1 h-5 w-5 rounded-full border-2 ${
@@ -385,7 +395,7 @@ export default function StudentCourseOverviewPage() {
                       Cancel
                     </Button>
                     <Button onClick={handleCheckout} loading={checkoutMutation.isPending} loadingText="Creating order...">
-                      Continue with {selectedPaymentMethod === 'COD' ? 'COD' : 'Bank Transfer'}
+                      Continue with {selectedPaymentMethod === 'COD' ? 'COD' : selectedPaymentMethod === 'BANK_TRANSFER' ? 'Bank Transfer' : 'Stripe'}
                     </Button>
                   </div>
                 </>

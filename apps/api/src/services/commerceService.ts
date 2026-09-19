@@ -3,6 +3,7 @@ import * as enrollmentRepo from '../repositories/enrollmentRepository';
 import * as orderRepo from '../repositories/orderRepository';
 import getPrisma from '../prisma';
 import { processMockPayment } from './paymentService';
+import * as stripeService from './stripeService';
 import { getActiveCoursePrice } from '../utils/coursePricing';
 
 function round2(value: number) {
@@ -53,7 +54,7 @@ export async function createCheckoutOrder(
   organizationId: string,
   userId: string,
   courseId: string,
-  paymentMethod?: 'COD' | 'BANK_TRANSFER' | 'MOCK',
+  paymentMethod?: 'COD' | 'BANK_TRANSFER' | 'MOCK' | 'STRIPE',
 ) {
   const [course, existingEnrollment, existingOrder] = await Promise.all([
     courseRepo.getById(organizationId, courseId),
@@ -67,18 +68,36 @@ export async function createCheckoutOrder(
 
   const pendingOrder = await orderRepo.findPendingOrderForCourse(userId, organizationId, courseId);
   if (pendingOrder) {
-    return {
-      ...toOrderDto(pendingOrder),
-      courseId: course.id,
-      courseTitle: course.title,
-    };
+    const pendingPayment = pendingOrder.payments[0];
+    if (paymentMethod === 'STRIPE') {
+      if (!pendingPayment || pendingPayment.paymentMethod !== 'STRIPE') {
+        throw new Error('CHECKOUT_ALREADY_EXISTS');
+      }
+      if (pendingPayment.providerRef) {
+        const existingSession = await stripeService.retrieveCheckoutSession(pendingPayment.providerRef);
+        if (existingSession.status === 'open' && existingSession.url) {
+          return {
+            ...toOrderDto(pendingOrder),
+            courseId: course.id,
+            courseTitle: course.title,
+            stripeCheckoutUrl: existingSession.url,
+          };
+        }
+      }
+    } else {
+      return {
+        ...toOrderDto(pendingOrder),
+        courseId: course.id,
+        courseTitle: course.title,
+      };
+    }
   }
 
   const unitPrice = getActiveCoursePrice(
     course.price == null ? null : Number(course.price),
     course.discountPrice == null ? null : Number(course.discountPrice),
   );
-  const order = await orderRepo.createPendingOrder({
+  const order = pendingOrder ?? await orderRepo.createPendingOrder({
     userId,
     organizationId,
     courseId: course.id,
@@ -88,7 +107,91 @@ export async function createCheckoutOrder(
     currency: 'USD',
     paymentMethod,
   });
+
+  if (paymentMethod === 'STRIPE') {
+    const stripeOrder = await orderRepo.findPendingOrderForCourse(userId, organizationId, courseId);
+    const payment = stripeOrder?.payments[0];
+    if (!stripeOrder || !payment || payment.paymentMethod !== 'STRIPE') {
+      throw new Error('PAYMENT_NOT_FOUND');
+    }
+    const session = await stripeService.createCheckoutSession({
+      orderId: stripeOrder.id,
+      paymentId: payment.id,
+      userId,
+      organizationId,
+      courseId: course.id,
+      courseTitle: course.title,
+      amount: Number(stripeOrder.totalAmount),
+      currency: stripeOrder.currency,
+    });
+    if (!session.url) throw new Error('STRIPE_CHECKOUT_UNAVAILABLE');
+    await orderRepo.setStripeCheckoutSession({
+      orderId: stripeOrder.id,
+      paymentId: payment.id,
+      userId,
+      organizationId,
+      sessionId: session.id,
+    });
+    return {
+      ...toOrderDto(stripeOrder),
+      courseId: course.id,
+      courseTitle: course.title,
+      stripeCheckoutUrl: session.url,
+    };
+  }
   return { ...toOrderDto({ ...order, items: [] }), courseId: course.id, courseTitle: course.title };
+}
+
+export async function completeStripePayment(
+  organizationId: string,
+  userId: string,
+  courseId: string,
+  sessionId: string,
+) {
+  const session = await stripeService.retrieveCheckoutSession(sessionId);
+  const metadata = session.metadata ?? {};
+  const orderId = metadata.orderId;
+  const paymentId = metadata.paymentId;
+  if (
+    session.mode !== 'payment' ||
+    session.payment_status !== 'paid' ||
+    metadata.userId !== userId ||
+    metadata.organizationId !== organizationId ||
+    metadata.courseId !== courseId ||
+    !orderId ||
+    !paymentId
+  ) {
+    throw new Error('STRIPE_SESSION_INVALID');
+  }
+
+  const order = await orderRepo.findOrderForUser(orderId, userId, organizationId);
+  if (!order) throw new Error('ORDER_NOT_FOUND');
+  const item = order.items[0];
+  const payment = order.payments[0];
+  if (!item || item.courseId !== courseId || !payment || payment.id !== paymentId) {
+    throw new Error('STRIPE_SESSION_INVALID');
+  }
+  if (payment.providerRef !== sessionId) {
+    throw new Error('STRIPE_SESSION_INVALID');
+  }
+  if (
+    session.amount_total !== Math.round(Number(order.totalAmount) * 100) ||
+    session.currency?.toLowerCase() !== order.currency.toLowerCase()
+  ) {
+    throw new Error('STRIPE_SESSION_INVALID');
+  }
+
+  const result = await orderRepo.completeOrderWithPurchase({
+    orderId: order.id,
+    userId,
+    organizationId,
+    providerRef: session.id,
+    paymentMethod: 'STRIPE',
+  });
+  return toPurchaseDto(result.order, result.enrollment, {
+    id: item.courseId,
+    title: item.courseTitle,
+  });
 }
 
 export async function submitManualPayment(

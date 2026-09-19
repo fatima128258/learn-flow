@@ -15,6 +15,7 @@ import {
   approveManualPayment,
   rejectManualPayment,
   listStudentPayments,
+  completeStripePayment,
 } from '../controllers/commerceController';
 import { addCartItem, getCart } from '../controllers/cartController';
 
@@ -74,6 +75,15 @@ commerceRouter.post(
   requireOrganizationContext,
   requireStudentOnly,
   createCheckout,
+);
+
+commerceRouter.post(
+  '/:organizationId/student/courses/:courseId/stripe/complete',
+  requireAuth,
+  requireVerifiedEmail,
+  requireOrganizationContext,
+  requireStudentOnly,
+  completeStripePayment,
 );
 
 commerceRouter.post(

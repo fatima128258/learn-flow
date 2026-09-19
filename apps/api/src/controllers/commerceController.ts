@@ -44,6 +44,15 @@ function handleError(res: Response, err: unknown) {
       return fail(res, 202, 'MANUAL_PAYMENT_PENDING_REVIEW');
     case 'PAYMENT_FAILED':
       return fail(res, 402, 'PAYMENT_FAILED');
+    case 'STRIPE_NOT_CONFIGURED':
+    case 'APP_URL_NOT_CONFIGURED':
+      return fail(res, 503, 'STRIPE_NOT_CONFIGURED');
+    case 'STRIPE_TEST_MODE_REQUIRED':
+      return fail(res, 503, 'STRIPE_TEST_MODE_REQUIRED');
+    case 'STRIPE_CHECKOUT_UNAVAILABLE':
+      return fail(res, 502, 'STRIPE_CHECKOUT_UNAVAILABLE');
+    case 'STRIPE_SESSION_INVALID':
+      return fail(res, 400, 'STRIPE_SESSION_INVALID');
     case 'LEGACY_PURCHASE_DISABLED':
       return fail(res, 410, 'LEGACY_PURCHASE_DISABLED');
     case 'PURCHASE_DATABASE_TIMEOUT':
@@ -58,7 +67,7 @@ function handleError(res: Response, err: unknown) {
 export async function createCheckout(req: AuthenticatedRequest, res: Response) {
   try {
     if (!req.user) return fail(res, 401, 'NOT_AUTHENTICATED');
-    const paymentMethod = req.body?.paymentMethod as 'COD' | 'BANK_TRANSFER' | 'MOCK' | undefined;
+    const paymentMethod = req.body?.paymentMethod as 'COD' | 'BANK_TRANSFER' | 'MOCK' | 'STRIPE' | undefined;
     const data = await service.createCheckoutOrder(
       tenantOrganizationId(req),
       req.user.id,
@@ -66,6 +75,23 @@ export async function createCheckout(req: AuthenticatedRequest, res: Response) {
       paymentMethod,
     );
     return res.status(201).json({ success: true, data });
+  } catch (err) {
+    return handleError(res, err);
+  }
+}
+
+export async function completeStripePayment(req: AuthenticatedRequest, res: Response) {
+  try {
+    if (!req.user) return fail(res, 401, 'NOT_AUTHENTICATED');
+    const sessionId = typeof req.body?.sessionId === 'string' ? req.body.sessionId.trim() : '';
+    if (!sessionId) return fail(res, 400, 'STRIPE_SESSION_INVALID');
+    const data = await service.completeStripePayment(
+      tenantOrganizationId(req),
+      req.user.id,
+      req.params.courseId,
+      sessionId,
+    );
+    return res.status(200).json({ success: true, data });
   } catch (err) {
     return handleError(res, err);
   }

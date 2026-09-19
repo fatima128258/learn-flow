@@ -1,10 +1,10 @@
 'use client';
 
-import { useState } from 'react';
-import { useParams } from 'next/navigation';
+import { useEffect, useRef, useState } from 'react';
+import { useParams, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { useCurrentUser } from '@/features/auth/useCurrentUser';
-import { type PaymentMethod, useCheckoutOrder, useCourseOverview, usePayOrder, useSubmitManualPayment } from '@/features/student/useCourseStore';
+import { type PaymentMethod, useCheckoutOrder, useCompleteStripePayment, useCourseOverview, usePayOrder, useSubmitManualPayment } from '@/features/student/useCourseStore';
 import { getPurchaseErrorMessage } from '@/features/student/courseErrors';
 import { currency } from '@/lib/types';
 import { Badge, Button, Card, EmptyState, Input, LinkButton, PageLoading } from '@/components/ui';
@@ -17,12 +17,13 @@ const paymentMethodMeta: Record<PaymentMethod, { label: string; description: str
   MOCK: { label: 'Mock payment', description: 'Legacy checkout flow.' },
   COD: { label: 'Cash on Delivery', description: 'Pay on delivery and wait for owner confirmation.' },
   BANK_TRANSFER: { label: 'Bank Transfer', description: 'Transfer to the course owner and share the transaction ID.' },
-  STRIPE: { label: 'Stripe', description: 'Coming Soon' },
+  STRIPE: { label: 'Stripe', description: 'Pay securely with Stripe Checkout in test mode.' },
 };
 
 export default function CheckoutPage() {
   const params = useParams<{ courseId: string }>();
   const courseId = params.courseId;
+  const searchParams = useSearchParams();
 
   const toast = useToast();
 
@@ -36,17 +37,49 @@ export default function CheckoutPage() {
   const [manualPaymentSubmitted, setManualPaymentSubmitted] = useState(false);
   const [order, setOrder] = useState<{ id: string; status: string; totalAmount: number; paymentMethod?: PaymentMethod } | null>(null);
   const [paymentFailed, setPaymentFailed] = useState(false);
+  const [stripeVerifying, setStripeVerifying] = useState(false);
+  const processedStripeSessionRef = useRef<string | null>(null);
 
   const checkout = useCheckoutOrder(organizationId, courseId, selectedPaymentMethod);
   const payment = usePayOrder(organizationId, courseId, order?.id ?? null);
   const submitManualPayment = useSubmitManualPayment(organizationId, order?.id ?? null);
+  const completeStripePayment = useCompleteStripePayment(organizationId, courseId);
+
+  useEffect(() => {
+    const sessionId = searchParams.get('stripe_session_id');
+    if (!sessionId || !organizationId || !courseId || !user || processedStripeSessionRef.current === sessionId) return;
+    processedStripeSessionRef.current = sessionId;
+    setStripeVerifying(true);
+    completeStripePayment.mutate(sessionId, {
+      onSuccess: (data) => {
+        if (data) {
+          setOrder({
+            id: data.orderId,
+            status: data.orderStatus,
+            totalAmount: data.totalAmount,
+            paymentMethod: 'STRIPE',
+          });
+          toast.success('Payment successful. Your course is unlocked.');
+        }
+        window.history.replaceState({}, '', `/checkout/${courseId}`);
+      },
+      onError: (err) => {
+        processedStripeSessionRef.current = null;
+        toast.error(err instanceof ApiError && err.code === 'STRIPE_SESSION_INVALID'
+          ? 'Stripe payment could not be verified.'
+          : 'We could not complete your Stripe payment.');
+      },
+      onSettled: () => setStripeVerifying(false),
+    });
+  }, [completeStripePayment, courseId, organizationId, searchParams, toast, user]);
+
+  useEffect(() => {
+    if (searchParams.get('stripe_cancelled') !== '1') return;
+    toast.info('Stripe checkout was cancelled. No payment was completed.');
+    window.history.replaceState({}, '', `/checkout/${courseId}`);
+  }, [courseId, searchParams, toast]);
 
   function handleCheckout() {
-    if (selectedPaymentMethod === 'STRIPE') {
-      toast.info('Stripe is coming soon. Please select a different payment method.');
-      return;
-    }
-
     checkout.mutate(undefined, {
       onSuccess: (data) => {
         if (data) {
@@ -55,6 +88,14 @@ export default function CheckoutPage() {
           setManualPaymentSubmitted(false);
           setTransactionId('');
           setManualPaymentError('');
+          if (selectedPaymentMethod === 'STRIPE') {
+            if (!data.stripeCheckoutUrl) {
+              toast.error('Stripe checkout is currently unavailable.');
+              return;
+            }
+            window.location.assign(data.stripeCheckoutUrl);
+            return;
+          }
           if (selectedPaymentMethod === 'MOCK') {
             toast.info('Order created. Complete the mock payment to unlock this course.');
           }
@@ -116,6 +157,10 @@ export default function CheckoutPage() {
   }
 
   if (userLoading || courseLoading) {
+    return <PageLoading />;
+  }
+
+  if (stripeVerifying) {
     return <PageLoading />;
   }
 
@@ -331,7 +376,7 @@ export default function CheckoutPage() {
                 {(['COD', 'BANK_TRANSFER', 'STRIPE'] as PaymentMethod[]).map((method) => {
                   const meta = paymentMethodMeta[method];
                   const isSelected = selectedPaymentMethod === method;
-                  const isDisabled = method === 'STRIPE';
+                  const isDisabled = false;
 
                   return (
                     <button
@@ -355,9 +400,6 @@ export default function CheckoutPage() {
                         )}
                         {method === 'COD' && (
                           <p className="mt-2 text-xs font-medium uppercase tracking-wide text-warning-700">Pending review required</p>
-                        )}
-                        {method === 'STRIPE' && (
-                          <p className="mt-2 text-xs font-medium uppercase tracking-wide text-neutral-500">Coming Soon</p>
                         )}
                       </div>
                       <span className={`mt-1 h-5 w-5 rounded-full border-2 ${isSelected ? 'border-primary-600 bg-primary-600' : isDisabled ? 'border-neutral-300 bg-neutral-200' : 'border-neutral-300 bg-white'}`} />
@@ -388,21 +430,10 @@ export default function CheckoutPage() {
               )}
 
               <div className="mt-6 flex flex-col gap-3 sm:flex-row-reverse">
-                {selectedPaymentMethod === 'STRIPE' ? (
-                  <>
-                    <Button size="lg" disabled>
-                      Stripe coming soon
-                    </Button>
-                    <LinkButton href={`/courses/${courseId}`} variant="outline" size="lg">Cancel</LinkButton>
-                  </>
-                ) : (
-                  <>
-                    <Button size="lg" loading={checkout.isPending} onClick={handleCheckout} disabled={checkout.isPending}>
-                      {checkout.isPending ? 'Creating order...' : 'Continue with selected payment'}
-                    </Button>
-                    <LinkButton href={`/courses/${courseId}`} variant="outline" size="lg">Cancel</LinkButton>
-                  </>
-                )}
+                <Button size="lg" loading={checkout.isPending} onClick={handleCheckout} disabled={checkout.isPending}>
+                  {checkout.isPending ? 'Creating checkout...' : 'Continue with selected payment'}
+                </Button>
+                <LinkButton href={`/courses/${courseId}`} variant="outline" size="lg">Cancel</LinkButton>
               </div>
             </div>
           </div>

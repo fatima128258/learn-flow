@@ -21,6 +21,7 @@ vi.mock('../repositories/orderRepository', () => ({
   findPendingOrderForCourse: vi.fn(),
   createPendingOrder: vi.fn(),
   findPendingOrderForUser: vi.fn(),
+  findOrderForUser: vi.fn(),
   failOrder: vi.fn(),
   completeOrderWithPurchase: vi.fn(),
   submitManualPayment: vi.fn(),
@@ -28,6 +29,9 @@ vi.mock('../repositories/orderRepository', () => ({
   listPendingManualPayments: vi.fn(),
   approveManualPayment: vi.fn(),
   rejectManualPayment: vi.fn(),
+}));
+vi.mock('../services/stripeService', () => ({
+  retrieveCheckoutSession: vi.fn(),
 }));
 vi.mock('../services/paymentService', () => ({
   processMockPayment: vi.fn(),
@@ -37,8 +41,10 @@ import * as courseRepo from '../repositories/courseRepository';
 import * as enrollmentRepo from '../repositories/enrollmentRepository';
 import * as orderRepo from '../repositories/orderRepository';
 import { processMockPayment } from '../services/paymentService';
+import * as stripeService from '../services/stripeService';
 import {
   createCheckoutOrder,
+  completeStripePayment,
   payOrder,
   submitManualPayment,
   approveManualPayment,
@@ -119,6 +125,37 @@ describe('mock checkout workflow', () => {
       providerRef: 'mock-ref',
       paymentMethod: 'MOCK',
     });
+  });
+
+  it('rejects a Stripe session that does not match the stored payment reference', async () => {
+    vi.mocked(stripeService.retrieveCheckoutSession).mockResolvedValue({
+      id: 'cs_test_submitted',
+      mode: 'payment',
+      payment_status: 'paid',
+      amount_total: 7500,
+      currency: 'usd',
+      metadata: {
+        orderId: 'order-1',
+        paymentId: 'payment-1',
+        userId: 'student-a',
+        organizationId: 'org-a',
+        courseId: 'course-1',
+      },
+    } as never);
+    vi.mocked(orderRepo.findOrderForUser).mockResolvedValue({
+      ...pendingOrder,
+      payments: [{
+        id: 'payment-1',
+        status: 'PENDING',
+        paymentMethod: 'STRIPE',
+        providerRef: 'cs_test_stored',
+      }],
+    } as never);
+
+    await expect(completeStripePayment('org-a', 'student-a', 'course-1', 'cs_test_submitted'))
+      .rejects.toThrow('STRIPE_SESSION_INVALID');
+
+    expect(orderRepo.completeOrderWithPurchase).not.toHaveBeenCalled();
   });
 
   it('fails the order without creating an enrollment when mock payment fails', async () => {

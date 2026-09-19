@@ -11,6 +11,18 @@ import { useToast } from '../../components/ui/ToastProvider';
 import { getForgotPasswordErrorMessage } from '../../features/auth/authErrors';
 import { isValidEmail, normalizeEmail } from '../../lib/validation';
 
+const REQUEST_TIMEOUT_MS = 15000;
+
+async function fetchWithTimeout(input: RequestInfo | URL, init?: RequestInit) {
+  const controller = new AbortController();
+  const timeoutId = window.setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+
+  try {
+    return await fetch(input, { ...init, signal: controller.signal });
+  } finally {
+    window.clearTimeout(timeoutId);
+  }
+}
 
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState('');
@@ -51,7 +63,7 @@ export default function ForgotPasswordPage() {
 
     await submit(async () => {
       const apiBase = '';
-      const res = await fetch(`${apiBase}/api/v1/auth/forgot-password`, {
+      const res = await fetchWithTimeout(`${apiBase}/api/v1/auth/forgot-password`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email: normalizeEmail(email) }),
@@ -80,7 +92,7 @@ export default function ForgotPasswordPage() {
     setCodeError('');
     await submit(async () => {
       const apiBase = '';
-      const res = await fetch(`${apiBase}/api/v1/auth/forgot-password/verify`, {
+      const res = await fetchWithTimeout(`${apiBase}/api/v1/auth/forgot-password/verify`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email: normalizeEmail(email), code: code.trim() }),
@@ -98,7 +110,7 @@ export default function ForgotPasswordPage() {
   const handleResendCode = async () => {
     if (isSubmitting) return;
     await submit(async () => {
-      const res = await fetch('/api/v1/auth/forgot-password/resend', {
+      const res = await fetchWithTimeout('/api/v1/auth/forgot-password/resend', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email: normalizeEmail(email) }),

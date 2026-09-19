@@ -11,7 +11,7 @@ import { currency } from '@/lib/types';
 type PendingPayment = {
   id: string;
   status: 'PENDING' | 'SUCCEEDED' | 'FAILED';
-  paymentMethod: 'COD' | 'BANK_TRANSFER' | null;
+  paymentMethod: 'COD' | 'BANK_TRANSFER' | 'STRIPE' | null;
   transactionId: string | null;
   amount: number;
   createdAt: string;
@@ -107,7 +107,7 @@ export default function PendingPlaylistPage() {
                     <p>
                       Method:{' '}
                       <span className="font-medium text-neutral-800">
-                        {payment.paymentMethod === 'BANK_TRANSFER' ? 'Bank Transfer' : 'Cash on Delivery'}
+                        {payment.paymentMethod === 'STRIPE' ? 'Stripe' : payment.paymentMethod === 'BANK_TRANSFER' ? 'Bank Transfer' : 'Cash on Delivery'}
                       </span>
                     </p>
                     <p>

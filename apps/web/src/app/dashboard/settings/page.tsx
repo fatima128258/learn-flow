@@ -1,13 +1,13 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Button, Card, ErrorState, Input, Spinner } from '@/components/ui';
 import { PasswordInput } from '@/components/forms/PasswordInput';
 import { SectionHeader } from '@/components/dashboard';
 import { useCurrentUser } from '@/features/auth/useCurrentUser';
-import { ApiError, logout, patchJson } from '@/lib/api';
+import { ApiError, getJson, logout, patchJson } from '@/lib/api';
 import { getUpdateEmailErrorMessage, getChangePasswordErrorMessage } from '@/features/auth/settingsErrors';
 import { useToast } from '@/components/ui/ToastProvider';
 import { isValidEmail } from '@/lib/validation';
@@ -17,6 +17,28 @@ type PasswordFieldErrors = {
   newPassword?: string;
   confirmNewPassword?: string;
 };
+
+type PaymentDetails = {
+  id: string;
+  bankName: string;
+  accountTitle: string;
+  accountNumber: string;
+  iban: string;
+};
+
+type PaymentDetailsForm = Omit<PaymentDetails, 'id'>;
+
+const emptyPaymentDetails: PaymentDetailsForm = {
+  bankName: '',
+  accountTitle: '',
+  accountNumber: '',
+  iban: '',
+};
+
+function maskSensitive(value: string) {
+  if (value.length <= 4) return '****';
+  return `${'*'.repeat(Math.max(4, value.length - 4))}${value.slice(-4)}`;
+}
 
 export default function SettingsPage() {
   const router = useRouter();
@@ -32,6 +54,74 @@ export default function SettingsPage() {
   const [confirmNewPassword, setConfirmNewPassword] = useState('');
   const [passwordFieldErrors, setPasswordFieldErrors] = useState<PasswordFieldErrors>({});
   const [passwordSubmitting, setPasswordSubmitting] = useState(false);
+  const [paymentDetails, setPaymentDetails] = useState<PaymentDetails | null>(null);
+  const [paymentForm, setPaymentForm] = useState<PaymentDetailsForm>(emptyPaymentDetails);
+  const [paymentEditing, setPaymentEditing] = useState(false);
+  const [paymentLoading, setPaymentLoading] = useState(false);
+  const [paymentSubmitting, setPaymentSubmitting] = useState(false);
+  const [paymentError, setPaymentError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (user?.role !== 'INSTRUCTOR' || !user.organizationId) return;
+    let active = true;
+    setPaymentLoading(true);
+    getJson<{ data: PaymentDetails | null }>(
+      `/api/v1/organizations/${user.organizationId}/instructor/payment-details`,
+    )
+      .then((response) => {
+        if (!active) return;
+        setPaymentDetails(response.data);
+        if (response.data) {
+          setPaymentForm({
+            bankName: response.data.bankName,
+            accountTitle: response.data.accountTitle,
+            accountNumber: '',
+            iban: '',
+          });
+        }
+      })
+      .catch(() => {
+        if (active) setPaymentError('Could not load your payment details.');
+      })
+      .finally(() => {
+        if (active) setPaymentLoading(false);
+      });
+    return () => {
+      active = false;
+    };
+  }, [user]);
+
+  async function savePaymentDetails() {
+    if (!user?.organizationId) return;
+    const values = Object.fromEntries(
+      Object.entries(paymentForm).map(([key, value]) => [key, value.trim()]),
+    ) as PaymentDetailsForm;
+    if (!values.bankName || !values.accountTitle || (paymentDetails === null && (!values.accountNumber || !values.iban))) {
+      setPaymentError('Please complete all payment detail fields.');
+      return;
+    }
+    setPaymentSubmitting(true);
+    setPaymentError(null);
+    try {
+      const response = await patchJson<{ data: PaymentDetails }>(
+        `/api/v1/organizations/${user.organizationId}/instructor/payment-details`,
+        values,
+      );
+      setPaymentDetails(response.data);
+      setPaymentForm({
+        bankName: response.data.bankName,
+        accountTitle: response.data.accountTitle,
+        accountNumber: '',
+        iban: '',
+      });
+      setPaymentEditing(false);
+      toast.success('Payment details saved.', 'Payment details updated');
+    } catch {
+      setPaymentError('Could not save your payment details. Please try again.');
+    } finally {
+      setPaymentSubmitting(false);
+    }
+  }
 
   async function handleEmailSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -247,6 +337,74 @@ export default function SettingsPage() {
           </div>
         </form>
       </div>
+
+      {user.role === 'INSTRUCTOR' && (
+        <div className="mt-6 rounded-2xl border border-neutral-200 bg-white shadow-sm">
+          <div className="flex items-center justify-between border-b border-neutral-200 px-6 py-4">
+            <SectionHeader
+              title="Payment Details"
+              description="Add the bank details where your course payments should be settled."
+            />
+            {paymentDetails && !paymentEditing && (
+              <Button variant="ghost" onClick={() => setPaymentEditing(true)}>
+                Edit
+              </Button>
+            )}
+          </div>
+          <div className="p-6">
+            {paymentLoading ? (
+              <div className="flex min-h-24 items-center justify-center" role="status" aria-label="Loading payment details">
+                <Spinner size="md" label="Loading..." />
+              </div>
+            ) : paymentError && !paymentEditing ? (
+              <ErrorState title="Unable to load payment details" message={paymentError} />
+            ) : !paymentDetails && !paymentEditing ? (
+              <div className="rounded-xl border border-dashed border-neutral-300 bg-neutral-50 p-6 text-center">
+                <p className="text-sm text-neutral-600">No payment details have been added yet.</p>
+                <Button className="mt-4" onClick={() => setPaymentEditing(true)}>
+                  Add Payment Details
+                </Button>
+              </div>
+            ) : paymentEditing ? (
+              <div className="space-y-4">
+                {([
+                  ['bankName', 'Bank Name'],
+                  ['accountTitle', 'Account Title'],
+                  ['accountNumber', 'Account Number'],
+                  ['iban', 'IBAN'],
+                ] as const).map(([field, label]) => (
+                  <Input
+                    key={field}
+                    label={label}
+                    value={paymentForm[field]}
+                    onChange={(event) => setPaymentForm((current) => ({ ...current, [field]: event.target.value }))}
+                    autoComplete="off"
+                    disabled={paymentSubmitting}
+                  />
+                ))}
+                {paymentError && <p className="text-sm text-error-700">{paymentError}</p>}
+                <div className="flex justify-end gap-3 pt-2">
+                  {paymentDetails && (
+                    <Button variant="ghost" onClick={() => setPaymentEditing(false)} disabled={paymentSubmitting}>
+                      Cancel
+                    </Button>
+                  )}
+                  <Button onClick={() => void savePaymentDetails()} loading={paymentSubmitting} loadingText="Saving...">
+                    Save Payment Details
+                  </Button>
+                </div>
+              </div>
+            ) : paymentDetails ? (
+              <dl className="grid gap-4 sm:grid-cols-2">
+                <div><dt className="text-sm text-neutral-500">Bank Name</dt><dd className="mt-1 font-medium text-neutral-900">{paymentDetails.bankName}</dd></div>
+                <div><dt className="text-sm text-neutral-500">Account Title</dt><dd className="mt-1 font-medium text-neutral-900">{paymentDetails.accountTitle}</dd></div>
+                <div><dt className="text-sm text-neutral-500">Account Number</dt><dd className="mt-1 font-medium text-neutral-900">{maskSensitive(paymentDetails.accountNumber)}</dd></div>
+                <div><dt className="text-sm text-neutral-500">IBAN</dt><dd className="mt-1 font-medium text-neutral-900">{maskSensitive(paymentDetails.iban)}</dd></div>
+              </dl>
+            ) : null}
+          </div>
+        </div>
+      )}
 
       {user.role === 'ORG_ADMIN' && (
         <div className="mt-6">

@@ -699,6 +699,7 @@ enum PaymentStatus {
 enum PaymentMethod {
   COD
   BANK_TRANSFER
+  STRIPE
 }
 
 enum NotificationType {

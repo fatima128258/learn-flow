@@ -23,7 +23,7 @@ export interface PendingOrderData {
   unitPrice: number;
   totalAmount: number;
   currency: string;
-  paymentMethod?: 'COD' | 'BANK_TRANSFER' | 'MOCK' | null;
+  paymentMethod?: 'COD' | 'BANK_TRANSFER' | 'MOCK' | 'STRIPE' | null;
 }
 
 export async function createPendingOrder(data: PendingOrderData) {
@@ -90,6 +90,13 @@ export async function findPendingOrderForUser(orderId: string, userId: string, o
   });
 }
 
+export async function findOrderForUser(orderId: string, userId: string, organizationId: string) {
+  return prisma().order.findFirst({
+    where: { id: orderId, userId, organizationId },
+    include: { items: true, payments: true },
+  });
+}
+
 export async function findPendingOrderForCourse(userId: string, organizationId: string, courseId: string) {
   return prisma().order.findFirst({
     where: {
@@ -100,6 +107,30 @@ export async function findPendingOrderForCourse(userId: string, organizationId: 
     },
     include: { items: true, payments: true },
   });
+}
+
+export async function setStripeCheckoutSession(data: {
+  orderId: string;
+  paymentId: string;
+  userId: string;
+  organizationId: string;
+  sessionId: string;
+}) {
+  const result = await prisma().payment.updateMany({
+    where: {
+      id: data.paymentId,
+      orderId: data.orderId,
+      userId: data.userId,
+      organizationId: data.organizationId,
+      status: 'PENDING',
+      paymentMethod: 'STRIPE',
+    },
+    data: {
+      provider: 'STRIPE',
+      providerRef: data.sessionId,
+    },
+  });
+  if (result.count !== 1) throw new Error('PAYMENT_NOT_PENDING');
 }
 
 export async function listPendingManualPaymentCourseIds(userId: string, organizationId: string) {
@@ -332,7 +363,7 @@ export async function completeOrderWithPurchase(data: {
   userId: string;
   organizationId: string;
   providerRef: string;
-  paymentMethod?: 'COD' | 'BANK_TRANSFER' | 'MOCK';
+  paymentMethod?: 'COD' | 'BANK_TRANSFER' | 'MOCK' | 'STRIPE';
 }) {
   return prisma().$transaction(async (tx) => {
     const order = await tx.order.findFirst({

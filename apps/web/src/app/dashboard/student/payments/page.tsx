@@ -10,7 +10,7 @@ import { currency } from '@/lib/types';
 type StudentPayment = {
   id: string;
   status: 'PENDING' | 'SUCCEEDED' | 'FAILED';
-  paymentMethod: 'COD' | 'BANK_TRANSFER' | null;
+  paymentMethod: 'COD' | 'BANK_TRANSFER' | 'STRIPE' | null;
   transactionId: string | null;
   amount: number;
   currency: string;
@@ -68,7 +68,7 @@ export default function StudentPaymentsPage() {
     return payments.filter((payment) => {
       const courseTitle = payment.order.items[0]?.courseTitle ?? '';
       const status = paymentStatus(payment).label;
-      const method = payment.paymentMethod === 'BANK_TRANSFER' ? 'bank transfer' : payment.paymentMethod === 'COD' ? 'cash on delivery cod' : '';
+      const method = payment.paymentMethod === 'STRIPE' ? 'stripe' : payment.paymentMethod === 'BANK_TRANSFER' ? 'bank transfer' : payment.paymentMethod === 'COD' ? 'cash on delivery cod' : '';
       return [courseTitle, payment.transactionId, status, method]
         .some((value) => value?.toLowerCase().includes(query));
     });
@@ -141,7 +141,7 @@ export default function StudentPaymentsPage() {
                     <tr key={payment.id} className="border-t border-neutral-200">
                       <td className="px-6 py-4 font-medium text-neutral-900">{courseTitle}</td>
                       <td className="px-6 py-4 text-neutral-700">
-                        {payment.paymentMethod === 'BANK_TRANSFER' ? 'Bank Transfer' : payment.paymentMethod === 'COD' ? 'Cash on Delivery' : '—'}
+                        {payment.paymentMethod === 'STRIPE' ? 'Stripe' : payment.paymentMethod === 'BANK_TRANSFER' ? 'Bank Transfer' : payment.paymentMethod === 'COD' ? 'Cash on Delivery' : '—'}
                       </td>
                       <td className="px-6 py-4 text-neutral-700">{payment.transactionId || '—'}</td>
                       <td className="px-6 py-4 font-medium text-neutral-900">{currency(payment.amount)}</td>
@@ -173,7 +173,7 @@ export default function StudentPaymentsPage() {
                   <dl className="mt-4 space-y-2 text-sm">
                     <div className="flex justify-between gap-3">
                       <dt className="text-neutral-500">Method</dt>
-                      <dd className="text-right text-neutral-700">{payment.paymentMethod === 'BANK_TRANSFER' ? 'Bank Transfer' : payment.paymentMethod === 'COD' ? 'Cash on Delivery' : '—'}</dd>
+                      <dd className="text-right text-neutral-700">{payment.paymentMethod === 'STRIPE' ? 'Stripe' : payment.paymentMethod === 'BANK_TRANSFER' ? 'Bank Transfer' : payment.paymentMethod === 'COD' ? 'Cash on Delivery' : '—'}</dd>
                     </div>
                     <div className="flex justify-between gap-3">
                       <dt className="text-neutral-500">Transaction ID</dt>
