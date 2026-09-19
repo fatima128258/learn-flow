@@ -62,11 +62,14 @@ export default function SettingsPage() {
   const [paymentError, setPaymentError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (user?.role !== 'INSTRUCTOR' || !user.organizationId) return;
+    if ((user?.role !== 'INSTRUCTOR' && user?.role !== 'ORG_ADMIN') || !user.organizationId) return;
     let active = true;
     setPaymentLoading(true);
+    const paymentDetailsPath = user.role === 'ORG_ADMIN'
+      ? '/api/v1/organizations/org/payment-details'
+      : `/api/v1/organizations/${user.organizationId}/instructor/payment-details`;
     getJson<{ data: PaymentDetails | null }>(
-      `/api/v1/organizations/${user.organizationId}/instructor/payment-details`,
+      paymentDetailsPath,
     )
       .then((response) => {
         if (!active) return;
@@ -103,8 +106,11 @@ export default function SettingsPage() {
     setPaymentSubmitting(true);
     setPaymentError(null);
     try {
+      const paymentDetailsPath = user.role === 'ORG_ADMIN'
+        ? '/api/v1/organizations/org/payment-details'
+        : `/api/v1/organizations/${user.organizationId}/instructor/payment-details`;
       const response = await patchJson<{ data: PaymentDetails }>(
-        `/api/v1/organizations/${user.organizationId}/instructor/payment-details`,
+        paymentDetailsPath,
         {
           bankName: values.bankName,
           ...(values.accountNumber ? { accountNumber: values.accountNumber } : {}),
@@ -373,7 +379,7 @@ export default function SettingsPage() {
         </form>
       </div>
 
-      {user.role === 'INSTRUCTOR' && (
+      {(user.role === 'INSTRUCTOR' || user.role === 'ORG_ADMIN') && (
         <div className="mt-6 rounded-2xl border border-neutral-200 bg-white shadow-sm">
           <div className="flex items-center justify-between border-b border-neutral-200 px-6 py-4">
             <SectionHeader
