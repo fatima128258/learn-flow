@@ -328,7 +328,9 @@ export async function requestPasswordReset(input: string | { email: string; ip?:
         });
       });
   } else {
-    if (process.env.EMAIL_ASYNC_DELIVERY === 'true') {
+    const asyncDelivery = process.env.EMAIL_ASYNC_DELIVERY === 'true'
+      || process.env.NODE_ENV === 'production';
+    if (asyncDelivery) {
       void sendPasswordResetCodeEmail(normalizedEmail, code).catch((err) => {
         console.error('Failed to send password reset code email:', err);
       });
