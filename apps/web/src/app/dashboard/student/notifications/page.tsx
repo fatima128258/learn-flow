@@ -284,7 +284,11 @@ export default function StudentNotificationsPage() {
               >
                 <div className="mb-2 flex items-center justify-between gap-3">
                   <div className="flex items-center gap-2">
-                    {!n.read && <Badge variant="primary" size="sm">New</Badge>}
+                    {!n.read && (
+                      <span className="hidden sm:inline-flex">
+                        <Badge variant="primary" size="sm">New</Badge>
+                      </span>
+                    )}
                     {n.read && <span className="text-xs text-neutral-400">Read</span>}
                     <span className="text-xs text-neutral-400">{formatDate(n.createdAt)}</span>
                   </div>
@@ -292,7 +296,7 @@ export default function StudentNotificationsPage() {
                     <button
                       onClick={() => markAsRead(n.id)}
                       disabled={markingInProgress.has(n.id)}
-                      className="text-xs font-medium text-primary-600 hover:text-primary-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                      className="whitespace-nowrap text-xs font-medium text-primary-600 hover:text-primary-700 disabled:cursor-not-allowed disabled:opacity-50 transition-colors"
                     >
                       {markingInProgress.has(n.id) ? 'Marking...' : 'Mark as read'}
                     </button>

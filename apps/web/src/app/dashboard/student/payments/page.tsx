@@ -92,7 +92,7 @@ export default function StudentPaymentsPage() {
           placeholder="Search by course, method, status, or transaction ID"
           value={searchInput}
           onChange={(event) => setSearchInput(event.target.value)}
-          className="max-w-xl"
+          className="mx-auto w-[calc(100%-0.5rem)] max-w-xl sm:mx-0 sm:w-auto"
         />
         <ViewToggle
           value={viewMode}
