@@ -142,7 +142,7 @@ export default function StudentCoursePage() {
   }, [organizationId, courseId, router]);
 
   if (!mounted || loading || userLoading) {
-    return <PageLoading />;
+    return <PageLoading dashboard />;
   }
 
   return (
@@ -209,7 +209,7 @@ export default function StudentCoursePage() {
                       <div className="group p-5 transition-all">
                         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                           <div className="flex items-start sm:items-center gap-4 min-w-0">
-                            <div className={`flex h-10 w-10 items-center justify-center rounded-lg text-sm font-bold ${isLocked ? 'bg-neutral-100 text-neutral-400' : isExpanded ? 'bg-primary-100 text-primary-800' : 'bg-primary-50 text-primary-700'}`}>
+                            <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full px-2 text-sm font-bold ${isLocked ? 'bg-neutral-100 text-neutral-400' : isExpanded ? 'bg-primary-100 text-primary-800' : 'bg-primary-50 text-primary-700'}`}>
                               {isLocked ? '🔒' : index + 1}
                             </div>
                             <div className="min-w-0">

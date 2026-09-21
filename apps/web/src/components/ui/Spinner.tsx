@@ -76,12 +76,20 @@ export const ButtonSpinner: React.FC<{ className?: string }> = ({ className = ''
 ButtonSpinner.displayName = 'ButtonSpinner';
 
 /** Centered page-level loader for route/async data loading. */
-export const PageLoader: React.FC<{ label?: string; className?: string; compact?: boolean }> = ({
+export const PageLoader: React.FC<{ label?: string; className?: string; compact?: boolean; dashboard?: boolean }> = ({
   label = 'Loading...',
   className = '',
   compact = false,
+  dashboard = false,
 }) => (
-  <div className={`flex min-h-[calc(100vh-4rem)] w-full items-center justify-center ${compact ? 'min-h-0 py-16' : 'py-16'} ${className}`.trim()} role="status">
+  <div
+    className={`flex ${
+      dashboard
+        ? '-m-4 min-h-[calc(100dvh-4rem)] w-[calc(100%+2rem)] sm:-m-6 sm:min-h-[calc(100dvh-4rem)] sm:w-[calc(100%+3rem)] lg:-m-8 lg:min-h-[calc(100dvh-4rem)] lg:w-[calc(100%+4rem)]'
+        : 'min-h-[calc(100vh-4rem)] w-full'
+    } items-center justify-center ${compact ? 'min-h-0 py-16' : 'py-16'} ${className}`.trim()}
+    role="status"
+  >
     <div className="flex flex-col items-center gap-3">
     <Spinner size="lg" label={label} />
       <span className="text-sm font-medium text-neutral-500">{label}</span>
@@ -91,8 +99,16 @@ export const PageLoader: React.FC<{ label?: string; className?: string; compact?
 
 PageLoader.displayName = 'PageLoader';
 
-export const PageLoading: React.FC = () => (
-  <div className="flex min-h-[calc(100vh-4rem)] w-full items-center justify-center py-16" role="status" aria-label="Loading">
+export const PageLoading: React.FC<{ dashboard?: boolean }> = ({ dashboard = false }) => (
+  <div
+    className={`flex ${
+      dashboard
+        ? '-m-4 min-h-[calc(100dvh-4rem)] w-[calc(100%+2rem)] sm:-m-6 sm:min-h-[calc(100dvh-4rem)] sm:w-[calc(100%+3rem)] lg:-m-8 lg:min-h-[calc(100dvh-4rem)] lg:w-[calc(100%+4rem)]'
+        : 'min-h-[calc(100dvh-4rem)] w-full'
+    } items-center justify-center ${dashboard ? '' : 'py-16'}`.trim()}
+    role="status"
+    aria-label="Loading"
+  >
     <div className="flex flex-col items-center gap-3">
       <Spinner size="lg" label="Loading..." />
       <span className="text-sm font-medium text-neutral-500">Loading...</span>

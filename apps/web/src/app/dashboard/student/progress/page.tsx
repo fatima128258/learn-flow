@@ -53,7 +53,8 @@ function CourseCard({ course }: { course: CourseProgress }) {
             onClick={() => setIsDrawerOpen(true)}
             className="flex-1 rounded-lg bg-[#5a321f] px-4 py-2 text-sm font-medium text-white hover:bg-[#472719]"
           >
-            View modules
+            <span className="sm:hidden">View</span>
+            <span className="hidden sm:inline">View modules</span>
           </button>
         </div>
 

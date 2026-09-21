@@ -319,7 +319,7 @@ export default function StudentQuizTakingPage() {
   }
 
   if (loading) {
-    return <PageLoading />;
+    return <PageLoading dashboard />;
   }
 
   const attemptsRemaining = quiz?.attempts.remaining ?? null;
@@ -362,16 +362,16 @@ export default function StudentQuizTakingPage() {
                   )}
                   </svg>
                 </div>
-                <div>
-                  <p className={`text-xs font-bold uppercase tracking-[0.16em] ${result.passed ? 'text-[#7a4a2e]' : 'text-[#a94442]'}`}>
+                <div className="min-w-0 flex-1">
+                  <p className={`break-words text-xs font-bold uppercase tracking-[0.12em] sm:tracking-[0.16em] ${result.passed ? 'text-[#7a4a2e]' : 'text-[#a94442]'}`}>
                     {result.passed ? 'Quiz passed' : 'Quiz not passed'}
                   </p>
-                  <h1 className="mt-1 text-2xl font-bold tracking-tight text-[#17212b] sm:text-3xl">
+                  <h1 className="mt-1 break-words text-2xl font-bold tracking-tight text-[#17212b] sm:text-3xl">
                     {courseCompleted ? 'Course completed!' : result.passed ? 'Congratulations!' : 'Keep practicing'}
                   </h1>
                 </div>
               </div>
-              <p className="relative mt-4 text-sm leading-6 text-[#5f6368] sm:ml-[3.5rem]">
+              <p className="relative mt-4 break-words text-sm leading-6 text-[#5f6368] sm:ml-[3.5rem]">
                 {courseCompleted ? (
                   'Amazing work! You successfully completed all modules in this course.'
                 ) : (

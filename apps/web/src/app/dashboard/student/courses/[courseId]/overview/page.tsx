@@ -259,7 +259,7 @@ export default function StudentCourseOverviewPage() {
   }
 
   if (loading) {
-    return <PageLoader label="Loading course..." />;
+    return <PageLoader label="Loading course..." dashboard />;
   }
 
   return (

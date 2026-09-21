@@ -185,37 +185,37 @@ export default function CheckoutPage() {
 
   if (order?.status === 'PAID') {
     return (
-      <main className="min-h-screen bg-neutral-50 p-8">
+      <main className="min-h-screen bg-neutral-50 p-4 sm:p-8">
         <div className="mx-auto max-w-2xl">
           <Card>
-            <div className="flex flex-col items-center py-6 text-center">
+            <div className="flex min-w-0 flex-col items-center py-4 text-center sm:py-6">
               <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-success-100 text-success-600">
                 <svg className="h-8 w-8" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
                   <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                 </svg>
               </div>
-              <h1 className="text-2xl font-bold text-neutral-900">Payment Successful</h1>
-              <p className="mt-2 max-w-md text-sm text-neutral-600">
+              <h1 className="text-2xl font-bold text-neutral-900 sm:text-3xl">Payment Successful</h1>
+              <p className="mt-2 max-w-md text-sm leading-6 text-neutral-600">
                 You have purchased <span className="font-semibold text-neutral-900">{course.title}</span>.
                 Your course is now ready in your dashboard.
               </p>
               <dl className="mt-6 w-full max-w-sm space-y-2 rounded-xl border border-neutral-200 bg-neutral-50 p-4 text-sm">
-                <div className="flex justify-between">
+                <div className="flex min-w-0 items-start justify-between gap-4">
                   <dt className="text-neutral-500">Order</dt>
-                  <dd className="font-medium text-neutral-900">{order.id}</dd>
+                  <dd className="min-w-0 break-all text-right font-medium text-neutral-900">{order.id}</dd>
                 </div>
-                <div className="flex justify-between">
+                <div className="flex items-center justify-between gap-4">
                   <dt className="text-neutral-500">Status</dt>
                   <dd><Badge variant="success" size="sm">{order.status}</Badge></dd>
                 </div>
-                <div className="flex justify-between">
+                <div className="flex items-center justify-between gap-4">
                   <dt className="text-neutral-500">Total</dt>
                   <dd className="font-bold text-neutral-900">{currency(order.totalAmount)}</dd>
                 </div>
               </dl>
-              <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-                <LinkButton href={`/dashboard/student/courses/${course.id}`}>Start learning</LinkButton>
-                <LinkButton href="/dashboard/student" variant="cream">Back to my courses</LinkButton>
+              <div className="mt-8 flex w-full max-w-sm flex-col gap-3 sm:flex-row">
+                <LinkButton className="w-full" href={`/dashboard/student/courses/${course.id}`}>Start learning</LinkButton>
+                <LinkButton className="w-full" href="/dashboard/student" variant="cream">Back to my courses</LinkButton>
               </div>
             </div>
           </Card>

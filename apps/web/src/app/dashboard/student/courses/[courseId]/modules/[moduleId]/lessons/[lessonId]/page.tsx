@@ -321,7 +321,7 @@ export default function StudentLessonPage() {
   }
 
   if (loading) {
-    return <PageLoading />;
+    return <PageLoading dashboard />;
   }
 
   return (

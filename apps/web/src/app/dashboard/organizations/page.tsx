@@ -12,6 +12,7 @@ import {
   ErrorState,
   Input,
   Modal,
+  PageLoader,
   Spinner,
   ViewToggle,
 } from '../../../components/ui';
@@ -737,11 +738,7 @@ export default function OrganizationsPage() {
     : [];
 
   if (loading && organizations === null && !error) {
-    return (
-      <div className="flex min-h-[calc(100vh-4rem)] w-full items-center justify-center" role="status" aria-label="Loading organizations">
-        <Spinner size="lg" label="Loading organizations..." />
-      </div>
-    );
+    return <PageLoader label="Loading organizations..." dashboard />;
   }
 
   return (
