@@ -91,7 +91,7 @@ export async function searchCourses(organizationId: string, userId: string, rawI
   const [results, total, pendingManualPaymentCourseIds] = await Promise.all([
     searchRepo.searchPublishedCourses(organizationId, filters, { skip, take, orderBy }, userId),
     searchRepo.countPublishedCourses(organizationId, filters),
-    orderRepo.listPendingManualPaymentCourseIds(userId, organizationId),
+    orderRepo.listPendingPaymentCourseIds(userId, organizationId),
   ]);
 
   return {

@@ -322,9 +322,8 @@ Create a `.env` file in the root directory based on `.env.example`:
 | `POSTGRES_DB` | Database name | `learnflow_db` |
 | `DATABASE_URL` | Prisma connection string | postgresql://learnflow:learnflow_pass@localhost:5432/learnflow_db |
 | `REDIS_URL` | Redis connection | redis://localhost:6379 |
-| `MAIL_SMTP_HOST` | SMTP server hostname | localhost |
-| `MAIL_SMTP_PORT` | SMTP server port | 1025 |
-| `MAIL_FROM` | Email sender address | no-reply@learnflow.local |
+| `EMAIL_API_KEY` | Resend HTTPS API key | — |
+| `MAIL_FROM` | Verified sender address | no-reply@your-verified-domain.example |
 | `APP_URL` | Frontend application URL | http://localhost:3000 |
 | `SESSION_COOKIE_NAME` | Session cookie name | learnflow_session |
 | `SESSION_COOKIE_SECURE` | HTTPS only cookies | false |

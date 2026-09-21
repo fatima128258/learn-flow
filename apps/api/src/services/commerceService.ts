@@ -316,15 +316,16 @@ async function assertReviewAuthorization(
   const courseId = payment.order.items[0]?.courseId;
   if (!courseId) throw new Error('ORDER_ITEM_NOT_FOUND');
 
-  const course = await courseRepo.getById(organizationId, courseId);
+  const [course, hasOrgAdmin, hasPlatformAdmin] = await Promise.all([
+    courseRepo.getById(organizationId, courseId),
+    prisma.userOrganization.findFirst({
+      where: { userId: reviewerUserId, organizationId, role: 'ORG_ADMIN' },
+    }),
+    prisma.userOrganization.findFirst({
+      where: { userId: reviewerUserId, organizationId, role: 'PLATFORM_ADMIN' },
+    }),
+  ]);
   if (!course) throw new Error('COURSE_NOT_FOUND');
-
-  const hasOrgAdmin = await prisma.userOrganization.findFirst({
-    where: { userId: reviewerUserId, organizationId, role: 'ORG_ADMIN' },
-  });
-  const hasPlatformAdmin = await prisma.userOrganization.findFirst({
-    where: { userId: reviewerUserId, organizationId, role: 'PLATFORM_ADMIN' },
-  });
 
   if (hasOrgAdmin || hasPlatformAdmin || course.instructorUserId === reviewerUserId) {
     return payment;

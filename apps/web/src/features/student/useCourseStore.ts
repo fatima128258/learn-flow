@@ -23,6 +23,7 @@ export function useCourseOverview(organizationId: string, courseId: string) {
 }
 
 export function useCheckoutOrder(organizationId: string, courseId: string, paymentMethod: PaymentMethod = 'MOCK') {
+  const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async () => {
       const body = await postJsonWithTimeout<{ data?: Order & { stripeCheckoutUrl?: string } }>(
@@ -31,6 +32,10 @@ export function useCheckoutOrder(organizationId: string, courseId: string, payme
         paymentMethod === 'STRIPE' ? 15000 : 30000,
       );
       return body.data ?? null;
+    },
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ['student', 'payments', organizationId] });
+      void queryClient.invalidateQueries({ queryKey: ['student', 'payments', 'pending-playlist', organizationId] });
     },
   });
 }
@@ -72,7 +77,8 @@ export function useSubmitManualPayment(organizationId: string, orderId: string |
       return body.data ?? null;
     },
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: courseOverviewKey(organizationId, 'all') });
+      void queryClient.invalidateQueries({ queryKey: ['student', 'payments', organizationId] });
+      void queryClient.invalidateQueries({ queryKey: ['student', 'payments', 'pending-playlist', organizationId] });
     },
   });
 }

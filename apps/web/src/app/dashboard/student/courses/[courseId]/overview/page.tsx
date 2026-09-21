@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { createPortal } from 'react-dom';
+import { useQuery } from '@tanstack/react-query';
 import {
   Button,
   ErrorState,
@@ -21,6 +22,7 @@ import { getPurchaseErrorMessage } from '@/features/student/courseErrors';
 import { useCurrentUser } from '@/features/auth/useCurrentUser';
 import { getCoursePricing } from '@/lib/coursePricing';
 import { currency } from '@/lib/types';
+import { getJson } from '@/lib/api';
 
 type CourseOverview = {
   id: string;
@@ -42,6 +44,14 @@ type CourseOverview = {
   lessonCount: number;
   quizCount: number;
   isEnrolled: boolean;
+};
+
+type StudentPayment = {
+  status: string;
+  paymentMethod: PaymentMethod | null;
+  order: {
+    items: Array<{ courseId: string }>;
+  };
 };
 
 function formatPrice(value: number | null): string {
@@ -79,6 +89,7 @@ export default function StudentCourseOverviewPage() {
   const [transactionId, setTransactionId] = useState('');
   const [manualPaymentError, setManualPaymentError] = useState('');
   const [manualPaymentSubmitted, setManualPaymentSubmitted] = useState(false);
+  const [hasPendingPurchase, setHasPendingPurchase] = useState(false);
   const [order, setOrder] = useState<{
     id: string;
     status: string;
@@ -90,6 +101,23 @@ export default function StudentCourseOverviewPage() {
   const enrollMutation = useEnroll(organizationId || '', courseId || '');
   const checkoutMutation = useCheckoutOrder(organizationId || '', courseId || '', selectedPaymentMethod);
   const submitManualPayment = useSubmitManualPayment(organizationId || '', order?.id ?? null);
+  const { data: studentPayments = [] } = useQuery({
+    queryKey: ['student', 'payments', organizationId],
+    queryFn: async () => {
+      const response = await getJson<{ data?: StudentPayment[] }>(
+        `/api/v1/organizations/${organizationId}/student/payments`,
+      );
+      return response.data ?? [];
+    },
+    enabled: Boolean(organizationId) && Boolean(courseId),
+  });
+
+  const hasPendingPayment = studentPayments.some(
+    (payment) =>
+      payment.status === 'PENDING' &&
+      (payment.paymentMethod === 'COD' || payment.paymentMethod === 'BANK_TRANSFER') &&
+      payment.order.items.some((item) => item.courseId === courseId),
+  );
 
   // Check auth and set organizationId
   useEffect(() => {
@@ -175,6 +203,9 @@ export default function StudentCourseOverviewPage() {
             totalAmount: data.totalAmount,
             paymentMethod: selectedPaymentMethod,
           });
+          if (selectedPaymentMethod === 'COD' || selectedPaymentMethod === 'BANK_TRANSFER') {
+            setHasPendingPurchase(true);
+          }
         }
       },
       onError: (error) => {
@@ -200,6 +231,7 @@ export default function StudentCourseOverviewPage() {
       {
         onSuccess: () => {
           setManualPaymentSubmitted(true);
+          setHasPendingPurchase(true);
           toast.success('Payment submitted. The course owner must verify it before access is unlocked.');
         },
         onError: () => {
@@ -287,6 +319,14 @@ export default function StudentCourseOverviewPage() {
                     onClick={() => router.push(`/dashboard/student/courses/${courseId}`)}
                   >
                     Continue Learning
+                  </Button>
+                ) : course.price !== null && course.price > 0 && (hasPendingPurchase || hasPendingPayment) ? (
+                  <Button
+                    size="md"
+                    className="text-sm"
+                    disabled
+                  >
+                    Purchase Pending Review
                   </Button>
                 ) : course.price !== null && course.price > 0 ? (
                   <Button
@@ -436,7 +476,7 @@ export default function StudentCourseOverviewPage() {
                     </Button>
                     {selectedPaymentMethod === 'BANK_TRANSFER' && !manualPaymentSubmitted && (
                       <Button onClick={handleManualSubmit} loading={submitManualPayment.isPending} loadingText="Submitting...">
-                        Submit payment details
+                        Submit payment
                       </Button>
                     )}
                     {selectedPaymentMethod === 'COD' && !manualPaymentSubmitted && (

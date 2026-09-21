@@ -491,10 +491,9 @@ DATABASE_URL=postgresql://user:pass@localhost:5432/db
 # Redis
 REDIS_URL=redis://localhost:6379
 
-# Email
-MAIL_SMTP_HOST=mailpit
-MAIL_SMTP_PORT=1025
-MAIL_FROM=no-reply@learnflow.local
+# Email (Resend HTTPS API)
+EMAIL_API_KEY=your-resend-api-key
+MAIL_FROM=no-reply@your-verified-domain.example
 
 # App
 APP_URL=http://localhost:3000

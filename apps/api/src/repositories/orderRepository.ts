@@ -133,13 +133,12 @@ export async function setStripeCheckoutSession(data: {
   if (result.count !== 1) throw new Error('PAYMENT_NOT_PENDING');
 }
 
-export async function listPendingManualPaymentCourseIds(userId: string, organizationId: string) {
+export async function listPendingPaymentCourseIds(userId: string, organizationId: string) {
   const payments = await prisma().payment.findMany({
     where: {
       userId,
       organizationId,
       status: 'PENDING',
-      paymentMethod: { in: ['COD', 'BANK_TRANSFER'] },
       order: { status: 'PENDING' },
     },
     select: {

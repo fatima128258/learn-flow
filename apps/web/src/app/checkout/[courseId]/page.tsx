@@ -215,7 +215,7 @@ export default function CheckoutPage() {
               </dl>
               <div className="mt-8 flex flex-col gap-3 sm:flex-row">
                 <LinkButton href={`/dashboard/student/courses/${course.id}`}>Start learning</LinkButton>
-                <LinkButton href="/dashboard/student" variant="outline">Back to my courses</LinkButton>
+                <LinkButton href="/dashboard/student" variant="cream">Back to my courses</LinkButton>
               </div>
             </div>
           </Card>
@@ -301,7 +301,7 @@ export default function CheckoutPage() {
                       error={manualPaymentError}
                     />
                     <Button onClick={handleManualSubmit} loading={submitManualPayment.isPending} fullWidth>
-                      Submit payment details
+                      Submit payment
                     </Button>
                   </div>
                 </div>

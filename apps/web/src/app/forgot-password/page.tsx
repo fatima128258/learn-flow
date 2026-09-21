@@ -106,11 +106,6 @@ export default function ForgotPasswordPage() {
     });
   };
 
-  const handleVerifyCode = async (e: React.FormEvent) => {
-    e.preventDefault();
-    await verifyCode(code.trim());
-  };
-
   const handleCodeChange = (index: number, value: string) => {
     const digits = value.replace(/\D/g, '');
     const nextCode = code.split('');
@@ -166,7 +161,7 @@ export default function ForgotPasswordPage() {
           linkHref: '/login'
         }}
       >
-        <form onSubmit={step === 'email' ? handleRequestCode : handleVerifyCode} noValidate>
+        <form onSubmit={step === 'email' ? handleRequestCode : (event) => event.preventDefault()} noValidate>
           <Stack spacing="md">
             {step === 'email' ? (
               <Input
@@ -209,15 +204,22 @@ export default function ForgotPasswordPage() {
               </div>
             )}
 
-            <SubmitButton
-              loading={isSubmitting}
-              loadingText={step === 'email' ? 'Sending...' : 'Verifying...'}
-              disabled={success && step === 'email'}
-            >
-              {step === 'email' ? 'Send Verification Code' : 'Verify Code'}
-            </SubmitButton>
+            {step === 'email' && (
+              <SubmitButton
+                loading={isSubmitting}
+                loadingText="Sending..."
+                disabled={success}
+              >
+                Send Verification Code
+              </SubmitButton>
+            )}
             {step === 'verify' && (
-              <button type="button" className="text-sm font-medium text-[#7a4a2e]" onClick={handleResendCode} disabled={isSubmitting}>
+              <button
+                type="button"
+                className="w-full rounded-xl bg-[#5a321f] px-4 py-3 text-sm font-semibold text-white transition-colors hover:bg-[#7a4a2e] disabled:cursor-not-allowed disabled:opacity-60"
+                onClick={handleResendCode}
+                disabled={isSubmitting}
+              >
                 Resend Code
               </button>
             )}

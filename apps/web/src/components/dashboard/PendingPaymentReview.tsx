@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Badge, Button, Drawer, EmptyState, Input, Modal, Spinner, ViewToggle } from '@/components/ui';
 import { TableCard, tableCellClass, tableHeadClass, tableRowHoverClass } from './TableCard';
 import { getJson, postJson } from '@/lib/api';
@@ -120,6 +120,7 @@ function PaymentActionsMenu({
 }
 
 export function PendingPaymentReview({ organizationId }: { organizationId: string }) {
+  const queryClient = useQueryClient();
   const [rejectingId, setRejectingId] = useState<string | null>(null);
   const [rejectReason, setRejectReason] = useState('');
   const [workingId, setWorkingId] = useState<string | null>(null);
@@ -156,10 +157,21 @@ export function PendingPaymentReview({ organizationId }: { organizationId: strin
 
   async function handleApprove(paymentId: string) {
     setWorkingId(paymentId);
+    setSelectedPayment(null);
     try {
-      await postJson(`/api/v1/organizations/${organizationId}/payments/${paymentId}/approve`, {});
-      const refreshed = await refetch();
-      setSelectedPayment(refreshed.data?.find((payment) => payment.id === paymentId) ?? null);
+      const response = await postJson<{ data?: { payment?: { status: 'SUCCEEDED' } } }>(
+        `/api/v1/organizations/${organizationId}/payments/${paymentId}/approve`,
+        {},
+      );
+      if (response.data?.payment?.status === 'SUCCEEDED') {
+        queryClient.setQueryData<PendingPaymentListItem[]>(
+          ['payments', 'pending', organizationId],
+          (current) => current?.map((payment) => payment.id === paymentId
+            ? { ...payment, status: 'SUCCEEDED', order: { ...payment.order, status: 'PAID' } }
+            : payment),
+        );
+        void refetch();
+      }
     } finally {
       setWorkingId(null);
     }

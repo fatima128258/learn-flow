@@ -1,5 +1,3 @@
-import nodemailer from 'nodemailer';
-import type { Transporter } from 'nodemailer';
 import { NotificationType } from '@prisma/client';
 
 interface MailOptions {
@@ -105,57 +103,40 @@ export async function sendNotificationEmail(type: NotificationType, ctx: Notific
   return sendMail({ to: ctx.to, subject, html });
 }
 
-let transporter: Transporter | null = null;
-
-export function getTransporter() {
-  if (!transporter) {
-    const host = process.env.MAIL_SMTP_HOST || 'localhost';
-    const port = Number(process.env.MAIL_SMTP_PORT || '1025');
-    const configuredTimeout = Number(process.env.MAIL_SMTP_TIMEOUT_MS || '10000');
-    const timeout = Number.isFinite(configuredTimeout) && configuredTimeout > 0
-      ? configuredTimeout
-      : 10000;
-    const configuredFamily = Number(process.env.MAIL_SMTP_IP_FAMILY || '4');
-    const family: 4 | 6 = configuredFamily === 6 ? 6 : 4;
-    const user = process.env.MAIL_SMTP_USER;
-    const pass = process.env.MAIL_SMTP_PASS;
-
-    // For port 465: use implicit TLS (secure: true)
-    // For port 587: use explicit STARTTLS (secure: false, requireTLS: true)
-    // For local Mailpit (1025): no TLS, no auth
-    const isImplicitTLS = port === 465;
-    const isExplicitTLS = port === 587;
-    const requiresTLS = isImplicitTLS || isExplicitTLS;
-    const isLocalMailpit = port === 1025 || host === 'localhost' || host === 'mailpit';
-
-    const transportOptions: Parameters<typeof nodemailer.createTransport>[0] & { family: 4 | 6 } = {
-      host,
-      port,
-      secure: isImplicitTLS,
-      requireTLS: requiresTLS && !isLocalMailpit,
-      ignoreTLS: isLocalMailpit, // Mailpit doesn't require TLS
-      connectionTimeout: timeout,
-      greetingTimeout: timeout,
-      socketTimeout: timeout,
-      // Render instances may resolve SMTP hosts to IPv6 without an IPv6 route.
-      family,
-      // Only provide auth if BOTH username and password are set
-      auth: user && pass ? { user, pass } : undefined,
-    };
-    transporter = nodemailer.createTransport(transportOptions);
-  }
-  return transporter;
-}
-
 export async function sendMail(options: MailOptions) {
-  const from = process.env.MAIL_FROM || 'no-reply@learnflow.local';
-  const transport = getTransporter();
+  const apiKey = process.env.EMAIL_API_KEY;
+  const from = process.env.MAIL_FROM;
+  if (!apiKey || !from) {
+    console.error('Email API configuration is missing.');
+    throw new Error('EMAIL_DELIVERY_FAILED');
+  }
 
   try {
-    await transport.sendMail({
-      from,
-      ...options,
-    });
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 10000);
+    let response: Response;
+    try {
+      response = await fetch('https://api.resend.com/emails', {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${apiKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          from,
+          to: [options.to],
+          subject: options.subject,
+          html: options.html,
+        }),
+        signal: controller.signal,
+      });
+    } finally {
+      clearTimeout(timeoutId);
+    }
+
+    if (!response.ok) {
+      throw new Error(`Email API returned HTTP ${response.status}`);
+    }
     return true;
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Unknown email delivery error';

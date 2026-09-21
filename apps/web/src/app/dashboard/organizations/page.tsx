@@ -1022,7 +1022,39 @@ export default function OrganizationsPage() {
               <span className="mx-2 text-neutral-300">|</span>
               {membersData.members.length} member{membersData.members.length === 1 ? '' : 's'}
             </p>
-            <div className="overflow-hidden rounded-2xl border border-neutral-200 bg-white shadow-sm">
+            <div className="space-y-3 md:hidden">
+              {membersData.members.map((member) => (
+                <article
+                  key={member.id}
+                  className="rounded-xl border border-neutral-200 bg-white p-4 shadow-sm"
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <h3 className="truncate font-semibold text-neutral-900">
+                        {member.name ?? '—'}
+                      </h3>
+                      <p className="mt-1 break-all text-sm text-neutral-600">{member.email}</p>
+                    </div>
+                    <Badge
+                      variant={
+                        member.role === 'ORG_ADMIN'
+                          ? 'info'
+                          : member.role === 'INSTRUCTOR'
+                            ? 'warning'
+                            : 'default'
+                      }
+                      size="sm"
+                    >
+                      {member.role}
+                    </Badge>
+                  </div>
+                  <p className="mt-3 border-t border-neutral-100 pt-3 text-xs text-neutral-500">
+                    Joined {new Date(member.joinedAt).toLocaleDateString()}
+                  </p>
+                </article>
+              ))}
+            </div>
+            <div className="hidden overflow-hidden rounded-2xl border border-neutral-200 bg-white shadow-sm md:block">
               <table className="min-w-full divide-y divide-neutral-200">
                 <thead className="bg-neutral-50">
                   <tr>

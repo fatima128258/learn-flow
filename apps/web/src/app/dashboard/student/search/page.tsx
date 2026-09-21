@@ -206,21 +206,30 @@ export default function StudentSearchPage() {
               {results.map((course) => (
                 <div key={course.id} className="rounded-2xl border border-neutral-200 bg-white shadow-sm transition-all hover:border-primary-200 hover:shadow-md overflow-hidden">
                   {/* Thumbnail Image */}
-                  {course.thumbnailUrl ? (
-                    <div className="relative aspect-video w-full overflow-hidden bg-neutral-100">
+                  <div className="relative aspect-video w-full overflow-hidden bg-neutral-100">
+                    {course.thumbnailUrl ? (
                       <img
                         src={course.thumbnailUrl}
                         alt={course.title}
                         className="h-full w-full object-cover"
                       />
-                    </div>
-                  ) : (
-                    <div className="relative aspect-video w-full bg-gradient-to-br from-primary-100 to-primary-200 flex items-center justify-center">
+                    ) : (
+                    <div className="flex h-full items-center justify-center bg-gradient-to-br from-primary-100 to-primary-200">
                       <svg className="h-16 w-16 text-primary-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
                         <path strokeLinecap="round" strokeLinejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
                       </svg>
                     </div>
                   )}
+                    {course.hasPendingPayment && (
+                      <Badge
+                        variant="warning"
+                        size="sm"
+                        className="absolute left-4 top-4 bg-white text-[#b45309] shadow-sm"
+                      >
+                        Pending Approval
+                      </Badge>
+                    )}
+                  </div>
                   
                   <div className="p-6">
                     <h3
@@ -233,11 +242,6 @@ export default function StudentSearchPage() {
                       <p className="mt-1 text-sm text-neutral-500">
                         Instructor: {course.instructor.name}
                       </p>
-                    )}
-                    {course.hasPendingPayment && (
-                      <div className="mt-3">
-                        <Badge variant="warning" size="sm">Pending Approval</Badge>
-                      </div>
                     )}
                     <div className="mt-4 flex items-center gap-4 text-sm text-neutral-500">
                       <span>{course.enrollmentCount.toLocaleString()} enrolled</span>
